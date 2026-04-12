@@ -31,35 +31,35 @@ It connects to the official [EVE Swagger Interface (ESI)](https://esi.evetech.ne
 ### Training Overview
 > _Track skill queues across all characters simultaneously. See what's training, when it finishes, and which characters have empty queues._
 
-![Training Overview](screenshots/training.png)
+![Training Overview](Screenshots/training.png)
 
 ---
 
 ### Finances
 > _Wallet balances, market orders, escrow, and net worth — aggregated across all characters, with per-character breakdowns and charts._
 
-![Finances](screenshots/finances.png)
+![Finances](Screenshots/finances.png)
 
 ---
 
 ### Location & Ship
 > _Know where each of your pilots is and what they're flying, including security status and system details._
 
-![Location](screenshots/location.png)
+![Location](Screenshots/location.png)
 
 ---
 
 ### Assets
 > _Browse character and corporation asset inventories, with type icons, quantities, and locations._
 
-![Character Assets](screenshots/assets.png)
+![Character Assets](Screenshots/assets.png)
 
 ---
 
 ### Ships — Fittings
 > _Ship fittings, High Slots, Medium Slots, Low Slots, Drone Bay._
 
-![Corporation](screenshots/fittings.png)
+![Corporation](Screenshots/fittings.png)
 
 ---
 
