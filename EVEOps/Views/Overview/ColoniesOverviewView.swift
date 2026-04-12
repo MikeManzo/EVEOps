@@ -2,8 +2,9 @@ import SwiftUI
 
 struct ColoniesOverviewView: View {
     @Environment(AccountManager.self) private var accountManager
+    @Environment(DashboardPrefetcher.self) private var prefetcher
     @State private var colonies: [CharacterColonyGroup] = []
-    @State private var isLoading = true
+    @State private var isLoading = false
     @State private var error: String?
 
     var body: some View {
@@ -19,12 +20,45 @@ struct ColoniesOverviewView: View {
             }
         }
         .navigationTitle("Colonies Overview")
-        .task { await loadColonies() }
+        .task {
+            if buildFromPrefetcher() { return }
+            isLoading = true
+            await loadColonies()
+        }
+    }
+
+    private func buildFromPrefetcher() -> Bool {
+        var groups: [CharacterColonyGroup] = []
+        for account in accountManager.accounts {
+            guard let prefetched = prefetcher.data(for: account.characterID) else { return false }
+            var resolved: [ResolvedColony] = []
+            for colony in prefetched.colonies {
+                // Use pre-resolved system names
+                let systemName = prefetcher.resolvedNames[colony.solarSystemId]
+                    ?? prefetcher.resolvedSystems[colony.solarSystemId]?.name
+                    ?? "System #\(colony.solarSystemId)"
+                resolved.append(ResolvedColony(
+                    planetId: colony.planetId,
+                    planetType: colony.planetType,
+                    systemName: systemName,
+                    numPins: colony.numPins,
+                    upgradeLevel: colony.upgradeLevel,
+                    lastUpdate: colony.lastUpdate
+                ))
+            }
+            if !resolved.isEmpty {
+                groups.append(CharacterColonyGroup(characterName: account.characterName, colonies: resolved))
+            }
+        }
+        colonies = groups
+        return true
     }
 
     private func loadColonies() async {
-        isLoading = true
+        if colonies.isEmpty { isLoading = true }
+        error = nil
         var groups: [CharacterColonyGroup] = []
+        var lastError: Error?
         for account in accountManager.accounts {
             do {
                 let token = try await accountManager.validToken(for: account)
@@ -49,10 +83,13 @@ struct ColoniesOverviewView: View {
                     groups.append(CharacterColonyGroup(characterName: account.characterName, colonies: resolved))
                 }
             } catch {
-                // Skip
+                lastError = error
             }
         }
         colonies = groups
+        if groups.isEmpty, let lastError {
+            self.error = lastError.localizedDescription
+        }
         isLoading = false
     }
 }

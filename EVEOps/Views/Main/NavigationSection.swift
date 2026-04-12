@@ -60,10 +60,20 @@ enum NavigationSection: String, CaseIterable, Identifiable {
         }
     }
 
-    static var characterSections: [NavigationSection] {
-        [.location, .training, .finances, .assets, .clones,
-         .colonies, .contracts, .industry, .communications, .mails,
-         .killmails, .fittings, .calendar, .standings, .routePlanner]
+    static var pilotSections: [NavigationSection] {
+        [.location, .training, .clones, .standings]
+    }
+
+    static var economySections: [NavigationSection] {
+        [.finances, .assets, .contracts, .industry, .colonies]
+    }
+
+    static var combatSections: [NavigationSection] {
+        [.fittings, .killmails]
+    }
+
+    static var socialSections: [NavigationSection] {
+        [.mails, .communications, .calendar, .routePlanner]
     }
 
     static var corporationSections: [NavigationSection] {

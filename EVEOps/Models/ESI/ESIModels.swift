@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - Character
 
-struct ESICharacterPublic: Codable, Sendable {
+nonisolated struct ESICharacterPublic: Codable, Sendable {
     let allianceId: Int?
     let birthday: Date
     let bloodlineId: Int
@@ -15,7 +15,7 @@ struct ESICharacterPublic: Codable, Sendable {
     let title: String?
 }
 
-struct ESICharacterPortrait: Codable, Sendable {
+nonisolated struct ESICharacterPortrait: Codable, Sendable {
     let px64x64: String?
     let px128x128: String?
     let px256x256: String?
@@ -24,19 +24,19 @@ struct ESICharacterPortrait: Codable, Sendable {
 
 // MARK: - Location & Ship
 
-struct ESICharacterLocation: Codable, Sendable {
+nonisolated struct ESICharacterLocation: Codable, Sendable {
     let solarSystemId: Int
     let stationId: Int?
     let structureId: Int?
 }
 
-struct ESICharacterShip: Codable, Sendable {
+nonisolated struct ESICharacterShip: Codable, Sendable {
     let shipItemId: Int
     let shipName: String
     let shipTypeId: Int
 }
 
-struct ESICharacterOnline: Codable, Sendable {
+nonisolated struct ESICharacterOnline: Codable, Sendable {
     let lastLogin: Date?
     let lastLogout: Date?
     let logins: Int?
@@ -45,7 +45,7 @@ struct ESICharacterOnline: Codable, Sendable {
 
 // MARK: - Skills
 
-struct ESISkillQueue: Codable, Sendable {
+nonisolated struct ESISkillQueue: Codable, Sendable {
     let finishDate: Date?
     let finishedLevel: Int
     let levelEndSp: Int?
@@ -56,13 +56,13 @@ struct ESISkillQueue: Codable, Sendable {
     let trainingStartSp: Int?
 }
 
-struct ESISkillsResponse: Codable, Sendable {
+nonisolated struct ESISkillsResponse: Codable, Sendable {
     let skills: [ESISkill]
     let totalSp: Int
     let unallocatedSp: Int?
 }
 
-struct ESISkill: Codable, Sendable {
+nonisolated struct ESISkill: Codable, Sendable {
     let activeSkillLevel: Int
     let skillId: Int
     let skillpointsInSkill: Int
@@ -71,7 +71,7 @@ struct ESISkill: Codable, Sendable {
 
 // MARK: - Wallet
 
-struct ESIWalletJournalEntry: Codable, Sendable, Identifiable {
+nonisolated struct ESIWalletJournalEntry: Codable, Sendable, Identifiable {
     let amount: Double?
     let balance: Double?
     let contextId: Int?
@@ -87,7 +87,7 @@ struct ESIWalletJournalEntry: Codable, Sendable, Identifiable {
     let taxReceiverId: Int?
 }
 
-struct ESIWalletTransaction: Codable, Sendable, Identifiable {
+nonisolated struct ESIWalletTransaction: Codable, Sendable, Identifiable {
     let clientId: Int
     let date: Date
     let isBuy: Bool
@@ -104,7 +104,7 @@ struct ESIWalletTransaction: Codable, Sendable, Identifiable {
 
 // MARK: - Assets
 
-struct ESIAsset: Codable, Sendable, Identifiable {
+nonisolated struct ESIAsset: Codable, Sendable, Identifiable {
     let isBlueprintCopy: Bool?
     let isSingleton: Bool
     let itemId: Int
@@ -117,26 +117,26 @@ struct ESIAsset: Codable, Sendable, Identifiable {
     var id: Int { itemId }
 }
 
-struct ESIAssetName: Codable, Sendable {
+nonisolated struct ESIAssetName: Codable, Sendable {
     let itemId: Int
     let name: String
 }
 
 // MARK: - Clones
 
-struct ESIClonesResponse: Codable, Sendable {
+nonisolated struct ESIClonesResponse: Codable, Sendable {
     let homeLocation: ESIHomeLocation?
     let jumpClones: [ESIJumpClone]
     let lastCloneJumpDate: Date?
     let lastStationChangeDate: Date?
 }
 
-struct ESIHomeLocation: Codable, Sendable {
+nonisolated struct ESIHomeLocation: Codable, Sendable {
     let locationId: Int?
     let locationType: String?
 }
 
-struct ESIJumpClone: Codable, Sendable, Identifiable {
+nonisolated struct ESIJumpClone: Codable, Sendable, Identifiable {
     let implants: [Int]
     let jumpCloneId: Int
     let locationId: Int
@@ -146,13 +146,13 @@ struct ESIJumpClone: Codable, Sendable, Identifiable {
     var id: Int { jumpCloneId }
 }
 
-struct ESIImplant: Codable, Sendable {
+nonisolated struct ESIImplant: Codable, Sendable {
     let typeId: Int
 }
 
 // MARK: - Planetary Interaction (PI)
 
-struct ESIColony: Codable, Sendable, Identifiable {
+nonisolated struct ESIColony: Codable, Sendable, Identifiable {
     let lastUpdate: Date
     let numPins: Int
     let ownerId: Int
@@ -164,19 +164,19 @@ struct ESIColony: Codable, Sendable, Identifiable {
     var id: Int { planetId }
 }
 
-struct ESIColonyLayout: Codable, Sendable {
+nonisolated struct ESIColonyLayout: Codable, Sendable {
     let links: [ESIPlanetLink]
     let pins: [ESIPlanetPin]
     let routes: [ESIPlanetRoute]
 }
 
-struct ESIPlanetLink: Codable, Sendable {
+nonisolated struct ESIPlanetLink: Codable, Sendable {
     let destinationPinId: Int
     let linkLevel: Int
     let sourcePinId: Int
 }
 
-struct ESIPlanetPin: Codable, Sendable, Identifiable {
+nonisolated struct ESIPlanetPin: Codable, Sendable, Identifiable {
     let contents: [ESIPinContent]?
     let expiryTime: Date?
     let extractorDetails: ESIExtractorDetails?
@@ -192,12 +192,12 @@ struct ESIPlanetPin: Codable, Sendable, Identifiable {
     var id: Int { pinId }
 }
 
-struct ESIPinContent: Codable, Sendable {
+nonisolated struct ESIPinContent: Codable, Sendable {
     let amount: Int
     let typeId: Int
 }
 
-struct ESIExtractorDetails: Codable, Sendable {
+nonisolated struct ESIExtractorDetails: Codable, Sendable {
     let cycleTime: Int?
     let headRadius: Double?
     let heads: [ESIExtractorHead]
@@ -205,17 +205,17 @@ struct ESIExtractorDetails: Codable, Sendable {
     let qtyPerCycle: Int?
 }
 
-struct ESIExtractorHead: Codable, Sendable {
+nonisolated struct ESIExtractorHead: Codable, Sendable {
     let headId: Int
     let latitude: Double
     let longitude: Double
 }
 
-struct ESIFactoryDetails: Codable, Sendable {
+nonisolated struct ESIFactoryDetails: Codable, Sendable {
     let schematicId: Int
 }
 
-struct ESIPlanetRoute: Codable, Sendable {
+nonisolated struct ESIPlanetRoute: Codable, Sendable {
     let contentTypeId: Int
     let destinationPinId: Int
     let quantity: Double
@@ -226,7 +226,7 @@ struct ESIPlanetRoute: Codable, Sendable {
 
 // MARK: - Contracts
 
-struct ESIContract: Codable, Sendable, Identifiable {
+nonisolated struct ESIContract: Codable, Sendable, Identifiable {
     let acceptorId: Int
     let assigneeId: Int
     let availability: String
@@ -255,7 +255,7 @@ struct ESIContract: Codable, Sendable, Identifiable {
 
 // MARK: - Industry
 
-struct ESIIndustryJob: Codable, Sendable, Identifiable {
+nonisolated struct ESIIndustryJob: Codable, Sendable, Identifiable {
     let activityId: Int
     let blueprintId: Int
     let blueprintLocationId: Int
@@ -284,7 +284,7 @@ struct ESIIndustryJob: Codable, Sendable, Identifiable {
 
 // MARK: - Mail
 
-struct ESIMailHeader: Codable, Sendable, Identifiable {
+nonisolated struct ESIMailHeader: Codable, Sendable, Identifiable, Hashable, Equatable {
     let from: Int?
     let isRead: Bool?
     let labels: [Int]?
@@ -296,12 +296,12 @@ struct ESIMailHeader: Codable, Sendable, Identifiable {
     var id: Int { mailId ?? 0 }
 }
 
-struct ESIMailRecipient: Codable, Sendable {
+nonisolated struct ESIMailRecipient: Codable, Sendable, Hashable {
     let recipientId: Int
     let recipientType: String
 }
 
-struct ESIMailBody: Codable, Sendable {
+nonisolated struct ESIMailBody: Codable, Sendable {
     let body: String?
     let from: Int?
     let labels: [Int]?
@@ -310,7 +310,7 @@ struct ESIMailBody: Codable, Sendable {
     let timestamp: Date?
 }
 
-struct ESIMailLabel: Codable, Sendable, Identifiable {
+nonisolated struct ESIMailLabel: Codable, Sendable, Identifiable {
     let color: String?
     let labelId: Int?
     let name: String?
@@ -319,14 +319,14 @@ struct ESIMailLabel: Codable, Sendable, Identifiable {
     var id: Int { labelId ?? 0 }
 }
 
-struct ESIMailLabelsResponse: Codable, Sendable {
+nonisolated struct ESIMailLabelsResponse: Codable, Sendable {
     let labels: [ESIMailLabel]?
     let totalUnreadCount: Int?
 }
 
 // MARK: - Notifications
 
-struct ESINotification: Codable, Sendable, Identifiable {
+nonisolated struct ESINotification: Codable, Sendable, Identifiable, Hashable {
     let isRead: Bool?
     let notificationId: Int
     let senderId: Int
@@ -340,7 +340,7 @@ struct ESINotification: Codable, Sendable, Identifiable {
 
 // MARK: - Corporation
 
-struct ESICorporationPublic: Codable, Sendable {
+nonisolated struct ESICorporationPublic: Codable, Sendable {
     let allianceId: Int?
     let ceoId: Int
     let creatorId: Int
@@ -356,11 +356,51 @@ struct ESICorporationPublic: Codable, Sendable {
     let warEligible: Bool?
 }
 
-struct ESICorporationMember: Codable, Sendable {
+nonisolated struct ESICorporationMember: Codable, Sendable {
     let characterId: Int
 }
 
-struct ESICorporationStructure: Codable, Sendable, Identifiable {
+nonisolated struct ESIMemberTracking: Codable, Sendable {
+    let characterId: Int
+    let locationId: Int?
+    let logoffDate: Date?
+    let logonDate: Date?
+    let shipTypeId: Int?
+    let startDate: Date?
+    let systemId: Int?
+}
+
+nonisolated struct ESICorporationTitle: Codable, Sendable {
+    let name: String?
+    let titleId: Int
+}
+
+nonisolated struct ESIMemberTitle: Codable, Sendable {
+    let characterId: Int
+    let titles: [ESIMemberTitleEntry]
+}
+
+nonisolated struct ESIMemberTitleEntry: Codable, Sendable {
+    let titleId: Int
+    let name: String?
+}
+
+nonisolated struct ESIMemberRoles: Codable, Sendable {
+    let characterId: Int
+    let roles: [String]?
+    let rolesAtHq: [String]?
+    let rolesAtBase: [String]?
+    let rolesAtOther: [String]?
+}
+
+nonisolated struct ESICorporationHistory: Codable, Sendable {
+    let corporationId: Int
+    let isDeleted: Bool?
+    let recordId: Int
+    let startDate: Date
+}
+
+nonisolated struct ESICorporationStructure: Codable, Sendable, Identifiable {
     let corporationId: Int
     let fuelExpires: Date?
     let name: String
@@ -380,16 +420,22 @@ struct ESICorporationStructure: Codable, Sendable, Identifiable {
     var id: Int { structureId }
 }
 
-struct ESIStructureService: Codable, Sendable {
+nonisolated struct ESIStructureService: Codable, Sendable {
     let name: String
     let state: String
 }
 
 // MARK: - Universe Lookups
 
-struct ESIType: Codable, Sendable {
+nonisolated struct ESIDogmaAttribute: Codable, Sendable {
+    let attributeId: Int
+    let value: Double
+}
+
+nonisolated struct ESIType: Codable, Sendable {
     let capacity: Double?
     let description: String?
+    let dogmaAttributes: [ESIDogmaAttribute]?
     let groupId: Int
     let iconId: Int?
     let marketGroupId: Int?
@@ -403,56 +449,307 @@ struct ESIType: Codable, Sendable {
     let volume: Double?
 }
 
-struct ESISolarSystem: Codable, Sendable {
+nonisolated struct ESIGroup: Codable, Sendable {
+    let categoryId: Int
+    let groupId: Int
+    let name: String
+    let published: Bool
+    let types: [Int]
+}
+
+nonisolated struct ESICategory: Codable, Sendable {
+    let categoryId: Int
+    let groups: [Int]
+    let name: String
+    let published: Bool
+}
+
+nonisolated struct ESIMarketGroup: Codable, Sendable {
+    let description: String
+    let marketGroupId: Int
+    let name: String
+    let parentGroupId: Int?
+    let types: [Int]
+}
+
+nonisolated struct ESIPosition: Codable, Sendable {
+    let x: Double
+    let y: Double
+    let z: Double
+}
+
+nonisolated struct ESISolarSystem: Codable, Sendable {
     let constellationId: Int
     let name: String
+    let position: ESIPosition?
     let securityClass: String?
     let securityStatus: Double
     let starId: Int?
+    let stargates: [Int]?
+    let stations: [Int]?
     let systemId: Int
 }
 
-struct ESIStation: Codable, Sendable {
+nonisolated struct ESIStation: Codable, Sendable {
     let name: String
     let stationId: Int
     let systemId: Int
     let typeId: Int
 }
 
-struct ESIStructure: Codable, Sendable {
+nonisolated struct ESIStructure: Codable, Sendable {
     let name: String
     let ownerId: Int
     let solarSystemId: Int
     let typeId: Int?
 }
 
-struct ESIConstellation: Codable, Sendable {
+nonisolated struct ESIConstellation: Codable, Sendable {
     let constellationId: Int
+    let name: String
+    let position: ESIPosition?
+    let regionId: Int
+    let systems: [Int]?
+}
+
+nonisolated struct ESIStargate: Codable, Sendable {
+    let destination: ESIStargateDestination
+    let name: String
+    let position: ESIPosition?
+    let stargateId: Int
+    let systemId: Int
+    let typeId: Int
+}
+
+nonisolated struct ESIStargateDestination: Codable, Sendable {
+    let stargateId: Int
+    let systemId: Int
+}
+
+nonisolated struct ESIRegion: Codable, Sendable {
     let name: String
     let regionId: Int
 }
 
-struct ESIRegion: Codable, Sendable {
+nonisolated struct ESIStar: Codable, Sendable {
+    let age: Int?
+    let luminosity: Double?
     let name: String
+    let radius: Int?
+    let solarSystemId: Int
+    let spectralClass: String?
+    let temperature: Int?
+    let typeId: Int
+}
+
+nonisolated struct ESISystemKills: Codable, Sendable {
+    let npcKills: Int
+    let podKills: Int
+    let shipKills: Int
+    let systemId: Int
+}
+
+nonisolated struct ESISystemJumps: Codable, Sendable {
+    let shipJumps: Int
+    let systemId: Int
+}
+
+// MARK: - Market Orders
+
+nonisolated struct ESIMarketOrder: Codable, Sendable, Identifiable {
+    let duration: Int
+    let escrow: Double?
+    let isBuyOrder: Bool?
+    let isCorporation: Bool
+    let issued: Date
+    let locationId: Int
+    let minVolume: Int?
+    let orderId: Int
+    let price: Double
+    let range: String
     let regionId: Int
+    let typeId: Int
+    let volumeRemain: Int
+    let volumeTotal: Int
+    let walletDivision: Int?
+
+    var id: Int { orderId }
+}
+
+// MARK: - Loyalty Points
+
+nonisolated struct ESILoyaltyPoints: Codable, Sendable {
+    let corporationId: Int
+    let loyaltyPoints: Int
 }
 
 // MARK: - Search / Names
 
-struct ESIIDsResponse: Codable, Sendable {
+nonisolated struct ESIIDsResponse: Codable, Sendable {
     let characters: [ESIIDName]?
     let corporations: [ESIIDName]?
     let alliances: [ESIIDName]?
+    let solarSystems: [ESIIDName]?
+
+    enum CodingKeys: String, CodingKey {
+        case characters, corporations, alliances
+        case solarSystems = "systems"
+    }
 }
 
-struct ESIIDName: Codable, Sendable, Identifiable {
+nonisolated struct ESIIDName: Codable, Sendable, Identifiable {
     let id: Int
     let name: String
 }
 
+// MARK: - Kill Mails
+
+nonisolated struct ESIKillmailRef: Codable, Sendable, Identifiable {
+    let killmailHash: String
+    let killmailId: Int
+    var id: Int { killmailId }
+}
+
+nonisolated struct ESIKillmail: Codable, Sendable, Identifiable {
+    let attackers: [ESIKillmailAttacker]
+    let killmailId: Int
+    let killmailTime: Date
+    let moonId: Int?
+    let solarSystemId: Int
+    let victim: ESIKillmailVictim
+    let warId: Int?
+    var id: Int { killmailId }
+}
+
+nonisolated struct ESIKillmailAttacker: Codable, Sendable {
+    let allianceId: Int?
+    let characterId: Int?
+    let corporationId: Int?
+    let damageDone: Int
+    let finalBlow: Bool
+    let securityStatus: Double
+    let shipTypeId: Int?
+    let weaponTypeId: Int?
+}
+
+nonisolated struct ESIKillmailVictim: Codable, Sendable {
+    let allianceId: Int?
+    let characterId: Int?
+    let corporationId: Int?
+    let damageTaken: Int
+    let items: [ESIKillmailItem]?
+    let position: ESIPosition?
+    let shipTypeId: Int
+}
+
+nonisolated struct ESIKillmailItem: Codable, Sendable {
+    let flag: Int
+    let itemTypeId: Int
+    let quantityDestroyed: Int?
+    let quantityDropped: Int?
+    let singleton: Int
+}
+
+// MARK: - Fittings
+
+nonisolated struct ESIFitting: Codable, Sendable, Identifiable, Hashable {
+    let description: String
+    let fittingId: Int
+    let items: [ESIFittingItem]
+    let name: String
+    let shipTypeId: Int
+    var id: Int { fittingId }
+}
+
+nonisolated struct ESIFittingItem: Codable, Sendable, Identifiable, Hashable {
+    let flag: String
+    let quantity: Int
+    let typeId: Int
+    var id: String { "\(flag)-\(typeId)" }
+}
+
+// MARK: - Calendar
+
+nonisolated struct ESICalendarEvent: Codable, Sendable, Identifiable {
+    let eventDate: Date?
+    let eventId: Int
+    let eventResponse: String?
+    let importance: Int?
+    let title: String?
+    var id: Int { eventId }
+}
+
+nonisolated struct ESICalendarEventDetail: Codable, Sendable {
+    let date: Date
+    let duration: Int
+    let eventId: Int
+    let importance: Int
+    let ownerId: Int?
+    let ownerName: String?
+    let ownerType: String?
+    let response: String
+    let text: String
+    let title: String
+}
+
+// MARK: - Contacts
+
+nonisolated struct ESIContact: Codable, Sendable, Identifiable {
+    let contactId: Int
+    let contactType: String
+    let isBlocked: Bool?
+    let isWatched: Bool?
+    let labelIds: [Int]?
+    let standing: Double
+
+    var id: Int { contactId }
+
+    var imageURL: URL? {
+        switch contactType {
+        case "character":   return EVEImageURL.characterPortrait(contactId, size: 64)
+        case "corporation": return EVEImageURL.corporationLogo(contactId, size: 64)
+        case "alliance":    return EVEImageURL.allianceLogo(contactId, size: 64)
+        case "faction":     return EVEImageURL.corporationLogo(contactId, size: 64)
+        default:            return nil
+        }
+    }
+}
+
+nonisolated struct ESIContactLabel: Codable, Sendable, Identifiable {
+    let labelId: Int
+    let labelName: String
+    var id: Int { labelId }
+}
+
+// MARK: - Standings
+
+nonisolated struct ESIStanding: Codable, Sendable, Identifiable {
+    let fromId: Int
+    let fromType: String
+    let standing: Double
+    var id: Int { fromId }
+}
+
+// MARK: - Mining
+
+nonisolated struct ESIMiningObserver: Codable, Sendable, Identifiable {
+    let lastUpdated: Date
+    let observerId: Int
+    let observerType: String
+    var id: Int { observerId }
+}
+
+nonisolated struct ESIMiningLedgerEntry: Codable, Sendable {
+    let characterId: Int
+    let lastUpdated: Date
+    let quantity: Int
+    let recordedCorporationId: Int
+    let typeId: Int
+}
+
 // MARK: - Token Verification (JWT)
 
-struct ESITokenCharacter: Sendable {
+nonisolated struct ESITokenCharacter: Sendable {
     let characterID: Int
     let characterName: String
     let scopes: [String]

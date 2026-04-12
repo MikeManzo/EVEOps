@@ -2,8 +2,9 @@ import SwiftUI
 
 struct ContractsOverviewView: View {
     @Environment(AccountManager.self) private var accountManager
+    @Environment(DashboardPrefetcher.self) private var prefetcher
     @State private var contracts: [CharacterContractGroup] = []
-    @State private var isLoading = true
+    @State private var isLoading = false
     @State private var error: String?
     @State private var filterStatus = "all"
 
@@ -15,7 +16,11 @@ struct ContractsOverviewView: View {
             }
         }
         .navigationTitle("Contracts Overview")
-        .task { await loadContracts() }
+        .task {
+            if buildFromPrefetcher() { return }
+            isLoading = true
+            await loadContracts()
+        }
     }
 
     private var filterBar: some View {
@@ -94,9 +99,26 @@ struct ContractsOverviewView: View {
         }
     }
 
-    private func loadContracts() async {
-        isLoading = true
+    private func buildFromPrefetcher() -> Bool {
         var groups: [CharacterContractGroup] = []
+        for account in accountManager.accounts {
+            guard let prefetched = prefetcher.data(for: account.characterID) else { return false }
+            if !prefetched.contracts.isEmpty {
+                groups.append(CharacterContractGroup(
+                    characterName: account.characterName,
+                    contracts: prefetched.contracts.sorted { $0.dateIssued > $1.dateIssued }
+                ))
+            }
+        }
+        contracts = groups
+        return true
+    }
+
+    private func loadContracts() async {
+        if contracts.isEmpty { isLoading = true }
+        error = nil
+        var groups: [CharacterContractGroup] = []
+        var lastError: Error?
         for account in accountManager.accounts {
             do {
                 let token = try await accountManager.validToken(for: account)
@@ -110,10 +132,13 @@ struct ContractsOverviewView: View {
                     ))
                 }
             } catch {
-                // Skip
+                lastError = error
             }
         }
         contracts = groups
+        if groups.isEmpty, let lastError {
+            self.error = lastError.localizedDescription
+        }
         isLoading = false
     }
 }

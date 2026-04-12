@@ -2,8 +2,9 @@ import SwiftUI
 
 struct IndustryOverviewView: View {
     @Environment(AccountManager.self) private var accountManager
+    @Environment(DashboardPrefetcher.self) private var prefetcher
     @State private var jobs: [CharacterIndustryGroup] = []
-    @State private var isLoading = true
+    @State private var isLoading = false
     @State private var error: String?
     @State private var showActiveOnly = true
 
@@ -31,7 +32,11 @@ struct IndustryOverviewView: View {
             }
         }
         .navigationTitle("Industry Overview")
-        .task { await loadJobs() }
+        .task {
+            if buildFromPrefetcher() { return }
+            isLoading = true
+            await loadJobs()
+        }
     }
 
     private var totalJobCount: Int {
@@ -47,9 +52,28 @@ struct IndustryOverviewView: View {
         }
     }
 
-    private func loadJobs() async {
-        isLoading = true
+    private func buildFromPrefetcher() -> Bool {
         var groups: [CharacterIndustryGroup] = []
+        for account in accountManager.accounts {
+            guard let prefetched = prefetcher.data(for: account.characterID) else { return false }
+            if !prefetched.industryJobs.isEmpty {
+                groups.append(CharacterIndustryGroup(
+                    characterName: account.characterName,
+                    jobs: prefetched.industryJobs.sorted { $0.endDate > $1.endDate }
+                ))
+            }
+        }
+        jobs = groups
+        // Kick off background refresh for complete data (include_completed)
+        Task { await loadJobs() }
+        return true
+    }
+
+    private func loadJobs() async {
+        if jobs.isEmpty { isLoading = true }
+        error = nil
+        var groups: [CharacterIndustryGroup] = []
+        var lastError: Error?
         for account in accountManager.accounts {
             do {
                 let token = try await accountManager.validToken(for: account)
@@ -65,10 +89,13 @@ struct IndustryOverviewView: View {
                     ))
                 }
             } catch {
-                // Skip
+                lastError = error
             }
         }
         jobs = groups
+        if groups.isEmpty, let lastError {
+            self.error = lastError.localizedDescription
+        }
         isLoading = false
     }
 }
@@ -116,7 +143,7 @@ struct IndustryJobRow: View {
             }
         }
         .task {
-            if let typeInfo: ESIType = try? await ESIClient.shared.fetch("/universe/types/\(job.blueprintTypeId)/") {
+            if let typeInfo = await UniverseCache.shared.type(id: job.blueprintTypeId) {
                 blueprintName = typeInfo.name
             }
         }

@@ -20,10 +20,17 @@ struct EVEOpsApp: App {
     @State private var backgroundMonitor: BackgroundMonitor
     @State private var prefetcher: DashboardPrefetcher
     @State private var apiStatusMonitor: APIStatusMonitor
+    @AppStorage("colorScheme") private var colorSchemePref: String = "system"
+
+    private var resolvedColorScheme: ColorScheme? {
+        switch colorSchemePref {
+        case "light": return .light
+        case "dark": return .dark
+        default: return nil
+        }
+    }
 
     init() {
-        NSApplication.shared.setActivationPolicy(.accessory)
-
         let manager = AccountManager(modelContext: sharedModelContainer.mainContext)
         let bg = BackgroundMonitor()
         let pf = DashboardPrefetcher()
@@ -38,7 +45,6 @@ struct EVEOpsApp: App {
             bg.start(accountManager: manager)
             api.start()
             await pf.prefetchAll(accountManager: manager)
-            await pf.buildMenuBarSummaries(accountManager: manager)
         }
     }
 
@@ -48,17 +54,26 @@ struct EVEOpsApp: App {
                 .environment(accountManager)
                 .environment(prefetcher)
                 .environment(apiStatusMonitor)
+                .preferredColorScheme(resolvedColorScheme)
         }
         .modelContainer(sharedModelContainer)
         .windowStyle(.automatic)
         .defaultSize(width: 1100, height: 700)
         .defaultLaunchBehavior(.suppressed)
 
-        MenuBarExtra("EVEOps", systemImage: "airplane.departure") {
+        Settings {
+            SettingsView()
+                .environment(accountManager)
+                .environment(prefetcher)
+                .preferredColorScheme(resolvedColorScheme)
+        }
+
+        MenuBarExtra("EVEOps", systemImage: "aqi.medium") {
             MenuBarView()
                 .environment(accountManager)
                 .environment(prefetcher)
                 .environment(apiStatusMonitor)
+                .preferredColorScheme(resolvedColorScheme)
         }
         .menuBarExtraStyle(.window)
     }

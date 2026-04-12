@@ -15,7 +15,7 @@ final class AccountManager {
 
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
-        self.authenticator = SSOAuthenticator()
+        self.authenticator = SSOAuthenticator(config: .default)
         loadAccounts()
     }
 

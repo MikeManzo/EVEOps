@@ -3,8 +3,10 @@ import SwiftUI
 struct DashboardView: View {
     @Environment(AccountManager.self) private var accountManager
     @Environment(DashboardPrefetcher.self) private var prefetcher
+    @Environment(APIStatusMonitor.self) private var apiStatus
     @State private var summaries: [CharacterSummary] = []
-    @State private var isLoading = true
+    @State private var isLoading = false
+    @State private var contactSummaries: [ContactSummary] = []
 
     var body: some View {
         ScrollView {
@@ -30,15 +32,93 @@ struct DashboardView: View {
                     }
                 }
                 .padding(.horizontal)
+
+                // Contacts section
+                if !contactSummaries.isEmpty {
+                    Text("Contacts")
+                        .font(.title2.bold())
+                        .padding(.horizontal)
+
+                    LazyVGrid(columns: columns, spacing: 16) {
+                        ForEach(contactSummaries) { contact in
+                            ContactCardView(contact: contact)
+                        }
+                    }
+                    .padding(.horizontal)
+                }
             }
             .padding(.vertical)
         }
         .overlay {
-            if isLoading && summaries.isEmpty {
+            if !apiStatus.isReachable && summaries.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "wifi.exclamationmark")
+                        .font(.largeTitle)
+                        .foregroundStyle(.orange)
+                    Text(apiStatus.statusMessage.isEmpty ? "Unable to reach EVE servers" : apiStatus.statusMessage)
+                        .font(.headline)
+                    Text("Data will refresh automatically when the connection is restored.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+            } else if isLoading && summaries.isEmpty {
                 ProgressView("Loading dashboard...")
             }
         }
-        .task { await loadAllSummaries() }
+        .task {
+            // Try to populate from prefetcher immediately
+            if !buildFromPrefetcher() {
+                // Fallback: load from network
+                isLoading = true
+                await loadAllSummaries()
+            }
+            await loadContacts()
+        }
+    }
+
+    /// Build summaries synchronously from prefetcher data. Returns true if all accounts had data.
+    private func buildFromPrefetcher() -> Bool {
+        var built: [CharacterSummary] = []
+        for account in accountManager.accounts {
+            guard let prefetched = prefetcher.data(for: account.characterID) else { return false }
+            var s = CharacterSummary(characterID: account.characterID)
+            s.wallet = prefetched.wallet
+            s.totalSP = prefetched.skills.totalSp
+            s.online = prefetched.online.online
+            s.ship = prefetched.ship
+            s.location = prefetched.location
+
+            let activeQueue = prefetched.skillQueue.filter { $0.finishDate ?? .distantPast > Date() }
+            s.skillQueueCount = activeQueue.count
+            s.currentSkillFinish = activeQueue.first?.finishDate
+            s.queueEnd = activeQueue.last?.finishDate
+            if let first = activeQueue.first { s.trainingSkillID = first.skillId }
+            s.isQueueEmpty = activeQueue.isEmpty
+
+            s.activeContractCount = prefetched.contracts.filter { $0.status == "outstanding" || $0.status == "in_progress" }.count
+
+            let activeJobs = prefetched.industryJobs.filter { $0.status == "active" }
+            s.activeIndustryJobCount = activeJobs.count
+            s.nextJobFinish = activeJobs.map(\.endDate).min()
+            s.colonyCount = prefetched.colonies.count
+
+            // Use pre-resolved data from prefetcher (synchronous, no async hops)
+            if let sysInfo = prefetcher.resolvedSystems[prefetched.location.solarSystemId] {
+                s.systemName = sysInfo.name
+                s.securityStatus = sysInfo.securityStatus
+            }
+            if let typeInfo = prefetcher.resolvedTypes[prefetched.ship.shipTypeId] {
+                s.shipTypeName = typeInfo.name
+            }
+            if let skillID = s.trainingSkillID {
+                s.trainingSkillName = prefetcher.resolvedNames[skillID]
+            }
+
+            built.append(s)
+        }
+        summaries = built
+        return true
     }
 
     private func loadAllSummaries() async {
@@ -163,6 +243,104 @@ struct DashboardView: View {
         return summary
     }
 
+    private func loadContacts() async {
+        let ourIDs = Set(accountManager.accounts.map { $0.characterID })
+
+        var tokenMap: [Int: String] = [:]
+        for account in accountManager.accounts {
+            if let token = try? await accountManager.validToken(for: account) {
+                tokenMap[account.characterID] = token
+            }
+        }
+        guard !tokenMap.isEmpty else { return }
+
+        // Fetch contact labels per account
+        var labelsByAccount: [Int: [Int: String]] = [:]
+        for (charID, token) in tokenMap {
+            let labels: [ESIContactLabel] = (try? await ESIClient.shared.fetch(
+                "/characters/\(charID)/contacts/labels/", token: token
+            )) ?? []
+            labelsByAccount[charID] = Dictionary(uniqueKeysWithValues: labels.map { ($0.labelId, $0.labelName) })
+        }
+
+        // Fetch all contact types, deduplicate
+        var rawContacts: [(contact: ESIContact, sourceCharID: Int)] = []
+        var seenIDs = Set<Int>()
+        for (charID, token) in tokenMap {
+            let contacts: [ESIContact] = (try? await ESIClient.shared.fetch(
+                "/characters/\(charID)/contacts/", token: token
+            )) ?? []
+            for contact in contacts {
+                guard !(contact.contactType == "character" && ourIDs.contains(contact.contactId)),
+                      !seenIDs.contains(contact.contactId) else { continue }
+                seenIDs.insert(contact.contactId)
+                rawContacts.append((contact: contact, sourceCharID: charID))
+            }
+        }
+
+        guard !rawContacts.isEmpty else { return }
+        rawContacts.sort { $0.contact.standing > $1.contact.standing }
+
+        // Build initial summaries with type and resolved label names
+        var summaries = rawContacts.map { raw -> ContactSummary in
+            let labelMap = labelsByAccount[raw.sourceCharID] ?? [:]
+            let labelNames = (raw.contact.labelIds ?? []).compactMap { labelMap[$0] }
+            return ContactSummary(
+                contactID: raw.contact.contactId,
+                contactType: raw.contact.contactType,
+                standing: raw.contact.standing,
+                isWatched: raw.contact.isWatched ?? false,
+                isBlocked: raw.contact.isBlocked ?? false,
+                labelNames: labelNames
+            )
+        }
+        contactSummaries = summaries
+
+        // Batch-resolve names for non-character contacts
+        let nonCharIndices = summaries.indices.filter { summaries[$0].contactType != "character" }
+        if !nonCharIndices.isEmpty {
+            let ids = nonCharIndices.map { summaries[$0].contactID }
+            let resolved = await NameResolver.shared.resolve(ids: ids)
+            for i in nonCharIndices {
+                summaries[i].name = resolved[summaries[i].contactID] ?? ""
+            }
+            contactSummaries = summaries
+        }
+
+        // Fetch public info for character contacts
+        let charIndices = summaries.indices.filter { summaries[$0].contactType == "character" }
+        for i in charIndices {
+            let contactID = summaries[i].contactID
+            if let info: ESICharacterPublic = try? await ESIClient.shared.fetch("/characters/\(contactID)/") {
+                summaries[i].name = info.name
+                summaries[i].corporationID = info.corporationId
+                summaries[i].allianceID = info.allianceId
+                summaries[i].securityStatus = info.securityStatus
+                summaries[i].title = info.title
+            }
+        }
+
+        // Batch-resolve corp/alliance names for character contacts
+        var corpAllianceIDs: [Int] = []
+        for i in charIndices {
+            if let id = summaries[i].corporationID { corpAllianceIDs.append(id) }
+            if let id = summaries[i].allianceID { corpAllianceIDs.append(id) }
+        }
+        if !corpAllianceIDs.isEmpty {
+            let resolved = await NameResolver.shared.resolve(ids: corpAllianceIDs)
+            for i in charIndices {
+                if let corpID = summaries[i].corporationID {
+                    summaries[i].corporationName = resolved[corpID] ?? ""
+                }
+                if let allianceID = summaries[i].allianceID {
+                    summaries[i].allianceName = resolved[allianceID]
+                }
+            }
+        }
+
+        contactSummaries = summaries
+    }
+
     /// Build a summary from prefetched data, only fetching universe lookups
     private nonisolated func buildSummary(from prefetched: DashboardPrefetcher.PrefetchedCharacterData, for account: StoredAccount) async -> CharacterSummary {
         var summary = CharacterSummary(characterID: account.characterID)
@@ -190,16 +368,15 @@ struct DashboardView: View {
 
         summary.colonyCount = prefetched.colonies.count
 
-        // PI extractor check still needs individual fetches
-        if !prefetched.colonies.isEmpty {
-            if let token = try? await AccountManager.tokenForAccount(account) {
-                for colony in prefetched.colonies {
-                    if let layout: ESIColonyLayout = try? await ESIClient.shared.fetch(
-                        "/characters/\(account.characterID)/planets/\(colony.planetId)/", token: token
-                    ) {
-                        let expired = layout.pins.filter { $0.extractorDetails != nil && ($0.expiryTime ?? .distantPast) < Date() }
-                        summary.expiredExtractorCount += expired.count
-                    }
+        // PI extractor check still needs individual fetches (uses ESIClient cache)
+        if !prefetched.colonies.isEmpty, !account.isTokenExpired {
+            let token = account.accessToken
+            for colony in prefetched.colonies {
+                if let layout: ESIColonyLayout = try? await ESIClient.shared.fetch(
+                    "/characters/\(account.characterID)/planets/\(colony.planetId)/", token: token
+                ) {
+                    let expired = layout.pins.filter { $0.extractorDetails != nil && ($0.expiryTime ?? .distantPast) < Date() }
+                    summary.expiredExtractorCount += expired.count
                 }
             }
         }
@@ -244,6 +421,48 @@ struct CharacterSummary {
     var nextJobFinish: Date?
     var colonyCount: Int = 0
     var expiredExtractorCount: Int = 0
+}
+
+// MARK: - Contact Summary
+
+struct ContactSummary: Identifiable {
+    let contactID: Int
+    var id: Int { contactID }
+    var contactType: String = "character"
+    var name: String = ""
+    var corporationID: Int?
+    var corporationName: String = ""
+    var allianceID: Int?
+    var allianceName: String?
+    var standing: Double = 0
+    var securityStatus: Double? = nil
+    var isWatched: Bool = false
+    var isBlocked: Bool = false
+    var labelNames: [String] = []
+    var title: String? = nil
+
+    var imageURL: URL? {
+        switch contactType {
+        case "character":   return EVEImageURL.characterPortrait(contactID, size: 512)
+        case "corporation": return EVEImageURL.corporationLogo(contactID, size: 256)
+        case "alliance":    return EVEImageURL.allianceLogo(contactID, size: 256)
+        case "faction":     return EVEImageURL.corporationLogo(contactID, size: 256)
+        default:            return nil
+        }
+    }
+
+    var bannerLogoURL: URL? {
+        switch contactType {
+        case "character":
+            guard let id = corporationID else { return nil }
+            return EVEImageURL.corporationLogo(id, size: 256)
+        case "corporation":
+            guard let id = allianceID else { return nil }
+            return EVEImageURL.allianceLogo(id, size: 256)
+        default:
+            return nil
+        }
+    }
 }
 
 // MARK: - Aggregate Summary Bar
@@ -335,6 +554,7 @@ struct CharacterCardView: View {
     let summary: CharacterSummary?
 
     @Environment(AccountManager.self) private var accountManager
+    @Environment(APIStatusMonitor.self) private var apiStatus
 
     var body: some View {
         VStack(spacing: 0) {
@@ -624,7 +844,18 @@ struct CharacterCardView: View {
             .fill(Color(white: 0.12))
             .frame(height: 120)
             .overlay {
-                if summary == nil {
+                if !apiStatus.isReachable {
+                    VStack(spacing: 6) {
+                        Image(systemName: "wifi.exclamationmark")
+                            .font(.title2)
+                            .foregroundStyle(.orange)
+                        Text(apiStatus.statusMessage.isEmpty ? "No connection" : apiStatus.statusMessage)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 16)
+                    }
+                } else if summary == nil {
                     ProgressView().scaleEffect(0.7)
                 }
             }
@@ -637,5 +868,174 @@ struct CharacterCardView: View {
             return String(format: "%.0fK SP", Double(sp) / 1_000)
         }
         return "\(sp) SP"
+    }
+}
+
+// MARK: - Contact Card
+
+struct ContactCardView: View {
+    let contact: ContactSummary
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Banner: standing-tinted gradient + overlay logo
+            ZStack(alignment: .bottomTrailing) {
+                LinearGradient(
+                    colors: [standingColor.opacity(0.30), Color(white: 0.10)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .frame(height: 80)
+
+                if let bannerURL = contact.bannerLogoURL {
+                    AsyncImage(url: bannerURL) { phase in
+                        if let image = phase.image {
+                            image.resizable()
+                                .frame(width: 32, height: 32)
+                                .clipShape(RoundedRectangle(cornerRadius: 4))
+                                .shadow(color: .black.opacity(0.5), radius: 3)
+                        }
+                    }
+                    .padding(8)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
+                // Identity row
+                HStack(spacing: 12) {
+                    AsyncImage(url: contact.imageURL) { image in
+                        image.resizable()
+                    } placeholder: {
+                        RoundedRectangle(cornerRadius: 8).fill(.quaternary)
+                    }
+                    .frame(width: 52, height: 52)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.white.opacity(0.1), lineWidth: 1))
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(spacing: 6) {
+                            Text(contact.name.isEmpty ? "Loading..." : contact.name)
+                                .font(.headline)
+                            Spacer()
+                            if let sec = contact.securityStatus {
+                                Text(String(format: "%.1f", sec))
+                                    .font(.caption2.monospacedDigit())
+                                    .foregroundStyle(sec >= 0 ? .green : .red)
+                            }
+                        }
+                        if let title = contact.title, !title.isEmpty {
+                            Text(title)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
+                        if !contact.corporationName.isEmpty {
+                            Text(contact.corporationName)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                        if let alliance = contact.allianceName {
+                            Text(alliance)
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                }
+
+                Divider()
+
+                // Type badge + flags + standing
+                HStack(spacing: 8) {
+                    Image(systemName: contactTypeIcon)
+                        .foregroundStyle(.blue)
+                        .font(.caption)
+                    Text(contactTypeLabel)
+                        .font(.caption.bold())
+                        .foregroundStyle(.blue)
+
+                    if contact.isWatched {
+                        Image(systemName: "eye.fill")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                        Text("Watched")
+                            .font(.caption2)
+                            .foregroundStyle(.orange)
+                    }
+
+                    if contact.isBlocked {
+                        Image(systemName: "slash.circle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                        Text("Blocked")
+                            .font(.caption2)
+                            .foregroundStyle(.red)
+                    }
+
+                    Spacer()
+
+                    HStack(spacing: 4) {
+                        Image(systemName: standingIcon)
+                            .foregroundStyle(standingColor)
+                            .font(.caption)
+                        Text(String(format: "%.1f", contact.standing))
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(standingColor)
+                    }
+                }
+
+                // Label tags
+                if !contact.labelNames.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 6) {
+                            ForEach(contact.labelNames, id: \.self) { label in
+                                Text(label)
+                                    .font(.caption2)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(.quaternary, in: Capsule())
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(12)
+        }
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    private var contactTypeIcon: String {
+        switch contact.contactType {
+        case "corporation": return "building.2.fill"
+        case "alliance":    return "shield.fill"
+        case "faction":     return "globe"
+        default:            return "person.badge.plus"
+        }
+    }
+
+    private var contactTypeLabel: String {
+        switch contact.contactType {
+        case "corporation": return "Corp"
+        case "alliance":    return "Alliance"
+        case "faction":     return "Faction"
+        default:            return "Contact"
+        }
+    }
+
+    private var standingColor: Color {
+        if contact.standing >= 5 { return .blue }
+        if contact.standing > 0 { return .cyan }
+        if contact.standing == 0 { return .gray }
+        if contact.standing > -5 { return .orange }
+        return .red
+    }
+
+    private var standingIcon: String {
+        if contact.standing >= 5 { return "star.fill" }
+        if contact.standing > 0 { return "hand.thumbsup.fill" }
+        if contact.standing == 0 { return "minus" }
+        if contact.standing > -5 { return "hand.thumbsdown.fill" }
+        return "xmark.circle.fill"
     }
 }

@@ -6,12 +6,12 @@ struct CharacterAssetsView: View {
     @State private var isLoading = true
     @State private var error: String?
     @State private var searchText = ""
-    @State private var groupByLocation = true
+    @State private var groupMode: AssetGroupMode = .station
     @State private var selectedAsset: ResolvedAsset?
 
     var body: some View {
         LoadingStateView(isLoading: isLoading, error: error, isEmpty: assets.isEmpty, emptyMessage: "No assets found") {
-            HSplitView {
+            HStack(spacing: 0) {
                 VStack(spacing: 0) {
                     HStack {
                         Image(systemName: "magnifyingglass")
@@ -19,31 +19,25 @@ struct CharacterAssetsView: View {
                         TextField("Search assets...", text: $searchText)
                             .textFieldStyle(.plain)
                         Spacer()
-                        Toggle("Group by location", isOn: $groupByLocation)
+                        Picker("Group by", selection: $groupMode) {
+                            ForEach(AssetGroupMode.allCases, id: \.self) { mode in
+                                Text(mode.label).tag(mode)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .fixedSize()
                     }
                     .padding(10)
                     .background(.bar)
 
-                    if groupByLocation {
-                        groupedList
-                    } else {
-                        flatList
-                    }
+                    groupedList
                 }
-                .frame(minWidth: 300)
+                .frame(maxWidth: .infinity)
 
-                if let selected = selectedAsset {
-                    AssetDetailView(asset: selected)
-                } else {
-                    VStack {
-                        Image(systemName: "cube.box")
-                            .font(.largeTitle)
-                            .foregroundStyle(.quaternary)
-                        Text("Select an asset to view details")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    .frame(minWidth: 280, idealWidth: 320)
+                if selectedAsset != nil {
+                    Divider()
+                    AssetDetailView(asset: selectedAsset!)
+                        .frame(width: 320)
                 }
             }
         }
@@ -60,11 +54,12 @@ struct CharacterAssetsView: View {
     }
 
     private var groupedList: some View {
-        let grouped = Dictionary(grouping: filteredAssets, by: \.locationName)
+        let keyPath: (ResolvedAsset) -> String = groupMode == .station ? \.locationName : \.typeName
+        let grouped = Dictionary(grouping: filteredAssets, by: keyPath)
         return List(selection: $selectedAsset) {
-            ForEach(grouped.keys.sorted(), id: \.self) { location in
-                Section(location) {
-                    ForEach(grouped[location] ?? []) { asset in
+            ForEach(grouped.keys.sorted(), id: \.self) { sectionKey in
+                Section(sectionKey) {
+                    ForEach(grouped[sectionKey] ?? []) { asset in
                         assetRow(asset)
                             .tag(asset)
                     }
@@ -73,16 +68,9 @@ struct CharacterAssetsView: View {
         }
     }
 
-    private var flatList: some View {
-        List(filteredAssets, selection: $selectedAsset) { asset in
-            assetRow(asset)
-                .tag(asset)
-        }
-    }
-
     private func assetRow(_ asset: ResolvedAsset) -> some View {
         HStack(spacing: 8) {
-            AsyncImage(url: EVEImageURL.typeIcon(asset.typeId, size: 64)) { phase in
+            AsyncImage(url: EVEImageURL.typeIcon(asset.typeId, size: 256)) { phase in
                 if let image = phase.image {
                     image.resizable()
                         .frame(width: 28, height: 28)
@@ -94,18 +82,24 @@ struct CharacterAssetsView: View {
                 }
             }
             VStack(alignment: .leading) {
-                HStack(spacing: 4) {
-                    Text(asset.typeName)
+                switch groupMode {
+                case .station:
+                    HStack(spacing: 4) {
+                        Text(asset.typeName)
+                        if asset.isBlueprintCopy {
+                            Text("(BPC)")
+                                .font(.caption2)
+                                .foregroundStyle(.orange)
+                        }
+                    }
+                case .type:
+                    Text(asset.locationName)
+                        .font(.callout)
                     if asset.isBlueprintCopy {
                         Text("(BPC)")
                             .font(.caption2)
                             .foregroundStyle(.orange)
                     }
-                }
-                if !groupByLocation {
-                    Text(asset.locationName)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
                 }
             }
             Spacer()
@@ -157,9 +151,35 @@ struct CharacterAssetsView: View {
                     isSingleton: asset.isSingleton
                 )
             }
+            if selectedAsset == nil { selectedAsset = assets.first }
         } catch {
             self.error = error.localizedDescription
         }
         isLoading = false
     }
+}
+
+enum AssetGroupMode: CaseIterable {
+    case station, type
+
+    var label: String {
+        switch self {
+        case .station: return "By Station"
+        case .type: return "By Type"
+        }
+    }
+}
+
+struct ResolvedAsset: Identifiable, Hashable {
+    let itemId: Int
+    let typeId: Int
+    let typeName: String
+    let quantity: Int
+    let locationId: Int
+    let locationName: String
+    var locationFlag: String = ""
+    var isBlueprintCopy: Bool = false
+    var isSingleton: Bool = false
+
+    var id: Int { itemId }
 }

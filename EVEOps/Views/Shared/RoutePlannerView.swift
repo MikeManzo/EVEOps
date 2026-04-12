@@ -18,6 +18,7 @@ struct RoutePlannerView: View {
         ScrollView {
             VStack(spacing: 20) {
                 inputPanel
+                if isCalculating { calculatingView }
                 if !route.isEmpty { routePanel }
             }
             .padding()
@@ -29,26 +30,42 @@ struct RoutePlannerView: View {
 
     private var inputPanel: some View {
         GroupBox {
-            VStack(spacing: 12) {
-                HStack(spacing: 12) {
+            VStack(spacing: 14) {
+                // Origin / Destination row
+                HStack(alignment: .bottom, spacing: 8) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Origin").font(.caption).foregroundStyle(.secondary)
+                        Label("Origin", systemImage: "location.fill")
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.blue)
                         TextField("e.g. Jita", text: $originInput)
                             .textFieldStyle(.roundedBorder)
                             .onSubmit { if canPlot { Task { await plotRoute() } } }
                     }
 
-                    Image(systemName: "arrow.right")
-                        .foregroundStyle(.secondary)
-                        .padding(.top, 16)
+                    // Swap button
+                    Button {
+                        swap(&originInput, &destinationInput)
+                    } label: {
+                        Image(systemName: "arrow.left.arrow.right")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 28, height: 28)
+                            .background(.quaternary, in: RoundedRectangle(cornerRadius: 6))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.bottom, 1)
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Destination").font(.caption).foregroundStyle(.secondary)
+                        Label("Destination", systemImage: "mappin.circle.fill")
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.green)
                         TextField("e.g. Amarr", text: $destinationInput)
                             .textFieldStyle(.roundedBorder)
                             .onSubmit { if canPlot { Task { await plotRoute() } } }
                     }
                 }
+
+                Divider()
 
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
@@ -67,18 +84,23 @@ struct RoutePlannerView: View {
                     Button {
                         Task { await plotRoute() }
                     } label: {
-                        Label(isCalculating ? "Calculating…" : "Plot Route", systemImage: "map.fill")
+                        Label("Plot Route", systemImage: "arrow.triangle.turn.up.right.circle.fill")
+                            .frame(minWidth: 110)
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(!canPlot)
-                    .padding(.top, 16)
                 }
 
                 if let errorMessage {
-                    Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.red)
-                        .font(.caption)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    HStack(spacing: 6) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                        Text(errorMessage)
+                    }
+                    .foregroundStyle(.red)
+                    .font(.caption)
+                    .padding(8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(.red.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
                 }
             }
         } label: {
@@ -86,32 +108,51 @@ struct RoutePlannerView: View {
         }
     }
 
+    private var calculatingView: some View {
+        HStack(spacing: 10) {
+            ProgressView()
+            Text("Calculating route…")
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding()
+        .background(.quaternary, in: RoundedRectangle(cornerRadius: 10))
+    }
+
     // MARK: - Route Panel
 
     private var routePanel: some View {
         GroupBox {
             VStack(alignment: .leading, spacing: 0) {
-                HStack {
-                    Text("\(route.count - 1) jump\(route.count == 2 ? "" : "s")")
-                        .font(.headline)
+                // Header
+                HStack(alignment: .center) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("\(originInput) → \(destinationInput)")
+                            .font(.headline)
+                        Text("\(route.count - 1) jump\(route.count == 2 ? "" : "s")")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                     Spacer()
                     securitySummary
                 }
-                .padding(.bottom, 8)
+                .padding(.bottom, 12)
 
                 Divider()
 
                 LazyVStack(spacing: 0) {
                     ForEach(Array(route.enumerated()), id: \.offset) { index, system in
-                        RouteSystemRow(system: system, jumpNumber: index + 1, isLast: index == route.count - 1)
-                        if index < route.count - 1 {
-                            Divider().padding(.leading, 80)
-                        }
+                        RouteSystemRow(
+                            system: system,
+                            jumpNumber: index + 1,
+                            isLast: index == route.count - 1,
+                            isFirst: index == 0
+                        )
                     }
                 }
             }
         } label: {
-            Label("Route: \(originInput) → \(destinationInput)", systemImage: "arrow.triangle.turn.up.right.circle.fill")
+            Label("Route", systemImage: "arrow.triangle.turn.up.right.circle.fill")
         }
     }
 
@@ -121,15 +162,24 @@ struct RoutePlannerView: View {
             let lowSec = route.filter { $0.securityStatus > 0.0 && $0.securityStatus < 0.5 }.count
             let nullSec = route.filter { $0.securityStatus <= 0.0 }.count
             if highSec > 0 {
-                Label("\(highSec) high", systemImage: "shield.fill").foregroundStyle(.blue).font(.caption)
+                secPill("\(highSec)H", color: .blue)
             }
             if lowSec > 0 {
-                Label("\(lowSec) low", systemImage: "shield.lefthalf.filled").foregroundStyle(.orange).font(.caption)
+                secPill("\(lowSec)L", color: .orange)
             }
             if nullSec > 0 {
-                Label("\(nullSec) null", systemImage: "shield.slash.fill").foregroundStyle(.red).font(.caption)
+                secPill("\(nullSec)N", color: .red)
             }
         }
+    }
+
+    private func secPill(_ label: String, color: Color) -> some View {
+        Text(label)
+            .font(.caption2.bold().monospacedDigit())
+            .foregroundStyle(color)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 3)
+            .background(color.opacity(0.15), in: Capsule())
     }
 
     // MARK: - Route Calculation
@@ -239,39 +289,67 @@ struct RouteSystemRow: View {
     let system: RouteSystem
     let jumpNumber: Int
     let isLast: Bool
+    let isFirst: Bool
+
+    private var accentColor: Color {
+        isFirst ? .blue : isLast ? .green : .clear
+    }
 
     var body: some View {
-        HStack(spacing: 10) {
-            Text("\(jumpNumber)")
-                .font(.caption2.monospacedDigit())
-                .foregroundStyle(.tertiary)
-                .frame(width: 28, alignment: .trailing)
-
-            Text(system.displaySecurity)
-                .font(.caption.bold().monospacedDigit())
-                .foregroundStyle(system.securityColor)
-                .frame(width: 28, alignment: .center)
-                .padding(.horizontal, 4)
-                .padding(.vertical, 2)
-                .background(system.securityColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 4))
-
-            Text(system.name)
-                .font(.subheadline)
-
-            Spacer()
-
-            if jumpNumber == 1 {
-                Text("ORIGIN").font(.caption2.bold()).foregroundStyle(.blue)
-                    .padding(.horizontal, 6).padding(.vertical, 2)
-                    .background(.blue.opacity(0.15), in: Capsule())
-            } else if isLast {
-                Text("DEST").font(.caption2.bold()).foregroundStyle(.green)
-                    .padding(.horizontal, 6).padding(.vertical, 2)
-                    .background(.green.opacity(0.15), in: Capsule())
+        HStack(spacing: 0) {
+            // Vertical connector track
+            VStack(spacing: 0) {
+                Rectangle()
+                    .fill(isFirst ? Color.clear : Color.secondary.opacity(0.25))
+                    .frame(width: 2)
+                    .frame(maxHeight: .infinity)
+                Circle()
+                    .fill(isFirst ? Color.blue : isLast ? Color.green : system.securityColor)
+                    .frame(width: 8, height: 8)
+                Rectangle()
+                    .fill(isLast ? Color.clear : Color.secondary.opacity(0.25))
+                    .frame(width: 2)
+                    .frame(maxHeight: .infinity)
             }
+            .frame(width: 20)
+            .padding(.leading, 8)
+
+            HStack(spacing: 10) {
+                // Jump number
+                Text("\(jumpNumber)")
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(.tertiary)
+                    .frame(width: 24, alignment: .trailing)
+
+                // Security badge
+                Text(system.displaySecurity)
+                    .font(.caption.bold().monospacedDigit())
+                    .foregroundStyle(system.securityColor)
+                    .frame(width: 30, alignment: .center)
+                    .padding(.vertical, 2)
+                    .background(system.securityColor.opacity(0.15), in: RoundedRectangle(cornerRadius: 5))
+
+                // System name
+                Text(system.name)
+                    .font(.subheadline)
+                    .fontWeight(isFirst || isLast ? .semibold : .regular)
+
+                Spacer()
+
+                if isFirst {
+                    Text("ORIGIN").font(.caption2.bold()).foregroundStyle(.blue)
+                        .padding(.horizontal, 6).padding(.vertical, 2)
+                        .background(.blue.opacity(0.15), in: Capsule())
+                } else if isLast {
+                    Text("DEST").font(.caption2.bold()).foregroundStyle(.green)
+                        .padding(.horizontal, 6).padding(.vertical, 2)
+                        .background(.green.opacity(0.15), in: Capsule())
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 7)
-        .background(jumpNumber == 1 ? Color.blue.opacity(0.05) : isLast ? Color.green.opacity(0.05) : Color.clear)
+        .frame(minHeight: 36)
+        .background(isFirst ? Color.blue.opacity(0.05) : isLast ? Color.green.opacity(0.05) : Color.clear)
     }
 }

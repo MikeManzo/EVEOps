@@ -17,77 +17,49 @@ It connects to the official [EVE Swagger Interface (ESI)](https://esi.evetech.ne
 ### Menu Bar — Quick Glance
 > _See your active character's wallet, ship, location, skill queue, and more without opening the main window._
 
-![Menu Bar](docs/screenshots/menubar.png)
+![Menu Bar](Screenshots/menubar.png)
 
 ---
 
 ### Dashboard — All Characters at Once
 > _A live overview of every character on your account: wealth, SP, online status, skill queues, industry jobs, contracts, and PI alerts._
 
-![Dashboard](docs/screenshots/dashboard.png)
+![Dashboard](Screenshots/dashboard.png)
 
 ---
 
 ### Training Overview
 > _Track skill queues across all characters simultaneously. See what's training, when it finishes, and which characters have empty queues._
 
-![Training Overview](docs/screenshots/training.png)
+![Training Overview](screenshots/training.png)
 
 ---
 
 ### Finances
 > _Wallet balances, market orders, escrow, and net worth — aggregated across all characters, with per-character breakdowns and charts._
 
-![Finances](docs/screenshots/finances.png)
+![Finances](screenshots/finances.png)
 
 ---
 
 ### Location & Ship
 > _Know where each of your pilots is and what they're flying, including security status and system details._
 
-![Location](docs/screenshots/location.png)
+![Location](screenshots/location.png)
 
 ---
 
 ### Assets
 > _Browse character and corporation asset inventories, with type icons, quantities, and locations._
 
-![Character Assets](docs/screenshots/assets.png)
+![Character Assets](screenshots/assets.png)
 
 ---
 
-### Colonies (Planetary Industry)
-> _Monitor your PI extractors. Get alerts when extractors go offline so you never miss a harvest._
+### Ships — Fittings
+> _Ship fittings, High Slots, Medium Slots, Low Slots, Drone Bay._
 
-![Colonies](docs/screenshots/colonies.png)
-
----
-
-### Industry
-> _Active manufacturing and research jobs across characters and corporation, with completion timers._
-
-![Industry](docs/screenshots/industry.png)
-
----
-
-### Contracts
-> _Outstanding and in-progress contracts at a glance for both character and corporation._
-
-![Contracts](docs/screenshots/contracts.png)
-
----
-
-### Corporation — Members, Structures & Wallets
-> _Corporation-level views for assets, industry, membership, structures, and divisional wallets._
-
-![Corporation](docs/screenshots/corporation.png)
-
----
-
-### Mails & Communications
-> _Read EVE mails and notification alerts directly in the app._
-
-![Mails](docs/screenshots/mails.png)
+![Corporation](screenshots/fittings.png)
 
 ---
 

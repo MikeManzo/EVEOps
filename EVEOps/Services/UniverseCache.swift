@@ -25,7 +25,18 @@ actor UniverseCache {
     }()
 
     private init() {
-        loadAll()
+        let meta: CacheMeta? = Self.loadMeta()
+        if let saved = meta?.savedDate, Date().timeIntervalSince(saved) > Self.ttl {
+            Self.clearDiskCacheFiles()
+        } else {
+            types = Self.loadCache("types.json") ?? [:]
+            groups = Self.loadCache("groups.json") ?? [:]
+            systems = Self.loadCache("systems.json") ?? [:]
+            constellations = Self.loadCache("constellations.json") ?? [:]
+            regions = Self.loadCache("regions.json") ?? [:]
+            stations = Self.loadCache("stations.json") ?? [:]
+            stars = Self.loadCache("stars.json") ?? [:]
+        }
     }
 
     // MARK: - Public API
@@ -168,43 +179,26 @@ actor UniverseCache {
 
     private func saveAll() {
         guard dirty else { return }
-        save(types, to: "types.json")
-        save(groups, to: "groups.json")
-        save(systems, to: "systems.json")
-        save(constellations, to: "constellations.json")
-        save(regions, to: "regions.json")
-        save(stations, to: "stations.json")
-        save(stars, to: "stars.json")
+        Self.saveCache(types, to: "types.json")
+        Self.saveCache(groups, to: "groups.json")
+        Self.saveCache(systems, to: "systems.json")
+        Self.saveCache(constellations, to: "constellations.json")
+        Self.saveCache(regions, to: "regions.json")
+        Self.saveCache(stations, to: "stations.json")
+        Self.saveCache(stars, to: "stars.json")
+        Self.saveMeta()
         dirty = false
     }
 
-    private func loadAll() {
-        let meta = loadMeta()
-        // If cache is older than TTL, start fresh
-        if let saved = meta?.savedDate, Date().timeIntervalSince(saved) > Self.ttl {
-            clearDiskCache()
-            return
-        }
-
-        types = load("types.json") ?? [:]
-        groups = load("groups.json") ?? [:]
-        systems = load("systems.json") ?? [:]
-        constellations = load("constellations.json") ?? [:]
-        regions = load("regions.json") ?? [:]
-        stations = load("stations.json") ?? [:]
-        stars = load("stars.json") ?? [:]
-    }
-
-    private func save<T: Encodable>(_ dict: [Int: T], to filename: String) {
-        let url = Self.cacheDir.appendingPathComponent(filename)
+    private nonisolated static func saveCache<T: Encodable>(_ dict: [Int: T], to filename: String) {
+        let url = cacheDir.appendingPathComponent(filename)
         let wrapped = Dictionary(uniqueKeysWithValues: dict.map { (String($0.key), $0.value) })
         guard let data = try? JSONEncoder().encode(wrapped) else { return }
         try? data.write(to: url, options: .atomic)
-        saveMeta()
     }
 
-    private func load<T: Decodable>(_ filename: String) -> [Int: T]? {
-        let url = Self.cacheDir.appendingPathComponent(filename)
+    private nonisolated static func loadCache<T: Decodable>(_ filename: String) -> [Int: T]? {
+        let url = cacheDir.appendingPathComponent(filename)
         guard let data = try? Data(contentsOf: url),
               let wrapped = try? JSONDecoder().decode([String: T].self, from: data) else { return nil }
         return Dictionary(uniqueKeysWithValues: wrapped.compactMap { key, value in
@@ -217,18 +211,23 @@ actor UniverseCache {
         let savedDate: Date
     }
 
-    private func saveMeta() {
-        let url = Self.cacheDir.appendingPathComponent("meta.json")
+    private nonisolated static func saveMeta() {
+        let url = cacheDir.appendingPathComponent("meta.json")
         let meta = CacheMeta(savedDate: Date())
         if let data = try? JSONEncoder().encode(meta) {
             try? data.write(to: url, options: .atomic)
         }
     }
 
-    private func loadMeta() -> CacheMeta? {
-        let url = Self.cacheDir.appendingPathComponent("meta.json")
+    private nonisolated static func loadMeta() -> CacheMeta? {
+        let url = cacheDir.appendingPathComponent("meta.json")
         guard let data = try? Data(contentsOf: url) else { return nil }
         return try? JSONDecoder().decode(CacheMeta.self, from: data)
+    }
+
+    private nonisolated static func clearDiskCacheFiles() {
+        try? FileManager.default.removeItem(at: cacheDir)
+        try? FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
     }
 
     func clearDiskCache() {
@@ -239,7 +238,6 @@ actor UniverseCache {
         regions.removeAll()
         stations.removeAll()
         stars.removeAll()
-        try? FileManager.default.removeItem(at: Self.cacheDir)
-        try? FileManager.default.createDirectory(at: Self.cacheDir, withIntermediateDirectories: true)
+        Self.clearDiskCacheFiles()
     }
 }

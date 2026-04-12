@@ -95,8 +95,8 @@ struct CorpContractRow: View {
                 }
                 Text(contract.dateIssued, style: .date)
                     .font(.caption2).foregroundStyle(.secondary)
-                Text("Exp: ").font(.caption2).foregroundStyle(.tertiary) +
-                Text(contract.dateExpired, style: .date).font(.caption2).foregroundStyle(.tertiary)
+                Text("Exp: \(contract.dateExpired, format: .dateTime.month().day().year())")
+                    .font(.caption2).foregroundStyle(.tertiary)
             }
         }
         .padding(.vertical, 2)

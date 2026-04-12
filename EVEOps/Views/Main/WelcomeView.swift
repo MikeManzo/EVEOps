@@ -31,13 +31,15 @@ struct WelcomeView: View {
     ]
 
     var body: some View {
-        ZStack {
-            shipBackdrop
-            Color.black.opacity(0.55)
-            welcomeContent
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .ignoresSafeArea()
+        welcomeContent
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background {
+                ZStack {
+                    Color.black
+                    shipBackdrop
+                    Color.black.opacity(0.55)
+                }
+            }
     }
 
     private var shipBackdrop: some View {

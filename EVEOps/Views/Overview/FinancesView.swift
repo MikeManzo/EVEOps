@@ -3,8 +3,9 @@ import Charts
 
 struct FinancesView: View {
     @Environment(AccountManager.self) private var accountManager
+    @Environment(DashboardPrefetcher.self) private var prefetcher
     @State private var characterFinances: [CharacterFinanceData] = []
-    @State private var isLoading = true
+    @State private var isLoading = false
     @State private var error: String?
     @State private var selectedCharacterID: Int?
     @State private var selectedTab = 0
@@ -51,7 +52,11 @@ struct FinancesView: View {
             }
         }
         .navigationTitle("Finances")
-        .task { await loadAllFinances() }
+        .task(id: accountManager.selectedCharacterID) {
+            if buildFromPrefetcher() { return }
+            isLoading = true
+            await loadAllFinances()
+        }
     }
 
     // MARK: - Summary Cards
@@ -643,81 +648,105 @@ struct FinancesView: View {
         refType.replacingOccurrences(of: "_", with: " ").capitalized
     }
 
+    // MARK: - Prefetcher Fast Path
+
+    private func buildFromPrefetcher() -> Bool {
+        var results: [CharacterFinanceData] = []
+        for account in accountManager.accounts {
+            guard let prefetched = prefetcher.data(for: account.characterID) else { return false }
+
+            // Resolve LP corporation names from prefetcher
+            let resolvedLP = prefetched.loyaltyPoints.map { entry in
+                ResolvedLoyaltyPoints(
+                    corporationId: entry.corporationId,
+                    corporationName: prefetcher.resolvedNames[entry.corporationId] ?? "Corporation #\(entry.corporationId)",
+                    loyaltyPoints: entry.loyaltyPoints
+                )
+            }
+
+            results.append(CharacterFinanceData(
+                characterID: account.characterID,
+                characterName: account.characterName,
+                corporationName: account.corporationName,
+                balance: prefetched.wallet,
+                journal: prefetched.journal.sorted { $0.date > $1.date },
+                transactions: prefetched.transactions.sorted { $0.date > $1.date },
+                marketOrders: prefetched.marketOrders,
+                loyaltyPoints: resolvedLP
+            ))
+        }
+        characterFinances = results.sorted { $0.balance > $1.balance }
+        if selectedCharacterID == nil {
+            selectedCharacterID = characterFinances.first?.characterID
+        }
+        return !results.isEmpty
+    }
+
     // MARK: - Data Loading
 
     private func loadAllFinances() async {
         isLoading = true
+        self.error = nil
         var results: [CharacterFinanceData] = []
+        var lastError: Error?
 
-        await withTaskGroup(of: CharacterFinanceData?.self) { group in
-            for account in accountManager.accounts {
-                group.addTask {
-                    await loadFinance(for: account)
-                }
-            }
-            for await result in group {
-                if let data = result {
-                    results.append(data)
-                }
+        for account in accountManager.accounts {
+            do {
+                let data = try await loadFinance(for: account)
+                results.append(data)
+            } catch {
+                lastError = error
             }
         }
 
         characterFinances = results.sorted { $0.balance > $1.balance }
+        if results.isEmpty, let lastError {
+            self.error = lastError.localizedDescription
+        }
         if selectedCharacterID == nil {
             selectedCharacterID = characterFinances.first?.characterID
         }
         isLoading = false
     }
 
-    private func loadFinance(for account: StoredAccount) async -> CharacterFinanceData? {
-        do {
-            let token = try await accountManager.validToken(for: account)
-            let charID = account.characterID
+    private func loadFinance(for account: StoredAccount) async throws -> CharacterFinanceData {
+        let token = try await accountManager.validToken(for: account)
+        let charID = account.characterID
 
-            async let fetchBalance: Double = ESIClient.shared.fetch(
-                "/characters/\(charID)/wallet/", token: token
-            )
-            async let fetchJournal: [ESIWalletJournalEntry] = ESIClient.shared.fetch(
-                "/characters/\(charID)/wallet/journal/", token: token
-            )
-            async let fetchTransactions: [ESIWalletTransaction] = ESIClient.shared.fetch(
-                "/characters/\(charID)/wallet/transactions/", token: token
-            )
-            async let fetchOrders: [ESIMarketOrder] = ESIClient.shared.fetch(
-                "/characters/\(charID)/orders/", token: token
-            )
-            async let fetchLP: [ESILoyaltyPoints] = ESIClient.shared.fetch(
-                "/characters/\(charID)/loyalty/points/", token: token
-            )
+        // Fetch each independently so one failure doesn't block others
+        var balance: Double = 0
+        var journal: [ESIWalletJournalEntry] = []
+        var transactions: [ESIWalletTransaction] = []
+        var orders: [ESIMarketOrder] = []
+        var lp: [ESILoyaltyPoints] = []
 
-            let (balance, journal, transactions, orders, lp) = try await (
-                fetchBalance, fetchJournal, fetchTransactions, fetchOrders, fetchLP
-            )
+        do { balance = try await ESIClient.shared.fetch("/characters/\(charID)/wallet/", token: token) } catch {}
+        do { journal = try await ESIClient.shared.fetch("/characters/\(charID)/wallet/journal/", token: token) } catch {}
+        do { transactions = try await ESIClient.shared.fetch("/characters/\(charID)/wallet/transactions/", token: token) } catch {}
+        do { orders = try await ESIClient.shared.fetch("/characters/\(charID)/orders/", token: token) } catch {}
+        do { lp = try await ESIClient.shared.fetch("/characters/\(charID)/loyalty/points/", token: token) } catch {}
 
-            // Resolve LP corporation names
-            let corpIDs = lp.map(\.corporationId)
-            let names = await NameResolver.shared.resolve(ids: corpIDs)
-            let resolvedLP = lp.map { entry in
-                ResolvedLoyaltyPoints(
-                    corporationId: entry.corporationId,
-                    corporationName: names[entry.corporationId] ?? "Corporation #\(entry.corporationId)",
-                    loyaltyPoints: entry.loyaltyPoints
-                )
-            }
-
-            return CharacterFinanceData(
-                characterID: charID,
-                characterName: account.characterName,
-                corporationName: account.corporationName,
-                balance: balance,
-                journal: journal.sorted { $0.date > $1.date },
-                transactions: transactions.sorted { $0.date > $1.date },
-                marketOrders: orders,
-                loyaltyPoints: resolvedLP
+        // Resolve LP corporation names
+        let corpIDs = lp.map(\.corporationId)
+        let names = await NameResolver.shared.resolve(ids: corpIDs)
+        let resolvedLP = lp.map { entry in
+            ResolvedLoyaltyPoints(
+                corporationId: entry.corporationId,
+                corporationName: names[entry.corporationId] ?? "Corporation #\(entry.corporationId)",
+                loyaltyPoints: entry.loyaltyPoints
             )
-        } catch {
-            return nil
         }
+
+        return CharacterFinanceData(
+            characterID: charID,
+            characterName: account.characterName,
+            corporationName: account.corporationName,
+            balance: balance,
+            journal: journal.sorted { $0.date > $1.date },
+            transactions: transactions.sorted { $0.date > $1.date },
+            marketOrders: orders,
+            loyaltyPoints: resolvedLP
+        )
     }
 }
 

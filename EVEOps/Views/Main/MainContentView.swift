@@ -3,6 +3,7 @@ import SwiftData
 
 struct MainContentView: View {
     @Environment(AccountManager.self) private var accountManager
+    @Environment(APIStatusMonitor.self) private var apiStatus
     @State private var selectedSection: NavigationSection? = .dashboard
 
     var body: some View {
@@ -13,6 +14,11 @@ struct MainContentView: View {
         } detail: {
             detailView
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .safeAreaInset(edge: .top) {
+                    if !apiStatus.isReachable {
+                        APIStatusBanner(message: apiStatus.statusMessage)
+                    }
+                }
         }
         .navigationSplitViewStyle(.balanced)
         .frame(minWidth: 900, minHeight: 600)
@@ -39,10 +45,8 @@ struct MainContentView: View {
                 LocationOverviewView()
             case .training:
                 TrainingOverviewView()
-            case .wealth:
-                WealthOverviewView()
-            case .wallet:
-                CharacterWalletView()
+            case .finances:
+                FinancesView()
             case .assets:
                 CharacterAssetsView()
             case .clones:
@@ -69,9 +73,50 @@ struct MainContentView: View {
                 CorporationStructuresView()
             case .corpWallets:
                 CorporationWalletsView()
+            case .corpContracts:
+                CorporationContractsView()
+            case .corpKillmails:
+                CorporationKillmailsView()
+            case .corpMarketOrders:
+                CorporationMarketOrdersView()
+            case .corpMining:
+                CorporationMiningView()
+
+            // Character extras
+            case .killmails:
+                CharacterKillmailsView()
+            case .fittings:
+                CharacterFittingsView()
+            case .calendar:
+                CharacterCalendarView()
+            case .standings:
+                CharacterStandingsView()
+            case .routePlanner:
+                RoutePlannerView()
             }
         } else {
             DashboardView()
         }
+    }
+}
+
+// MARK: - API Status Banner
+
+struct APIStatusBanner: View {
+    let message: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "wifi.exclamationmark")
+                .foregroundStyle(.orange)
+            Text(message.isEmpty ? "Unable to reach EVE servers" : message)
+                .font(.callout)
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(.orange.opacity(0.12))
+        .transition(.move(edge: .top).combined(with: .opacity))
+        .animation(.easeInOut(duration: 0.3), value: message)
     }
 }

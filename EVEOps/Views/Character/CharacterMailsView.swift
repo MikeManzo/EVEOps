@@ -124,6 +124,7 @@ struct CharacterMailsView: View {
                 "/characters/\(account.characterID)/mail/", token: token
             )
             mails.sort { ($0.timestamp ?? .distantPast) > ($1.timestamp ?? .distantPast) }
+            if selectedMail == nil { selectedMail = mails.first }
 
             let senderIDs = Set(mails.compactMap(\.from))
             senderNames = await NameResolver.shared.resolve(ids: Array(senderIDs))

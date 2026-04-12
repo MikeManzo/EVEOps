@@ -9,7 +9,7 @@ actor NotificationService {
 
     func requestPermission() async {
         let center = UNUserNotificationCenter.current()
-        try? await center.requestAuthorization(options: [.alert, .sound, .badge])
+        _ = try? await center.requestAuthorization(options: [.alert, .sound, .badge])
     }
 
     func checkForUpdates(accounts: [StoredAccount], getToken: @Sendable (StoredAccount) async throws -> String) async {
@@ -26,6 +26,8 @@ actor NotificationService {
     }
 
     private func checkSkillQueue(for account: StoredAccount, token: String) async {
+        guard UserDefaults.standard.object(forKey: "notificationsEnabled") as? Bool ?? true,
+              UserDefaults.standard.object(forKey: "notifySkillQueueEmpty") as? Bool ?? true else { return }
         do {
             let queue: [ESISkillQueue] = try await ESIClient.shared.fetch(
                 "/characters/\(account.characterID)/skillqueue/", token: token
@@ -48,6 +50,8 @@ actor NotificationService {
     }
 
     private func checkNotifications(for account: StoredAccount, token: String) async {
+        guard UserDefaults.standard.object(forKey: "notificationsEnabled") as? Bool ?? true,
+              UserDefaults.standard.object(forKey: "notifyStructureAlerts") as? Bool ?? true else { return }
         do {
             let notifications: [ESINotification] = try await ESIClient.shared.fetch(
                 "/characters/\(account.characterID)/notifications/", token: token
@@ -76,6 +80,8 @@ actor NotificationService {
     }
 
     private func checkContracts(for account: StoredAccount, token: String) async {
+        guard UserDefaults.standard.object(forKey: "notificationsEnabled") as? Bool ?? true,
+              UserDefaults.standard.object(forKey: "notifyContractsUpdated") as? Bool ?? true else { return }
         do {
             let contracts: [ESIContract] = try await ESIClient.shared.fetch(
                 "/characters/\(account.characterID)/contracts/", token: token

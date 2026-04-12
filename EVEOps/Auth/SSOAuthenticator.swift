@@ -22,8 +22,8 @@ struct SSOConfiguration: Sendable {
     let scopes: [String]
 
     static let `default` = SSOConfiguration(
-        clientID: "YOUR_CLIENT_ID",
-        callbackURL: "eveops://callback",
+        clientID: "27c5210c4d8a44538fdeeb7fc58f28b6",
+        callbackURL: "eveauth-27c5210c4d8a44538fdeeb7fc58f28b6://callback",
         scopes: [
             "esi-location.read_location.v1",
             "esi-location.read_ship_type.v1",
@@ -44,7 +44,17 @@ struct SSOConfiguration: Sendable {
             "esi-industry.read_corporation_jobs.v1",
             "esi-assets.read_corporation_assets.v1",
             "esi-wallet.read_corporation_wallets.v1",
-            "esi-contracts.read_corporation_contracts.v1"
+            "esi-contracts.read_corporation_contracts.v1",
+            "esi-universe.read_structures.v1",
+            "esi-characters.read_standings.v1",
+            "esi-calendar.read_calendar_events.v1",
+            "esi-calendar.respond_calendar_events.v1",
+            "esi-fittings.read_fittings.v1",
+            "esi-killmails.read_killmails.v1",
+            "esi-killmails.read_corporation_killmails.v1",
+            "esi-markets.read_corporation_orders.v1",
+            "esi-industry.read_corporation_mining.v1",
+            "esi-characters.read_contacts.v1"
         ]
     )
 
@@ -52,13 +62,13 @@ struct SSOConfiguration: Sendable {
 }
 
 @MainActor
-final class SSOAuthenticator: NSObject, ObservableObject {
-    @Published var isAuthenticating = false
+final class SSOAuthenticator: NSObject {
+    var isAuthenticating = false
 
     private let config: SSOConfiguration
     private var webAuthSession: ASWebAuthenticationSession?
 
-    init(config: SSOConfiguration = .default) {
+    init(config: SSOConfiguration) {
         self.config = config
     }
 
@@ -85,7 +95,7 @@ final class SSOAuthenticator: NSObject, ObservableObject {
             isAuthenticating = true
             let session = ASWebAuthenticationSession(
                 url: authURL,
-                callback: .customScheme("eveops")
+                callbackURLScheme: "eveauth-\(config.clientID)"
             ) { url, error in
                 if let error = error {
                     continuation.resume(throwing: error)

@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct LoadingStateView<Content: View>: View {
+    @Environment(APIStatusMonitor.self) private var apiStatus
+
     let isLoading: Bool
     let error: String?
     let isEmpty: Bool
@@ -30,6 +32,8 @@ struct LoadingStateView<Content: View>: View {
                         .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if !apiStatus.isReachable && (error != nil || isEmpty) {
+                apiUnreachableView
             } else if let error {
                 VStack(spacing: 12) {
                     Image(systemName: "exclamationmark.triangle")
@@ -56,5 +60,20 @@ struct LoadingStateView<Content: View>: View {
                 content()
             }
         }
+    }
+
+    private var apiUnreachableView: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "wifi.exclamationmark")
+                .font(.largeTitle)
+                .foregroundStyle(.orange)
+            Text(apiStatus.statusMessage.isEmpty ? "Unable to reach EVE servers" : apiStatus.statusMessage)
+                .font(.headline)
+            Text("Data will refresh automatically when the connection is restored.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

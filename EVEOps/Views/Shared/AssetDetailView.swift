@@ -41,51 +41,47 @@ struct AssetDetailView: View {
 
     private var headerSection: some View {
         ZStack(alignment: .bottom) {
-            AsyncImage(url: EVEImageURL.typeRender(asset.typeId, size: 512)) { phase in
-                switch phase {
-                case .success(let image):
+            AsyncImage(url: EVEImageURL.typeRender(asset.typeId, size: 1024)) { phase in
+                if let image = phase.image {
                     image
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(maxHeight: 200)
-                default:
+                } else {
+                    // Render not available (most non-ship items); show large icon instead
                     Rectangle()
                         .fill(Color(white: 0.1))
                         .frame(height: 200)
                         .overlay {
-                            if isLoading {
-                                ProgressView().scaleEffect(0.8)
-                            } else {
-                                Image(systemName: "cube.box.fill")
-                                    .font(.largeTitle)
-                                    .foregroundStyle(.quaternary)
+                            AsyncImage(url: EVEImageURL.typeIcon(asset.typeId, size: 256)) { iconPhase in
+                                if let icon = iconPhase.image {
+                                    icon.resizable()
+                                        .interpolation(.high)
+                                        .frame(width: 128, height: 128)
+                                } else if iconPhase.error != nil {
+                                    Image(systemName: "cube.box.fill")
+                                        .font(.system(size: 48))
+                                        .foregroundStyle(.quaternary)
+                                } else {
+                                    ProgressView().scaleEffect(0.8)
+                                }
                             }
                         }
                 }
             }
 
             // Name overlay at bottom
-            HStack(spacing: 10) {
-                AsyncImage(url: EVEImageURL.typeIcon(asset.typeId, size: 64)) { phase in
-                    if let image = phase.image {
-                        image.resizable()
-                            .frame(width: 40, height: 40)
-                            .clipShape(RoundedRectangle(cornerRadius: 6))
-                    }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(asset.typeName)
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                if let groupName {
+                    Text(groupName)
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.7))
                 }
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(asset.typeName)
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                    if let groupName {
-                        Text(groupName)
-                            .font(.caption)
-                            .foregroundStyle(.white.opacity(0.7))
-                    }
-                }
-                Spacer()
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)
             .background(.ultraThinMaterial.opacity(0.8))
         }
@@ -274,21 +270,24 @@ struct AssetDetailView: View {
     private func loadTypeInfo() async {
         isLoading = true
         do {
-            let type: ESIType = try await ESIClient.shared.fetch("/universe/types/\(asset.typeId)/")
+            guard let type = await UniverseCache.shared.type(id: asset.typeId) else {
+                throw ESIError.noData
+            }
             typeInfo = type
 
             // Load group info
-            let group: ESIGroup = try await ESIClient.shared.fetch("/universe/groups/\(type.groupId)/")
-            groupName = group.name
+            if let group = await UniverseCache.shared.group(id: type.groupId) {
+                groupName = group.name
 
-            // Load category info
-            let category: ESICategory = try await ESIClient.shared.fetch("/universe/categories/\(group.categoryId)/")
-            categoryName = category.name
+                // Load category info
+                let category: ESICategory? = try? await ESIClient.shared.fetch("/universe/categories/\(group.categoryId)/")
+                categoryName = category?.name
+            }
 
             // Load market group if available
             if let mgID = type.marketGroupId {
-                let mg: ESIMarketGroup = try await ESIClient.shared.fetch("/universe/market_groups/\(mgID)/")
-                marketGroupName = mg.name
+                let mg: ESIMarketGroup? = try? await ESIClient.shared.fetch("/universe/market_groups/\(mgID)/")
+                marketGroupName = mg?.name
             }
         } catch {
             // Partial info is fine

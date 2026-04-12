@@ -214,11 +214,10 @@ final class DashboardPrefetcher {
         for cID in constellationIDs {
             if let c = await UniverseCache.shared.constellation(id: cID) {
                 resolvedConstellations[cID] = c
-                if let rID = c.regionId {
-                    if resolvedRegions[rID] == nil {
-                        if let r = await UniverseCache.shared.region(id: rID) {
-                            resolvedRegions[rID] = r
-                        }
+                let rID = c.regionId
+                if resolvedRegions[rID] == nil {
+                    if let r = await UniverseCache.shared.region(id: rID) {
+                        resolvedRegions[rID] = r
                     }
                 }
             }

@@ -5,7 +5,10 @@ import Foundation
 final class BackgroundMonitor {
     var isMonitoring = false
     private var monitorTask: Task<Void, Never>?
-    private let pollInterval: TimeInterval = 300 // 5 minutes
+    private var pollInterval: TimeInterval {
+        let stored = UserDefaults.standard.double(forKey: "backgroundPollInterval")
+        return stored >= 60 ? stored : 300
+    }
 
     func start(accountManager: AccountManager) {
         guard !isMonitoring else { return }

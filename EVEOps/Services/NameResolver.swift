@@ -13,12 +13,6 @@ actor NameResolver {
     }()
 
     private init() {
-        loadFromDisk()
-    }
-
-    // MARK: - Persistence
-
-    private func loadFromDisk() {
         guard let data = try? Data(contentsOf: Self.cacheFileURL),
               let stored = try? JSONDecoder().decode([String: String].self, from: data) else { return }
         for (key, value) in stored {
@@ -26,6 +20,12 @@ actor NameResolver {
                 cache[id] = value
             }
         }
+    }
+
+    func clearCache() {
+        cache.removeAll()
+        try? FileManager.default.removeItem(at: Self.cacheFileURL)
+        dirty = false
     }
 
     func saveToDisk() {

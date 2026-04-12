@@ -2,9 +2,12 @@ import SwiftUI
 
 struct LocationOverviewView: View {
     @Environment(AccountManager.self) private var accountManager
+    @Environment(DashboardPrefetcher.self) private var prefetcher
     @State private var locations: [CharacterLocationInfo] = []
-    @State private var isLoading = true
+    @State private var isLoading = false
     @State private var error: String?
+    @State private var lastRefresh: Date?
+    @State private var refreshTick = 0
 
     var body: some View {
         LoadingStateView(isLoading: isLoading, error: error, isEmpty: locations.isEmpty, emptyMessage: "No location data") {
@@ -18,7 +21,35 @@ struct LocationOverviewView: View {
             }
         }
         .navigationTitle("Location Overview")
-        .task { await loadLocations() }
+        .toolbar {
+            ToolbarItem(placement: .automatic) {
+                HStack(spacing: 8) {
+                    if let lastRefresh {
+                        Text("Updated \(lastRefresh, style: .relative) ago")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
+                    Button {
+                        Task { await loadLocations() }
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                    .disabled(isLoading)
+                }
+            }
+        }
+        .task {
+            if buildFromPrefetcher() { return }
+            isLoading = true
+            await loadLocations()
+        }
+        .task(id: "autoRefresh") {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(60))
+                refreshTick += 1
+                await loadLocations()
+            }
+        }
     }
 
     // MARK: - Location Card
@@ -257,11 +288,176 @@ struct LocationOverviewView: View {
                         }
                     }
                 }
+                // Star info
+                if info.starName != nil {
+                    Divider()
+                    starInfoSection(info)
+                }
+
+                // Nearby systems
+                if !info.nearbySystems.isEmpty {
+                    Divider()
+                    nearbySystemsSection(info)
+                }
+
+                // Constellation star map
+                Divider()
+
+                ConstellationMapView(
+                    constellationId: info.constellationId,
+                    currentSystemId: info.systemId,
+                    constellationName: info.constellationName ?? "Constellation"
+                )
             }
             .padding(12)
         }
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
         .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    // MARK: - Star Info
+
+    private func starInfoSection(_ info: CharacterLocationInfo) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: "sun.max.fill")
+                    .foregroundStyle(starColor(info.starSpectralClass))
+                Text("Star")
+                    .font(.subheadline.bold())
+            }
+
+            HStack(spacing: 16) {
+                // Star icon glow
+                ZStack {
+                    Circle()
+                        .fill(starColor(info.starSpectralClass).opacity(0.2))
+                        .frame(width: 48, height: 48)
+                    Circle()
+                        .fill(starColor(info.starSpectralClass))
+                        .frame(width: 28, height: 28)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    if let name = info.starName {
+                        Text(name)
+                            .font(.body.bold())
+                    }
+                    if let spectral = info.starSpectralClass {
+                        HStack(spacing: 6) {
+                            Text("Class \(spectral)")
+                                .font(.caption.bold())
+                                .foregroundStyle(starColor(spectral))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(starColor(spectral).opacity(0.15), in: Capsule())
+                            Text(spectralDescription(spectral))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 4) {
+                    if let temp = info.starTemperature {
+                        starStat(label: "Temperature", value: "\(temp.formatted()) K")
+                    }
+                    if let radius = info.starRadius {
+                        starStat(label: "Radius", value: formatLarge(Double(radius)) + " km")
+                    }
+                    if let lum = info.starLuminosity {
+                        starStat(label: "Luminosity", value: String(format: "%.4f L☉", lum))
+                    }
+                    if let age = info.starAge {
+                        starStat(label: "Age", value: formatLarge(Double(age)) + " yrs")
+                    }
+                }
+            }
+        }
+    }
+
+    private func starStat(label: String, value: String) -> some View {
+        HStack(spacing: 4) {
+            Text(label)
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+            Text(value)
+                .font(.caption2.monospacedDigit())
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private func starColor(_ spectralClass: String?) -> Color {
+        guard let sc = spectralClass?.prefix(1).uppercased() else { return .yellow }
+        switch sc {
+        case "O": return .blue
+        case "B": return Color(red: 0.6, green: 0.7, blue: 1.0)
+        case "A": return .white
+        case "F": return Color(red: 1.0, green: 1.0, blue: 0.8)
+        case "G": return .yellow
+        case "K": return .orange
+        case "M": return .red
+        default: return .yellow
+        }
+    }
+
+    private func spectralDescription(_ spectralClass: String) -> String {
+        switch spectralClass.prefix(1).uppercased() {
+        case "O": return "Blue giant"
+        case "B": return "Blue-white"
+        case "A": return "White"
+        case "F": return "Yellow-white"
+        case "G": return "Yellow (Sun-like)"
+        case "K": return "Orange"
+        case "M": return "Red dwarf"
+        default: return ""
+        }
+    }
+
+    // MARK: - Nearby Systems
+
+    private func nearbySystemsSection(_ info: CharacterLocationInfo) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: "arrow.triangle.branch")
+                    .foregroundStyle(.purple)
+                Text("Connected Systems")
+                    .font(.subheadline.bold())
+                Text("(\(info.nearbySystems.count) gate\(info.nearbySystems.count == 1 ? "" : "s"))")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            let columns = [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())]
+            LazyVGrid(columns: columns, alignment: .leading, spacing: 6) {
+                ForEach(info.nearbySystems, id: \.systemId) { sys in
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(securityColor(sys.securityStatus))
+                            .frame(width: 8, height: 8)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(sys.name)
+                                .font(.caption.bold())
+                                .lineLimit(1)
+                            HStack(spacing: 4) {
+                                Text(String(format: "%.1f", sys.securityStatus))
+                                    .font(.caption2.monospacedDigit())
+                                    .foregroundStyle(securityColor(sys.securityStatus))
+                                if sys.isExternal {
+                                    Text("ext")
+                                        .font(.system(size: 8))
+                                        .foregroundStyle(.orange)
+                                        .padding(.horizontal, 3)
+                                        .padding(.vertical, 1)
+                                        .background(.orange.opacity(0.15), in: Capsule())
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // MARK: - Helpers
@@ -320,11 +516,71 @@ struct LocationOverviewView: View {
         return String(format: "%.0f", value)
     }
 
+    // MARK: - Prefetcher Fast Path
+
+    private func buildFromPrefetcher() -> Bool {
+        var data: [CharacterLocationInfo] = []
+        for account in accountManager.accounts {
+            guard let prefetched = prefetcher.data(for: account.characterID) else { return false }
+            guard let systemInfo = prefetcher.resolvedSystems[prefetched.location.solarSystemId] else { return false }
+
+            let constellation = prefetcher.resolvedConstellations[systemInfo.constellationId]
+            let shipType = prefetcher.resolvedTypes[prefetched.ship.shipTypeId]
+            var regionName: String?
+            if let cId = constellation?.regionId {
+                regionName = prefetcher.resolvedRegions[cId]?.name
+            }
+            var shipGroupName: String?
+            if let gId = shipType?.groupId {
+                shipGroupName = prefetcher.resolvedGroups[gId]?.name
+            }
+
+            data.append(CharacterLocationInfo(
+                characterID: account.characterID,
+                characterName: account.characterName,
+                corporationName: account.corporationName,
+                isOnline: prefetched.online.online,
+                lastLogin: prefetched.online.lastLogin,
+                lastLogout: prefetched.online.lastLogout,
+                loginCount: prefetched.online.logins,
+                systemId: prefetched.location.solarSystemId,
+                constellationId: systemInfo.constellationId,
+                systemName: systemInfo.name,
+                securityValue: systemInfo.securityStatus,
+                constellationName: constellation?.name,
+                regionName: regionName,
+                dockedAt: nil,  // Resolved in background refresh
+                shipName: prefetched.ship.shipName,
+                shipTypeName: shipType?.name ?? "Unknown",
+                shipTypeId: prefetched.ship.shipTypeId,
+                shipGroupName: shipGroupName,
+                shipMass: shipType?.mass,
+                shipVolume: shipType?.volume,
+                shipCapacity: shipType?.capacity,
+                starName: nil,
+                starSpectralClass: nil,
+                starTemperature: nil,
+                starRadius: nil,
+                starLuminosity: nil,
+                starAge: nil,
+                starTypeId: nil,
+                nearbySystems: []  // Resolved in background refresh
+            ))
+        }
+        locations = data
+        lastRefresh = Date()
+        // Kick off background enrichment for star/nearby/docked data
+        Task { await loadLocations() }
+        return !data.isEmpty
+    }
+
     // MARK: - Data Loading
 
     private func loadLocations() async {
-        isLoading = true
+        if locations.isEmpty { isLoading = true }
+        error = nil
         var data: [CharacterLocationInfo] = []
+        var lastError: Error?
         for account in accountManager.accounts {
             do {
                 let token = try await accountManager.validToken(for: account)
@@ -341,36 +597,81 @@ struct LocationOverviewView: View {
 
                 let (location, ship, online) = try await (fetchLocation, fetchShip, fetchOnline)
 
-                // System → Constellation → Region chain
-                let systemInfo: ESISolarSystem = try await ESIClient.shared.fetch(
-                    "/universe/systems/\(location.solarSystemId)/"
-                )
+                // System → Constellation → Region chain (via UniverseCache)
+                guard let systemInfo = await UniverseCache.shared.solarSystem(id: location.solarSystemId) else {
+                    continue
+                }
 
-                async let fetchConstellation: ESIConstellation = ESIClient.shared.fetch(
-                    "/universe/constellations/\(systemInfo.constellationId)/"
-                )
-                async let fetchShipType: ESIType = ESIClient.shared.fetch(
-                    "/universe/types/\(ship.shipTypeId)/"
-                )
+                async let fetchConstellation = UniverseCache.shared.constellation(id: systemInfo.constellationId)
+                async let fetchShipType = UniverseCache.shared.type(id: ship.shipTypeId)
 
-                let (constellation, shipType) = try await (fetchConstellation, fetchShipType)
+                let constellation = await fetchConstellation
+                let shipType = await fetchShipType
 
-                let region: ESIRegion? = try? await ESIClient.shared.fetch(
-                    "/universe/regions/\(constellation.regionId)/"
-                )
+                var region: ESIRegion?
+                if let cId = constellation?.regionId {
+                    region = await UniverseCache.shared.region(id: cId)
+                }
 
                 // Ship group name
-                let shipGroup: ESIGroup? = try? await ESIClient.shared.fetch(
-                    "/universe/groups/\(shipType.groupId)/"
-                )
+                var shipGroup: ESIGroup?
+                if let gId = shipType?.groupId {
+                    shipGroup = await UniverseCache.shared.group(id: gId)
+                }
+
+                // Star info
+                var star: ESIStar?
+                if let starId = systemInfo.starId {
+                    star = await UniverseCache.shared.star(id: starId)
+                }
+
+                // Nearby systems via stargates (ESIClient cache handles repeat fetches)
+                var nearbySystems: [NearbySystem] = []
+                if let gateIds = systemInfo.stargates, !gateIds.isEmpty {
+                    let gates = await withTaskGroup(of: ESIStargate?.self) { group in
+                        for gateId in gateIds {
+                            group.addTask {
+                                try? await ESIClient.shared.fetch("/universe/stargates/\(gateId)/") as ESIStargate
+                            }
+                        }
+                        var results: [ESIStargate] = []
+                        for await gate in group {
+                            if let g = gate { results.append(g) }
+                        }
+                        return results
+                    }
+                    let destIds = gates.map(\.destination.systemId)
+                    let constellationSystems = Set(constellation?.systems ?? [])
+                    // Batch-fetch destination systems via UniverseCache
+                    let destSystems = await withTaskGroup(of: ESISolarSystem?.self) { group in
+                        for destId in destIds {
+                            group.addTask {
+                                await UniverseCache.shared.solarSystem(id: destId)
+                            }
+                        }
+                        var results: [ESISolarSystem] = []
+                        for await sys in group {
+                            if let s = sys { results.append(s) }
+                        }
+                        return results
+                    }
+                    for dest in destSystems {
+                        nearbySystems.append(NearbySystem(
+                            systemId: dest.systemId,
+                            name: dest.name,
+                            securityStatus: dest.securityStatus,
+                            isExternal: !constellationSystems.contains(dest.systemId)
+                        ))
+                    }
+                    nearbySystems.sort { $0.securityStatus > $1.securityStatus }
+                }
 
                 // Docked location
                 var dockedAt: String?
                 if let stationId = location.stationId {
-                    let station: ESIStation = try await ESIClient.shared.fetch(
-                        "/universe/stations/\(stationId)/"
-                    )
-                    dockedAt = station.name
+                    if let station = await UniverseCache.shared.station(id: stationId) {
+                        dockedAt = station.name
+                    }
                 } else if let structureId = location.structureId {
                     if let structure: ESIStructure = try? await ESIClient.shared.fetch(
                         "/universe/structures/\(structureId)/", token: token
@@ -389,24 +690,38 @@ struct LocationOverviewView: View {
                     lastLogin: online.lastLogin,
                     lastLogout: online.lastLogout,
                     loginCount: online.logins,
+                    systemId: location.solarSystemId,
+                    constellationId: systemInfo.constellationId,
                     systemName: systemInfo.name,
                     securityValue: systemInfo.securityStatus,
-                    constellationName: constellation.name,
+                    constellationName: constellation?.name,
                     regionName: region?.name,
                     dockedAt: dockedAt,
                     shipName: ship.shipName,
-                    shipTypeName: shipType.name,
+                    shipTypeName: shipType?.name ?? "Unknown",
                     shipTypeId: ship.shipTypeId,
                     shipGroupName: shipGroup?.name,
-                    shipMass: shipType.mass,
-                    shipVolume: shipType.volume,
-                    shipCapacity: shipType.capacity
+                    shipMass: shipType?.mass,
+                    shipVolume: shipType?.volume,
+                    shipCapacity: shipType?.capacity,
+                    starName: star?.name,
+                    starSpectralClass: star?.spectralClass,
+                    starTemperature: star?.temperature,
+                    starRadius: star?.radius,
+                    starLuminosity: star?.luminosity,
+                    starAge: star?.age,
+                    starTypeId: star?.typeId,
+                    nearbySystems: nearbySystems
                 ))
             } catch {
-                // Skip
+                lastError = error
             }
         }
         locations = data
+        if data.isEmpty, let lastError {
+            self.error = lastError.localizedDescription
+        }
+        lastRefresh = Date()
         isLoading = false
     }
 }
@@ -421,6 +736,8 @@ struct CharacterLocationInfo {
     let lastLogin: Date?
     let lastLogout: Date?
     let loginCount: Int?
+    let systemId: Int
+    let constellationId: Int
     let systemName: String
     let securityValue: Double
     let constellationName: String?
@@ -433,4 +750,21 @@ struct CharacterLocationInfo {
     let shipMass: Double?
     let shipVolume: Double?
     let shipCapacity: Double?
+    // Star info
+    let starName: String?
+    let starSpectralClass: String?
+    let starTemperature: Int?
+    let starRadius: Int?
+    let starLuminosity: Double?
+    let starAge: Int?
+    let starTypeId: Int?
+    // Nearby connected systems
+    let nearbySystems: [NearbySystem]
+}
+
+struct NearbySystem {
+    let systemId: Int
+    let name: String
+    let securityStatus: Double
+    let isExternal: Bool // outside current constellation
 }

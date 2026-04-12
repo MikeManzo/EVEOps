@@ -530,11 +530,8 @@ struct ConstellationMapView: View {
     private func loadConstellationData() async {
         isLoading = true
 
-        do {
-            let constellation: ESIConstellation = try await ESIClient.shared.fetch(
-                "/universe/constellations/\(constellationId)/"
-            )
-            guard let systemIds = constellation.systems, !systemIds.isEmpty else {
+        guard let constellation = await UniverseCache.shared.constellation(id: constellationId),
+                  let systemIds = constellation.systems, !systemIds.isEmpty else {
                 isLoading = false
                 return
             }
@@ -543,7 +540,7 @@ struct ConstellationMapView: View {
             async let fetchedSystems = withTaskGroup(of: ESISolarSystem?.self) { group in
                 for sysId in systemIds {
                     group.addTask {
-                        try? await ESIClient.shared.fetch("/universe/systems/\(sysId)/") as ESISolarSystem
+                        await UniverseCache.shared.solarSystem(id: sysId)
                     }
                 }
                 var results: [ESISolarSystem] = []
@@ -646,7 +643,7 @@ struct ConstellationMapView: View {
 
                 // Try to get destination system position for angle
                 var angle: CGFloat = CGFloat.random(in: 0...(.pi * 2))
-                if let destSys: ESISolarSystem = try? await ESIClient.shared.fetch("/universe/systems/\(ext.toSystemId)/"),
+                if let destSys = await UniverseCache.shared.solarSystem(id: ext.toSystemId),
                    let destPos = destSys.position {
                     angle = atan2(CGFloat(destPos.z - fz), CGFloat(destPos.x - fx))
                 }
@@ -664,9 +661,6 @@ struct ConstellationMapView: View {
             externalConnections = resolvedExtConns
             killsData = killsMap
             jumpsData = jumpsMap
-        } catch {
-            // Partial data
-        }
 
         isLoading = false
     }

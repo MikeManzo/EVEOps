@@ -5,6 +5,7 @@ struct MenuBarView: View {
     @Environment(DashboardPrefetcher.self) private var prefetcher
     @Environment(APIStatusMonitor.self) private var apiStatus
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.openSettings) private var openSettings
     @State private var summaries: [Int: CharacterSummary] = [:]
     @State private var isLoading = false
 
@@ -67,21 +68,34 @@ struct MenuBarView: View {
                 Divider()
             }
 
-            HStack {
+            ZStack {
+                HStack {
+                    Button {
+                        NSApplication.shared.keyWindow?.close()
+                        openWindow(id: "main")
+                        NSApplication.shared.activate(ignoringOtherApps: true)
+                    } label: {
+                        Label("EVEOps", systemImage: "macwindow")
+                    }
+                    .buttonStyle(.plain)
+
+                    Spacer()
+
+                    Button {
+                        NSApplication.shared.terminate(nil)
+                    } label: {
+                        Label("Quit", systemImage: "power")
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+                }
+
                 Button {
-                    openWindow(id: "main")
+                    NSApplication.shared.keyWindow?.close()
+                    openSettings()
                     NSApplication.shared.activate(ignoringOtherApps: true)
                 } label: {
-                    Label("Open EVEOps", systemImage: "macwindow")
-                }
-                .buttonStyle(.plain)
-
-                Spacer()
-
-                Button {
-                    NSApplication.shared.terminate(nil)
-                } label: {
-                    Label("Quit", systemImage: "power")
+                    Label("Settings", systemImage: "gear")
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
@@ -89,8 +103,9 @@ struct MenuBarView: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
         }
-        .frame(width: 380)
+        .frame(width: 330)
         .task {
+            await apiStatus.checkNow()
             // Use prefetcher summaries immediately if available
             let prebuilt = prefetcher.menuBarSummaries
             if !prebuilt.isEmpty {

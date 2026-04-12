@@ -2,27 +2,59 @@ import SwiftUI
 
 struct TrainingOverviewView: View {
     @Environment(AccountManager.self) private var accountManager
+    @Environment(DashboardPrefetcher.self) private var prefetcher
     @State private var trainingData: [CharacterTrainingInfo] = []
-    @State private var isLoading = true
+    @State private var isLoading = false
     @State private var error: String?
     @State private var now = Date()
     @State private var expandedCharacterSkills: Set<Int> = []
+    @State private var selectedSkill: SkillSelection?
+
+    private struct SkillSelection: Equatable {
+        let skillId: Int
+        let skillName: String
+        let groupName: String
+        let knownSkill: KnownSkill?
+        let queueEntry: TrainingQueueEntry?
+
+        static func == (lhs: SkillSelection, rhs: SkillSelection) -> Bool {
+            lhs.skillId == rhs.skillId && lhs.queueEntry?.position == rhs.queueEntry?.position
+        }
+    }
 
     var body: some View {
         LoadingStateView(isLoading: isLoading, error: error, isEmpty: trainingData.isEmpty, emptyMessage: "No training data") {
-            ScrollView {
-                VStack(spacing: 20) {
-                    aggregateSummary
+            HStack(spacing: 0) {
+                ScrollView {
+                    VStack(spacing: 20) {
+                        aggregateSummary
 
-                    ForEach(trainingData, id: \.characterID) { info in
-                        characterTrainingCard(info)
+                        ForEach(trainingData, id: \.characterID) { info in
+                            characterTrainingCard(info)
+                        }
                     }
+                    .padding()
                 }
-                .padding()
+
+                if let skill = selectedSkill {
+                    Divider()
+                    SkillDetailView(
+                        skillId: skill.skillId,
+                        skillName: skill.skillName,
+                        groupName: skill.groupName,
+                        knownSkill: skill.knownSkill,
+                        queueEntry: skill.queueEntry
+                    )
+                    .frame(width: 320)
+                }
             }
         }
         .navigationTitle("Training Overview")
-        .task { await loadTraining() }
+        .task {
+            if buildFromPrefetcher() { return }
+            isLoading = true
+            await loadTraining()
+        }
         .task(id: "timer") {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(1))
@@ -95,12 +127,12 @@ struct TrainingOverviewView: View {
                 Divider().padding(.horizontal, 12)
 
                 if let current = info.queue.first(where: \.isCurrentlyTraining) {
-                    currentlyTrainingSection(current)
+                    currentlyTrainingSection(current, info: info)
                         .padding(12)
                     Divider().padding(.horizontal, 12)
                 }
 
-                queueList(info.queue)
+                queueList(info.queue, info: info)
                     .padding(12)
             }
 
@@ -178,7 +210,10 @@ struct TrainingOverviewView: View {
 
     // MARK: - Currently Training
 
-    private func currentlyTrainingSection(_ entry: TrainingQueueEntry) -> some View {
+    private func currentlyTrainingSection(_ entry: TrainingQueueEntry, info: CharacterTrainingInfo) -> some View {
+        Button {
+            selectedSkill = skillSelection(for: entry, in: info)
+        } label: {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Image(systemName: "play.circle.fill")
@@ -186,6 +221,9 @@ struct TrainingOverviewView: View {
                 Text("Currently Training")
                     .font(.subheadline.bold())
                 Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
             }
 
             HStack(spacing: 12) {
@@ -258,17 +296,22 @@ struct TrainingOverviewView: View {
                 }
             }
         }
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Queue List
 
-    private func queueList(_ queue: [TrainingQueueEntry]) -> some View {
+    private func queueList(_ queue: [TrainingQueueEntry], info: CharacterTrainingInfo) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Skill Queue (\(queue.count))")
                 .font(.subheadline.bold())
                 .foregroundStyle(.secondary)
 
             ForEach(queue, id: \.position) { entry in
+                Button {
+                    selectedSkill = skillSelection(for: entry, in: info)
+                } label: {
                 HStack(spacing: 8) {
                     Text("\(entry.position + 1)")
                         .font(.caption2.monospacedDigit())
@@ -321,6 +364,8 @@ struct TrainingOverviewView: View {
                             .foregroundStyle(entry.isCurrentlyTraining ? .green : .secondary)
                     }
                 }
+                }
+                .buttonStyle(.plain)
             }
         }
     }
@@ -400,12 +445,21 @@ struct TrainingOverviewView: View {
 
             // Skills in group
             ForEach(group.skills.sorted(by: { $0.name < $1.name }), id: \.skillId) { skill in
-                skillRow(skill)
+                skillRow(skill, groupName: group.groupName)
             }
         }
     }
 
-    private func skillRow(_ skill: KnownSkill) -> some View {
+    private func skillRow(_ skill: KnownSkill, groupName: String) -> some View {
+        Button {
+            selectedSkill = SkillSelection(
+                skillId: skill.skillId,
+                skillName: skill.name,
+                groupName: groupName,
+                knownSkill: skill,
+                queueEntry: nil
+            )
+        } label: {
         HStack(spacing: 8) {
             AsyncImage(url: EVEImageURL.typeIcon(skill.skillId, size: 256)) { phase in
                 if let image = phase.image {
@@ -460,6 +514,16 @@ struct TrainingOverviewView: View {
                 .frame(width: 80, alignment: .trailing)
         }
         .padding(.vertical, 2)
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Selection Helpers
+
+    private func skillSelection(for entry: TrainingQueueEntry, in info: CharacterTrainingInfo) -> SkillSelection {
+        let known = info.skillGroups.flatMap(\.skills).first { $0.skillId == entry.skillId }
+        let group = info.skillGroups.first(where: { $0.skills.contains(where: { $0.skillId == entry.skillId }) })?.groupName ?? ""
+        return SkillSelection(skillId: entry.skillId, skillName: entry.skillName, groupName: group, knownSkill: known, queueEntry: entry)
     }
 
     private func pipColor(trained: Int, active: Int, pip: Int) -> Color {
@@ -532,11 +596,92 @@ struct TrainingOverviewView: View {
         return "\(sp)"
     }
 
+    // MARK: - Prefetcher Fast Path
+
+    private func buildFromPrefetcher() -> Bool {
+        var data: [CharacterTrainingInfo] = []
+        for account in accountManager.accounts {
+            guard let prefetched = prefetcher.data(for: account.characterID) else { return false }
+            let skills = prefetched.skills
+            let queue = prefetched.skillQueue.sorted { $0.queuePosition < $1.queuePosition }
+
+            // Build queue entries using pre-resolved names
+            var resolvedQueue: [TrainingQueueEntry] = []
+            for entry in queue {
+                let name = prefetcher.resolvedNames[entry.skillId] ?? "Skill #\(entry.skillId)"
+                let isTraining = entry.startDate != nil && entry.finishDate != nil &&
+                    (entry.startDate! <= Date()) && (entry.finishDate! > Date())
+                resolvedQueue.append(TrainingQueueEntry(
+                    position: entry.queuePosition,
+                    skillId: entry.skillId,
+                    skillName: name,
+                    level: entry.finishedLevel,
+                    startDate: entry.startDate,
+                    finishDate: entry.finishDate,
+                    levelStartSP: entry.levelStartSp,
+                    levelEndSP: entry.levelEndSp,
+                    trainingStartSP: entry.trainingStartSp,
+                    isCurrentlyTraining: isTraining
+                ))
+            }
+            let activeQueue = resolvedQueue.filter { ($0.finishDate ?? .distantPast) > Date() }
+
+            // Skill level breakdown
+            var byLevel: [Int: Int] = [:]
+            for skill in skills.skills {
+                byLevel[skill.trainedSkillLevel, default: 0] += 1
+            }
+
+            // Build known skill groups using pre-resolved types and groups
+            var groupedSkills: [Int: [KnownSkill]] = [:]
+            for skill in skills.skills {
+                let name = prefetcher.resolvedNames[skill.skillId] ?? "Skill #\(skill.skillId)"
+                let knownSkill = KnownSkill(
+                    skillId: skill.skillId,
+                    name: name,
+                    trainedLevel: skill.trainedSkillLevel,
+                    activeLevel: skill.activeSkillLevel,
+                    skillpoints: skill.skillpointsInSkill
+                )
+                let gid = prefetcher.resolvedTypes[skill.skillId]?.groupId ?? 0
+                groupedSkills[gid, default: []].append(knownSkill)
+            }
+
+            let skillGroups = groupedSkills.map { gid, skills in
+                KnownSkillGroup(
+                    groupId: gid,
+                    groupName: prefetcher.resolvedGroups[gid]?.name ?? "Unknown Group",
+                    skills: skills
+                )
+            }
+
+            data.append(CharacterTrainingInfo(
+                characterID: account.characterID,
+                characterName: account.characterName,
+                totalSP: skills.totalSp,
+                unallocatedSP: skills.unallocatedSp ?? 0,
+                knownSkillCount: skills.skills.count,
+                skillsByLevel: byLevel,
+                queue: activeQueue,
+                queueEmpty: activeQueue.isEmpty,
+                queueEndDate: activeQueue.last?.finishDate,
+                skillGroups: skillGroups
+            ))
+        }
+        trainingData = data
+        if selectedSkill == nil, let firstInfo = data.first, let firstEntry = firstInfo.queue.first {
+            selectedSkill = skillSelection(for: firstEntry, in: firstInfo)
+        }
+        return !data.isEmpty
+    }
+
     // MARK: - Data Loading
 
     private func loadTraining() async {
         isLoading = true
+        error = nil
         var data: [CharacterTrainingInfo] = []
+        var lastError: Error?
         for account in accountManager.accounts {
             do {
                 let token = try await accountManager.validToken(for: account)
@@ -584,21 +729,23 @@ struct TrainingOverviewView: View {
                     byLevel[skill.trainedSkillLevel, default: 0] += 1
                 }
 
-                // Fetch group info for all known skills to categorize them
+                // Batch-fetch type info via UniverseCache (persistent disk cache)
                 let typeIDs = Array(Set(skills.skills.map(\.skillId)))
-                var groupIdForSkill: [Int: Int] = [:]
-                var groupNames: [Int: String] = [:]
+                let fetchedTypes = await UniverseCache.shared.types(ids: typeIDs)
 
-                // Fetch type info to get groupId for each skill
-                for typeID in typeIDs {
-                    if let typeInfo: ESIType = try? await ESIClient.shared.fetch("/universe/types/\(typeID)/") {
-                        groupIdForSkill[typeID] = typeInfo.groupId
-                        if groupNames[typeInfo.groupId] == nil {
-                            if let group: ESIGroup = try? await ESIClient.shared.fetch("/universe/groups/\(typeInfo.groupId)/") {
-                                groupNames[typeInfo.groupId] = group.name
-                            }
-                        }
-                    }
+                var groupIdForSkill: [Int: Int] = [:]
+                var uniqueGroupIDs: Set<Int> = []
+                for (typeID, typeInfo) in fetchedTypes {
+                    groupIdForSkill[typeID] = typeInfo.groupId
+                    uniqueGroupIDs.insert(typeInfo.groupId)
+                }
+
+                // Batch-fetch group names via UniverseCache
+                let fetchedGroups = await UniverseCache.shared.groups(ids: uniqueGroupIDs)
+
+                var groupNames: [Int: String] = [:]
+                for (gid, groupInfo) in fetchedGroups {
+                    groupNames[gid] = groupInfo.name
                 }
 
                 // Build known skill groups
@@ -637,10 +784,16 @@ struct TrainingOverviewView: View {
                     skillGroups: skillGroups
                 ))
             } catch {
-                // Skip
+                lastError = error
             }
         }
         trainingData = data
+        if selectedSkill == nil, let firstInfo = data.first, let firstEntry = firstInfo.queue.first {
+            selectedSkill = skillSelection(for: firstEntry, in: firstInfo)
+        }
+        if data.isEmpty, let lastError {
+            self.error = lastError.localizedDescription
+        }
         isLoading = false
     }
 }

@@ -6,6 +6,7 @@ struct ShipEntry: Identifiable, Hashable {
     let typeName: String
     let locationName: String
     let isSingleton: Bool
+    let shipClassName: String
     var id: Int { itemId }
 }
 
@@ -22,6 +23,7 @@ struct CharacterFittingsView: View {
     @State private var isLoading = false
     @State private var error: String?
     @State private var selectedShip: ShipEntry?
+    @State private var collapsedGroups: Set<String> = []
 
     private var isEmpty: Bool { groups.allSatisfy { $0.ships.isEmpty } }
 
@@ -29,11 +31,28 @@ struct CharacterFittingsView: View {
         LoadingStateView(isLoading: isLoading, error: error, isEmpty: isEmpty, emptyMessage: "No ships found") {
             HStack(spacing: 0) {
                 List(selection: $selectedShip) {
-                    ForEach(groups, id: \.characterName) { group in
-                        Section(group.characterName) {
-                            ForEach(group.ships) { ship in
-                                ShipRow(ship: ship)
-                                    .tag(ship)
+                    ForEach(groups, id: \.characterName) { characterGroup in
+                        Section(characterGroup.characterName) {
+                            let byClass = Dictionary(grouping: characterGroup.ships, by: \.shipClassName)
+                            let classNames = byClass.keys.sorted()
+                            ForEach(classNames, id: \.self) { className in
+                                let key = "\(characterGroup.characterName)-\(className)"
+                                DisclosureGroup(isExpanded: expansionBinding(for: key)) {
+                                    ForEach(byClass[className]!) { ship in
+                                        ShipRow(ship: ship).tag(ship)
+                                    }
+                                } label: {
+                                    Label {
+                                        Text(className).font(.subheadline.bold())
+                                        Spacer()
+                                        Text("\(byClass[className]!.count)")
+                                            .font(.caption.monospacedDigit())
+                                            .foregroundStyle(.secondary)
+                                    } icon: {
+                                        Image(systemName: shipClassIcon(className))
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
                             }
                         }
                     }
@@ -104,12 +123,14 @@ struct CharacterFittingsView: View {
                 }
 
                 let ships = shipAssets.map { asset in
-                    ShipEntry(
+                    let groupId = types[asset.typeId]?.groupId ?? 0
+                    return ShipEntry(
                         itemId: asset.itemId,
                         typeId: asset.typeId,
                         typeName: types[asset.typeId]?.name ?? "Ship #\(asset.typeId)",
                         locationName: locationNames[asset.locationId] ?? "#\(asset.locationId)",
-                        isSingleton: asset.isSingleton
+                        isSingleton: asset.isSingleton,
+                        shipClassName: groups[groupId]?.name ?? "Unknown"
                     )
                 }.sorted { $0.typeName < $1.typeName }
 
@@ -132,6 +153,49 @@ struct CharacterFittingsView: View {
         flag.hasPrefix("HiSlot") || flag.hasPrefix("MedSlot") || flag.hasPrefix("LoSlot") ||
         flag.hasPrefix("RigSlot") || flag.hasPrefix("SubSystem") ||
         flag == "DroneBay" || flag == "FighterBay" || flag == "Cargo"
+    }
+
+    private func expansionBinding(for key: String) -> Binding<Bool> {
+        Binding(
+            get: { !collapsedGroups.contains(key) },
+            set: { expanded in
+                if expanded { collapsedGroups.remove(key) }
+                else { collapsedGroups.insert(key) }
+            }
+        )
+    }
+
+    private func shipClassIcon(_ name: String) -> String {
+        switch name {
+        case "Capsule":                         return "dot.circle.fill"
+        case "Shuttle":                         return "paperplane.fill"
+        case "Corvette":                        return "scope"
+        case "Frigate", "Assault Frigate",
+             "Interceptor", "Covert Ops",
+             "Electronic Attack Ship",
+             "Expedition Frigate":              return "arrowtriangle.up.fill"
+        case "Destroyer", "Interdictor",
+             "Command Destroyer",
+             "Tactical Destroyer":              return "bolt.fill"
+        case "Cruiser", "Heavy Assault Cruiser",
+             "Heavy Interdiction Cruiser",
+             "Logistics", "Recon Ship",
+             "Strategic Cruiser":               return "shield.fill"
+        case "Battlecruiser", "Attack Battlecruiser",
+             "Command Ship":                    return "shield.lefthalf.filled"
+        case "Battleship", "Black Ops",
+             "Marauder":                        return "star.fill"
+        case "Carrier", "Force Auxiliary":      return "building.2.fill"
+        case "Dreadnought":                     return "scope"
+        case "Supercarrier", "Titan":           return "crown.fill"
+        case "Freighter", "Jump Freighter":     return "shippingbox.fill"
+        case "Industrial", "Deep Space Transport",
+             "Blockade Runner":                 return "cube.box.fill"
+        case "Industrial Command Ship",
+             "Mining Barge", "Exhumer",
+             "Mining Frigate":                  return "cube.fill"
+        default:                                return "questionmark.circle.fill"
+        }
     }
 }
 
@@ -342,35 +406,163 @@ struct CurrentFittingPane: View {
 struct ModuleCell: View {
     let module: ESIAsset
     let name: String?
+    @State private var showPopover = false
 
     var body: some View {
-        HStack(spacing: 8) {
-            AsyncImage(url: EVEImageURL.typeIcon(module.typeId, size: 64)) { image in
-                image.resizable()
-            } placeholder: {
-                RoundedRectangle(cornerRadius: 4).fill(.quaternary)
-            }
-            .frame(width: 32, height: 32)
-            .clipShape(RoundedRectangle(cornerRadius: 4))
-            .overlay(
-                RoundedRectangle(cornerRadius: 4)
-                    .strokeBorder(.white.opacity(0.1), lineWidth: 0.5)
-            )
-
-            VStack(alignment: .leading, spacing: 1) {
-                Text(name ?? "Type #\(module.typeId)")
-                    .font(.caption)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
-                if module.quantity > 1 {
-                    Text("x\(module.quantity)")
-                        .font(.caption2.monospacedDigit())
-                        .foregroundStyle(.secondary)
+        Button { showPopover = true } label: {
+            HStack(spacing: 8) {
+                AsyncImage(url: EVEImageURL.typeIcon(module.typeId, size: 64)) { image in
+                    image.resizable()
+                } placeholder: {
+                    RoundedRectangle(cornerRadius: 4).fill(.quaternary)
                 }
+                .frame(width: 32, height: 32)
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 4)
+                        .strokeBorder(.white.opacity(0.1), lineWidth: 0.5)
+                )
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(name ?? "Type #\(module.typeId)")
+                        .font(.caption)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if module.quantity > 1 {
+                        Text("x\(module.quantity)")
+                            .font(.caption2.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Spacer(minLength: 0)
             }
-            Spacer(minLength: 0)
+            .padding(7)
+            .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 7))
+            .contentShape(RoundedRectangle(cornerRadius: 7))
         }
-        .padding(7)
-        .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 7))
+        .buttonStyle(.plain)
+        .popover(isPresented: $showPopover, arrowEdge: .trailing) {
+            ModuleDetailPopover(typeId: module.typeId, name: name, quantity: module.quantity)
+        }
+    }
+}
+
+// MARK: - Module Detail Popover
+
+struct ModuleDetailPopover: View {
+    let typeId: Int
+    let name: String?
+    let quantity: Int
+
+    @State private var esiType: ESIType?
+    @State private var groupName: String?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Header
+            HStack(spacing: 12) {
+                AsyncImage(url: EVEImageURL.typeIcon(typeId, size: 128)) { image in
+                    image.resizable()
+                } placeholder: {
+                    RoundedRectangle(cornerRadius: 8).fill(.quaternary)
+                }
+                .frame(width: 64, height: 64)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .strokeBorder(.white.opacity(0.1), lineWidth: 0.5)
+                )
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(name ?? "Type #\(typeId)")
+                        .font(.headline)
+                    if let groupName {
+                        Text(groupName)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("Loading…")
+                            .font(.subheadline)
+                            .foregroundStyle(.tertiary)
+                    }
+                    if quantity > 1 {
+                        Text("Quantity: \(quantity)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Spacer()
+            }
+            .padding(16)
+
+            if let type = esiType {
+                Divider()
+
+                // Stats row
+                let stats: [(String, String, String)] = [
+                    type.volume.map { ("cube.fill", "Volume", volumeString($0)) },
+                    type.mass.map { ("scalemass.fill", "Mass", massString($0)) },
+                    type.capacity.map { ("archivebox.fill", "Capacity", volumeString($0)) },
+                ].compactMap { $0 }
+
+                if !stats.isEmpty {
+                    HStack(spacing: 0) {
+                        ForEach(Array(stats.enumerated()), id: \.offset) { _, stat in
+                            VStack(spacing: 3) {
+                                Image(systemName: stat.0)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Text(stat.2)
+                                    .font(.caption.monospacedDigit())
+                                Text(stat.1)
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .frame(maxWidth: .infinity)
+                        }
+                    }
+                    .padding(.vertical, 10)
+                    .background(.quaternary.opacity(0.3))
+
+                    Divider()
+                }
+
+                // Description
+                if let desc = type.description, !desc.isEmpty {
+                    ScrollView {
+                        Text(desc)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(14)
+                    }
+                    .frame(maxHeight: 180)
+                }
+            } else {
+                HStack {
+                    ProgressView().controlSize(.small)
+                    Text("Loading details…").font(.caption).foregroundStyle(.secondary)
+                }
+                .padding(16)
+            }
+        }
+        .frame(width: 300)
+        .task { await fetchDetails() }
+    }
+
+    private func fetchDetails() async {
+        let types = await UniverseCache.shared.types(ids: [typeId])
+        guard let t = types[typeId] else { return }
+        esiType = t
+        let groups = await UniverseCache.shared.groups(ids: Set([t.groupId]))
+        groupName = groups[t.groupId]?.name
+    }
+
+    private func volumeString(_ v: Double) -> String {
+        v >= 1000 ? String(format: "%.0f m³", v) : String(format: "%.2f m³", v)
+    }
+
+    private func massString(_ m: Double) -> String {
+        m >= 1_000_000 ? String(format: "%.0f t", m / 1_000_000) : String(format: "%.0f kg", m)
     }
 }

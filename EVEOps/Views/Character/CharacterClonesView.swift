@@ -7,13 +7,23 @@ struct CharacterClonesView: View {
     @State private var jumpClones: [ResolvedJumpClone] = []
     @State private var isLoading = true
     @State private var error: String?
+    @State private var selectedImplant: ResolvedImplant?
 
     var body: some View {
         LoadingStateView(isLoading: isLoading, error: error, isEmpty: clonesResponse == nil) {
-            List {
-                jumpCooldownSection
-                activeImplantsSection
-                jumpClonesSection
+            HStack(spacing: 0) {
+                List(selection: $selectedImplant) {
+                    jumpCooldownSection
+                    activeImplantsSection
+                    jumpClonesSection
+                }
+                .frame(maxWidth: .infinity)
+
+                if let implant = selectedImplant {
+                    Divider()
+                    ImplantDetailView(implant: implant)
+                        .frame(width: 320)
+                }
             }
         }
         .navigationTitle("Clones")
@@ -51,12 +61,22 @@ struct CharacterClonesView: View {
                 Text("No implants installed")
                     .foregroundStyle(.secondary)
             } else {
-                ForEach(activeImplants, id: \.typeId) { implant in
+                ForEach(activeImplants) { implant in
                     HStack {
-                        Image(systemName: "brain.head.profile")
-                            .foregroundStyle(.purple)
+                        AsyncImage(url: EVEImageURL.typeIcon(implant.typeId, size: 64)) { phase in
+                            if let image = phase.image {
+                                image.resizable()
+                                    .frame(width: 28, height: 28)
+                                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                            } else {
+                                Image(systemName: "brain.head.profile")
+                                    .foregroundStyle(.purple)
+                                    .frame(width: 28, height: 28)
+                            }
+                        }
                         Text(implant.name)
                     }
+                    .tag(implant)
                 }
             }
         }
@@ -101,24 +121,23 @@ struct CharacterClonesView: View {
             let implantIDs: [Int] = try await ESIClient.shared.fetch(
                 "/characters/\(account.characterID)/implants/", token: token
             )
+            // Batch-resolve all implant type names via UniverseCache
+            let allImplantIDs = implantIDs + clones.jumpClones.flatMap(\.implants)
+            let resolvedTypes = await UniverseCache.shared.types(ids: allImplantIDs)
+
             var resolved: [ResolvedImplant] = []
             for implantID in implantIDs {
-                var name = "Implant #\(implantID)"
-                if let typeInfo: ESIType = try? await ESIClient.shared.fetch("/universe/types/\(implantID)/") {
-                    name = typeInfo.name
-                }
+                let name = resolvedTypes[implantID]?.name ?? "Implant #\(implantID)"
                 resolved.append(ResolvedImplant(typeId: implantID, name: name))
             }
             activeImplants = resolved
+            if selectedImplant == nil { selectedImplant = resolved.first }
 
             var resolvedClones: [ResolvedJumpClone] = []
             for jc in clones.jumpClones {
                 let locName = await NameResolver.shared.resolve(id: jc.locationId)
-                var implantNames: [String] = []
-                for impID in jc.implants.prefix(10) {
-                    if let typeInfo: ESIType = try? await ESIClient.shared.fetch("/universe/types/\(impID)/") {
-                        implantNames.append(typeInfo.name)
-                    }
+                let implantNames = jc.implants.prefix(10).map { impID in
+                    resolvedTypes[impID]?.name ?? "Implant #\(impID)"
                 }
                 resolvedClones.append(ResolvedJumpClone(
                     jumpCloneId: jc.jumpCloneId,
@@ -136,7 +155,17 @@ struct CharacterClonesView: View {
     }
 }
 
-struct ResolvedImplant {
+struct ResolvedImplant: Identifiable, Hashable {
     let typeId: Int
     let name: String
+
+    var id: Int { typeId }
+}
+
+struct ResolvedJumpClone {
+    let jumpCloneId: Int
+    let name: String?
+    let locationId: Int
+    let locationName: String
+    let implantNames: [String]
 }

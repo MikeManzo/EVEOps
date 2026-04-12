@@ -4,35 +4,64 @@ struct SidebarView: View {
     @Bindable var accountManager: AccountManager
     @Binding var selectedSection: NavigationSection?
 
+    @AppStorage("sidebar.pilotExpanded") private var pilotExpanded = true
+    @AppStorage("sidebar.economyExpanded") private var economyExpanded = true
+    @AppStorage("sidebar.combatExpanded") private var combatExpanded = true
+    @AppStorage("sidebar.socialExpanded") private var socialExpanded = true
+    @AppStorage("sidebar.corpExpanded") private var corpExpanded = true
+
     var body: some View {
-        List(selection: $selectedSection) {
-            Label("Dashboard", systemImage: "square.grid.2x2.fill")
-                .tag(NavigationSection.dashboard)
+        VStack(spacing: 0) {
+            accountSwitcher
 
-            if let account = accountManager.selectedAccount {
-                Section("Character: \(account.characterName)") {
-                    ForEach(NavigationSection.characterSections) { section in
-                        Label(section.rawValue, systemImage: section.iconName)
-                            .tag(section)
+            List(selection: $selectedSection) {
+                Label("Dashboard", systemImage: "square.grid.2x2.fill")
+                    .tag(NavigationSection.dashboard)
+
+                if let account = accountManager.selectedAccount {
+                    Section("Pilot — \(account.characterName)", isExpanded: $pilotExpanded) {
+                        ForEach(NavigationSection.pilotSections) { section in
+                            Label(section.rawValue, systemImage: section.iconName)
+                                .tag(section)
+                        }
                     }
-                }
 
-                Section("Corporation: \(account.corporationName)") {
-                    ForEach(NavigationSection.corporationSections) { section in
-                        Label(displayName(for: section), systemImage: section.iconName)
-                            .tag(section)
+                    Section("Economy", isExpanded: $economyExpanded) {
+                        ForEach(NavigationSection.economySections) { section in
+                            Label(section.rawValue, systemImage: section.iconName)
+                                .tag(section)
+                        }
+                    }
+
+                    Section("Combat", isExpanded: $combatExpanded) {
+                        ForEach(NavigationSection.combatSections) { section in
+                            Label(section.rawValue, systemImage: section.iconName)
+                                .tag(section)
+                        }
+                    }
+
+                    Section("Social", isExpanded: $socialExpanded) {
+                        ForEach(NavigationSection.socialSections) { section in
+                            Label(section.rawValue, systemImage: section.iconName)
+                                .tag(section)
+                        }
+                    }
+
+                    Section("Corporation — \(account.corporationName)", isExpanded: $corpExpanded) {
+                        ForEach(NavigationSection.corporationSections) { section in
+                            Label(displayName(for: section), systemImage: section.iconName)
+                                .tag(section)
+                        }
                     }
                 }
             }
-        }
-        .listStyle(.sidebar)
-        .frame(minWidth: 200)
-        .safeAreaInset(edge: .top) {
-            accountSwitcher
-        }
-        .safeAreaInset(edge: .bottom) {
+            .listStyle(.sidebar)
+
+            Divider()
+
             addAccountButton
         }
+        .frame(minWidth: 200)
     }
 
     @ViewBuilder
@@ -70,6 +99,10 @@ struct SidebarView: View {
         case .corpMembers: return "Members"
         case .corpStructures: return "Structures"
         case .corpWallets: return "Wallets"
+        case .corpContracts: return "Contracts"
+        case .corpKillmails: return "Kill Mails"
+        case .corpMarketOrders: return "Market Orders"
+        case .corpMining: return "Mining"
         default: return section.rawValue
         }
     }

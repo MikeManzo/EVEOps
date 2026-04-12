@@ -117,7 +117,7 @@ struct CorporationStructuresView: View {
             for structure in rawStructures {
                 let systemName = await NameResolver.shared.resolve(id: structure.systemId)
                 var typeName = "Structure #\(structure.typeId)"
-                if let typeInfo: ESIType = try? await ESIClient.shared.fetch("/universe/types/\(structure.typeId)/") {
+                if let typeInfo = await UniverseCache.shared.type(id: structure.typeId) {
                     typeName = typeInfo.name
                 }
 
