@@ -20,6 +20,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
     case standings = "Standings"
     case contacts = "Contacts"
     case routePlanner = "Route Planner"
+    case market = "Market"
 
     // Corporation
     case corpAssets = "Corp Assets"
@@ -59,6 +60,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
         case .corpContracts: return "doc.badge.arrow.up.fill"
         case .corpMarketOrders: return "cart.fill"
         case .corpMining: return "cylinder.fill"
+        case .market: return "storefront"
         }
     }
 
@@ -67,7 +69,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
     }
 
     static var economySections: [NavigationSection] {
-        [.finances, .assets, .contracts, .industry, .colonies]
+        [.finances, .assets, .market, .contracts, .industry, .colonies]
     }
 
     static var combatSections: [NavigationSection] {

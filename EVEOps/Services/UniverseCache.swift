@@ -6,6 +6,7 @@ actor UniverseCache {
     static let shared = UniverseCache()
 
     private static let ttl: TimeInterval = 7 * 24 * 3600 // 7 days
+    private static let schemaVersion = 2
 
     private var types: [Int: ESIType] = [:]
     private var groups: [Int: ESIGroup] = [:]
@@ -33,7 +34,11 @@ actor UniverseCache {
             groups = Self.loadCache("groups.json") ?? [:]
             systems = Self.loadCache("systems.json") ?? [:]
             constellations = Self.loadCache("constellations.json") ?? [:]
-            regions = Self.loadCache("regions.json") ?? [:]
+            // Only load regions if schema version matches; otherwise evict so they
+            // re-fetch with the new factionId field.
+            if meta?.schemaVersion == Self.schemaVersion {
+                regions = Self.loadCache("regions.json") ?? [:]
+            }
             stations = Self.loadCache("stations.json") ?? [:]
             stars = Self.loadCache("stars.json") ?? [:]
         }
@@ -209,11 +214,12 @@ actor UniverseCache {
 
     private struct CacheMeta: Codable {
         let savedDate: Date
+        var schemaVersion: Int?
     }
 
     private nonisolated static func saveMeta() {
         let url = cacheDir.appendingPathComponent("meta.json")
-        let meta = CacheMeta(savedDate: Date())
+        let meta = CacheMeta(savedDate: Date(), schemaVersion: schemaVersion)
         if let data = try? JSONEncoder().encode(meta) {
             try? data.write(to: url, options: .atomic)
         }

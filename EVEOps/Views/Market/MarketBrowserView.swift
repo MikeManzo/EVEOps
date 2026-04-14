@@ -24,6 +24,118 @@ private struct ResolvedOrder: Identifiable {
     var id: Int { order.orderId }
 }
 
+// MARK: - SplitDivider (NSView-backed for jitter-free dragging)
+//
+// SwiftUI's DragGesture can lose its internal translation state when the parent
+// view re-renders mid-drag, causing the pane to snap back. By routing mouse
+// events through NSView instead, startValue and startPoint live on a stable
+// Objective-C object that SwiftUI never recreates during re-renders.
+
+private class DragHandleNSView: NSView {
+    var isHorizontal = true
+    /// Updated by NSViewRepresentable.updateNSView on every render.
+    var currentValue: CGFloat = 0
+    var minValue: CGFloat = 0
+    var maxValue: CGFloat = .greatestFiniteMagnitude
+    var onDrag: ((CGFloat) -> Void)?
+    var onEnd: (() -> Void)?
+
+    private var startValue: CGFloat = 0   // pane size captured at mouseDown
+    private var startPoint: NSPoint?
+    private var trackingArea: NSTrackingArea?
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let ta = trackingArea { removeTrackingArea(ta) }
+        let ta = NSTrackingArea(rect: bounds,
+                                options: [.mouseEnteredAndExited, .activeInActiveApp],
+                                owner: self, userInfo: nil)
+        addTrackingArea(ta)
+        trackingArea = ta
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        (isHorizontal ? NSCursor.resizeLeftRight : NSCursor.resizeUpDown).push()
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        NSCursor.pop()
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        startValue = currentValue
+        startPoint = event.locationInWindow
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        guard let start = startPoint else { return }
+        let pt = event.locationInWindow
+        // NSView y=0 is at bottom: dragging DOWN decreases y → negative offset →
+        // detailHeight shrinks, which is correct (divider moves toward detail pane).
+        let offset = isHorizontal ? pt.x - start.x : pt.y - start.y
+        let newValue = max(minValue, min(maxValue, startValue + offset))
+        onDrag?(newValue)
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        startPoint = nil
+        onEnd?()
+    }
+}
+
+private struct DragHandle: NSViewRepresentable {
+    let isHorizontal: Bool
+    let value: CGFloat
+    let minValue: CGFloat
+    let maxValue: CGFloat
+    let onChange: (CGFloat) -> Void
+    var onEnd: (() -> Void)? = nil
+
+    func makeNSView(context: Context) -> DragHandleNSView {
+        let v = DragHandleNSView()
+        apply(to: v)
+        return v
+    }
+
+    func updateNSView(_ v: DragHandleNSView, context: Context) {
+        apply(to: v)
+    }
+
+    private func apply(to v: DragHandleNSView) {
+        v.isHorizontal = isHorizontal
+        v.currentValue = value
+        v.minValue = minValue
+        v.maxValue = maxValue
+        v.onDrag = onChange
+        v.onEnd = onEnd
+    }
+}
+
+private struct SplitDivider: View {
+    enum Direction { case horizontal, vertical }
+    let direction: Direction
+    let value: CGFloat
+    let minValue: CGFloat
+    let maxValue: CGFloat
+    let onChange: (CGFloat) -> Void
+    var onEnd: (() -> Void)? = nil
+
+    var body: some View {
+        ZStack {
+            // Visual separator (SwiftUI — adapts to dark/light mode automatically)
+            Color(NSColor.separatorColor)
+                .frame(width: direction == .horizontal ? 1 : nil,
+                       height: direction == .vertical   ? 1 : nil)
+            // Transparent NSView hit-target — handles all mouse events
+            DragHandle(isHorizontal: direction == .horizontal,
+                       value: value, minValue: minValue, maxValue: maxValue,
+                       onChange: onChange, onEnd: onEnd)
+        }
+        .frame(width: direction == .horizontal ? 8 : nil,
+               height: direction == .vertical   ? 8 : nil)
+    }
+}
+
 // MARK: - MarketBrowserView
 
 struct MarketBrowserView: View {
@@ -32,7 +144,7 @@ struct MarketBrowserView: View {
 
     // Region
     @State private var selectedRegionId: Int = 10000002   // The Forge (Jita)
-    @State private var availableRegions: [(id: Int, name: String)] = []
+    @State private var availableRegions: [(id: Int, name: String, factionId: Int?)] = []
 
     // Market group tree
     @State private var allGroupIds: [Int] = []
@@ -74,12 +186,49 @@ struct MarketBrowserView: View {
     @State private var selectedOrderTab = 0   // 0 = sell, 1 = buy, 2 = history
     @State private var historyDays = 90
 
+    // Persisted pane sizes — written only on drag end to avoid UserDefaults
+    // writes at 60 Hz, which would cause re-render jitter during dragging.
+    @AppStorage("market.leftPaneWidth")    private var savedLeftWidth:    Double = 240
+    @AppStorage("market.detailPaneHeight") private var savedDetailHeight: Double = 300
+
+    // Live pixel values updated on every drag event (fast @State, no I/O).
+    // Initialised directly from UserDefaults so the correct size is shown
+    // on the very first frame, with no .onAppear flash.
+    @State private var leftWidth: CGFloat = {
+        let v = UserDefaults.standard.double(forKey: "market.leftPaneWidth")
+        return CGFloat(v > 0 ? v : 240)
+    }()
+    @State private var detailHeight: CGFloat = {
+        let v = UserDefaults.standard.double(forKey: "market.detailPaneHeight")
+        return CGFloat(v > 0 ? v : 300)
+    }()
+
     var body: some View {
-        HSplitView {
-            leftPanel
-                .frame(minWidth: 200, idealWidth: 250, maxWidth: 320)
-            rightPanel
-                .frame(minWidth: 420)
+        VStack(spacing: 0) {
+            // ── Top row ───────────────────────────────────────────────
+            HStack(spacing: 0) {
+                leftPane
+                    .frame(width: leftWidth)
+
+                SplitDivider(direction: .horizontal,
+                            value: leftWidth, minValue: 160, maxValue: 440,
+                            onChange: { leftWidth = $0 },
+                            onEnd: { savedLeftWidth = Double(leftWidth) })
+
+                rightPane
+                    .frame(maxWidth: .infinity)
+            }
+            .frame(maxHeight: .infinity)  // fills space above detail pane
+
+            // ── Vertical resize handle ────────────────────────────────
+            SplitDivider(direction: .vertical,
+                         value: detailHeight, minValue: 160, maxValue: 640,
+                         onChange: { detailHeight = $0 },
+                         onEnd: { savedDetailHeight = Double(detailHeight) })
+
+            // ── Detail pane (full width) ──────────────────────────────
+            detailPane
+                .frame(height: detailHeight)
         }
         .navigationTitle("Market Browser")
         .toolbar { toolbarContent }
@@ -91,34 +240,51 @@ struct MarketBrowserView: View {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .automatic) {
-            Picker("Region", selection: $selectedRegionId) {
+            Menu {
                 ForEach(availableRegions, id: \.id) { region in
-                    Text(region.name).tag(region.id)
+                    Button {
+                        selectedRegionId = region.id
+                        onRegionChanged()
+                    } label: {
+                        Text("\(regionEmoji(region.id))  \(region.name)")
+                    }
+                }
+            } label: {
+                let current = availableRegions.first(where: { $0.id == selectedRegionId })
+                HStack(spacing: 5) {
+                    Circle()
+                        .fill(regionColor(current?.id ?? selectedRegionId))
+                        .frame(width: 8, height: 8)
+                    Text(current?.name ?? "Region")
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
             }
-            .frame(minWidth: 160)
             .disabled(availableRegions.isEmpty)
-            .onChange(of: selectedRegionId) { _, _ in
-                jumpCache.removeAll()
-                if let typeId = selectedTypeId {
-                    Task { await loadOrders(typeId: typeId) }
+        }
+    }
+
+    private func onRegionChanged() {
+        jumpCache.removeAll()
+        if let typeId = selectedTypeId {
+            Task {
+                await withTaskGroup(of: Void.self) { group in
+                    group.addTask { await self.loadOrders(typeId: typeId) }
+                    group.addTask { await self.loadPriceHistory(typeId: typeId) }
                 }
             }
         }
     }
 
-    // MARK: - Left Panel
+    // MARK: - Left Pane (search bar + group tree)
 
-    private var leftPanel: some View {
+    private var leftPane: some View {
         VStack(spacing: 0) {
             searchBar
                 .padding(10)
             Divider()
-            if !searchText.isEmpty {
-                searchResultsList
-            } else {
-                groupTree
-            }
+            groupTree
         }
         .background(Color(NSColor.controlBackgroundColor))
     }
@@ -162,6 +328,27 @@ struct MarketBrowserView: View {
         }
     }
 
+    // MARK: - Right Pane (items list — search results or group contents)
+
+    @ViewBuilder
+    private var rightPane: some View {
+        if searchText.count >= 3 {
+            searchResultsList
+        } else if selectedGroupId != nil {
+            groupTypesPanel
+        } else {
+            VStack(spacing: 8) {
+                Image(systemName: "list.bullet")
+                    .font(.system(size: 32))
+                    .foregroundStyle(.tertiary)
+                Text("Search for items or select a market group")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+
     // MARK: - Search Results List
 
     @ViewBuilder
@@ -186,7 +373,7 @@ struct MarketBrowserView: View {
                 typeRow(typeId: result.typeId, name: result.name)
                     .tag(result.typeId)
             }
-            .listStyle(.sidebar)
+            .listStyle(.plain)
         }
     }
 
@@ -226,7 +413,7 @@ struct MarketBrowserView: View {
 
     private func typeRow(typeId: Int, name: String) -> some View {
         HStack(spacing: 8) {
-            AsyncImage(url: EVEImageURL.typeIcon(typeId, size: 64)) { image in
+            AsyncImage(url: EVEImageURL.typeIcon(typeId, size: 256)) { image in
                 image.resizable()
             } placeholder: {
                 RoundedRectangle(cornerRadius: 3).fill(.quaternary)
@@ -234,37 +421,29 @@ struct MarketBrowserView: View {
             .frame(width: 22, height: 22)
             .clipShape(RoundedRectangle(cornerRadius: 3))
             Text(name)
-                .font(.subheadline)
+                .font(.headline)
                 .lineLimit(1)
         }
     }
 
-    // MARK: - Right Panel
+    // MARK: - Detail Pane (bottom, full width)
 
     @ViewBuilder
-    private var rightPanel: some View {
+    private var detailPane: some View {
         if let typeId = selectedTypeId {
             itemDetailView(typeId: typeId)
-        } else if selectedGroupId != nil {
-            groupTypesPanel
         } else {
-            placeholderView
+            VStack(spacing: 10) {
+                Image(systemName: "storefront")
+                    .font(.system(size: 40))
+                    .foregroundStyle(.tertiary)
+                Text("Select an item above to view market orders, price history, and details")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-    }
-
-    private var placeholderView: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "storefront")
-                .font(.system(size: 48))
-                .foregroundStyle(.tertiary)
-            Text("Select an item to view market data")
-                .font(.title3)
-                .foregroundStyle(.secondary)
-            Text("Browse market groups on the left, or search by item name")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: - Group Types Panel
@@ -290,7 +469,7 @@ struct MarketBrowserView: View {
                 typeRow(typeId: result.typeId, name: result.name)
                     .tag(result.typeId)
             }
-            .listStyle(.plain)
+            .listStyle(.sidebar)
         }
     }
 
@@ -605,7 +784,12 @@ struct MarketBrowserView: View {
                     }
                 }
                 .chartYAxis {
-                    AxisMarks(format: .number.notation(.compactName))
+                    AxisMarks { value in
+                        AxisGridLine()
+                        if let v = value.as(Double.self) {
+                            AxisValueLabel { Text(EVEFormatters.formatISKShort(v)).font(.caption2) }
+                        }
+                    }
                 }
                 .frame(height: 200)
                 .padding()
@@ -622,7 +806,12 @@ struct MarketBrowserView: View {
                     }
                 }
                 .chartYAxis {
-                    AxisMarks(format: .number.notation(.compactName))
+                    AxisMarks(values: .automatic(desiredCount: 3)) { value in
+                        AxisGridLine()
+                        if let v = value.as(Int.self) {
+                            AxisValueLabel { Text(formatCount(v)).font(.caption2) }
+                        }
+                    }
                 }
                 .frame(height: 70)
                 .padding()
@@ -669,16 +858,16 @@ struct MarketBrowserView: View {
         // Wormhole regions start at 11000001 — exclude them
         let kspaceIds = regionIds.filter { $0 < 11000001 }
 
-        var regions: [(id: Int, name: String)] = []
-        await withTaskGroup(of: (Int, String?).self) { group in
+        var regions: [(id: Int, name: String, factionId: Int?)] = []
+        await withTaskGroup(of: (Int, String?, Int?).self) { group in
             for id in kspaceIds {
                 group.addTask {
                     let r = await UniverseCache.shared.region(id: id)
-                    return (id, r?.name)
+                    return (id, r?.name, r?.factionId)
                 }
             }
-            for await (id, name) in group {
-                if let name { regions.append((id: id, name: name)) }
+            for await (id, name, factionId) in group {
+                if let name { regions.append((id: id, name: name, factionId: factionId)) }
             }
         }
 
@@ -698,56 +887,60 @@ struct MarketBrowserView: View {
     private func loadMarketGroups() async {
         guard allGroupIds.isEmpty else { return }
         isLoadingGroups = true
-        defer { isLoadingGroups = false }
 
-        guard let ids: [Int] = try? await ESIClient.shared.fetch("/markets/groups/") else { return }
+        guard let ids: [Int] = try? await ESIClient.shared.fetch("/markets/groups/") else {
+            isLoadingGroups = false
+            return
+        }
         allGroupIds = ids
 
-        // Fetch the first 600 sorted IDs — lower IDs tend to be parent/root groups
-        let toFetch = Array(ids.sorted().prefix(600))
+        // Fetch groups in batches of 30 to avoid spawning ~2000 concurrent tasks,
+        // which causes a CPU/network burst on first load.
+        let batchSize = 30
+        let batches = stride(from: 0, to: ids.count, by: batchSize).map {
+            Array(ids[$0..<min($0 + batchSize, ids.count)])
+        }
 
-        let results = await withTaskGroup(of: (Int, ESIMarketGroup?).self) { group in
-            for id in toFetch {
-                group.addTask {
-                    let g: ESIMarketGroup? = try? await ESIClient.shared.fetch("/markets/groups/\(id)/")
-                    return (id, g)
+        for batch in batches {
+            await withTaskGroup(of: (Int, ESIMarketGroup?).self) { group in
+                for id in batch {
+                    group.addTask {
+                        let g: ESIMarketGroup? = try? await ESIClient.shared.fetch("/markets/groups/\(id)/")
+                        return (id, g)
+                    }
+                }
+                for await (id, g) in group {
+                    if let g { fetchedGroups[id] = g }
                 }
             }
-            var out: [(Int, ESIMarketGroup?)] = []
-            for await result in group { out.append(result) }
-            return out
+            rebuildTree()
+            isLoadingGroups = false   // show partial tree; loading continues silently
         }
-
-        var newGroups: [Int: ESIMarketGroup] = [:]
-        for (id, g) in results {
-            if let g { newGroups[id] = g }
-        }
-        fetchedGroups = newGroups
-        rebuildTree()
+        isLoadingGroups = false
     }
 
+    /// O(n) tree rebuild using a parent→children map rather than scanning all
+    /// groups for each node (previously O(n²), called ~60 times during load).
     private func rebuildTree() {
-        let groupIdSet = Set(allGroupIds)
-        let roots = fetchedGroups.values
-            .filter { g in
-                guard let parentId = g.parentGroupId else { return true }
-                return !groupIdSet.contains(parentId)
+        var childrenByParent: [Int: [ESIMarketGroup]] = [:]
+        var rootGroups: [ESIMarketGroup] = []
+
+        for g in fetchedGroups.values {
+            if let parentId = g.parentGroupId, fetchedGroups[parentId] != nil {
+                childrenByParent[parentId, default: []].append(g)
+            } else {
+                rootGroups.append(g)
             }
-            .sorted { $0.name < $1.name }
+        }
 
-        rootNodes = roots.map { buildNode($0) }
-    }
+        func buildNode(_ group: ESIMarketGroup) -> MarketGroupNode {
+            let children = (childrenByParent[group.marketGroupId] ?? [])
+                .sorted { $0.name < $1.name }
+                .map { buildNode($0) }
+            return MarketGroupNode(group: group, children: children.isEmpty ? nil : children)
+        }
 
-    private func buildNode(_ group: ESIMarketGroup) -> MarketGroupNode {
-        let children = fetchedGroups.values
-            .filter { $0.parentGroupId == group.marketGroupId }
-            .sorted { $0.name < $1.name }
-            .map { buildNode($0) }
-
-        return MarketGroupNode(
-            group: group,
-            children: children.isEmpty ? nil : children
-        )
+        rootNodes = rootGroups.sorted { $0.name < $1.name }.map { buildNode($0) }
     }
 
     private func loadGroupTypes(group: ESIMarketGroup) async {
@@ -804,7 +997,6 @@ struct MarketBrowserView: View {
         ordersError = nil
         sellOrders = []
         buyOrders = []
-        defer { isLoadingOrders = false }
 
         // Capture auth token on main actor before launching child tasks
         let token = accountManager.selectedAccount.flatMap {
@@ -823,8 +1015,16 @@ struct MarketBrowserView: View {
             )
         } catch {
             ordersError = error.localizedDescription
+            isLoadingOrders = false
             return
         }
+
+        // Show prices/quantities immediately; location and system names resolve below.
+        let sortedSell = orders.filter { !$0.isBuyOrder }.sorted { $0.price < $1.price }
+        let sortedBuy  = orders.filter {  $0.isBuyOrder }.sorted { $0.price > $1.price }
+        sellOrders = sortedSell.map { ResolvedOrder(order: $0, locationName: "…", systemName: "…", securityStatus: 0, jumps: nil) }
+        buyOrders  = sortedBuy .map { ResolvedOrder(order: $0, locationName: "…", systemName: "…", securityStatus: 0, jumps: nil) }
+        isLoadingOrders = false
 
         let uniqueLocationIds = Set(orders.map { $0.locationId })
         let uniqueSystemIds = Set(orders.map { $0.systemId })
@@ -848,8 +1048,8 @@ struct MarketBrowserView: View {
             )
         }
 
-        sellOrders = orders.filter { !$0.isBuyOrder }.sorted { $0.price < $1.price }.map(resolve)
-        buyOrders  = orders.filter { $0.isBuyOrder  }.sorted { $0.price > $1.price }.map(resolve)
+        sellOrders = sortedSell.map(resolve)
+        buyOrders  = sortedBuy.map(resolve)
     }
 
     private func resolveLocations(ids: Set<Int>, token: String?) async -> [Int: String] {
@@ -971,18 +1171,20 @@ struct MarketBrowserView: View {
         return priceHistory.filter { $0.date >= cutoffStr }
     }
 
+    // DateFormatter is expensive to construct; share a single static instance.
+    private static let historyDateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.timeZone = TimeZone(identifier: "UTC")
+        return f
+    }()
+
     private func parseHistoryDate(_ str: String) -> Date? {
-        let fmt = DateFormatter()
-        fmt.dateFormat = "yyyy-MM-dd"
-        fmt.timeZone = TimeZone(identifier: "UTC")
-        return fmt.date(from: str)
+        Self.historyDateFormatter.date(from: str)
     }
 
     private func historyDateString(_ date: Date) -> String {
-        let fmt = DateFormatter()
-        fmt.dateFormat = "yyyy-MM-dd"
-        fmt.timeZone = TimeZone(identifier: "UTC")
-        return fmt.string(from: date)
+        Self.historyDateFormatter.string(from: date)
     }
 
     private func fiveDayAvgVolume(_ history: [ESIMarketHistory]) -> String {
@@ -1000,6 +1202,55 @@ struct MarketBrowserView: View {
         }
     }
 
+    private func regionEmoji(_ regionId: Int) -> String {
+        switch regionId {
+        case 10000002, 10000016, 10000033, 10000069:                    return "🔵" // Caldari
+        case 10000036, 10000038, 10000043, 10000052, 10000054, 10000065: return "🟡" // Amarr
+        case 10000032, 10000037, 10000044, 10000048, 10000064, 10000068: return "🟢" // Gallente
+        case 10000028, 10000030, 10000042:                              return "🔴" // Minmatar
+        case 10000001, 10000049:                                        return "🟡" // Ammatar/Khanid
+        case 10000015:                                                  return "🟠" // Thukker
+        default:                                                        return "⚫" // null-sec
+        }
+    }
+
+    // Hardcoded region → faction color. Region faction affiliations are static
+    // game data that essentially never changes between EVE patches.
+    private func regionColor(_ regionId: Int) -> Color {
+        switch regionId {
+        // Caldari — blue
+        case 10000002, 10000016, 10000033, 10000069:
+            return Color(red: 0.35, green: 0.65, blue: 0.90)
+        // Amarr — gold
+        case 10000036, 10000038, 10000043, 10000052, 10000054, 10000065:
+            return Color(red: 0.90, green: 0.75, blue: 0.20)
+        // Gallente — green
+        case 10000032, 10000037, 10000044, 10000048, 10000064, 10000068:
+            return Color(red: 0.25, green: 0.70, blue: 0.35)
+        // Minmatar — red
+        case 10000028, 10000030, 10000042:
+            return Color(red: 0.85, green: 0.35, blue: 0.25)
+        // Ammatar Mandate (Amarr-aligned) — dark gold
+        case 10000001:
+            return Color(red: 0.75, green: 0.60, blue: 0.15)
+        // Khanid Kingdom — dark gold
+        case 10000049:
+            return Color(red: 0.75, green: 0.60, blue: 0.15)
+        // Thukker Tribe lowsec — orange
+        case 10000015:
+            return Color(red: 0.85, green: 0.50, blue: 0.20)
+        // Null-sec / NPC null / unaffiliated
+        default:
+            return Color.secondary
+        }
+    }
+
+    private static let countNumberFormatter: NumberFormatter = {
+        let f = NumberFormatter()
+        f.numberStyle = .decimal
+        return f
+    }()
+
     private func formatCount(_ value: Int) -> String {
         let abs = value < 0 ? -value : value
         switch abs {
@@ -1007,9 +1258,7 @@ struct MarketBrowserView: View {
         case 1_000_000...:     return String(format: "%.1fM", Double(value) / 1_000_000)
         case 10_000...:        return String(format: "%.1fK", Double(value) / 1_000)
         default:
-            let f = NumberFormatter()
-            f.numberStyle = .decimal
-            return f.string(from: NSNumber(value: value)) ?? "\(value)"
+            return Self.countNumberFormatter.string(from: NSNumber(value: value)) ?? "\(value)"
         }
     }
 

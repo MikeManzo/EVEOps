@@ -539,6 +539,7 @@ nonisolated struct ESIStargateDestination: Codable, Sendable {
 nonisolated struct ESIRegion: Codable, Sendable {
     let name: String
     let regionId: Int
+    let factionId: Int?
 }
 
 nonisolated struct ESIStar: Codable, Sendable {
@@ -600,10 +601,12 @@ nonisolated struct ESIIDsResponse: Codable, Sendable {
     let corporations: [ESIIDName]?
     let alliances: [ESIIDName]?
     let solarSystems: [ESIIDName]?
+    let inventoryTypes: [ESIIDName]?
 
     enum CodingKeys: String, CodingKey {
         case characters, corporations, alliances
         case solarSystems = "systems"
+        case inventoryTypes = "inventory_types"
     }
 }
 
@@ -783,4 +786,43 @@ nonisolated struct ESITokenCharacter: Sendable {
     let characterName: String
     let scopes: [String]
     let expiresOn: Date
+}
+
+// MARK: - Market (Region)
+
+/// Market order from GET /markets/{region_id}/orders/ — different from character orders (ESIMarketOrder)
+nonisolated struct ESIRegionMarketOrder: Codable, Sendable, Identifiable {
+    let duration: Int
+    let isBuyOrder: Bool
+    let issued: Date
+    let locationId: Int
+    let minVolume: Int
+    let orderId: Int
+    let price: Double
+    let range: String
+    let systemId: Int
+    let typeId: Int
+    let volumeRemain: Int
+    let volumeTotal: Int
+
+    var id: Int { orderId }
+}
+
+/// One day of price history from GET /markets/{region_id}/history/
+nonisolated struct ESIMarketHistory: Codable, Sendable, Identifiable {
+    let average: Double
+    let date: String   // "YYYY-MM-DD"
+    let highest: Double
+    let lowest: Double
+    let orderCount: Int
+    let volume: Int
+
+    var id: String { date }
+}
+
+/// Adjusted and average prices from GET /markets/prices/
+nonisolated struct ESIMarketPrice: Codable, Sendable {
+    let adjustedPrice: Double?
+    let averagePrice: Double?
+    let typeId: Int
 }
