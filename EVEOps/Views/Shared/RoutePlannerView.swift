@@ -1,17 +1,28 @@
 import SwiftUI
 
+// MARK: - Selected System
+
+struct SelectedSystem: Equatable {
+    let id: Int
+    let name: String
+    let securityStatus: Double
+}
+
+// MARK: - Route Planner View
+
 struct RoutePlannerView: View {
-    @State private var originInput = ""
-    @State private var destinationInput = ""
+    @Environment(AccountManager.self) private var accountManager
+    @State private var originSystem: SelectedSystem?
+    @State private var destinationSystem: SelectedSystem?
     @State private var routeFlag = "shortest"
     @State private var route: [RouteSystem] = []
     @State private var isCalculating = false
     @State private var errorMessage: String?
+    @State private var autopilotMessage: String?
+    @State private var isSettingAutopilot = false
 
     private var canPlot: Bool {
-        !originInput.trimmingCharacters(in: .whitespaces).isEmpty &&
-        !destinationInput.trimmingCharacters(in: .whitespaces).isEmpty &&
-        !isCalculating
+        originSystem != nil && destinationSystem != nil && !isCalculating
     }
 
     var body: some View {
@@ -33,18 +44,19 @@ struct RoutePlannerView: View {
             VStack(spacing: 14) {
                 // Origin / Destination row
                 HStack(alignment: .bottom, spacing: 8) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Label("Origin", systemImage: "location.fill")
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(.blue)
-                        TextField("e.g. Jita", text: $originInput)
-                            .textFieldStyle(.roundedBorder)
-                            .onSubmit { if canPlot { Task { await plotRoute() } } }
-                    }
+                    SystemSearchField(
+                        label: "Origin",
+                        icon: "location.fill",
+                        iconColor: .blue,
+                        placeholder: "e.g. Jita",
+                        selectedSystem: $originSystem
+                    )
 
                     // Swap button
                     Button {
-                        swap(&originInput, &destinationInput)
+                        let temp = originSystem
+                        originSystem = destinationSystem
+                        destinationSystem = temp
                     } label: {
                         Image(systemName: "arrow.left.arrow.right")
                             .font(.system(size: 12, weight: .semibold))
@@ -55,14 +67,13 @@ struct RoutePlannerView: View {
                     .buttonStyle(.plain)
                     .padding(.bottom, 1)
 
-                    VStack(alignment: .leading, spacing: 4) {
-                        Label("Destination", systemImage: "mappin.circle.fill")
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(.green)
-                        TextField("e.g. Amarr", text: $destinationInput)
-                            .textFieldStyle(.roundedBorder)
-                            .onSubmit { if canPlot { Task { await plotRoute() } } }
-                    }
+                    SystemSearchField(
+                        label: "Destination",
+                        icon: "mappin.circle.fill",
+                        iconColor: .green,
+                        placeholder: "e.g. Amarr",
+                        selectedSystem: $destinationSystem
+                    )
                 }
 
                 Divider()
@@ -127,7 +138,7 @@ struct RoutePlannerView: View {
                 // Header
                 HStack(alignment: .center) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("\(originInput) → \(destinationInput)")
+                        Text("\(originSystem?.name ?? "") → \(destinationSystem?.name ?? "")")
                             .font(.headline)
                         Text("\(route.count - 1) jump\(route.count == 2 ? "" : "s")")
                             .font(.caption)
@@ -135,8 +146,31 @@ struct RoutePlannerView: View {
                     }
                     Spacer()
                     securitySummary
+
+                    if accountManager.selectedAccount != nil {
+                        Button {
+                            Task { await setFullAutopilotRoute() }
+                        } label: {
+                            Label(isSettingAutopilot ? "Setting…" : "Set Autopilot", systemImage: "paperplane.fill")
+                                .font(.caption.weight(.semibold))
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .disabled(isSettingAutopilot)
+                        .padding(.leading, 8)
+                    }
                 }
-                .padding(.bottom, 12)
+                .padding(.bottom, 8)
+
+                if let autopilotMessage {
+                    HStack(spacing: 6) {
+                        Image(systemName: autopilotMessage.hasPrefix("Route set") ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                            .foregroundStyle(autopilotMessage.hasPrefix("Route set") ? .green : .orange)
+                        Text(autopilotMessage)
+                    }
+                    .font(.caption)
+                    .padding(.bottom, 8)
+                }
 
                 Divider()
 
@@ -146,7 +180,10 @@ struct RoutePlannerView: View {
                             system: system,
                             jumpNumber: index + 1,
                             isLast: index == route.count - 1,
-                            isFirst: index == 0
+                            isFirst: index == 0,
+                            showWaypointButton: accountManager.selectedAccount != nil,
+                            onSetDestination: { await setWaypoint(systemId: system.id, clear: true) },
+                            onAddWaypoint: { await setWaypoint(systemId: system.id, clear: false) }
                         )
                     }
                 }
@@ -161,15 +198,9 @@ struct RoutePlannerView: View {
             let highSec = route.filter { $0.securityStatus >= 0.5 }.count
             let lowSec = route.filter { $0.securityStatus > 0.0 && $0.securityStatus < 0.5 }.count
             let nullSec = route.filter { $0.securityStatus <= 0.0 }.count
-            if highSec > 0 {
-                secPill("\(highSec)H", color: .blue)
-            }
-            if lowSec > 0 {
-                secPill("\(lowSec)L", color: .orange)
-            }
-            if nullSec > 0 {
-                secPill("\(nullSec)N", color: .red)
-            }
+            if highSec > 0 { secPill("\(highSec)H", color: .blue) }
+            if lowSec > 0 { secPill("\(lowSec)L", color: .orange) }
+            if nullSec > 0 { secPill("\(nullSec)N", color: .red) }
         }
     }
 
@@ -182,35 +213,81 @@ struct RoutePlannerView: View {
             .background(color.opacity(0.15), in: Capsule())
     }
 
+    // MARK: - Autopilot
+
+    private func setWaypoint(systemId: Int, clear: Bool) async {
+        guard let account = accountManager.selectedAccount else { return }
+        autopilotMessage = nil
+        do {
+            let token = try await accountManager.validToken(for: account)
+            try await ESIClient.shared.postAction(
+                "/ui/autopilot/waypoint/",
+                token: token,
+                queryItems: [
+                    URLQueryItem(name: "add_to_beginning", value: "false"),
+                    URLQueryItem(name: "clear_other_waypoints", value: clear ? "true" : "false"),
+                    URLQueryItem(name: "destination_id", value: "\(systemId)")
+                ]
+            )
+            autopilotMessage = clear ? "Destination set in EVE client." : "Waypoint added in EVE client."
+        } catch ESIError.unauthorized {
+            autopilotMessage = "Requires esi-ui.write_waypoint.v1 scope — re-add your character with updated permissions."
+        } catch {
+            autopilotMessage = error.localizedDescription
+        }
+    }
+
+    /// Sends the entire route to the EVE client autopilot, clearing existing waypoints.
+    private func setFullAutopilotRoute() async {
+        guard !route.isEmpty, let account = accountManager.selectedAccount else { return }
+        isSettingAutopilot = true
+        autopilotMessage = nil
+        do {
+            let token = try await accountManager.validToken(for: account)
+            try await ESIClient.shared.postAction(
+                "/ui/autopilot/waypoint/",
+                token: token,
+                queryItems: [
+                    URLQueryItem(name: "add_to_beginning", value: "false"),
+                    URLQueryItem(name: "clear_other_waypoints", value: "true"),
+                    URLQueryItem(name: "destination_id", value: "\(route.last!.id)")
+                ]
+            )
+            if route.count > 2 {
+                for system in route.dropFirst().dropLast().reversed() {
+                    try await ESIClient.shared.postAction(
+                        "/ui/autopilot/waypoint/",
+                        token: token,
+                        queryItems: [
+                            URLQueryItem(name: "add_to_beginning", value: "true"),
+                            URLQueryItem(name: "clear_other_waypoints", value: "false"),
+                            URLQueryItem(name: "destination_id", value: "\(system.id)")
+                        ]
+                    )
+                }
+            }
+            autopilotMessage = "Route set in EVE client (\(route.count - 1) jump\(route.count == 2 ? "" : "s"))."
+        } catch ESIError.unauthorized {
+            autopilotMessage = "Requires esi-ui.write_waypoint.v1 scope — re-add your character with updated permissions."
+        } catch {
+            autopilotMessage = error.localizedDescription
+        }
+        isSettingAutopilot = false
+    }
+
     // MARK: - Route Calculation
 
     private func plotRoute() async {
-        let origin = originInput.trimmingCharacters(in: .whitespaces)
-        let destination = destinationInput.trimmingCharacters(in: .whitespaces)
-        guard !origin.isEmpty, !destination.isEmpty else { return }
+        guard let origin = originSystem, let destination = destinationSystem else { return }
 
         isCalculating = true
         errorMessage = nil
         route = []
 
         do {
-            // Resolve system names to IDs
-            let idsResponse: ESIIDsResponse = try await ESIClient.shared.post(
-                "/universe/ids/", body: [origin, destination]
-            )
-            guard let systems = idsResponse.solarSystems, !systems.isEmpty else {
-                throw RoutePlannerError.systemNotFound(name: origin)
-            }
-            guard let originSystem = systems.first(where: { $0.name.lowercased() == origin.lowercased() }) else {
-                throw RoutePlannerError.systemNotFound(name: origin)
-            }
-            guard let destSystem = systems.first(where: { $0.name.lowercased() == destination.lowercased() }) else {
-                throw RoutePlannerError.systemNotFound(name: destination)
-            }
-
-            // Fetch route
+            // Fetch route directly using known system IDs — no name resolution needed
             let systemIds: [Int] = try await ESIClient.shared.fetch(
-                "/route/\(originSystem.id)/\(destSystem.id)/",
+                "/route/\(origin.id)/\(destination.id)/",
                 queryItems: [URLQueryItem(name: "flag", value: routeFlag)]
             )
 
@@ -232,26 +309,10 @@ struct RoutePlannerView: View {
                 return indexed.map(\.1)
             }
             route = resolvedSystems
-        } catch let e as RoutePlannerError {
-            errorMessage = e.description
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = "No route found between these systems with the selected route type."
         }
         isCalculating = false
-    }
-}
-
-// MARK: - Route Planner Error
-
-enum RoutePlannerError: Error {
-    case systemNotFound(name: String)
-    case noRoute
-
-    var description: String {
-        switch self {
-        case .systemNotFound(let name): return "System not found: \"\(name)\". Check the spelling."
-        case .noRoute: return "No route found between these systems with the selected route type."
-        }
     }
 }
 
@@ -263,23 +324,187 @@ struct RouteSystem {
     let securityStatus: Double
 
     var displaySecurity: String {
-        let clamped = max(0.0, securityStatus)
-        return String(format: "%.1f", clamped)
+        String(format: "%.1f", max(0.0, securityStatus))
     }
 
-    var securityColor: Color {
-        switch securityStatus {
-        case 0.9...: return Color(red: 0.3, green: 0.9, blue: 1.0)
-        case 0.8..<0.9: return Color(red: 0.0, green: 0.9, blue: 0.8)
-        case 0.7..<0.8: return Color(red: 0.0, green: 0.9, blue: 0.4)
-        case 0.6..<0.7: return Color(red: 0.4, green: 0.9, blue: 0.0)
-        case 0.5..<0.6: return Color(red: 0.9, green: 0.9, blue: 0.0)
-        case 0.4..<0.5: return Color(red: 1.0, green: 0.6, blue: 0.0)
-        case 0.3..<0.4: return Color(red: 1.0, green: 0.4, blue: 0.0)
-        case 0.2..<0.3: return Color(red: 1.0, green: 0.2, blue: 0.0)
-        case 0.1..<0.2: return Color(red: 0.9, green: 0.0, blue: 0.0)
-        default: return Color(red: 0.6, green: 0.0, blue: 0.0)
+    var securityColor: Color { eveSecurityColor(securityStatus) }
+}
+
+// MARK: - System Search Field
+
+struct SystemSearchField: View {
+    let label: String
+    let icon: String
+    let iconColor: Color
+    let placeholder: String
+    @Binding var selectedSystem: SelectedSystem?
+
+    @State private var searchText = ""
+    @State private var results: [SystemSearchResult] = []
+    @State private var isSearching = false
+    @State private var showPopover = false
+    @State private var searchTask: Task<Void, Never>?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Label(label, systemImage: icon)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(iconColor)
+
+            TextField(placeholder, text: $searchText)
+                .textFieldStyle(.roundedBorder)
+                .onChange(of: searchText) { _, newValue in
+                    handleInput(newValue)
+                }
+                .onChange(of: selectedSystem) { _, newValue in
+                    // Sync text when parent changes the selection (e.g., swap button)
+                    if let system = newValue, searchText != system.name {
+                        searchText = system.name
+                    } else if newValue == nil && selectedSystem != nil {
+                        searchText = ""
+                    }
+                }
+                .onSubmit {
+                    if let first = results.first { select(first) }
+                }
+                .popover(isPresented: $showPopover, arrowEdge: .bottom) {
+                    searchResultsPopover
+                }
         }
+    }
+
+    private var searchResultsPopover: some View {
+        VStack(spacing: 0) {
+            if isSearching {
+                HStack(spacing: 8) {
+                    ProgressView().scaleEffect(0.7)
+                    Text("Searching…").font(.caption).foregroundStyle(.secondary)
+                }
+                .padding(12)
+                .frame(minWidth: 260)
+            } else if results.isEmpty {
+                Text("No systems found")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(12)
+                    .frame(minWidth: 260)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(results) { result in
+                            Button { select(result) } label: {
+                                SystemResultRow(result: result, accentColor: iconColor)
+                            }
+                            .buttonStyle(.plain)
+                            if result.id != results.last?.id {
+                                Divider().padding(.leading, 44)
+                            }
+                        }
+                    }
+                }
+                .frame(minWidth: 260, maxHeight: 300)
+            }
+        }
+    }
+
+    private func handleInput(_ query: String) {
+        let trimmed = query.trimmingCharacters(in: .whitespaces)
+
+        // If the current text matches the confirmed selection, nothing to do
+        if trimmed == selectedSystem?.name { return }
+
+        // Text diverged from selection — clear it
+        if selectedSystem != nil { selectedSystem = nil }
+
+        searchTask?.cancel()
+        guard trimmed.count >= 2 else {
+            results = []
+            showPopover = false
+            return
+        }
+
+        searchTask = Task {
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
+            isSearching = true
+            showPopover = true
+            do {
+                let response: ESISearchResponse = try await ESIClient.shared.fetch(
+                    "/search/",
+                    queryItems: [
+                        URLQueryItem(name: "categories", value: "solar_system"),
+                        URLQueryItem(name: "search", value: trimmed),
+                        URLQueryItem(name: "strict", value: "false")
+                    ]
+                )
+                guard !Task.isCancelled else { isSearching = false; return }
+                let ids = Array((response.solarSystem ?? []).prefix(15))
+
+                // Resolve names concurrently via UniverseCache (persists between searches)
+                let resolved = await withTaskGroup(of: SystemSearchResult?.self) { group -> [SystemSearchResult] in
+                    for id in ids {
+                        group.addTask {
+                            guard let system = await UniverseCache.shared.solarSystem(id: id) else { return nil }
+                            return SystemSearchResult(id: id, name: system.name, securityStatus: system.securityStatus)
+                        }
+                    }
+                    var out: [SystemSearchResult] = []
+                    for await result in group { if let r = result { out.append(r) } }
+                    return out
+                }
+                guard !Task.isCancelled else { isSearching = false; return }
+                results = resolved.sorted { $0.name < $1.name }
+            } catch {
+                if !Task.isCancelled { results = [] }
+            }
+            isSearching = false
+        }
+    }
+
+    private func select(_ result: SystemSearchResult) {
+        searchTask?.cancel()
+        selectedSystem = SelectedSystem(id: result.id, name: result.name, securityStatus: result.securityStatus)
+        searchText = result.name
+        results = []
+        showPopover = false
+    }
+}
+
+// MARK: - System Search Result
+
+struct SystemSearchResult: Identifiable {
+    let id: Int
+    let name: String
+    let securityStatus: Double
+
+    var displaySecurity: String { String(format: "%.1f", max(0.0, securityStatus)) }
+    var securityColor: Color { eveSecurityColor(securityStatus) }
+}
+
+struct SystemResultRow: View {
+    let result: SystemSearchResult
+    let accentColor: Color
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Text(result.displaySecurity)
+                .font(.caption.bold().monospacedDigit())
+                .foregroundStyle(result.securityColor)
+                .frame(width: 28, alignment: .center)
+                .padding(.vertical, 2)
+                .background(result.securityColor.opacity(0.15), in: RoundedRectangle(cornerRadius: 5))
+
+            Text(result.name)
+                .font(.subheadline)
+                .foregroundStyle(.primary)
+
+            Spacer()
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity)
+        .contentShape(Rectangle())
+        .background(Color.clear)
     }
 }
 
@@ -290,10 +515,11 @@ struct RouteSystemRow: View {
     let jumpNumber: Int
     let isLast: Bool
     let isFirst: Bool
+    var showWaypointButton: Bool = false
+    var onSetDestination: (() async -> Void)? = nil
+    var onAddWaypoint: (() async -> Void)? = nil
 
-    private var accentColor: Color {
-        isFirst ? .blue : isLast ? .green : .clear
-    }
+    @State private var showWaypointMenu = false
 
     var body: some View {
         HStack(spacing: 0) {
@@ -345,11 +571,44 @@ struct RouteSystemRow: View {
                         .padding(.horizontal, 6).padding(.vertical, 2)
                         .background(.green.opacity(0.15), in: Capsule())
                 }
+
+                if showWaypointButton {
+                    Menu {
+                        Button("Set Destination") { Task { await onSetDestination?() } }
+                        Button("Add Waypoint") { Task { await onAddWaypoint?() } }
+                    } label: {
+                        Image(systemName: "paperplane")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .padding(5)
+                            .background(.quaternary.opacity(0.6), in: RoundedRectangle(cornerRadius: 5))
+                    }
+                    .menuStyle(.button)
+                    .buttonStyle(.plain)
+                    .help("Send to autopilot")
+                }
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
         }
         .frame(minHeight: 36)
         .background(isFirst ? Color.blue.opacity(0.05) : isLast ? Color.green.opacity(0.05) : Color.clear)
+    }
+}
+
+// MARK: - Helpers
+
+private func eveSecurityColor(_ status: Double) -> Color {
+    switch status {
+    case 0.9...: return Color(red: 0.3, green: 0.9, blue: 1.0)
+    case 0.8..<0.9: return Color(red: 0.0, green: 0.9, blue: 0.8)
+    case 0.7..<0.8: return Color(red: 0.0, green: 0.9, blue: 0.4)
+    case 0.6..<0.7: return Color(red: 0.4, green: 0.9, blue: 0.0)
+    case 0.5..<0.6: return Color(red: 0.9, green: 0.9, blue: 0.0)
+    case 0.4..<0.5: return Color(red: 1.0, green: 0.6, blue: 0.0)
+    case 0.3..<0.4: return Color(red: 1.0, green: 0.4, blue: 0.0)
+    case 0.2..<0.3: return Color(red: 1.0, green: 0.2, blue: 0.0)
+    case 0.1..<0.2: return Color(red: 0.9, green: 0.0, blue: 0.0)
+    default: return Color(red: 0.6, green: 0.0, blue: 0.0)
     }
 }
