@@ -6,7 +6,7 @@ actor UniverseCache {
     static let shared = UniverseCache()
 
     private static let ttl: TimeInterval = 7 * 24 * 3600 // 7 days
-    private static let schemaVersion = 2
+    private static let schemaVersion = 3
 
     private var types: [Int: ESIType] = [:]
     private var groups: [Int: ESIGroup] = [:]
@@ -15,6 +15,9 @@ actor UniverseCache {
     private var regions: [Int: ESIRegion] = [:]
     private var stations: [Int: ESIStation] = [:]
     private var stars: [Int: ESIStar] = [:]
+
+    // In-memory cache of all k-space regions (loaded once per app session)
+    private var cachedKnownSpaceRegions: [(id: Int, name: String, factionId: Int?)]? = nil
 
     private var dirty = false
 
@@ -107,6 +110,32 @@ actor UniverseCache {
         dirty = true
         scheduleSave()
         return fetched
+    }
+
+    /// Returns all k-space regions (excludes wormhole space), sorted by name.
+    /// Result is cached in memory for the lifetime of the app session.
+    func knownSpaceRegions() async -> [(id: Int, name: String, factionId: Int?)] {
+        if let cached = cachedKnownSpaceRegions { return cached }
+
+        guard let regionIds: [Int] = try? await ESIClient.shared.fetch("/universe/regions/") else { return [] }
+        let kspaceIds = regionIds.filter { $0 < 11000001 }
+
+        var result: [(id: Int, name: String, factionId: Int?)] = []
+        await withTaskGroup(of: (Int, String?, Int?).self) { group in
+            for id in kspaceIds {
+                group.addTask {
+                    let r = await UniverseCache.shared.region(id: id)
+                    return (id, r?.name, r?.factionId)
+                }
+            }
+            for await (id, name, factionId) in group {
+                if let name { result.append((id: id, name: name, factionId: factionId)) }
+            }
+        }
+
+        result.sort { $0.name < $1.name }
+        cachedKnownSpaceRegions = result
+        return result
     }
 
     /// Batch-fetch multiple types concurrently, returning all resolved types

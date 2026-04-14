@@ -281,6 +281,18 @@ struct LocationOverviewView: View {
                         }
                     }
                 }
+                // Docked station services
+                if let station = info.dockedStation, let services = station.services, !services.isEmpty {
+                    Divider()
+                    stationServicesSection(station: station, services: services)
+                }
+
+                // Stations in system (when in space)
+                if info.dockedAt == nil && !info.systemStations.isEmpty {
+                    Divider()
+                    systemStationsSection(info.systemStations)
+                }
+
                 // Star info
                 if info.starName != nil {
                     Divider()
@@ -306,6 +318,132 @@ struct LocationOverviewView: View {
         }
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
         .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    // MARK: - Station Services
+
+    private func stationServicesSection(station: ESIStation, services: [String]) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: "building.2.fill")
+                    .foregroundStyle(.teal)
+                Text("Station Services")
+                    .font(.subheadline.bold())
+                if let efficiency = station.reprocessingEfficiency, services.contains("reprocessing-plant") {
+                    Spacer()
+                    Text(String(format: "Reprocessing %.0f%%", efficiency * 100))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            let columns = [GridItem(.adaptive(minimum: 130), alignment: .leading)]
+            LazyVGrid(columns: columns, alignment: .leading, spacing: 6) {
+                ForEach(services.sorted(), id: \.self) { service in
+                    stationServiceBadge(service)
+                }
+            }
+
+            if let cost = station.officeRentalCost, cost > 0 {
+                HStack(spacing: 4) {
+                    Text("Office Rental:")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                    Text(EVEFormatters.iskFormatter.string(from: NSNumber(value: cost)) ?? "\(Int(cost))")
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                    Text("ISK/wk")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+        }
+    }
+
+    private func stationServiceBadge(_ service: String) -> some View {
+        let (label, icon, color) = stationServiceInfo(service)
+        return HStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.caption2)
+                .foregroundStyle(color)
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.primary)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(color.opacity(0.12), in: Capsule())
+    }
+
+    private func stationServiceInfo(_ service: String) -> (String, String, Color) {
+        switch service {
+        case "market":                return ("Market", "cart.fill", .blue)
+        case "reprocessing-plant":    return ("Reprocessing", "arrow.3.trianglepath", .orange)
+        case "repair-facilities":     return ("Repair", "wrench.and.screwdriver.fill", .green)
+        case "fitting":               return ("Fitting", "gearshape.2.fill", .purple)
+        case "cloning":               return ("Cloning", "person.2.fill", .pink)
+        case "factory", "manufacturing": return ("Manufacturing", "hammer.fill", .yellow)
+        case "labratory", "research": return ("Research", "flask.fill", .cyan)
+        case "insurance":             return ("Insurance", "shield.fill", .mint)
+        case "docking":               return ("Docking", "arrow.down.to.line", .teal)
+        case "office-rental":         return ("Offices", "building.fill", .indigo)
+        case "loyalty-point-store":   return ("LP Store", "star.fill", .yellow)
+        case "navy-offices":          return ("Navy", "flag.fill", .red)
+        case "security-offices":      return ("Security", "lock.shield.fill", .gray)
+        case "bounty-missions":       return ("Bounties", "target", .red)
+        case "assay-office":          return ("Assay", "scalemass.fill", .brown)
+        case "storage":               return ("Storage", "archivebox.fill", .secondary.opacity(0.8) as Color)
+        case "stock-exchange":        return ("Exchange", "arrow.left.arrow.right", .blue)
+        default:
+            let label = service.split(separator: "-").map { $0.capitalized }.joined(separator: " ")
+            return (label, "circle.fill", .secondary)
+        }
+    }
+
+    // MARK: - System Stations
+
+    private func systemStationsSection(_ stations: [ESIStation]) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: "building.2.fill")
+                    .foregroundStyle(.teal)
+                Text("Stations in System")
+                    .font(.subheadline.bold())
+                Text("(\(stations.count))")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(stations, id: \.stationId) { station in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(station.name)
+                            .font(.caption.bold())
+                            .lineLimit(1)
+                        if let services = station.services, !services.isEmpty {
+                            let columns = [GridItem(.adaptive(minimum: 120), alignment: .leading)]
+                            LazyVGrid(columns: columns, alignment: .leading, spacing: 4) {
+                                ForEach(services.sorted(), id: \.self) { service in
+                                    let (label, icon, color) = stationServiceInfo(service)
+                                    HStack(spacing: 3) {
+                                        Image(systemName: icon)
+                                            .font(.system(size: 9))
+                                            .foregroundStyle(color)
+                                        Text(label)
+                                            .font(.system(size: 10))
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .padding(.vertical, 4)
+                    if station.stationId != stations.last?.stationId {
+                        Divider()
+                    }
+                }
+            }
+        }
     }
 
     // MARK: - Star Info
@@ -543,6 +681,8 @@ struct LocationOverviewView: View {
                 constellationName: constellation?.name,
                 regionName: regionName,
                 dockedAt: nil,  // Resolved in background refresh
+                dockedStation: nil,
+                systemStations: [],
                 shipName: prefetched.ship.shipName,
                 shipTypeName: shipType?.name ?? "Unknown",
                 shipTypeId: prefetched.ship.shipTypeId,
@@ -661,10 +801,11 @@ struct LocationOverviewView: View {
 
                 // Docked location
                 var dockedAt: String?
+                var dockedStation: ESIStation?
                 if let stationId = location.stationId {
-                    if let station = await UniverseCache.shared.station(id: stationId) {
-                        dockedAt = station.name
-                    }
+                    let station = await UniverseCache.shared.station(id: stationId)
+                    dockedStation = station
+                    dockedAt = station?.name
                 } else if let structureId = location.structureId {
                     if let structure: ESIStructure = try? await ESIClient.shared.fetch(
                         "/universe/structures/\(structureId)/", token: token
@@ -673,6 +814,21 @@ struct LocationOverviewView: View {
                     } else {
                         dockedAt = "Player Structure"
                     }
+                }
+
+                // Stations in current system
+                let systemStations: [ESIStation]
+                if let stationIds = systemInfo.stations, !stationIds.isEmpty {
+                    systemStations = await withTaskGroup(of: ESIStation?.self) { group in
+                        for sid in stationIds {
+                            group.addTask { await UniverseCache.shared.station(id: sid) }
+                        }
+                        var results: [ESIStation] = []
+                        for await s in group { if let s { results.append(s) } }
+                        return results.sorted { $0.name < $1.name }
+                    }
+                } else {
+                    systemStations = []
                 }
 
                 data.append(CharacterLocationInfo(
@@ -690,6 +846,8 @@ struct LocationOverviewView: View {
                     constellationName: constellation?.name,
                     regionName: region?.name,
                     dockedAt: dockedAt,
+                    dockedStation: dockedStation,
+                    systemStations: systemStations,
                     shipName: ship.shipName,
                     shipTypeName: shipType?.name ?? "Unknown",
                     shipTypeId: ship.shipTypeId,
@@ -736,6 +894,8 @@ struct CharacterLocationInfo {
     let constellationName: String?
     let regionName: String?
     let dockedAt: String?
+    let dockedStation: ESIStation?
+    let systemStations: [ESIStation]
     let shipName: String
     let shipTypeName: String
     let shipTypeId: Int

@@ -917,25 +917,7 @@ struct MarketBrowserView: View {
 
     private func loadRegions() async {
         guard availableRegions.isEmpty else { return }
-        guard let regionIds: [Int] = try? await ESIClient.shared.fetch("/universe/regions/") else { return }
-
-        // Wormhole regions start at 11000001 — exclude them
-        let kspaceIds = regionIds.filter { $0 < 11000001 }
-
-        var regions: [(id: Int, name: String, factionId: Int?)] = []
-        await withTaskGroup(of: (Int, String?, Int?).self) { group in
-            for id in kspaceIds {
-                group.addTask {
-                    let r = await UniverseCache.shared.region(id: id)
-                    return (id, r?.name, r?.factionId)
-                }
-            }
-            for await (id, name, factionId) in group {
-                if let name { regions.append((id: id, name: name, factionId: factionId)) }
-            }
-        }
-
-        availableRegions = regions.sorted { $0.name < $1.name }
+        availableRegions = await UniverseCache.shared.knownSpaceRegions()
 
         // Default to the character's current region if available
         if let sysId = characterSystemId,

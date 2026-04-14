@@ -11,6 +11,7 @@ struct RegionStationBrowserView: View {
     @State private var loadingProgress = ""
     @State private var searchText = ""
     @State private var selectedServices: Set<String> = []
+    @State private var selectedStation: StationEntry?
 
     private let filterableServices: [(key: String, label: String, icon: String, color: Color)] = [
         ("market",             "Market",        "cart.fill",                    .blue),
@@ -23,14 +24,25 @@ struct RegionStationBrowserView: View {
     ]
 
     var body: some View {
-        VStack(spacing: 0) {
-            filterBar
-            Divider()
-            contentArea
+        HStack(spacing: 0) {
+            VStack(spacing: 0) {
+                filterBar
+                Divider()
+                contentArea
+            }
+
+            if let station = selectedStation {
+                Divider()
+                StationDetailView(entry: station)
+                    .frame(width: 320)
+            }
         }
         .navigationTitle("Station Browser")
         .task { await loadRegions() }
-        .task(id: selectedRegionId) { await loadStations() }
+        .task(id: selectedRegionId) {
+            selectedStation = nil
+            await loadStations()
+        }
     }
 
     // MARK: - Filter Bar
@@ -155,11 +167,19 @@ struct RegionStationBrowserView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
-            List {
+            List(selection: $selectedStation) {
                 ForEach(groupedStations, id: \.constellationName) { group in
                     Section {
                         ForEach(group.systems, id: \.systemName) { sys in
-                            systemBlock(sys)
+                            // System sub-header — no .tag(), so not selectable
+                            systemHeader(sys)
+                                .listRowBackground(Color.primary.opacity(0.04))
+
+                            // Individual station rows — selectable
+                            ForEach(sys.stations, id: \.station.stationId) { entry in
+                                compactStationRow(entry)
+                                    .tag(entry)
+                            }
                         }
                     } header: {
                         HStack(spacing: 6) {
@@ -176,73 +196,46 @@ struct RegionStationBrowserView: View {
         }
     }
 
-    // MARK: - System Block
+    // MARK: - List Rows
 
-    private func systemBlock(_ sys: SystemGroup) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // System header
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(securityColor(sys.securityStatus))
-                    .frame(width: 8, height: 8)
-                Text(sys.systemName)
-                    .font(.subheadline.bold())
-                Text(String(format: "%.1f", sys.securityStatus))
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(securityColor(sys.securityStatus))
-                Spacer()
-                Text("\(sys.stations.count) station\(sys.stations.count == 1 ? "" : "s")")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
-
-            // Station rows
-            ForEach(sys.stations, id: \.station.stationId) { entry in
-                stationRow(entry.station)
-                    .padding(.leading, 14)
-            }
+    private func systemHeader(_ sys: SystemGroup) -> some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(securityColor(sys.securityStatus))
+                .frame(width: 7, height: 7)
+            Text(sys.systemName)
+                .font(.caption.bold())
+                .foregroundStyle(.secondary)
+            Text(String(format: "%.1f", sys.securityStatus))
+                .font(.caption2.monospacedDigit())
+                .foregroundStyle(securityColor(sys.securityStatus))
+            Spacer()
+            Text("\(sys.stations.count) station\(sys.stations.count == 1 ? "" : "s")")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 2)
     }
 
-    private func stationRow(_ station: ESIStation) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text(station.name)
+    private func compactStationRow(_ entry: StationEntry) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(entry.station.name)
                 .font(.body)
                 .lineLimit(1)
 
-            if let services = station.services, !services.isEmpty {
-                let columns = [GridItem(.adaptive(minimum: 115), alignment: .leading)]
-                LazyVGrid(columns: columns, alignment: .leading, spacing: 4) {
+            if let services = entry.station.services, !services.isEmpty {
+                HStack(spacing: 6) {
                     ForEach(services.sorted(), id: \.self) { service in
                         let info = serviceInfo(service)
-                        HStack(spacing: 3) {
-                            Image(systemName: info.icon)
-                                .font(.system(size: 9))
-                                .foregroundStyle(info.color)
-                            Text(info.label)
-                                .font(.system(size: 10))
-                                .foregroundStyle(.secondary)
-                        }
+                        Image(systemName: info.icon)
+                            .font(.system(size: 10))
+                            .foregroundStyle(info.color)
                     }
-                }
-            }
-
-            HStack(spacing: 12) {
-                if let efficiency = station.reprocessingEfficiency,
-                   station.services?.contains("reprocessing-plant") == true {
-                    Text(String(format: "Reprocessing %.0f%%", efficiency * 100))
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                }
-                if let cost = station.officeRentalCost, cost > 0 {
-                    Text(String(format: "Office %.0f ISK/wk", cost))
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
                 }
             }
         }
         .padding(.vertical, 2)
+        .padding(.leading, 10)
     }
 
     // MARK: - Computed filtered/grouped data
@@ -420,21 +413,26 @@ struct RegionStationBrowserView: View {
 
 // MARK: - Data Models
 
-private struct StationEntry {
+struct StationEntry: Hashable, Equatable {
     let station: ESIStation
     let systemName: String
     let systemId: Int
     let securityStatus: Double
     let constellationName: String
+
+    func hash(into hasher: inout Hasher) { hasher.combine(station.stationId) }
+    static func == (lhs: StationEntry, rhs: StationEntry) -> Bool {
+        lhs.station.stationId == rhs.station.stationId
+    }
 }
 
-private struct SystemGroup {
+struct SystemGroup {
     let systemName: String
     let securityStatus: Double
     let stations: [StationEntry]
 }
 
-private struct ConstellationGroup {
+struct ConstellationGroup {
     let constellationName: String
     let systems: [SystemGroup]
 }

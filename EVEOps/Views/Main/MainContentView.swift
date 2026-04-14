@@ -97,6 +97,8 @@ struct MainContentView: View {
                 RoutePlannerView()
             case .market:
                 MarketBrowserView()
+            case .stationBrowser:
+                RegionStationBrowserView()
             }
         } else {
             DashboardView()

@@ -288,7 +288,7 @@ struct StationDetailView: View {
         async let typeTask = UniverseCache.shared.type(id: entry.station.typeId)
         async let ownerTask: String? = {
             guard let ownerId = entry.station.owner else { return nil }
-            let names = await NameResolver.shared.resolve([ownerId])
+            let names = await NameResolver.shared.resolve(ids: [ownerId])
             return names[ownerId]
         }()
 

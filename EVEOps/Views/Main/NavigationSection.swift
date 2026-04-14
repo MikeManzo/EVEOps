@@ -21,6 +21,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
     case contacts = "Contacts"
     case routePlanner = "Route Planner"
     case market = "Market"
+    case stationBrowser = "Station Browser"
 
     // Corporation
     case corpAssets = "Corp Assets"
@@ -61,6 +62,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
         case .corpMarketOrders: return "cart.fill"
         case .corpMining: return "cylinder.fill"
         case .market: return "storefront"
+        case .stationBrowser: return "building.2.crop.circle.fill"
         }
     }
 
@@ -69,7 +71,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
     }
 
     static var economySections: [NavigationSection] {
-        [.finances, .assets, .market, .contracts, .industry, .colonies]
+        [.finances, .assets, .market, .stationBrowser, .contracts, .industry, .colonies]
     }
 
     static var combatSections: [NavigationSection] {

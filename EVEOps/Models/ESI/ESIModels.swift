@@ -505,6 +505,12 @@ nonisolated struct ESIStation: Codable, Sendable {
     let stationId: Int
     let systemId: Int
     let typeId: Int
+    let owner: Int?
+    let services: [String]?
+    let reprocessingEfficiency: Double?
+    let reprocessingStationsTake: Double?
+    let maxDockableShipVolume: Double?
+    let officeRentalCost: Double?
 }
 
 nonisolated struct ESIStructure: Codable, Sendable {
@@ -540,6 +546,7 @@ nonisolated struct ESIRegion: Codable, Sendable {
     let name: String
     let regionId: Int
     let factionId: Int?
+    let constellations: [Int]?
 }
 
 nonisolated struct ESIStar: Codable, Sendable {
