@@ -4,10 +4,12 @@ struct ShipEntry: Identifiable, Hashable {
     let itemId: Int
     let typeId: Int
     let typeName: String
+    let customName: String?
     let locationName: String
     let isSingleton: Bool
     let shipClassName: String
     var id: Int { itemId }
+    var displayName: String { customName ?? typeName }
 }
 
 struct CharacterShipGroup {
@@ -17,6 +19,7 @@ struct CharacterShipGroup {
 
 struct CharacterFittingsView: View {
     @Environment(AccountManager.self) private var accountManager
+    @AppStorage("backgroundPollInterval") private var pollInterval: Double = 300
     @State private var groups: [CharacterShipGroup] = []
     @State private var modulesByShip: [Int: [ESIAsset]] = [:]
     @State private var moduleTypeNames: [Int: String] = [:]
@@ -71,7 +74,25 @@ struct CharacterFittingsView: View {
             }
         }
         .navigationTitle("Ships & Fittings")
+        .toolbar {
+            ToolbarItem(placement: .automatic) {
+                Button {
+                    Task {
+                        await ESIClient.shared.clearCache()
+                        await load()
+                    }
+                } label: {
+                    Label("Refresh", systemImage: "arrow.clockwise")
+                }
+            }
+        }
         .task { isLoading = true; await load() }
+        .task(id: pollInterval) {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(pollInterval))
+                await load()
+            }
+        }
     }
 
     private func load() async {
@@ -109,6 +130,19 @@ struct CharacterFittingsView: View {
                     }
                 }
 
+                // Fetch custom in-game names for assembled ships
+                let assembledIds = shipAssets.filter(\.isSingleton).map(\.itemId)
+                var customNames: [Int: String] = [:]
+                if !assembledIds.isEmpty,
+                   let nameResults: [ESIAssetName] = try? await ESIClient.shared.post(
+                       "/characters/\(account.characterID)/assets/names/",
+                       body: assembledIds, token: token
+                   ) {
+                    for entry in nameResults where entry.name != "None" {
+                        customNames[entry.itemId] = entry.name
+                    }
+                }
+
                 let locationIds = Array(Set(shipAssets.map(\.locationId)))
                 var locationNames: [Int: String] = [:]
                 await withTaskGroup(of: (Int, String).self) { group in
@@ -128,11 +162,12 @@ struct CharacterFittingsView: View {
                         itemId: asset.itemId,
                         typeId: asset.typeId,
                         typeName: types[asset.typeId]?.name ?? "Ship #\(asset.typeId)",
+                        customName: customNames[asset.itemId],
                         locationName: locationNames[asset.locationId] ?? "#\(asset.locationId)",
                         isSingleton: asset.isSingleton,
                         shipClassName: groups[groupId]?.name ?? "Unknown"
                     )
-                }.sorted { $0.typeName < $1.typeName }
+                }.sorted { $0.displayName < $1.displayName }
 
                 if !ships.isEmpty {
                     result.append(CharacterShipGroup(characterName: account.characterName, ships: ships))
@@ -219,7 +254,13 @@ struct ShipRow: View {
             )
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(ship.typeName).font(.subheadline.bold())
+                Text(ship.displayName).font(.subheadline.bold())
+                if ship.customName != nil {
+                    Text(ship.typeName)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
                 Text(ship.locationName)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -279,9 +320,14 @@ struct ShipDetailPane: View {
                 )
 
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(ship.typeName)
+                    Text(ship.displayName)
                         .font(.headline)
                         .foregroundStyle(.white)
+                    if ship.customName != nil {
+                        Text(ship.typeName)
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.6))
+                    }
                     Label(ship.locationName, systemImage: "mappin.circle.fill")
                         .font(.caption)
                         .foregroundStyle(.white.opacity(0.75))

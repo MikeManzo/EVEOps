@@ -33,6 +33,9 @@ final class DashboardPrefetcher {
         let transactions: [ESIWalletTransaction]
         let marketOrders: [ESIMarketOrder]
         let loyaltyPoints: [ESILoyaltyPoints]
+        // Fresh public info — always fetched with cache cleared
+        let corporationName: String
+        let allianceName: String?
         let fetchedAt: Date
     }
 
@@ -53,6 +56,7 @@ final class DashboardPrefetcher {
     func prefetchAll(accountManager: AccountManager) async {
         guard !isLoading else { return }
         isLoading = true
+        await ESIClient.shared.clearAllCaches()
 
         await withTaskGroup(of: (Int, PrefetchedCharacterData?).self) { group in
             for account in accountManager.accounts {
@@ -106,6 +110,8 @@ final class DashboardPrefetcher {
                 "/characters/\(charID)/orders/", token: token)
             async let fetchLP: [ESILoyaltyPoints] = ESIClient.shared.fetch(
                 "/characters/\(charID)/loyalty/points/", token: token)
+            async let fetchPublicInfo: ESICharacterPublic = ESIClient.shared.fetch(
+                "/characters/\(charID)/", bypassCache: true)
 
             // Use individual try? for non-critical endpoints so failures don't block
             let wallet = try await fetchWallet
@@ -121,6 +127,20 @@ final class DashboardPrefetcher {
             let transactions = (try? await fetchTransactions) ?? []
             let orders = (try? await fetchOrders) ?? []
             let lp = (try? await fetchLP) ?? []
+            let publicInfo = try? await fetchPublicInfo
+
+            // Resolve corp and alliance names from the fresh public info
+            var corporationName = ""
+            var allianceName: String? = nil
+            if let info = publicInfo {
+                if let corp: ESICorporationPublic = try? await ESIClient.shared.fetch("/corporations/\(info.corporationId)/", bypassCache: true) {
+                    corporationName = corp.name
+                }
+                if let allianceId = info.allianceId,
+                   let alliance: ESIAlliancePublic = try? await ESIClient.shared.fetch("/alliances/\(allianceId)/", bypassCache: true) {
+                    allianceName = alliance.name
+                }
+            }
 
             return PrefetchedCharacterData(
                 wallet: wallet,
@@ -136,6 +156,8 @@ final class DashboardPrefetcher {
                 transactions: transactions,
                 marketOrders: orders,
                 loyaltyPoints: lp,
+                corporationName: corporationName,
+                allianceName: allianceName,
                 fetchedAt: Date()
             )
         } catch {
@@ -276,6 +298,9 @@ final class DashboardPrefetcher {
             if let skillID = s.trainingSkillID {
                 s.trainingSkillName = resolvedNames[skillID]
             }
+
+            s.corporationName = prefetched.corporationName
+            s.allianceName = prefetched.allianceName
 
             menuBarSummaries[account.characterID] = s
         }

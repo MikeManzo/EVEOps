@@ -3,6 +3,7 @@ import SwiftUI
 struct LocationOverviewView: View {
     @Environment(AccountManager.self) private var accountManager
     @Environment(DashboardPrefetcher.self) private var prefetcher
+    @AppStorage("backgroundPollInterval") private var pollInterval: Double = 300
     @State private var locations: [CharacterLocationInfo] = []
     @State private var isLoading = false
     @State private var error: String?
@@ -23,18 +24,10 @@ struct LocationOverviewView: View {
         .navigationTitle("Location Overview")
         .toolbar {
             ToolbarItem(placement: .automatic) {
-                HStack(spacing: 8) {
-                    if let lastRefresh {
-                        Text("Updated \(lastRefresh, style: .relative) ago")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                    }
-                    Button {
-                        Task { await loadLocations() }
-                    } label: {
-                        Image(systemName: "arrow.clockwise")
-                    }
-                    .disabled(isLoading)
+                if let lastRefresh {
+                    Text("Updated \(lastRefresh, style: .relative) ago")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
                 }
             }
         }
@@ -43,9 +36,9 @@ struct LocationOverviewView: View {
             isLoading = true
             await loadLocations()
         }
-        .task(id: "autoRefresh") {
+        .task(id: pollInterval) {
             while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(60))
+                try? await Task.sleep(for: .seconds(pollInterval))
                 refreshTick += 1
                 await loadLocations()
             }

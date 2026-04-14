@@ -91,6 +91,8 @@ struct MainContentView: View {
                 CharacterCalendarView()
             case .standings:
                 CharacterStandingsView()
+            case .contacts:
+                CharacterContactsView()
             case .routePlanner:
                 RoutePlannerView()
             }

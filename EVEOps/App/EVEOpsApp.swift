@@ -44,7 +44,12 @@ struct EVEOpsApp: App {
         Task { @MainActor in
             bg.start(accountManager: manager)
             api.start()
-            await pf.prefetchAll(accountManager: manager)
+            // Refresh public info (corp/alliance) concurrently with the full prefetch
+            // so the correct names are visible as soon as possible without waiting
+            // for the heavier prefetchAll to complete.
+            async let publicInfo: Void = manager.refreshPublicInfo()
+            async let prefetch: Void = pf.prefetchAll(accountManager: manager)
+            _ = await (publicInfo, prefetch)
         }
     }
 

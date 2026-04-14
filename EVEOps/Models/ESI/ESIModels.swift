@@ -340,6 +340,16 @@ nonisolated struct ESINotification: Codable, Sendable, Identifiable, Hashable {
 
 // MARK: - Corporation
 
+nonisolated struct ESIAlliancePublic: Codable, Sendable {
+    let name: String
+    let ticker: String
+    let executorCorporationId: Int?
+    let creatorId: Int
+    let creatorCorporationId: Int
+    let dateFounded: Date?
+    let factionId: Int?
+}
+
 nonisolated struct ESICorporationPublic: Codable, Sendable {
     let allianceId: Int?
     let ceoId: Int
@@ -602,6 +612,11 @@ nonisolated struct ESIIDName: Codable, Sendable, Identifiable {
     let name: String
 }
 
+nonisolated struct ESISearchResponse: Codable, Sendable {
+    // convertFromSnakeCase on ESIClient's decoder maps "solar_system" → solarSystem automatically
+    let solarSystem: [Int]?
+}
+
 // MARK: - Kill Mails
 
 nonisolated struct ESIKillmailRef: Codable, Sendable, Identifiable {
@@ -745,6 +760,20 @@ nonisolated struct ESIMiningLedgerEntry: Codable, Sendable {
     let quantity: Int
     let recordedCorporationId: Int
     let typeId: Int
+}
+
+// MARK: - Write Request Models
+
+/// Body for sending a new mail via POST /characters/{id}/mail/
+nonisolated struct ESIMailSendRequest: Encodable, Sendable {
+    let body: String
+    let recipients: [ESIMailRecipient]
+    let subject: String
+}
+
+/// Body for responding to a calendar event via PUT /characters/{id}/calendar/{event_id}/
+nonisolated struct ESICalendarResponseRequest: Encodable, Sendable {
+    let response: String // "accepted", "declined", "tentative"
 }
 
 // MARK: - Token Verification (JWT)

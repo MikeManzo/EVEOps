@@ -23,6 +23,7 @@ final class BackgroundMonitor {
                 try? await Task.sleep(for: .seconds(self?.pollInterval ?? 300))
                 guard !Task.isCancelled else { break }
 
+                await accountManager.refreshPublicInfo()
                 let accounts = accountManager.accounts
                 await NotificationService.shared.checkForUpdates(accounts: accounts) { account in
                     try await accountManager.validToken(for: account)

@@ -339,10 +339,14 @@ struct SystemSearchField: View {
     let placeholder: String
     @Binding var selectedSystem: SelectedSystem?
 
+    @Environment(AccountManager.self) private var accountManager
+
     @State private var searchText = ""
     @State private var results: [SystemSearchResult] = []
     @State private var isSearching = false
+    @State private var searchError: String?
     @State private var showPopover = false
+    @State private var highlightedIndex: Int? = nil
     @State private var searchTask: Task<Void, Never>?
 
     var body: some View {
@@ -364,8 +368,32 @@ struct SystemSearchField: View {
                         searchText = ""
                     }
                 }
+                .onKeyPress(.downArrow) {
+                    guard !results.isEmpty else { return .ignored }
+                    highlightedIndex = min((highlightedIndex ?? -1) + 1, results.count - 1)
+                    return .handled
+                }
+                .onKeyPress(.upArrow) {
+                    guard !results.isEmpty else { return .ignored }
+                    highlightedIndex = max((highlightedIndex ?? results.count) - 1, 0)
+                    return .handled
+                }
+                .onKeyPress(.return) {
+                    guard let idx = highlightedIndex, results.indices.contains(idx) else { return .ignored }
+                    select(results[idx])
+                    return .handled
+                }
+                .onKeyPress(.escape) {
+                    showPopover = false
+                    highlightedIndex = nil
+                    return .handled
+                }
                 .onSubmit {
-                    if let first = results.first { select(first) }
+                    if let idx = highlightedIndex, results.indices.contains(idx) {
+                        select(results[idx])
+                    } else if let first = results.first {
+                        select(first)
+                    }
                 }
                 .popover(isPresented: $showPopover, arrowEdge: .bottom) {
                     searchResultsPopover
@@ -382,6 +410,13 @@ struct SystemSearchField: View {
                 }
                 .padding(12)
                 .frame(minWidth: 260)
+            } else if let err = searchError {
+                HStack(alignment: .top, spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                    Text(err).font(.caption)
+                }
+                .padding(12)
+                .frame(minWidth: 260)
             } else if results.isEmpty {
                 Text("No systems found")
                     .font(.caption)
@@ -389,20 +424,35 @@ struct SystemSearchField: View {
                     .padding(12)
                     .frame(minWidth: 260)
             } else {
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(results) { result in
-                            Button { select(result) } label: {
-                                SystemResultRow(result: result, accentColor: iconColor)
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(spacing: 0) {
+                            ForEach(Array(results.enumerated()), id: \.element.id) { index, result in
+                                Button { select(result) } label: {
+                                    SystemResultRow(
+                                        result: result,
+                                        accentColor: iconColor,
+                                        isHighlighted: highlightedIndex == index
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                                .id(result.id)
+                                if index < results.count - 1 {
+                                    Divider().padding(.leading, 44)
+                                }
                             }
-                            .buttonStyle(.plain)
-                            if result.id != results.last?.id {
-                                Divider().padding(.leading, 44)
+                        }
+                    }
+                    .onChange(of: highlightedIndex) { _, newIndex in
+                        if let idx = newIndex, results.indices.contains(idx) {
+                            withAnimation(.easeInOut(duration: 0.15)) {
+                                proxy.scrollTo(results[idx].id, anchor: .center)
                             }
                         }
                     }
                 }
                 .frame(minWidth: 260, maxHeight: 300)
+                .onChange(of: results) { _, _ in highlightedIndex = nil }
             }
         }
     }
@@ -417,7 +467,7 @@ struct SystemSearchField: View {
         if selectedSystem != nil { selectedSystem = nil }
 
         searchTask?.cancel()
-        guard trimmed.count >= 2 else {
+        guard trimmed.count >= 3 else {
             results = []
             showPopover = false
             return
@@ -426,11 +476,21 @@ struct SystemSearchField: View {
         searchTask = Task {
             try? await Task.sleep(for: .milliseconds(300))
             guard !Task.isCancelled else { return }
+
+            guard let account = accountManager.selectedAccount else {
+                searchError = "Sign in to search for systems"
+                showPopover = true
+                return
+            }
+
             isSearching = true
+            searchError = nil
             showPopover = true
             do {
+                let token = try await accountManager.validToken(for: account)
                 let response: ESISearchResponse = try await ESIClient.shared.fetch(
-                    "/search/",
+                    "/characters/\(account.characterID)/search/",
+                    token: token,
                     queryItems: [
                         URLQueryItem(name: "categories", value: "solar_system"),
                         URLQueryItem(name: "search", value: trimmed),
@@ -439,6 +499,7 @@ struct SystemSearchField: View {
                 )
                 guard !Task.isCancelled else { isSearching = false; return }
                 let ids = Array((response.solarSystem ?? []).prefix(15))
+                print("[SystemSearch] '\(trimmed)' → \(ids.count) IDs: \(ids)")
 
                 // Resolve names concurrently via UniverseCache (persists between searches)
                 let resolved = await withTaskGroup(of: SystemSearchResult?.self) { group -> [SystemSearchResult] in
@@ -454,8 +515,12 @@ struct SystemSearchField: View {
                 }
                 guard !Task.isCancelled else { isSearching = false; return }
                 results = resolved.sorted { $0.name < $1.name }
+                print("[SystemSearch] resolved \(results.count) systems")
             } catch {
-                if !Task.isCancelled { results = [] }
+                if !Task.isCancelled {
+                    searchError = error.localizedDescription
+                    print("[SystemSearch] ERROR: \(error)")
+                }
             }
             isSearching = false
         }
@@ -472,7 +537,7 @@ struct SystemSearchField: View {
 
 // MARK: - System Search Result
 
-struct SystemSearchResult: Identifiable {
+struct SystemSearchResult: Identifiable, Equatable {
     let id: Int
     let name: String
     let securityStatus: Double
@@ -484,6 +549,7 @@ struct SystemSearchResult: Identifiable {
 struct SystemResultRow: View {
     let result: SystemSearchResult
     let accentColor: Color
+    var isHighlighted: Bool = false
 
     var body: some View {
         HStack(spacing: 10) {
@@ -496,12 +562,14 @@ struct SystemResultRow: View {
 
             Text(result.name)
                 .font(.subheadline)
-                .foregroundStyle(.primary)
+                .foregroundStyle(isHighlighted ? accentColor : .primary)
+                .fontWeight(isHighlighted ? .semibold : .regular)
 
             Spacer()
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
+        .background(isHighlighted ? accentColor.opacity(0.12) : Color.clear)
         .frame(maxWidth: .infinity)
         .contentShape(Rectangle())
         .background(Color.clear)

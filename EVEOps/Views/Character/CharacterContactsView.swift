@@ -297,26 +297,10 @@ struct AddContactSheet: View {
                     Text("Standing").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                     HStack(spacing: 8) {
                         ForEach(standingOptions, id: \.0) { value, label, color in
-                            Button {
-                                standing = value
-                            } label: {
-                                VStack(spacing: 3) {
-                                    Text(value >= 0 ? "+\(Int(value))" : "\(Int(value))")
-                                        .font(.caption.bold().monospacedDigit())
-                                        .foregroundStyle(standing == value ? color : .secondary)
-                                    Text(label)
-                                        .font(.caption2)
-                                        .foregroundStyle(standing == value ? color : .tertiary)
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 8)
-                                .background(standing == value ? color.opacity(0.15) : Color.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(standing == value ? color.opacity(0.4) : Color.clear, lineWidth: 1)
-                                )
-                            }
-                            .buttonStyle(.plain)
+                            StandingOptionButton(
+                                value: value, label: label, color: color,
+                                isSelected: standing == value
+                            ) { standing = value }
                         }
                     }
                 }
@@ -367,5 +351,36 @@ struct AddContactSheet: View {
         await onAdd(result.id, result.type, standing)
         isAdding = false
         dismiss()
+    }
+}
+
+// MARK: - Standing Option Button
+
+struct StandingOptionButton: View {
+    let value: Double
+    let label: String
+    let color: Color
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 3) {
+                Text(value >= 0 ? "+\(Int(value))" : "\(Int(value))")
+                    .font(.caption.bold().monospacedDigit())
+                    .foregroundStyle(isSelected ? color : .secondary)
+                Text(label)
+                    .font(.caption2)
+                    .foregroundStyle(isSelected ? color : Color.secondary.opacity(0.6))
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+            .background(isSelected ? color.opacity(0.15) : Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(isSelected ? color.opacity(0.4) : Color.clear, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
     }
 }

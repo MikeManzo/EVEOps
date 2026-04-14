@@ -18,6 +18,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
     case fittings = "Fittings"
     case calendar = "Calendar"
     case standings = "Standings"
+    case contacts = "Contacts"
     case routePlanner = "Route Planner"
 
     // Corporation
@@ -50,6 +51,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
         case .fittings: return "wrench.and.screwdriver.fill"
         case .calendar: return "calendar"
         case .standings: return "star.fill"
+        case .contacts: return "person.2.wave.2.fill"
         case .routePlanner: return "map.fill"
         case .corpWallets: return "creditcard.fill"
         case .corpMembers: return "person.3.fill"
@@ -61,7 +63,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
     }
 
     static var pilotSections: [NavigationSection] {
-        [.location, .training, .clones, .standings]
+        [.location, .training, .clones]
     }
 
     static var economySections: [NavigationSection] {
@@ -73,7 +75,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
     }
 
     static var socialSections: [NavigationSection] {
-        [.mails, .communications, .calendar, .routePlanner]
+        [.mails, .communications, .calendar, .contacts, .standings, .routePlanner]
     }
 
     static var corporationSections: [NavigationSection] {

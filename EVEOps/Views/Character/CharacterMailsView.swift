@@ -8,6 +8,7 @@ struct CharacterMailsView: View {
     @State private var isLoading = true
     @State private var error: String?
     @State private var senderNames: [Int: String] = [:]
+    @State private var showingCompose = false
 
     var body: some View {
         LoadingStateView(isLoading: isLoading, error: error, isEmpty: mails.isEmpty, emptyMessage: "No mails found") {
@@ -19,6 +20,20 @@ struct CharacterMailsView: View {
             }
         }
         .navigationTitle("Mails")
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    showingCompose = true
+                } label: {
+                    Label("Compose", systemImage: "square.and.pencil")
+                }
+            }
+        }
+        .sheet(isPresented: $showingCompose) {
+            ComposeMailSheet { subject, recipients, body in
+                await sendMail(subject: subject, recipients: recipients, body: body)
+            }
+        }
         .task { await loadMails() }
     }
 
@@ -145,6 +160,218 @@ struct CharacterMailsView: View {
             mailBody = body.body ?? "(Empty)"
         } catch {
             mailBody = "Failed to load mail body."
+        }
+    }
+
+    private func sendMail(subject: String, recipients: [ESIMailRecipient], body: String) async {
+        guard let account = accountManager.selectedAccount else { return }
+        do {
+            let token = try await accountManager.validToken(for: account)
+            let request = ESIMailSendRequest(body: body, recipients: recipients, subject: subject)
+            let _: Int = try await ESIClient.shared.post(
+                "/characters/\(account.characterID)/mail/", body: request, token: token
+            )
+            await loadMails()
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+}
+
+// MARK: - Compose Mail Sheet
+
+struct ComposeMailSheet: View {
+    let onSend: (String, [ESIMailRecipient], String) async -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var toInput = ""
+    @State private var subject = ""
+    @State private var messageBody = ""
+    @State private var recipients: [ResolvedRecipient] = []
+    @State private var isSearching = false
+    @State private var searchError: String?
+    @State private var isSending = false
+    @State private var sendError: String?
+
+    struct ResolvedRecipient: Identifiable {
+        let id: Int
+        let name: String
+        let type: String // "character", "corporation", "alliance"
+    }
+
+    private var canSend: Bool {
+        !recipients.isEmpty && !subject.trimmingCharacters(in: .whitespaces).isEmpty &&
+        !messageBody.trimmingCharacters(in: .whitespaces).isEmpty && !isSending
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header
+            HStack {
+                Text("New Message").font(.headline)
+                Spacer()
+                Button("Cancel") { dismiss() }.keyboardShortcut(.escape)
+            }
+            .padding()
+            Divider()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    // Recipients
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("To").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                        if !recipients.isEmpty {
+                            RecipientPillGrid(recipients) { recipient in
+                                HStack(spacing: 4) {
+                                    Text(recipient.name).font(.caption)
+                                    Button {
+                                        recipients.removeAll { $0.id == recipient.id }
+                                    } label: {
+                                        Image(systemName: "xmark").font(.caption2)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(.blue.opacity(0.15), in: Capsule())
+                            }
+                        }
+                        HStack {
+                            TextField("Search character or corporation name…", text: $toInput)
+                                .textFieldStyle(.roundedBorder)
+                                .onSubmit { Task { await searchRecipient() } }
+                            Button("Add") { Task { await searchRecipient() } }
+                                .disabled(toInput.trimmingCharacters(in: .whitespaces).isEmpty || isSearching)
+                        }
+                        if isSearching {
+                            HStack(spacing: 6) {
+                                ProgressView().controlSize(.small)
+                                Text("Searching…").font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                        if let searchError {
+                            Text(searchError).font(.caption).foregroundStyle(.red)
+                        }
+                    }
+
+                    Divider()
+
+                    // Subject
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Subject").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                        TextField("Subject", text: $subject)
+                            .textFieldStyle(.roundedBorder)
+                    }
+
+                    Divider()
+
+                    // Body
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Message").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                        TextEditor(text: $messageBody)
+                            .font(.body)
+                            .frame(minHeight: 200)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .stroke(.quaternary, lineWidth: 1)
+                            )
+                    }
+
+                    if let sendError {
+                        HStack(spacing: 6) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                            Text(sendError)
+                        }
+                        .foregroundStyle(.red)
+                        .font(.caption)
+                        .padding(8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(.red.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+                    }
+                }
+                .padding()
+            }
+
+            Divider()
+
+            // Footer
+            HStack {
+                Spacer()
+                Button("Send") {
+                    Task { await send() }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(!canSend)
+                .overlay(alignment: .leading) {
+                    if isSending { ProgressView().controlSize(.small).padding(.leading, 8) }
+                }
+            }
+            .padding()
+        }
+        .frame(minWidth: 540, minHeight: 480)
+    }
+
+    private func searchRecipient() async {
+        let name = toInput.trimmingCharacters(in: .whitespaces)
+        guard !name.isEmpty else { return }
+        isSearching = true
+        searchError = nil
+        defer { isSearching = false }
+        do {
+            let result: ESIIDsResponse = try await ESIClient.shared.post("/universe/ids/", body: [name])
+            if let chars = result.characters, let match = chars.first(where: { $0.name.lowercased() == name.lowercased() }) {
+                if !recipients.contains(where: { $0.id == match.id }) {
+                    recipients.append(ResolvedRecipient(id: match.id, name: match.name, type: "character"))
+                }
+                toInput = ""
+            } else if let corps = result.corporations, let match = corps.first(where: { $0.name.lowercased() == name.lowercased() }) {
+                if !recipients.contains(where: { $0.id == match.id }) {
+                    recipients.append(ResolvedRecipient(id: match.id, name: match.name, type: "corporation"))
+                }
+                toInput = ""
+            } else if let alliances = result.alliances, let match = alliances.first(where: { $0.name.lowercased() == name.lowercased() }) {
+                if !recipients.contains(where: { $0.id == match.id }) {
+                    recipients.append(ResolvedRecipient(id: match.id, name: match.name, type: "alliance"))
+                }
+                toInput = ""
+            } else {
+                searchError = "No exact match found for \"\(name)\". Check the spelling."
+            }
+        } catch {
+            searchError = error.localizedDescription
+        }
+    }
+
+    private func send() async {
+        isSending = true
+        sendError = nil
+        let mailRecipients = recipients.map { ESIMailRecipient(recipientId: $0.id, recipientType: $0.type) }
+        await onSend(subject, mailRecipients, messageBody)
+        isSending = false
+        dismiss()
+    }
+}
+
+// MARK: - Recipient pill grid
+
+struct RecipientPillGrid<Data: RandomAccessCollection, Content: View>: View where Data.Element: Identifiable {
+    let data: Data
+    let content: (Data.Element) -> Content
+
+    init(_ data: Data, @ViewBuilder content: @escaping (Data.Element) -> Content) {
+        self.data = data
+        self.content = content
+    }
+
+    var body: some View {
+        LazyVGrid(
+            columns: [GridItem(.adaptive(minimum: 100, maximum: 200), alignment: .leading)],
+            alignment: .leading,
+            spacing: 6
+        ) {
+            ForEach(data) { item in
+                content(item)
+            }
         }
     }
 }

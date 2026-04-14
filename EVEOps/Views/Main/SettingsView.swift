@@ -187,9 +187,12 @@ private struct NotificationsTab: View {
 // MARK: - General Tab
 
 private struct GeneralTab: View {
+    @Environment(AccountManager.self) private var accountManager
+    @Environment(DashboardPrefetcher.self) private var prefetcher
     @AppStorage("backgroundPollInterval") private var pollInterval: Double = 300
     @AppStorage("defaultCharacterMode") private var defaultCharacterMode: String = "last"
     @State private var launchAtLogin = false
+    @State private var isRefreshing = false
 
     var body: some View {
         Form {
@@ -214,6 +217,15 @@ private struct GeneralTab: View {
                     Text("30 minutes").tag(1800.0)
                 }
                 .pickerStyle(.menu)
+                Button(isRefreshing ? "Refreshing…" : "Refresh Now") {
+                    Task {
+                        isRefreshing = true
+                        await accountManager.refreshPublicInfo()
+                        await prefetcher.prefetchAll(accountManager: accountManager)
+                        isRefreshing = false
+                    }
+                }
+                .disabled(isRefreshing || prefetcher.isLoading)
                 Text("How often EVEOps checks for notifications and updates in the background.")
                     .font(.caption)
                     .foregroundStyle(.secondary)

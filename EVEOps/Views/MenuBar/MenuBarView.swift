@@ -6,6 +6,7 @@ struct MenuBarView: View {
     @Environment(APIStatusMonitor.self) private var apiStatus
     @Environment(\.openWindow) private var openWindow
     @Environment(\.openSettings) private var openSettings
+    @AppStorage("backgroundPollInterval") private var pollInterval: Double = 300
     @State private var summaries: [Int: CharacterSummary] = [:]
     @State private var isLoading = false
 
@@ -106,15 +107,22 @@ struct MenuBarView: View {
         .frame(width: 330)
         .task {
             await apiStatus.checkNow()
-            // Use prefetcher summaries immediately if available
-            let prebuilt = prefetcher.menuBarSummaries
-            if !prebuilt.isEmpty {
-                summaries = prebuilt
-            } else {
-                // Prefetcher hasn't completed yet, load directly
-                isLoading = true
+            // Show prebuilt summaries immediately if available, then always refresh
+            if !prefetcher.menuBarSummaries.isEmpty {
+                summaries = prefetcher.menuBarSummaries
+            }
+            isLoading = summaries.isEmpty
+            await loadAllSummaries()
+        }
+        .task(id: pollInterval) {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(pollInterval))
                 await loadAllSummaries()
             }
+        }
+        .onChange(of: prefetcher.lastRefresh) { _, _ in
+            // Prefetcher was refreshed externally (e.g. "Refresh Now" in Settings) — sync immediately
+            Task { await loadAllSummaries() }
         }
     }
 
@@ -227,6 +235,17 @@ struct MenuBarView: View {
             s.trainingSkillName = resolved[skillID]
         }
 
+        // Fetch corp/alliance name bypassing all caches to get the current corp ID from ESI
+        if let charInfo: ESICharacterPublic = try? await ESIClient.shared.fetch("/characters/\(account.characterID)/", bypassCache: true) {
+            if let corpInfo: ESICorporationPublic = try? await ESIClient.shared.fetch("/corporations/\(charInfo.corporationId)/", bypassCache: true) {
+                s.corporationName = corpInfo.name
+            }
+            if let allianceId = charInfo.allianceId,
+               let allianceInfo: ESIAlliancePublic = try? await ESIClient.shared.fetch("/alliances/\(allianceId)/", bypassCache: true) {
+                s.allianceName = allianceInfo.name
+            }
+        }
+
         return s
     }
 
@@ -301,6 +320,17 @@ struct MenuBarView: View {
             if let skillID = s.trainingSkillID {
                 let resolved = await NameResolver.shared.resolve(ids: [skillID])
                 s.trainingSkillName = resolved[skillID]
+            }
+
+            // Fetch corp/alliance name bypassing all caches to get the current corp ID from ESI
+            if let charInfo: ESICharacterPublic = try? await ESIClient.shared.fetch("/characters/\(charID)/", bypassCache: true) {
+                if let corpInfo: ESICorporationPublic = try? await ESIClient.shared.fetch("/corporations/\(charInfo.corporationId)/", bypassCache: true) {
+                    s.corporationName = corpInfo.name
+                }
+                if let allianceId = charInfo.allianceId,
+                   let allianceInfo: ESIAlliancePublic = try? await ESIClient.shared.fetch("/alliances/\(allianceId)/", bypassCache: true) {
+                    s.allianceName = allianceInfo.name
+                }
             }
         } catch {
             // Token refresh failed, show partial data

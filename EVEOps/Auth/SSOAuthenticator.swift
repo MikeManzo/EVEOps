@@ -38,6 +38,7 @@ struct SSOConfiguration: Sendable {
             "esi-contracts.read_character_contracts.v1",
             "esi-industry.read_character_jobs.v1",
             "esi-mail.read_mail.v1",
+            "esi-mail.send_mail.v1",
             "esi-characters.read_notifications.v1",
             "esi-corporations.read_structures.v1",
             "esi-corporations.read_corporation_membership.v1",
@@ -54,7 +55,10 @@ struct SSOConfiguration: Sendable {
             "esi-killmails.read_corporation_killmails.v1",
             "esi-markets.read_corporation_orders.v1",
             "esi-industry.read_corporation_mining.v1",
-            "esi-characters.read_contacts.v1"
+            "esi-characters.read_contacts.v1",
+            "esi-characters.write_contacts.v1",
+            "esi-ui.write_waypoint.v1",
+            "esi-search.search_structures.v1"
         ]
     )
 

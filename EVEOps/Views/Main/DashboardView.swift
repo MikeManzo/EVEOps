@@ -115,6 +115,9 @@ struct DashboardView: View {
                 s.trainingSkillName = prefetcher.resolvedNames[skillID]
             }
 
+            s.corporationName = prefetched.corporationName
+            s.allianceName = prefetched.allianceName
+
             built.append(s)
         }
         summaries = built
@@ -394,6 +397,9 @@ struct DashboardView: View {
             summary.trainingSkillName = resolved[skillID]
         }
 
+        summary.corporationName = prefetched.corporationName
+        summary.allianceName = prefetched.allianceName
+
         return summary
     }
 }
@@ -421,6 +427,8 @@ struct CharacterSummary {
     var nextJobFinish: Date?
     var colonyCount: Int = 0
     var expiredExtractorCount: Int = 0
+    var corporationName: String = ""
+    var allianceName: String? = nil
 }
 
 // MARK: - Contact Summary
@@ -555,6 +563,10 @@ struct CharacterCardView: View {
 
     @Environment(AccountManager.self) private var accountManager
     @Environment(APIStatusMonitor.self) private var apiStatus
+    @Environment(DashboardPrefetcher.self) private var prefetcher
+
+    @State private var liveCorpName: String?
+    @State private var liveAllianceName: String?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -615,11 +627,11 @@ struct CharacterCardView: View {
                                     .foregroundStyle(summary?.online == true ? .green : .secondary)
                             }
                         }
-                        Text(account.corporationName)
+                        Text(liveCorpName ?? account.corporationName)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
-                        if let allianceName = account.allianceName {
-                            Text(allianceName)
+                        if let name = liveAllianceName ?? account.allianceName {
+                            Text(name)
                                 .font(.caption)
                                 .foregroundStyle(.tertiary)
                         }
@@ -789,6 +801,28 @@ struct CharacterCardView: View {
         }
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
         .clipShape(RoundedRectangle(cornerRadius: 12))
+        .onAppear { Task { await fetchIdentity() } }
+        .onChange(of: prefetcher.lastRefresh) { _, _ in Task { await fetchIdentity() } }
+
+    }
+
+    private func fetchIdentity() async {
+        guard let charInfo: ESICharacterPublic = try? await ESIClient.shared.fetch(
+            "/characters/\(account.characterID)/"
+        ) else { return }
+        if let corpInfo: ESICorporationPublic = try? await ESIClient.shared.fetch(
+            "/corporations/\(charInfo.corporationId)/"
+        ) {
+            liveCorpName = corpInfo.name
+        }
+        if let allianceId = charInfo.allianceId,
+           let allianceInfo: ESIAlliancePublic = try? await ESIClient.shared.fetch(
+               "/alliances/\(allianceId)/"
+           ) {
+            liveAllianceName = allianceInfo.name
+        } else {
+            liveAllianceName = nil
+        }
     }
 
     @ViewBuilder

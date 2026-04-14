@@ -61,12 +61,19 @@ final class AccountManager {
                     "/corporations/\(charInfo.corporationId)/"
                 )
 
+                var allianceName: String? = nil
+                if let allianceId = charInfo.allianceId {
+                    let resolved = await NameResolver.shared.resolve(ids: [allianceId])
+                    allianceName = resolved[allianceId]
+                }
+
                 let account = StoredAccount(
                     characterID: character.characterID,
                     characterName: character.characterName,
                     corporationID: charInfo.corporationId,
                     corporationName: corpInfo.name,
                     allianceID: charInfo.allianceId,
+                    allianceName: allianceName,
                     accessToken: tokenResponse.accessToken,
                     refreshToken: tokenResponse.refreshToken,
                     tokenExpiry: Date().addingTimeInterval(TimeInterval(tokenResponse.expiresIn)),
@@ -102,6 +109,39 @@ final class AccountManager {
         account.tokenExpiry = Date().addingTimeInterval(TimeInterval(tokenResponse.expiresIn))
         try? modelContext.save()
         return tokenResponse.accessToken
+    }
+
+    /// Fetches current public ESI data for all accounts and unconditionally updates
+    /// corporation and alliance fields. Clears all response caches first so no layer
+    /// of HTTP or in-memory caching can serve stale data.
+    func refreshPublicInfo() async {
+        guard !accounts.isEmpty else { return }
+        await ESIClient.shared.clearAllCaches()
+        for account in accounts {
+            guard let charInfo: ESICharacterPublic = try? await ESIClient.shared.fetch(
+                "/characters/\(account.characterID)/", bypassCache: true
+            ) else { continue }
+
+            account.corporationID = charInfo.corporationId
+            if let corpInfo: ESICorporationPublic = try? await ESIClient.shared.fetch(
+                "/corporations/\(charInfo.corporationId)/", bypassCache: true
+            ) {
+                account.corporationName = corpInfo.name
+            }
+
+            account.allianceID = charInfo.allianceId
+            if let allianceId = charInfo.allianceId {
+                if let allianceInfo: ESIAlliancePublic = try? await ESIClient.shared.fetch(
+                    "/alliances/\(allianceId)/", bypassCache: true
+                ) {
+                    account.allianceName = allianceInfo.name
+                }
+            } else {
+                account.allianceName = nil
+            }
+        }
+
+        try? modelContext.save()
     }
 
     private func decodeJWT(_ token: String) throws -> ESITokenCharacter {

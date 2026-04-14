@@ -72,7 +72,7 @@ actor ESIClient {
         }
     }
 
-    func fetch<T: Decodable>(_ endpoint: String, token: String? = nil, queryItems: [URLQueryItem]? = nil) async throws -> T {
+    func fetch<T: Decodable>(_ endpoint: String, token: String? = nil, queryItems: [URLQueryItem]? = nil, bypassCache: Bool = false) async throws -> T {
         guard var components = URLComponents(string: "\(baseURL)\(endpoint)") else {
             throw ESIError.invalidURL
         }
@@ -86,8 +86,8 @@ actor ESIClient {
 
         let cacheKey = url.absoluteString
 
-        // Check in-memory cache (only for unauthenticated or same-token requests)
-        if let cached = responseCache[cacheKey], cached.expires > Date() {
+        // Check in-memory cache unless explicitly bypassed
+        if !bypassCache, let cached = responseCache[cacheKey], cached.expires > Date() {
             do {
                 return try decoder.decode(T.self, from: cached.data)
             } catch {
@@ -97,6 +97,10 @@ actor ESIClient {
 
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
+        // Bypass both our cache and URLSession's HTTP disk cache when forced
+        if bypassCache {
+            request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+        }
         if let token = token {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
@@ -139,11 +143,13 @@ actor ESIClient {
         }
     }
 
-    func post<Body: Encodable, Response: Decodable>(_ endpoint: String, body: Body, token: String? = nil) async throws -> Response {
+    func post<Body: Encodable, Response: Decodable>(_ endpoint: String, body: Body, token: String? = nil, queryItems: [URLQueryItem]? = nil) async throws -> Response {
         guard var components = URLComponents(string: "\(baseURL)\(endpoint)") else {
             throw ESIError.invalidURL
         }
-        components.queryItems = [URLQueryItem(name: "datasource", value: "tranquility")]
+        var allItems = [URLQueryItem(name: "datasource", value: "tranquility")]
+        if let extra = queryItems { allItems.append(contentsOf: extra) }
+        components.queryItems = allItems
         guard let url = components.url else { throw ESIError.invalidURL }
 
         let encoder = JSONEncoder()
@@ -172,6 +178,97 @@ actor ESIClient {
             throw ESIError.serverError(statusCode: httpResponse.statusCode, message: msg)
         }
         do { return try decoder.decode(Response.self, from: data) } catch { throw ESIError.decodingError(error) }
+    }
+
+    /// PUT with JSON body, discards response body (for 204 responses)
+    func put<Body: Encodable>(_ endpoint: String, body: Body, token: String? = nil, queryItems: [URLQueryItem]? = nil) async throws {
+        guard var components = URLComponents(string: "\(baseURL)\(endpoint)") else { throw ESIError.invalidURL }
+        var allItems = [URLQueryItem(name: "datasource", value: "tranquility")]
+        if let extra = queryItems { allItems.append(contentsOf: extra) }
+        components.queryItems = allItems
+        guard let url = components.url else { throw ESIError.invalidURL }
+
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        let bodyData: Data
+        do { bodyData = try encoder.encode(body) } catch { throw ESIError.decodingError(error) }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "PUT"
+        request.httpBody = bodyData
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let token { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
+
+        let (data, response): (Data, URLResponse)
+        do { (data, response) = try await session.data(for: request) } catch { throw ESIError.networkError(error) }
+
+        guard let httpResponse = response as? HTTPURLResponse else { throw ESIError.noData }
+        switch httpResponse.statusCode {
+        case 200...299: break
+        case 401, 403: throw ESIError.unauthorized
+        case 420:
+            let retryAfter = Int(httpResponse.value(forHTTPHeaderField: "Retry-After") ?? "60") ?? 60
+            throw ESIError.rateLimited(retryAfter: retryAfter)
+        default:
+            let msg = String(data: data, encoding: .utf8) ?? "Unknown error"
+            throw ESIError.serverError(statusCode: httpResponse.statusCode, message: msg)
+        }
+    }
+
+    /// DELETE with optional query items, no response body
+    func delete(_ endpoint: String, token: String? = nil, queryItems: [URLQueryItem]? = nil) async throws {
+        guard var components = URLComponents(string: "\(baseURL)\(endpoint)") else { throw ESIError.invalidURL }
+        var allItems = [URLQueryItem(name: "datasource", value: "tranquility")]
+        if let extra = queryItems { allItems.append(contentsOf: extra) }
+        components.queryItems = allItems
+        guard let url = components.url else { throw ESIError.invalidURL }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        if let token { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
+
+        let (data, response): (Data, URLResponse)
+        do { (data, response) = try await session.data(for: request) } catch { throw ESIError.networkError(error) }
+
+        guard let httpResponse = response as? HTTPURLResponse else { throw ESIError.noData }
+        switch httpResponse.statusCode {
+        case 200...299: break
+        case 401, 403: throw ESIError.unauthorized
+        case 420:
+            let retryAfter = Int(httpResponse.value(forHTTPHeaderField: "Retry-After") ?? "60") ?? 60
+            throw ESIError.rateLimited(retryAfter: retryAfter)
+        default:
+            let msg = String(data: data, encoding: .utf8) ?? "Unknown error"
+            throw ESIError.serverError(statusCode: httpResponse.statusCode, message: msg)
+        }
+    }
+
+    /// POST with only query params and no body — used for UI endpoints like autopilot waypoint
+    func postAction(_ endpoint: String, token: String? = nil, queryItems: [URLQueryItem]? = nil) async throws {
+        guard var components = URLComponents(string: "\(baseURL)\(endpoint)") else { throw ESIError.invalidURL }
+        var allItems = [URLQueryItem(name: "datasource", value: "tranquility")]
+        if let extra = queryItems { allItems.append(contentsOf: extra) }
+        components.queryItems = allItems
+        guard let url = components.url else { throw ESIError.invalidURL }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        if let token { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
+
+        let (data, response): (Data, URLResponse)
+        do { (data, response) = try await session.data(for: request) } catch { throw ESIError.networkError(error) }
+
+        guard let httpResponse = response as? HTTPURLResponse else { throw ESIError.noData }
+        switch httpResponse.statusCode {
+        case 200...299: break
+        case 401, 403: throw ESIError.unauthorized
+        case 420:
+            let retryAfter = Int(httpResponse.value(forHTTPHeaderField: "Retry-After") ?? "60") ?? 60
+            throw ESIError.rateLimited(retryAfter: retryAfter)
+        default:
+            let msg = String(data: data, encoding: .utf8) ?? "Unknown error"
+            throw ESIError.serverError(statusCode: httpResponse.statusCode, message: msg)
+        }
     }
 
     func fetchPages<T: Decodable>(_ endpoint: String, token: String? = nil) async throws -> [T] {
@@ -239,14 +336,26 @@ actor ESIClient {
         return results
     }
 
+    /// Evict cache entries whose key contains the given path string
+    func evictCache(matching path: String) {
+        responseCache = responseCache.filter { !$0.key.contains(path) }
+    }
+
     /// Evict all expired entries from the cache
     func pruneCache() {
         let now = Date()
         responseCache = responseCache.filter { $0.value.expires > now }
     }
 
-    /// Clear the entire response cache
+    /// Clear the entire in-memory response cache
     func clearCache() {
         responseCache.removeAll()
+    }
+
+    /// Clear ALL response caches — both the in-memory cache and URLSession's HTTP disk cache.
+    /// Call this before any forced refresh so stale HTTP responses never mask updated data.
+    func clearAllCaches() {
+        responseCache.removeAll()
+        URLCache.shared.removeAllCachedResponses()
     }
 }

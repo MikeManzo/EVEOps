@@ -3,6 +3,7 @@ import SwiftUI
 struct TrainingOverviewView: View {
     @Environment(AccountManager.self) private var accountManager
     @Environment(DashboardPrefetcher.self) private var prefetcher
+    @AppStorage("backgroundPollInterval") private var pollInterval: Double = 300
     @State private var trainingData: [CharacterTrainingInfo] = []
     @State private var isLoading = false
     @State private var error: String?
@@ -59,6 +60,12 @@ struct TrainingOverviewView: View {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(1))
                 now = Date()
+            }
+        }
+        .task(id: pollInterval) {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(pollInterval))
+                await loadTraining()
             }
         }
     }
