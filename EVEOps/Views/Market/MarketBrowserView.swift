@@ -337,13 +337,16 @@ struct MarketBrowserView: View {
         } else if selectedGroupId != nil {
             groupTypesPanel
         } else {
-            VStack(spacing: 8) {
-                Image(systemName: "list.bullet")
-                    .font(.system(size: 32))
-                    .foregroundStyle(.tertiary)
-                Text("Search for items or select a market group")
-                    .font(.subheadline)
+            VStack(spacing: 10) {
+                Image(systemName: "chart.xyaxis.line")
+                    .font(.system(size: 40))
+                    .foregroundStyle(Color(red: 0.2, green: 0.75, blue: 0.8).opacity(0.6))
+                Text("Select a group from the registry")
+                    .font(.subheadline.weight(.medium))
                     .foregroundStyle(.secondary)
+                Text("or search by name to find an item")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
@@ -395,8 +398,18 @@ struct MarketBrowserView: View {
                     Text(node.group.name)
                         .font(.subheadline)
                 } icon: {
-                    Image(systemName: node.children == nil ? "tag.fill" : "folder.fill")
-                        .foregroundStyle(node.children == nil ? Color.secondary : Color.blue)
+                    if node.group.parentGroupId == nil {
+                        // Root category — distinctive icon + color from marketGroupIcon
+                        let (symbol, color) = marketGroupIcon(node.group.name)
+                        Image(systemName: symbol)
+                            .foregroundStyle(color)
+                    } else if node.children != nil {
+                        Image(systemName: "folder.fill")
+                            .foregroundStyle(Color.blue.opacity(0.75))
+                    } else {
+                        Image(systemName: "tag.fill")
+                            .foregroundStyle(Color.secondary)
+                    }
                 }
             }
             .listStyle(.sidebar)
@@ -434,12 +447,15 @@ struct MarketBrowserView: View {
             itemDetailView(typeId: typeId)
         } else {
             VStack(spacing: 10) {
-                Image(systemName: "storefront")
-                    .font(.system(size: 40))
-                    .foregroundStyle(.tertiary)
-                Text("Select an item above to view market orders, price history, and details")
-                    .font(.subheadline)
+                Image(systemName: "chart.line.uptrend.xyaxis")
+                    .font(.system(size: 44))
+                    .foregroundStyle(Color(red: 0.2, green: 0.75, blue: 0.8).opacity(0.5))
+                Text("No item selected")
+                    .font(.headline)
                     .foregroundStyle(.secondary)
+                Text("Browse the market registry or search by name\nto analyze orders and pricing.")
+                    .font(.subheadline)
+                    .foregroundStyle(.tertiary)
                     .multilineTextAlignment(.center)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -525,8 +541,8 @@ struct MarketBrowserView: View {
                     RoundedRectangle(cornerRadius: 8).fill(.quaternary)
                 }
             }
-            .frame(width: 64, height: 64)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .frame(width: 96, height: 96)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(selectedTypeName)
@@ -566,7 +582,19 @@ struct MarketBrowserView: View {
             }
         }
         .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .background {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(.regularMaterial)
+                RadialGradient(
+                    colors: [Color(red: 0.2, green: 0.75, blue: 0.8).opacity(0.14), .clear],
+                    center: .init(x: 0.04, y: 0.5),
+                    startRadius: 0,
+                    endRadius: 180
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+        }
     }
 
     // MARK: - Market Stats Bar
@@ -600,17 +628,23 @@ struct MarketBrowserView: View {
     }
 
     private func statCard(_ title: String, value: String, color: Color) -> some View {
-        VStack(spacing: 4) {
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text(value)
-                .font(.subheadline.bold().monospacedDigit())
-                .foregroundStyle(color)
+        VStack(spacing: 0) {
+            Rectangle()
+                .fill(color)
+                .frame(height: 3)
+            VStack(spacing: 4) {
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(value)
+                    .font(.subheadline.bold().monospacedDigit())
+                    .foregroundStyle(color)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .padding(.horizontal, 8)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 10)
-        .padding(.horizontal, 8)
     }
 
     // MARK: - Orders Table
@@ -653,10 +687,10 @@ struct MarketBrowserView: View {
                     .padding()
             } else {
                 LazyVStack(spacing: 0) {
-                    ForEach(orders) { resolved in
-                        orderRow(resolved, isBuy: isBuy)
+                    ForEach(Array(orders.enumerated()), id: \.element.id) { index, resolved in
+                        orderRow(resolved, isBuy: isBuy, isEven: index % 2 == 0)
                         Divider()
-                            .padding(.leading, 12)
+                            .padding(.leading, 15)
                     }
                 }
             }
@@ -665,73 +699,101 @@ struct MarketBrowserView: View {
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
-    private func orderRow(_ resolved: ResolvedOrder, isBuy: Bool) -> some View {
+    private func orderRow(_ resolved: ResolvedOrder, isBuy: Bool, isEven: Bool) -> some View {
         let order = resolved.order
         let priceColor: Color = isBuy ? .orange : .green
         let sec = resolved.securityStatus
+        let fillRatio = CGFloat(order.volumeRemain) / CGFloat(max(1, order.volumeTotal))
 
         return HStack(spacing: 0) {
-            Text(EVEFormatters.formatISK(order.price))
-                .font(.subheadline.monospacedDigit())
-                .foregroundStyle(priceColor)
-                .frame(width: 120, alignment: .trailing)
+            // Left accent bar — green for sell, orange for buy
+            Rectangle()
+                .fill(priceColor.opacity(0.75))
+                .frame(width: 3)
 
-            VStack(alignment: .trailing, spacing: 1) {
-                Text(formatCount(order.volumeRemain))
+            HStack(spacing: 0) {
+                Text(EVEFormatters.formatISK(order.price))
                     .font(.subheadline.monospacedDigit())
-                Text("/ \(formatCount(order.volumeTotal))")
-                    .font(.caption2.monospacedDigit())
-                    .foregroundStyle(.tertiary)
-            }
-            .frame(width: 80, alignment: .trailing)
-            .padding(.leading, 12)
+                    .foregroundStyle(priceColor)
+                    .frame(width: 120, alignment: .trailing)
 
-            Text(formatCount(order.minVolume))
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(.secondary)
-                .frame(width: 60, alignment: .trailing)
+                // Qty with volume fill bar
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(formatCount(order.volumeRemain))
+                        .font(.subheadline.monospacedDigit())
+                    Text("/ \(formatCount(order.volumeTotal))")
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(.tertiary)
+                    ZStack(alignment: .trailing) {
+                        RoundedRectangle(cornerRadius: 1)
+                            .fill(Color.primary.opacity(0.08))
+                        RoundedRectangle(cornerRadius: 1)
+                            .fill(priceColor.opacity(0.55))
+                            .frame(width: 80 * fillRatio)
+                    }
+                    .frame(width: 80, height: 2)
+                }
+                .frame(width: 80, alignment: .trailing)
                 .padding(.leading, 12)
 
-            VStack(alignment: .leading, spacing: 1) {
-                Text(resolved.locationName)
-                    .font(.subheadline)
-                    .lineLimit(1)
-                Text(resolved.systemName)
-                    .font(.caption2)
+                Text(formatCount(order.minVolume))
+                    .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.leading, 12)
+                    .frame(width: 60, alignment: .trailing)
+                    .padding(.leading, 12)
 
-            Text(String(format: "%.1f", max(0, sec)))
-                .font(.caption.bold().monospacedDigit())
-                .foregroundStyle(securityColor(sec))
-                .frame(width: 36, alignment: .center)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(resolved.locationName)
+                        .font(.subheadline)
+                        .lineLimit(1)
+                    Text(resolved.systemName)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.leading, 12)
 
-            Group {
-                if let jumps = resolved.jumps {
-                    Text(jumps == 0 ? "Here" : "\(jumps)")
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(jumps == 0 ? .green : jumps < 5 ? .primary : .secondary)
-                } else {
-                    Text("—")
+                // Security status pill badge
+                Text(String(format: "%.1f", max(0, sec)))
+                    .font(.system(size: 9, weight: .bold).monospacedDigit())
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 2)
+                    .background(securityColor(sec), in: Capsule())
+                    .frame(width: 36, alignment: .center)
+
+                // Jumps with colored proximity dot
+                Group {
+                    if let jumps = resolved.jumps {
+                        HStack(spacing: 3) {
+                            Circle()
+                                .fill(jumps == 0 ? Color.green : jumps < 5 ? Color.yellow : Color.orange)
+                                .frame(width: 5, height: 5)
+                            Text(jumps == 0 ? "Here" : "\(jumps)")
+                                .font(.caption.monospacedDigit())
+                                .foregroundStyle(jumps == 0 ? .green : jumps < 5 ? .primary : .secondary)
+                        }
+                    } else {
+                        Text("—")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+                .frame(width: 48, alignment: .center)
+
+                if isBuy {
+                    Text(formatRange(order.range))
                         .font(.caption)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .frame(width: 80, alignment: .leading)
+                        .padding(.leading, 8)
                 }
             }
-            .frame(width: 48, alignment: .center)
-
-            if isBuy {
-                Text(formatRange(order.range))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .frame(width: 80, alignment: .leading)
-                    .padding(.leading, 8)
-            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 7)
+        .background(isEven ? Color.primary.opacity(0.03) : Color.clear)
     }
 
     // MARK: - Price History
@@ -760,27 +822,29 @@ struct MarketBrowserView: View {
                     .frame(maxWidth: .infinity, minHeight: 200)
             } else {
                 // Price chart — low/high band + average line
+                let eveTeal = Color(red: 0.2, green: 0.75, blue: 0.8)
                 Chart(history) { entry in
                     if let date = parseHistoryDate(entry.date) {
                         RectangleMark(
                             x: .value("Date", date),
                             yStart: .value("Low", entry.lowest),
                             yEnd: .value("High", entry.highest),
-                            width: 2
+                            width: 4
                         )
-                        .foregroundStyle(.blue.opacity(0.25))
+                        .foregroundStyle(eveTeal.opacity(0.4))
 
                         LineMark(
                             x: .value("Date", date),
                             y: .value("Average", entry.average)
                         )
-                        .foregroundStyle(.blue)
+                        .foregroundStyle(eveTeal)
+                        .lineStyle(StrokeStyle(lineWidth: 1.5))
 
                         AreaMark(
                             x: .value("Date", date),
                             y: .value("Average", entry.average)
                         )
-                        .foregroundStyle(.blue.opacity(0.08))
+                        .foregroundStyle(eveTeal.opacity(0.12))
                     }
                 }
                 .chartYAxis {
@@ -802,7 +866,7 @@ struct MarketBrowserView: View {
                             x: .value("Date", date),
                             y: .value("Volume", entry.volume)
                         )
-                        .foregroundStyle(.green.opacity(0.6))
+                        .foregroundStyle(Color(red: 0.15, green: 0.55, blue: 0.4).opacity(0.85))
                     }
                 }
                 .chartYAxis {
@@ -986,7 +1050,8 @@ struct MarketBrowserView: View {
         await withTaskGroup(of: Void.self) { group in
             group.addTask { await self.loadOrders(typeId: typeId) }
             group.addTask {
-                self.selectedTypeInfo = await UniverseCache.shared.type(id: typeId)
+                let info = await UniverseCache.shared.type(id: typeId)
+                await MainActor.run { self.selectedTypeInfo = info }
             }
             group.addTask { await self.loadPriceHistory(typeId: typeId) }
         }
@@ -1192,6 +1257,26 @@ struct MarketBrowserView: View {
         guard !recent.isEmpty else { return "—" }
         let avg = recent.map { Double($0.volume) }.reduce(0, +) / Double(recent.count)
         return formatCount(Int(avg))
+    }
+
+    /// Maps top-level market group names to EVE-relevant SF Symbols and accent colors.
+    private func marketGroupIcon(_ name: String) -> (symbol: String, color: Color) {
+        let lower = name.lowercased()
+        if lower.contains("ship")                                   { return ("airplane", Color(red: 0.35, green: 0.65, blue: 0.90)) }
+        if lower.contains("module") || lower.contains("fitting")    { return ("cpu", .orange) }
+        if lower.contains("ammo") || lower.contains("charge") || lower.contains("missile") { return ("bolt.fill", .yellow) }
+        if lower.contains("drone")                                  { return ("ant.fill", .green) }
+        if lower.contains("structure")                              { return ("building.2.fill", Color(red: 0.6, green: 0.6, blue: 0.7)) }
+        if lower.contains("skill")                                  { return ("book.fill", Color(red: 0.35, green: 0.65, blue: 0.90)) }
+        if lower.contains("implant") || lower.contains("booster")  { return ("brain.head.profile", .purple) }
+        if lower.contains("blueprint")                              { return ("doc.fill", Color(red: 0.2, green: 0.75, blue: 0.8)) }
+        if lower.contains("apparel") || lower.contains("clothing")  { return ("tshirt.fill", .pink) }
+        if lower.contains("deployable")                             { return ("antenna.radiowaves.left.and.right", .cyan) }
+        if lower.contains("fuel")                                   { return ("flame.fill", .orange) }
+        if lower.contains("planetary") || lower.contains("colony") { return ("globe", .teal) }
+        if lower.contains("commodity") || lower.contains("material") { return ("cube.fill", Color(red: 0.65, green: 0.5, blue: 0.35)) }
+        if lower.contains("plex") || lower.contains("token")       { return ("creditcard.fill", .yellow) }
+        return ("tag.fill", .secondary)
     }
 
     private func securityColor(_ sec: Double) -> Color {
