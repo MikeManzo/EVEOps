@@ -15,6 +15,7 @@ actor UniverseCache {
     private var regions: [Int: ESIRegion] = [:]
     private var stations: [Int: ESIStation] = [:]
     private var stars: [Int: ESIStar] = [:]
+    private var marketGroups: [Int: ESIMarketGroup] = [:]
 
     // In-memory cache of all k-space regions (loaded once per app session)
     private var cachedKnownSpaceRegions: [(id: Int, name: String, factionId: Int?)]? = nil
@@ -44,6 +45,7 @@ actor UniverseCache {
             }
             stations = Self.loadCache("stations.json") ?? [:]
             stars = Self.loadCache("stars.json") ?? [:]
+            marketGroups = Self.loadCache("marketGroups.json") ?? [:]
         }
     }
 
@@ -198,6 +200,36 @@ actor UniverseCache {
         return result
     }
 
+    /// Fetches and caches the complete market group tree (~2,000 entries).
+    /// After the first load the data is served from the 7-day disk cache, making
+    /// subsequent opens instant without any network requests.
+    func allMarketGroups() async -> [Int: ESIMarketGroup] {
+        guard marketGroups.isEmpty else { return marketGroups }
+
+        guard let ids: [Int] = try? await ESIClient.shared.fetch("/markets/groups/") else {
+            return [:]
+        }
+
+        let missing = ids.filter { marketGroups[$0] == nil }
+        if !missing.isEmpty {
+            await withTaskGroup(of: (Int, ESIMarketGroup?).self) { group in
+                for id in missing {
+                    group.addTask {
+                        let g: ESIMarketGroup? = try? await ESIClient.shared.fetch("/markets/groups/\(id)/")
+                        return (id, g)
+                    }
+                }
+                for await (id, g) in group {
+                    if let g { marketGroups[id] = g }
+                }
+            }
+            dirty = true
+            scheduleSave()
+        }
+
+        return marketGroups
+    }
+
     // MARK: - Persistence
 
     private var saveTask: Task<Void, Never>?
@@ -220,6 +252,7 @@ actor UniverseCache {
         Self.saveCache(regions, to: "regions.json")
         Self.saveCache(stations, to: "stations.json")
         Self.saveCache(stars, to: "stars.json")
+        Self.saveCache(marketGroups, to: "marketGroups.json")
         Self.saveMeta()
         dirty = false
     }
@@ -273,6 +306,7 @@ actor UniverseCache {
         regions.removeAll()
         stations.removeAll()
         stars.removeAll()
+        marketGroups.removeAll()
         Self.clearDiskCacheFiles()
     }
 }

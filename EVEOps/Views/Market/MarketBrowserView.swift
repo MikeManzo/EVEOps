@@ -147,7 +147,6 @@ struct MarketBrowserView: View {
     @State private var availableRegions: [(id: Int, name: String, factionId: Int?)] = []
 
     // Market group tree
-    @State private var allGroupIds: [Int] = []
     @State private var fetchedGroups: [Int: ESIMarketGroup] = [:]
     @State private var isLoadingGroups = false
     @State private var rootNodes: [MarketGroupNode] = []
@@ -931,37 +930,15 @@ struct MarketBrowserView: View {
     }
 
     private func loadMarketGroups() async {
-        guard allGroupIds.isEmpty else { return }
+        // If the tree is already populated (e.g. navigating back to this view),
+        // skip the rebuild entirely — UniverseCache holds the data in memory.
+        guard rootNodes.isEmpty else { return }
         isLoadingGroups = true
 
-        guard let ids: [Int] = try? await ESIClient.shared.fetch("/markets/groups/") else {
-            isLoadingGroups = false
-            return
-        }
-        allGroupIds = ids
-
-        // Fetch groups in batches of 30 to avoid spawning ~2000 concurrent tasks,
-        // which causes a CPU/network burst on first load.
-        let batchSize = 30
-        let batches = stride(from: 0, to: ids.count, by: batchSize).map {
-            Array(ids[$0..<min($0 + batchSize, ids.count)])
-        }
-
-        for batch in batches {
-            await withTaskGroup(of: (Int, ESIMarketGroup?).self) { group in
-                for id in batch {
-                    group.addTask {
-                        let g: ESIMarketGroup? = try? await ESIClient.shared.fetch("/markets/groups/\(id)/")
-                        return (id, g)
-                    }
-                }
-                for await (id, g) in group {
-                    if let g { fetchedGroups[id] = g }
-                }
-            }
-            rebuildTree()
-            isLoadingGroups = false   // show partial tree; loading continues silently
-        }
+        // UniverseCache serves from its 7-day disk cache after the first load,
+        // so repeat opens cost only an O(n) in-memory tree rebuild.
+        fetchedGroups = await UniverseCache.shared.allMarketGroups()
+        rebuildTree()
         isLoadingGroups = false
     }
 
