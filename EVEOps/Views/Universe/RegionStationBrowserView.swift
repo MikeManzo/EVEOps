@@ -1,6 +1,28 @@
 import SwiftUI
 
+// MARK: - Security Class Filter
+
+private enum SecurityClassFilter: String, CaseIterable {
+    case all      = "All"
+    case highsec  = "Highsec"
+    case lowsec   = "Lowsec"
+    case nullsec  = "Null"
+
+    func matches(_ security: Double) -> Bool {
+        switch self {
+        case .all:     return true
+        case .highsec: return security >= 0.5
+        case .lowsec:  return security > 0.0 && security < 0.5
+        case .nullsec: return security <= 0.0
+        }
+    }
+}
+
+// MARK: - Region Station Browser
+
 struct RegionStationBrowserView: View {
+    var onNavigateToMarket: (() -> Void)? = nil
+
     @Environment(AccountManager.self) private var accountManager
     @Environment(DashboardPrefetcher.self) private var prefetcher
 
@@ -11,7 +33,9 @@ struct RegionStationBrowserView: View {
     @State private var loadingProgress = ""
     @State private var searchText = ""
     @State private var selectedServices: Set<String> = []
+    @State private var securityFilter: SecurityClassFilter = .all
     @State private var selectedStation: StationEntry?
+    @State private var jumpCounts: [Int: Int] = [:]   // systemId → jump count from character's location
 
     private let filterableServices: [(key: String, label: String, icon: String, color: Color)] = [
         ("market",             "Market",        "cart.fill",                    .blue),
@@ -33,7 +57,7 @@ struct RegionStationBrowserView: View {
 
             if let station = selectedStation {
                 Divider()
-                StationDetailView(entry: station)
+                StationDetailView(entry: station, onNavigateToMarket: onNavigateToMarket)
                     .frame(width: 320)
             }
         }
@@ -41,7 +65,9 @@ struct RegionStationBrowserView: View {
         .task { await loadRegions() }
         .task(id: selectedRegionId) {
             selectedStation = nil
+            jumpCounts = [:]
             await loadStations()
+            await loadJumpCounts()
         }
     }
 
@@ -76,6 +102,15 @@ struct RegionStationBrowserView: View {
                 }
                 .disabled(availableRegions.isEmpty)
 
+                // Security class filter
+                Picker("Security", selection: $securityFilter) {
+                    ForEach(SecurityClassFilter.allCases, id: \.self) { filter in
+                        Text(filter.rawValue).tag(filter)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 220)
+
                 // Search
                 HStack {
                     Image(systemName: "magnifyingglass")
@@ -93,7 +128,7 @@ struct RegionStationBrowserView: View {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
                 .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
-                .frame(maxWidth: 300)
+                .frame(maxWidth: 260)
 
                 Spacer()
 
@@ -210,6 +245,16 @@ struct RegionStationBrowserView: View {
                 .font(.caption2.monospacedDigit())
                 .foregroundStyle(securityColor(sys.securityStatus))
             Spacer()
+            // Jump count badge
+            if let systemId = sys.stations.first?.systemId,
+               let jumps = jumpCounts[systemId] {
+                Text(jumps == 0 ? "current" : "\(jumps)j")
+                    .font(.caption2.bold().monospacedDigit())
+                    .foregroundStyle(jumps == 0 ? .green : .secondary)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 2)
+                    .background(jumps == 0 ? Color.green.opacity(0.12) : Color.secondary.opacity(0.08), in: Capsule())
+            }
             Text("\(sys.stations.count) station\(sys.stations.count == 1 ? "" : "s")")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
@@ -246,7 +291,8 @@ struct RegionStationBrowserView: View {
                 entry.station.name.localizedCaseInsensitiveContains(searchText)
             let matchesServices = selectedServices.isEmpty ||
                 selectedServices.isSubset(of: Set(entry.station.services ?? []))
-            return matchesSearch && matchesServices
+            let matchesSecurity = securityFilter.matches(entry.securityStatus)
+            return matchesSearch && matchesServices && matchesSecurity
         }
     }
 
@@ -363,6 +409,35 @@ struct RegionStationBrowserView: View {
         loadingProgress = ""
     }
 
+    private func loadJumpCounts() async {
+        guard let account = accountManager.selectedAccount,
+              let data = prefetcher.data(for: account.characterID) else { return }
+        let originSystemId = data.location.solarSystemId
+        let uniqueSystemIds = Set(stations.map(\.systemId))
+
+        await withTaskGroup(of: (Int, Int?).self) { group in
+            for systemId in uniqueSystemIds {
+                group.addTask {
+                    if systemId == originSystemId { return (systemId, 0) }
+                    do {
+                        let route: [Int] = try await ESIClient.shared.fetch(
+                            "/route/\(originSystemId)/\(systemId)/",
+                            queryItems: [URLQueryItem(name: "flag", value: "shortest")]
+                        )
+                        return (systemId, max(0, route.count - 1))
+                    } catch {
+                        return (systemId, nil)
+                    }
+                }
+            }
+            for await (systemId, jumps) in group {
+                if let jumps {
+                    jumpCounts[systemId] = jumps
+                }
+            }
+        }
+    }
+
     // MARK: - Helpers
 
     private func securityColor(_ value: Double) -> Color {
@@ -388,22 +463,22 @@ struct RegionStationBrowserView: View {
 
     private func serviceInfo(_ service: String) -> (label: String, icon: String, color: Color) {
         switch service {
-        case "market":                return ("Market",         "cart.fill",                   .blue)
-        case "reprocessing-plant":    return ("Reprocessing",   "arrow.3.trianglepath",        .orange)
-        case "repair-facilities":     return ("Repair",         "wrench.and.screwdriver.fill", .green)
-        case "fitting":               return ("Fitting",        "gearshape.2.fill",            .purple)
-        case "cloning":               return ("Cloning",        "person.2.fill",               .pink)
-        case "factory", "manufacturing": return ("Manufacturing","hammer.fill",                .yellow)
-        case "labratory", "research": return ("Research",       "flask.fill",                  .cyan)
-        case "insurance":             return ("Insurance",      "shield.fill",                 .mint)
-        case "docking":               return ("Docking",        "arrow.down.to.line",          .teal)
-        case "office-rental":         return ("Offices",        "building.fill",               .indigo)
-        case "loyalty-point-store":   return ("LP Store",       "star.fill",                   Color(red: 0.9, green: 0.75, blue: 0.2))
-        case "navy-offices":          return ("Navy",           "flag.fill",                   .red)
-        case "security-offices":      return ("Security",       "lock.shield.fill",            .gray)
-        case "bounty-missions":       return ("Bounties",       "target",                      .red)
-        case "assay-office":          return ("Assay",          "scalemass.fill",              .brown)
-        case "storage":               return ("Storage",        "archivebox.fill",             .gray)
+        case "market":                   return ("Market",         "cart.fill",                   .blue)
+        case "reprocessing-plant":       return ("Reprocessing",   "arrow.3.trianglepath",        .orange)
+        case "repair-facilities":        return ("Repair",         "wrench.and.screwdriver.fill", .green)
+        case "fitting":                  return ("Fitting",        "gearshape.2.fill",            .purple)
+        case "cloning":                  return ("Cloning",        "person.2.fill",               .pink)
+        case "factory", "manufacturing": return ("Manufacturing",  "hammer.fill",                 .yellow)
+        case "labratory", "research":    return ("Research",       "flask.fill",                  .cyan)
+        case "insurance":                return ("Insurance",      "shield.fill",                 .mint)
+        case "docking":                  return ("Docking",        "arrow.down.to.line",          .teal)
+        case "office-rental":            return ("Offices",        "building.fill",               .indigo)
+        case "loyalty-point-store":      return ("LP Store",       "star.fill",                   Color(red: 0.9, green: 0.75, blue: 0.2))
+        case "navy-offices":             return ("Navy",           "flag.fill",                   .red)
+        case "security-offices":         return ("Security",       "lock.shield.fill",            .gray)
+        case "bounty-missions":          return ("Bounties",       "target",                      .red)
+        case "assay-office":             return ("Assay",          "scalemass.fill",              .brown)
+        case "storage":                  return ("Storage",        "archivebox.fill",             .gray)
         default:
             let label = service.split(separator: "-").map { $0.capitalized }.joined(separator: " ")
             return (label, "circle.fill", .gray)

@@ -2,15 +2,28 @@ import SwiftUI
 
 struct StationDetailView: View {
     let entry: StationEntry
+    var onNavigateToMarket: (() -> Void)? = nil
+
+    @Environment(AccountManager.self) private var accountManager
+    @Environment(DashboardPrefetcher.self) private var prefetcher
 
     @State private var stationType: ESIType?
     @State private var ownerName: String?
+    @State private var jumpCount: Int?
+    @State private var assetsAtStation: [StationAsset] = []
+    @State private var autopilotMessage: String?
+    @State private var isSettingAutopilot = false
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 // MARK: Header
                 header
+
+                Divider()
+
+                // MARK: Action Bar
+                actionBar
 
                 Divider()
 
@@ -24,6 +37,12 @@ struct StationDetailView: View {
                         servicesSection(services)
                     }
 
+                    // Assets at this station
+                    if !assetsAtStation.isEmpty {
+                        Divider()
+                        assetsSection
+                    }
+
                     // Station details
                     Divider()
                     detailsSection
@@ -32,7 +51,72 @@ struct StationDetailView: View {
             }
         }
         .background(.regularMaterial)
-        .task(id: entry.station.stationId) { await loadDetails() }
+        .task(id: entry.station.stationId) {
+            // Reset state for new station
+            autopilotMessage = nil
+            jumpCount = nil
+            assetsAtStation = []
+            stationType = nil
+            ownerName = nil
+
+            await withTaskGroup(of: Void.self) { group in
+                group.addTask { await loadDetails() }
+                group.addTask { await loadJumpCount() }
+                group.addTask { await loadAssetsAtStation() }
+            }
+        }
+    }
+
+    // MARK: - Action Bar
+
+    private var actionBar: some View {
+        HStack(spacing: 8) {
+            if let account = accountManager.selectedAccount, !account.isTokenExpired {
+                Button {
+                    Task { await setAutopilot(clear: true) }
+                } label: {
+                    Label(isSettingAutopilot ? "Setting…" : "Set Destination", systemImage: "paperplane.fill")
+                        .font(.caption.weight(.semibold))
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+                .disabled(isSettingAutopilot)
+
+                Button {
+                    Task { await setAutopilot(clear: false) }
+                } label: {
+                    Label("Add Waypoint", systemImage: "plus.circle")
+                        .font(.caption.weight(.semibold))
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(isSettingAutopilot)
+            }
+
+            if let onNavigateToMarket,
+               entry.station.services?.contains("market") == true {
+                Button(action: onNavigateToMarket) {
+                    Label("Market Browser", systemImage: "cart.fill")
+                        .font(.caption.weight(.semibold))
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            }
+
+            Spacer()
+
+            if let msg = autopilotMessage {
+                Label(msg,
+                      systemImage: msg.hasPrefix("Destination") || msg.hasPrefix("Waypoint")
+                        ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(msg.hasPrefix("Destination") || msg.hasPrefix("Waypoint") ? .green : .orange)
+                    .lineLimit(1)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(.bar)
     }
 
     // MARK: - Header
@@ -115,6 +199,25 @@ struct StationDetailView: View {
                         .padding(.horizontal, 5)
                         .padding(.vertical, 2)
                         .background(securityColor(entry.securityStatus).opacity(0.15), in: Capsule())
+
+                    // Jump count badge
+                    if let jumps = jumpCount {
+                        if jumps == 0 {
+                            Text("current")
+                                .font(.caption.bold())
+                                .foregroundStyle(.green)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(.green.opacity(0.12), in: Capsule())
+                        } else {
+                            Text("\(jumps) jump\(jumps == 1 ? "" : "s")")
+                                .font(.caption.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(.secondary.opacity(0.1), in: Capsule())
+                        }
+                    }
                 }
 
                 infoRow("Constellation", entry.constellationName)
@@ -158,6 +261,55 @@ struct StationDetailView: View {
         .padding(.vertical, 6)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(info.color.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    // MARK: - Assets At Station
+
+    private var assetsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label(
+                "Your Assets Here (\(assetsAtStation.count) type\(assetsAtStation.count == 1 ? "" : "s"))",
+                systemImage: "shippingbox.fill"
+            )
+            .font(.subheadline.bold())
+            .foregroundStyle(.indigo)
+
+            VStack(alignment: .leading, spacing: 4) {
+                ForEach(assetsAtStation.prefix(6)) { asset in
+                    HStack(spacing: 8) {
+                        AsyncImage(url: EVEImageURL.typeIcon(asset.typeId, size: 64)) { phase in
+                            if let image = phase.image {
+                                image.resizable()
+                                    .frame(width: 20, height: 20)
+                                    .clipShape(RoundedRectangle(cornerRadius: 3))
+                            } else {
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(.quaternary)
+                                    .frame(width: 20, height: 20)
+                            }
+                        }
+                        Text(asset.typeName)
+                            .font(.caption)
+                            .lineLimit(1)
+                        if asset.isBlueprintCopy {
+                            Text("BPC")
+                                .font(.caption2)
+                                .foregroundStyle(.orange)
+                        }
+                        Spacer()
+                        Text("×\(asset.quantity)")
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                if assetsAtStation.count > 6 {
+                    Text("…and \(assetsAtStation.count - 6) more")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                        .padding(.top, 2)
+                }
+            }
+        }
     }
 
     // MARK: - Details
@@ -260,26 +412,52 @@ struct StationDetailView: View {
 
     private func serviceInfo(_ service: String) -> (label: String, icon: String, color: Color) {
         switch service {
-        case "market":                return ("Market",         "cart.fill",                   .blue)
-        case "reprocessing-plant":    return ("Reprocessing",   "arrow.3.trianglepath",        .orange)
-        case "repair-facilities":     return ("Repair",         "wrench.and.screwdriver.fill", .green)
-        case "fitting":               return ("Fitting",        "gearshape.2.fill",            .purple)
-        case "cloning":               return ("Cloning",        "person.2.fill",               .pink)
-        case "factory", "manufacturing": return ("Manufacturing","hammer.fill",                .yellow)
-        case "labratory", "research": return ("Research",       "flask.fill",                  .cyan)
-        case "insurance":             return ("Insurance",      "shield.fill",                 .mint)
-        case "docking":               return ("Docking",        "arrow.down.to.line",          .teal)
-        case "office-rental":         return ("Offices",        "building.fill",               .indigo)
-        case "loyalty-point-store":   return ("LP Store",       "star.fill",                   Color(red: 0.9, green: 0.75, blue: 0.2))
-        case "navy-offices":          return ("Navy",           "flag.fill",                   .red)
-        case "security-offices":      return ("Security",       "lock.shield.fill",            .gray)
-        case "bounty-missions":       return ("Bounties",       "target",                      .red)
-        case "assay-office":          return ("Assay",          "scalemass.fill",              .brown)
-        case "storage":               return ("Storage",        "archivebox.fill",             .gray)
+        case "market":                   return ("Market",         "cart.fill",                   .blue)
+        case "reprocessing-plant":       return ("Reprocessing",   "arrow.3.trianglepath",        .orange)
+        case "repair-facilities":        return ("Repair",         "wrench.and.screwdriver.fill", .green)
+        case "fitting":                  return ("Fitting",        "gearshape.2.fill",            .purple)
+        case "cloning":                  return ("Cloning",        "person.2.fill",               .pink)
+        case "factory", "manufacturing": return ("Manufacturing",  "hammer.fill",                 .yellow)
+        case "labratory", "research":    return ("Research",       "flask.fill",                  .cyan)
+        case "insurance":                return ("Insurance",      "shield.fill",                 .mint)
+        case "docking":                  return ("Docking",        "arrow.down.to.line",          .teal)
+        case "office-rental":            return ("Offices",        "building.fill",               .indigo)
+        case "loyalty-point-store":      return ("LP Store",       "star.fill",                   Color(red: 0.9, green: 0.75, blue: 0.2))
+        case "navy-offices":             return ("Navy",           "flag.fill",                   .red)
+        case "security-offices":         return ("Security",       "lock.shield.fill",            .gray)
+        case "bounty-missions":          return ("Bounties",       "target",                      .red)
+        case "assay-office":             return ("Assay",          "scalemass.fill",              .brown)
+        case "storage":                  return ("Storage",        "archivebox.fill",             .gray)
         default:
             let label = service.split(separator: "-").map { $0.capitalized }.joined(separator: " ")
             return (label, "circle.fill", .gray)
         }
+    }
+
+    // MARK: - Autopilot
+
+    private func setAutopilot(clear: Bool) async {
+        guard let account = accountManager.selectedAccount else { return }
+        isSettingAutopilot = true
+        autopilotMessage = nil
+        do {
+            let token = try await accountManager.validToken(for: account)
+            try await ESIClient.shared.postAction(
+                "/ui/autopilot/waypoint/",
+                token: token,
+                queryItems: [
+                    URLQueryItem(name: "add_to_beginning", value: "false"),
+                    URLQueryItem(name: "clear_other_waypoints", value: clear ? "true" : "false"),
+                    URLQueryItem(name: "destination_id", value: "\(entry.systemId)")
+                ]
+            )
+            autopilotMessage = clear ? "Destination set in EVE client." : "Waypoint added in EVE client."
+        } catch ESIError.unauthorized {
+            autopilotMessage = "Needs esi-ui.write_waypoint.v1 scope."
+        } catch {
+            autopilotMessage = error.localizedDescription
+        }
+        isSettingAutopilot = false
     }
 
     // MARK: - Data Loading
@@ -296,4 +474,67 @@ struct StationDetailView: View {
         stationType = type
         ownerName = owner
     }
+
+    private func loadJumpCount() async {
+        guard let account = accountManager.selectedAccount,
+              let data = prefetcher.data(for: account.characterID) else { return }
+        let originSystemId = data.location.solarSystemId
+        if originSystemId == entry.systemId {
+            jumpCount = 0
+            return
+        }
+        do {
+            let route: [Int] = try await ESIClient.shared.fetch(
+                "/route/\(originSystemId)/\(entry.systemId)/",
+                queryItems: [URLQueryItem(name: "flag", value: "shortest")]
+            )
+            jumpCount = max(0, route.count - 1)
+        } catch {
+            // No route or unreachable — leave nil
+        }
+    }
+
+    private func loadAssetsAtStation() async {
+        guard let account = accountManager.selectedAccount, !account.isTokenExpired else { return }
+        do {
+            let token = try await accountManager.validToken(for: account)
+            let rawAssets: [ESIAsset] = try await ESIClient.shared.fetchPages(
+                "/characters/\(account.characterID)/assets/", token: token
+            )
+            let atStation = rawAssets.filter {
+                $0.locationId == entry.station.stationId && $0.locationType == "station"
+            }
+            guard !atStation.isEmpty else { return }
+
+            let typeIds = Array(Set(atStation.map(\.typeId)))
+            let typeNames = await NameResolver.shared.resolve(ids: typeIds)
+
+            // Aggregate quantity by typeId
+            var byType: [Int: (name: String, qty: Int, isBPC: Bool)] = [:]
+            for asset in atStation {
+                let name = typeNames[asset.typeId] ?? "Unknown Type"
+                let isBPC = asset.isBlueprintCopy ?? false
+                if let existing = byType[asset.typeId] {
+                    byType[asset.typeId] = (existing.name, existing.qty + asset.quantity, existing.isBPC || isBPC)
+                } else {
+                    byType[asset.typeId] = (name, asset.quantity, isBPC)
+                }
+            }
+            assetsAtStation = byType.map { typeId, info in
+                StationAsset(typeId: typeId, typeName: info.name, quantity: info.qty, isBlueprintCopy: info.isBPC)
+            }.sorted { $0.typeName < $1.typeName }
+        } catch {
+            // Silently fail — assets are optional context
+        }
+    }
+}
+
+// MARK: - Supporting Types
+
+private struct StationAsset: Identifiable {
+    let typeId: Int
+    let typeName: String
+    let quantity: Int
+    let isBlueprintCopy: Bool
+    var id: Int { typeId }
 }
