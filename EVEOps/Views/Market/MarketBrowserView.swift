@@ -405,6 +405,14 @@ struct MarketBrowserView: View {
                     } else if node.children != nil {
                         Image(systemName: "folder.fill")
                             .foregroundStyle(Color.blue.opacity(0.75))
+                    } else if let firstType = node.group.types.first {
+                        AsyncImage(url: EVEImageURL.typeIcon(firstType, size: 64)) { image in
+                            image.resizable().scaledToFit()
+                        } placeholder: {
+                            Image(systemName: "tag.fill")
+                                .foregroundStyle(Color.secondary)
+                        }
+                        .frame(width: 16, height: 16)
                     } else {
                         Image(systemName: "tag.fill")
                             .foregroundStyle(Color.secondary)

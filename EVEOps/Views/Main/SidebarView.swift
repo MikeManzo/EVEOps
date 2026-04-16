@@ -66,7 +66,7 @@ struct SidebarView: View {
 
     @ViewBuilder
     private var accountSwitcher: some View {
-        if !accountManager.accounts.isEmpty {
+        if accountManager.accounts.count > 1 {
             Picker("Character", selection: $accountManager.selectedCharacterID) {
                 ForEach(accountManager.accounts, id: \.characterID) { account in
                     Text(account.characterName)
