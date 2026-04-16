@@ -98,7 +98,7 @@ struct MainContentView: View {
             case .market:
                 MarketBrowserView()
             case .stationBrowser:
-                RegionStationBrowserView()
+                RegionStationBrowserView(onNavigateToMarket: { selectedSection = .market })
             }
         } else {
             DashboardView()

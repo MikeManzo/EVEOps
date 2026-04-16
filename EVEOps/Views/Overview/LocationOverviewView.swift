@@ -9,6 +9,7 @@ struct LocationOverviewView: View {
     @State private var error: String?
     @State private var lastRefresh: Date?
     @State private var refreshTick = 0
+    @State private var stationsExpanded: [Int: Bool] = [:]
 
     var body: some View {
         LoadingStateView(isLoading: isLoading, error: error, isEmpty: locations.isEmpty, emptyMessage: "No location data") {
@@ -290,7 +291,7 @@ struct LocationOverviewView: View {
                 // Stations in system (when in space)
                 if info.dockedAt == nil && !info.systemStations.isEmpty {
                     Divider()
-                    systemStationsSection(info.systemStations)
+                    systemStationsSection(info.systemStations, characterID: info.characterID)
                 }
 
                 // Star info
@@ -402,18 +403,12 @@ struct LocationOverviewView: View {
 
     // MARK: - System Stations
 
-    private func systemStationsSection(_ stations: [ESIStation]) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: "building.2.fill")
-                    .foregroundStyle(.teal)
-                Text("Stations in System")
-                    .font(.subheadline.bold())
-                Text("(\(stations.count))")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
+    private func systemStationsSection(_ stations: [ESIStation], characterID: Int) -> some View {
+        let isExpanded = Binding(
+            get: { stationsExpanded[characterID, default: false] },
+            set: { stationsExpanded[characterID] = $0 }
+        )
+        return DisclosureGroup(isExpanded: isExpanded) {
             VStack(alignment: .leading, spacing: 6) {
                 ForEach(stations, id: \.stationId) { station in
                     VStack(alignment: .leading, spacing: 4) {
@@ -442,6 +437,17 @@ struct LocationOverviewView: View {
                         Divider()
                     }
                 }
+            }
+            .padding(.top, 4)
+        } label: {
+            HStack {
+                Image(systemName: "building.2.fill")
+                    .foregroundStyle(.teal)
+                Text("Stations in System")
+                    .font(.subheadline.bold())
+                Text("(\(stations.count))")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
     }
