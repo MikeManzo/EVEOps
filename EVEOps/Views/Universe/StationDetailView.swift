@@ -448,7 +448,7 @@ struct StationDetailView: View {
                 queryItems: [
                     URLQueryItem(name: "add_to_beginning", value: "false"),
                     URLQueryItem(name: "clear_other_waypoints", value: clear ? "true" : "false"),
-                    URLQueryItem(name: "destination_id", value: "\(entry.systemId)")
+                    URLQueryItem(name: "destination_id", value: "\(entry.station.stationId)")
                 ]
             )
             autopilotMessage = clear ? "Destination set in EVE client." : "Waypoint added in EVE client."
