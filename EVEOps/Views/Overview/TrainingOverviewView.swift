@@ -139,8 +139,11 @@ struct TrainingOverviewView: View {
                     Divider().padding(.horizontal, 12)
                 }
 
-                queueList(info.queue, info: info)
-                    .padding(12)
+                let queuedOnly = info.queue.filter { !$0.isCurrentlyTraining }
+                if !queuedOnly.isEmpty {
+                    queueList(queuedOnly, info: info)
+                        .padding(12)
+                }
             }
 
             // Known Skills section
@@ -188,6 +191,13 @@ struct TrainingOverviewView: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
+                }
+
+                if let jumpDate = info.lastCloneJumpDate,
+                   Date().timeIntervalSince(jumpDate) < 86400 {
+                    Label("Clone jump \(timeUntil(jumpDate)) ago — times refreshed", systemImage: "person.2.badge.gearshape.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.yellow)
                 }
             }
 
@@ -366,7 +376,13 @@ struct TrainingOverviewView: View {
                     }
 
                     if let finish = entry.finishDate {
-                        Text(timeUntil(finish))
+                        // Show discrete training duration (finish - start), not cumulative time from now
+                        let display: String = {
+                            if entry.isCurrentlyTraining { return timeUntil(finish) }
+                            if let start = entry.startDate { return formatDuration(finish.timeIntervalSince(start)) }
+                            return timeUntil(finish)
+                        }()
+                        Text(display)
                             .font(.caption.monospacedDigit())
                             .foregroundStyle(entry.isCurrentlyTraining ? .green : .secondary)
                     }
@@ -564,6 +580,18 @@ struct TrainingOverviewView: View {
         }
     }
 
+    private func formatDuration(_ interval: TimeInterval) -> String {
+        let total = Int(max(interval, 0))
+        let days = total / 86400
+        let hours = (total % 86400) / 3600
+        let minutes = (total % 3600) / 60
+        let seconds = total % 60
+        if days > 0 { return "\(days)d \(hours)h \(minutes)m" }
+        if hours > 0 { return "\(hours)h \(minutes)m \(seconds)s" }
+        if minutes > 0 { return "\(minutes)m \(seconds)s" }
+        return "\(seconds)s"
+    }
+
     private func timeUntil(_ date: Date) -> String {
         let interval = date.timeIntervalSince(now)
         if interval <= 0 { return "Done" }
@@ -672,7 +700,8 @@ struct TrainingOverviewView: View {
                 queue: activeQueue,
                 queueEmpty: activeQueue.isEmpty,
                 queueEndDate: activeQueue.last?.finishDate,
-                skillGroups: skillGroups
+                skillGroups: skillGroups,
+                lastCloneJumpDate: prefetched.clones?.lastCloneJumpDate
             ))
         }
         trainingData = data
@@ -692,11 +721,23 @@ struct TrainingOverviewView: View {
         for account in accountManager.accounts {
             do {
                 let token = try await accountManager.validToken(for: account)
+
+                // Fetch clone status first to detect recent clone jumps.
+                // A jump changes training speed, so stale cached queue times can appear 2x off.
+                let clones: ESIClonesResponse? = try? await ESIClient.shared.fetch(
+                    "/characters/\(account.characterID)/clones/", token: token
+                )
+                let lastCloneJump = clones?.lastCloneJumpDate
+                // If the character jumped clones within the last 24 hours, bypass the queue cache
+                // so we get the updated finish dates reflecting the new clone's training speed.
+                let bypassQueueCache = lastCloneJump.map { Date().timeIntervalSince($0) < 86400 } ?? false
+
                 async let fetchSkills: ESISkillsResponse = ESIClient.shared.fetch(
                     "/characters/\(account.characterID)/skills/", token: token
                 )
                 async let fetchQueue: [ESISkillQueue] = ESIClient.shared.fetch(
-                    "/characters/\(account.characterID)/skillqueue/", token: token
+                    "/characters/\(account.characterID)/skillqueue/", token: token,
+                    bypassCache: bypassQueueCache
                 )
 
                 let (skills, queue) = try await (fetchSkills, fetchQueue)
@@ -788,7 +829,8 @@ struct TrainingOverviewView: View {
                     queue: activeQueue,
                     queueEmpty: activeQueue.isEmpty,
                     queueEndDate: activeQueue.last?.finishDate,
-                    skillGroups: skillGroups
+                    skillGroups: skillGroups,
+                    lastCloneJumpDate: lastCloneJump
                 ))
             } catch {
                 lastError = error
@@ -818,6 +860,7 @@ struct CharacterTrainingInfo {
     let queueEmpty: Bool
     let queueEndDate: Date?
     var skillGroups: [KnownSkillGroup] = []
+    let lastCloneJumpDate: Date?
 }
 
 struct TrainingQueueEntry {

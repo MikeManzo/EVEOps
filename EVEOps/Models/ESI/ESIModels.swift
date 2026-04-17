@@ -601,6 +601,25 @@ nonisolated struct ESILoyaltyPoints: Codable, Sendable {
     let loyaltyPoints: Int
 }
 
+// MARK: - LP Store
+
+nonisolated struct ESILPStoreOffer: Codable, Sendable, Identifiable {
+    let akCost: Int?
+    let iskCost: Int
+    let lpCost: Int
+    let offerId: Int
+    let quantity: Int
+    let requiredItems: [ESILPStoreRequiredItem]
+    let typeId: Int
+
+    var id: Int { offerId }
+}
+
+nonisolated struct ESILPStoreRequiredItem: Codable, Sendable {
+    let quantity: Int
+    let typeId: Int
+}
+
 // MARK: - Search / Names
 
 nonisolated struct ESIIDsResponse: Codable, Sendable {

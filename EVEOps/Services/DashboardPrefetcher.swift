@@ -33,6 +33,8 @@ final class DashboardPrefetcher {
         let transactions: [ESIWalletTransaction]
         let marketOrders: [ESIMarketOrder]
         let loyaltyPoints: [ESILoyaltyPoints]
+        // Clone status — used to detect recent jumps that affect training speed
+        let clones: ESIClonesResponse?
         // Fresh public info — always fetched with cache cleared
         let corporationName: String
         let allianceName: String?
@@ -110,6 +112,8 @@ final class DashboardPrefetcher {
                 "/characters/\(charID)/orders/", token: token)
             async let fetchLP: [ESILoyaltyPoints] = ESIClient.shared.fetch(
                 "/characters/\(charID)/loyalty/points/", token: token)
+            async let fetchClones: ESIClonesResponse = ESIClient.shared.fetch(
+                "/characters/\(charID)/clones/", token: token)
             async let fetchPublicInfo: ESICharacterPublic = ESIClient.shared.fetch(
                 "/characters/\(charID)/", bypassCache: true)
 
@@ -127,6 +131,7 @@ final class DashboardPrefetcher {
             let transactions = (try? await fetchTransactions) ?? []
             let orders = (try? await fetchOrders) ?? []
             let lp = (try? await fetchLP) ?? []
+            let clonesData = try? await fetchClones
             let publicInfo = try? await fetchPublicInfo
 
             // Resolve corp and alliance names from the fresh public info
@@ -156,6 +161,7 @@ final class DashboardPrefetcher {
                 transactions: transactions,
                 marketOrders: orders,
                 loyaltyPoints: lp,
+                clones: clonesData,
                 corporationName: corporationName,
                 allianceName: allianceName,
                 fetchedAt: Date()

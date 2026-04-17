@@ -329,6 +329,9 @@ struct CareerAgentDetailView: View {
     @State private var jumpCount: Int?
     @State private var autopilotMessage: String?
     @State private var isSetting = false
+    @State private var lpBalance: Int?
+    @State private var lpOffers: [ESILPStoreOffer] = []
+    @State private var offerTypeNames: [Int: String] = [:]
 
     var body: some View {
         ScrollView {
@@ -341,6 +344,10 @@ struct CareerAgentDetailView: View {
                     descriptionSection
                     Divider()
                     locationSection
+                    if !lpOffers.isEmpty || lpBalance != nil {
+                        Divider()
+                        lpStoreSection
+                    }
                 }
                 .padding(16)
             }
@@ -351,7 +358,13 @@ struct CareerAgentDetailView: View {
             regionName = nil
             jumpCount = nil
             autopilotMessage = nil
-            await loadLocationDetails()
+            lpBalance = nil
+            lpOffers = []
+            offerTypeNames = [:]
+            await withTaskGroup(of: Void.self) { group in
+                group.addTask { await loadLocationDetails() }
+                group.addTask { await loadLPStore() }
+            }
         }
     }
 
@@ -551,6 +564,105 @@ struct CareerAgentDetailView: View {
         }
     }
 
+    // MARK: - LP Store Section
+
+    private var lpStoreSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Label("Loyalty Store", systemImage: "star.fill")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.yellow)
+                Spacer()
+                if let lp = lpBalance {
+                    HStack(spacing: 4) {
+                        Image(systemName: "star.circle.fill")
+                            .foregroundStyle(.yellow)
+                            .font(.caption)
+                        Text("\(lp.formatted()) LP")
+                            .font(.caption.bold().monospacedDigit())
+                            .foregroundStyle(.yellow)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(.yellow.opacity(0.12), in: Capsule())
+                }
+            }
+
+            if lpOffers.isEmpty {
+                HStack(spacing: 6) {
+                    ProgressView().scaleEffect(0.7)
+                    Text("Loading offers…").font(.caption).foregroundStyle(.secondary)
+                }
+            } else {
+                VStack(spacing: 4) {
+                    ForEach(lpOffers.prefix(10)) { offer in
+                        lpOfferRow(offer)
+                    }
+                    if lpOffers.count > 10 {
+                        Text("…and \(lpOffers.count - 10) more offers")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                            .padding(.top, 2)
+                    }
+                }
+            }
+        }
+    }
+
+    private func lpOfferRow(_ offer: ESILPStoreOffer) -> some View {
+        let name = offerTypeNames[offer.typeId] ?? "Type \(offer.typeId)"
+        let canAfford = lpBalance.map { $0 >= offer.lpCost } ?? false
+
+        return HStack(spacing: 8) {
+            AsyncImage(url: EVEImageURL.typeIcon(offer.typeId, size: 64)) { phase in
+                if let image = phase.image {
+                    image.resizable()
+                        .frame(width: 28, height: 28)
+                        .clipShape(RoundedRectangle(cornerRadius: 5))
+                } else {
+                    RoundedRectangle(cornerRadius: 5)
+                        .fill(.quaternary)
+                        .frame(width: 28, height: 28)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 1) {
+                HStack(spacing: 4) {
+                    Text(name)
+                        .font(.caption)
+                        .lineLimit(1)
+                    if offer.quantity > 1 {
+                        Text("×\(offer.quantity)")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                HStack(spacing: 6) {
+                    Text("\(offer.lpCost.formatted()) LP")
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(canAfford ? .yellow : .secondary)
+                    if offer.iskCost > 0 {
+                        Text("+ \(formatISK(Double(offer.iskCost))) ISK")
+                            .font(.caption2.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
+            Spacer()
+        }
+        .padding(.vertical, 3)
+        .padding(.horizontal, 4)
+        .background(canAfford ? Color.yellow.opacity(0.04) : Color.clear, in: RoundedRectangle(cornerRadius: 6))
+    }
+
+    private func formatISK(_ value: Double) -> String {
+        if value >= 1_000_000_000 { return String(format: "%.1fB", value / 1_000_000_000) }
+        if value >= 1_000_000     { return String(format: "%.1fM", value / 1_000_000) }
+        if value >= 1_000         { return String(format: "%.0fK", value / 1_000) }
+        return String(format: "%.0f", value)
+    }
+
     // MARK: - Data Loading
 
     private func loadLocationDetails() async {
@@ -570,12 +682,33 @@ struct CareerAgentDetailView: View {
             }
         }
 
-        // Jump count from character's current location (optional)
-        if let account = accountManager.selectedAccount,
-           let prefetcher = accountManager as? AccountManager {
-            _ = prefetcher  // just to reference — use ESIClient directly below
-        }
         await loadJumpCount(to: resolved.systemID)
+    }
+
+    private func loadLPStore() async {
+        // Fetch LP store offers (public endpoint — no auth required)
+        let offers: [ESILPStoreOffer] = (try? await ESIClient.shared.fetch(
+            "/loyalty/stores/\(faction.factionCorpID)/offers/"
+        )) ?? []
+
+        // Sort by LP cost ascending so cheapest (most accessible) appear first
+        let sorted = offers.sorted { $0.lpCost < $1.lpCost }
+        lpOffers = sorted
+
+        // Resolve type names for top 10 displayed offers
+        let topIDs = sorted.prefix(10).map(\.typeId)
+        let resolved = await NameResolver.shared.resolve(ids: Array(topIDs))
+        offerTypeNames = resolved
+
+        // Fetch character's LP balance with this corp (requires auth)
+        guard let account = accountManager.selectedAccount else { return }
+        if let token = try? await accountManager.validToken(for: account) {
+            let allLP: [ESILoyaltyPoints] = (try? await ESIClient.shared.fetch(
+                "/characters/\(account.characterID)/loyalty/points/",
+                token: token
+            )) ?? []
+            lpBalance = allLP.first(where: { $0.corporationId == faction.factionCorpID })?.loyaltyPoints
+        }
     }
 
     private func loadJumpCount(to destinationSystemID: Int) async {
