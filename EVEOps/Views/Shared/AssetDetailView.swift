@@ -7,6 +7,14 @@ struct AssetDetailView: View {
     @State private var categoryName: String?
     @State private var marketGroupName: String?
     @State private var isLoading = true
+    @State private var jitaSellPrice: Double?
+    @State private var jitaBuyPrice: Double?
+    @State private var sellOrders: [ESIRegionMarketOrder] = []
+    @State private var buyOrders: [ESIRegionMarketOrder] = []
+    @State private var adjustedPrice: Double?
+    @State private var averagePrice: Double?
+    @State private var orderSystemNames: [Int: String] = [:]
+    @State private var showMarketPopover = false
 
     var body: some View {
         ScrollView {
@@ -19,6 +27,12 @@ struct AssetDetailView: View {
                     assetInfoSection
 
                     Divider()
+
+                    // Market value
+                    if jitaSellPrice != nil || jitaBuyPrice != nil {
+                        Divider()
+                        marketValueSection
+                    }
 
                     // Type attributes
                     if let typeInfo {
@@ -108,6 +122,51 @@ struct AssetDetailView: View {
 
             infoRow(label: "Type ID", value: "\(asset.typeId)")
             infoRow(label: "Item ID", value: "\(asset.itemId)")
+        }
+    }
+
+    // MARK: - Market Value
+
+    private var marketValueSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Label("Market Value (Jita)", systemImage: "storefront")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button {
+                    showMarketPopover = true
+                } label: {
+                    Label("Orders", systemImage: "list.bullet.rectangle")
+                        .font(.caption)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.mini)
+                .popover(isPresented: $showMarketPopover, arrowEdge: .leading) {
+                    MarketOrdersPopover(
+                        typeName: asset.typeName,
+                        quantity: asset.quantity,
+                        sellOrders: sellOrders,
+                        buyOrders: buyOrders,
+                        adjustedPrice: adjustedPrice,
+                        averagePrice: averagePrice,
+                        systemNames: orderSystemNames
+                    )
+                }
+            }
+
+            if let sell = jitaSellPrice {
+                infoRow(label: "Sell (min)", value: EVEFormatters.formatISK(sell))
+                if asset.quantity > 1 {
+                    infoRow(label: "Total (\(asset.quantity)x)",
+                            value: EVEFormatters.formatISK(sell * Double(asset.quantity)))
+                }
+            }
+            if let buy = jitaBuyPrice {
+                infoRow(label: "Buy (max)", value: EVEFormatters.formatISK(buy))
+            }
+            Text("Jita (The Forge) best orders")
+                .font(.caption2).foregroundStyle(.tertiary)
         }
     }
 
@@ -252,6 +311,138 @@ struct AssetDetailView: View {
         return String(format: "%.0f", value)
     }
 
+    // MARK: - Market Orders Popover
+
+    private struct MarketOrdersPopover: View {
+        let typeName: String
+        let quantity: Int
+        let sellOrders: [ESIRegionMarketOrder]
+        let buyOrders: [ESIRegionMarketOrder]
+        let adjustedPrice: Double?
+        let averagePrice: Double?
+        let systemNames: [Int: String]
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 0) {
+                // Header
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(typeName)
+                            .font(.headline)
+                        Text("Jita / The Forge — Market Orders")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                }
+                .padding()
+                .background(.regularMaterial)
+
+                Divider()
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        // ESI reference prices
+                        if adjustedPrice != nil || averagePrice != nil {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Reference Prices")
+                                    .font(.caption.bold())
+                                    .foregroundStyle(.secondary)
+                                if let avg = averagePrice {
+                                    priceRow(label: "ESI Average", value: avg, quantity: quantity, color: .primary)
+                                }
+                                if let adj = adjustedPrice {
+                                    priceRow(label: "ESI Adjusted", value: adj, quantity: quantity, color: .secondary)
+                                }
+                            }
+
+                            Divider()
+                        }
+
+                        // Sell orders
+                        if !sellOrders.isEmpty {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Sell Orders (cheapest first)")
+                                    .font(.caption.bold())
+                                    .foregroundStyle(.secondary)
+                                ForEach(sellOrders) { order in
+                                    orderRow(order: order, isSell: true)
+                                }
+                            }
+
+                            Divider()
+                        }
+
+                        // Buy orders
+                        if !buyOrders.isEmpty {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Buy Orders (highest first)")
+                                    .font(.caption.bold())
+                                    .foregroundStyle(.secondary)
+                                ForEach(buyOrders) { order in
+                                    orderRow(order: order, isSell: false)
+                                }
+                            }
+                        }
+
+                        if sellOrders.isEmpty && buyOrders.isEmpty {
+                            ContentUnavailableView("No Market Orders",
+                                systemImage: "cart.badge.minus",
+                                description: Text("No active orders in Jita"))
+                        }
+                    }
+                    .padding()
+                }
+            }
+            .frame(width: 360, height: 440)
+        }
+
+        private func priceRow(label: String, value: Double, quantity: Int, color: Color) -> some View {
+            HStack {
+                Text(label)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 110, alignment: .trailing)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(EVEFormatters.formatISK(value))
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(color)
+                    if quantity > 1 {
+                        Text("Total: \(EVEFormatters.formatISK(value * Double(quantity)))")
+                            .font(.caption2.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Spacer()
+            }
+        }
+
+        private func orderRow(order: ESIRegionMarketOrder, isSell: Bool) -> some View {
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(isSell ? Color.red.opacity(0.7) : Color.green.opacity(0.7))
+                    .frame(width: 6, height: 6)
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(systemNames[order.systemId] ?? "System \(order.systemId)")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Text("Vol: \(order.volumeRemain.formatted())")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+                .frame(width: 120, alignment: .leading)
+
+                Spacer()
+
+                Text(EVEFormatters.formatISK(order.price))
+                    .font(.caption.monospacedDigit().bold())
+                    .foregroundStyle(isSell ? .red : .green)
+            }
+            .padding(.vertical, 2)
+        }
+    }
+
     private func stripHTML(_ html: String) -> String {
         var text = html
         // Replace <br> and <br/> with newlines
@@ -269,11 +460,46 @@ struct AssetDetailView: View {
 
     private func loadTypeInfo() async {
         isLoading = true
+        jitaSellPrice = nil
+        jitaBuyPrice = nil
+        sellOrders = []
+        buyOrders = []
+        adjustedPrice = nil
+        averagePrice = nil
+        orderSystemNames = [:]
         do {
             guard let type = await UniverseCache.shared.type(id: asset.typeId) else {
                 throw ESIError.noData
             }
             typeInfo = type
+
+            // Fetch Jita market prices + ESI average prices in parallel
+            async let fetchSells: [ESIRegionMarketOrder] = (try? ESIClient.shared.fetch(
+                "/markets/10000002/orders/?order_type=sell&type_id=\(asset.typeId)"
+            )) ?? []
+            async let fetchBuys: [ESIRegionMarketOrder] = (try? ESIClient.shared.fetch(
+                "/markets/10000002/orders/?order_type=buy&type_id=\(asset.typeId)"
+            )) ?? []
+            async let fetchPrices: [ESIMarketPrice] = (try? ESIClient.shared.fetch("/markets/prices/")) ?? []
+            let (sells, buys, prices) = await (fetchSells, fetchBuys, fetchPrices)
+
+            jitaSellPrice = sells.map(\.price).min()
+            jitaBuyPrice = buys.map(\.price).max()
+
+            // Store top orders for the popover
+            sellOrders = Array(sells.sorted { $0.price < $1.price }.prefix(8))
+            buyOrders = Array(buys.sorted { $0.price > $1.price }.prefix(8))
+
+            // Store average/adjusted prices
+            if let priceEntry = prices.first(where: { $0.typeId == asset.typeId }) {
+                adjustedPrice = priceEntry.adjustedPrice
+                averagePrice = priceEntry.averagePrice
+            }
+
+            // Resolve system names for top orders
+            let systemIDs = Array(Set((sellOrders + buyOrders).map(\.systemId)))
+            let resolved = await NameResolver.shared.resolve(ids: systemIDs)
+            orderSystemNames = resolved
 
             // Load group info
             if let group = await UniverseCache.shared.group(id: type.groupId) {

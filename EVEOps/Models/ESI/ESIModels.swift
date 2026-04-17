@@ -852,3 +852,102 @@ nonisolated struct ESIMarketPrice: Codable, Sendable {
     let averagePrice: Double?
     let typeId: Int
 }
+
+// MARK: - Character Attributes (Remap Advisor)
+
+nonisolated struct ESICharacterAttributes: Codable, Sendable {
+    let charisma: Int
+    let intelligence: Int
+    let memory: Int
+    let perception: Int
+    let willpower: Int
+    let bonusRemaps: Int?
+    let accruedRemapCooldownDate: Date?
+    let lastRemapDate: Date?
+}
+
+// MARK: - Research Agents
+
+nonisolated struct ESIResearchAgent: Codable, Sendable, Identifiable {
+    let agentId: Int
+    let remainderPoints: Double
+    let pointsPerDay: Double
+    let skillTypeId: Int
+    let startedAt: Date
+    var id: Int { agentId }
+}
+
+// MARK: - Wars
+
+nonisolated struct ESIWar: Codable, Sendable, Identifiable {
+    let aggressor: ESIWarParty
+    let allies: [ESIWarAlly]?
+    let declared: Date
+    let defender: ESIWarParty
+    let finished: Date?
+    let id: Int
+    let mutual: Bool
+    let openForAllies: Bool
+    let retracted: Date?
+    let started: Date?
+
+    var isActive: Bool { finished == nil && retracted == nil }
+}
+
+nonisolated struct ESIWarParty: Codable, Sendable {
+    let allianceId: Int?
+    let corporationId: Int?
+    let iskDestroyed: Double
+    let shipsKilled: Int
+}
+
+nonisolated struct ESIWarAlly: Codable, Sendable {
+    let allianceId: Int?
+    let corporationId: Int?
+}
+
+// MARK: - Bookmarks
+
+nonisolated struct ESIBookmarkFolder: Codable, Sendable, Identifiable {
+    let folderId: Int?
+    let name: String?
+    var id: Int { folderId ?? 0 }
+}
+
+nonisolated struct ESIBookmark: Codable, Sendable, Identifiable {
+    let bookmarkId: Int
+    let created: Date
+    let creatorId: Int
+    let folderId: Int?
+    let item: ESIBookmarkItem?
+    let label: String?
+    let locationId: Int
+    let memo: String?
+    let coordinates: ESIBookmarkCoordinates?
+    var id: Int { bookmarkId }
+}
+
+nonisolated struct ESIBookmarkItem: Codable, Sendable {
+    let itemId: Int
+    let typeId: Int
+}
+
+nonisolated struct ESIBookmarkCoordinates: Codable, Sendable {
+    let x: Double
+    let y: Double
+    let z: Double
+}
+
+// MARK: - PI Schematics
+
+nonisolated struct ESIPlanetSchematic: Codable, Sendable {
+    let cycleTime: Int
+    let schematicName: String
+    let pins: [ESISchematicPin]
+}
+
+nonisolated struct ESISchematicPin: Codable, Sendable {
+    let isInput: Bool
+    let quantity: Int
+    let typeId: Int
+}

@@ -73,8 +73,13 @@ struct CharacterResearchAgentsView: View {
         error = nil
         var loaded: [ResearchGroup] = []
         var lastError: Error?
+        var missingScope = false
 
         for account in accountManager.accounts {
+            guard account.scopes.contains("esi-characters.read_agents_research.v1") else {
+                missingScope = true
+                continue
+            }
             do {
                 let token = try await accountManager.validToken(for: account)
                 let agents: [ESIResearchAgent] = try await ESIClient.shared.fetch(
@@ -109,7 +114,13 @@ struct CharacterResearchAgentsView: View {
         }
 
         groups = loaded
-        if loaded.isEmpty, let lastError { self.error = lastError.localizedDescription }
+        if loaded.isEmpty {
+            if missingScope {
+                self.error = "Missing scope: esi-characters.read_agents_research.v1\n\nRemove and re-add your account to grant this permission."
+            } else if let lastError {
+                self.error = lastError.localizedDescription
+            }
+        }
         isLoading = false
     }
 

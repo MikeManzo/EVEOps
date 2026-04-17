@@ -23,6 +23,10 @@ enum NavigationSection: String, CaseIterable, Identifiable {
     case careerAgents = "Career Agents"
     case market = "Market"
     case stationBrowser = "Station Browser"
+    // Character — tools
+    case appraisal = "Item Appraisal"
+    case remapAdvisor = "Remap Advisor"
+    case research = "Research Agents"
 
     // Corporation
     case corpAssets = "Corp Assets"
@@ -34,6 +38,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
     case corpKillmails = "Corp Kill Mails"
     case corpMarketOrders = "Corp Market Orders"
     case corpMining = "Corp Mining"
+    case corpWars = "Corp Wars"
 
     var id: String { rawValue }
 
@@ -63,17 +68,21 @@ enum NavigationSection: String, CaseIterable, Identifiable {
         case .corpContracts: return "doc.badge.arrow.up.fill"
         case .corpMarketOrders: return "cart.fill"
         case .corpMining: return "cylinder.fill"
+        case .corpWars: return "shield.lefthalf.filled"
         case .market: return "storefront"
         case .stationBrowser: return "building.2.crop.circle.fill"
+        case .appraisal: return "magnifyingglass.circle.fill"
+        case .remapAdvisor: return "brain.filled.head.profile"
+        case .research: return "atom"
         }
     }
 
     static var pilotSections: [NavigationSection] {
-        [.location, .training, .clones]
+        [.location, .training, .clones, .research, .remapAdvisor]
     }
 
     static var economySections: [NavigationSection] {
-        [.finances, .assets, .market, .stationBrowser, .contracts, .industry, .colonies]
+        [.finances, .assets, .market, .stationBrowser, .appraisal, .contracts, .industry, .colonies]
     }
 
     static var combatSections: [NavigationSection] {
@@ -86,6 +95,6 @@ enum NavigationSection: String, CaseIterable, Identifiable {
 
     static var corporationSections: [NavigationSection] {
         [.corpAssets, .corpIndustry, .corpMembers, .corpStructures, .corpWallets,
-         .corpContracts, .corpKillmails, .corpMarketOrders, .corpMining]
+         .corpContracts, .corpKillmails, .corpMarketOrders, .corpMining, .corpWars]
     }
 }

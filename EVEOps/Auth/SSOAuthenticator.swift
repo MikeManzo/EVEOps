@@ -58,7 +58,8 @@ struct SSOConfiguration: Sendable {
             "esi-characters.read_contacts.v1",
             "esi-characters.write_contacts.v1",
             "esi-ui.write_waypoint.v1",
-            "esi-search.search_structures.v1"
+            "esi-search.search_structures.v1",
+            "esi-characters.read_agents_research.v1"
         ]
     )
 

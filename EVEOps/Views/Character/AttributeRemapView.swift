@@ -46,6 +46,7 @@ struct AttributeRemapView: View {
                         attributesCard(data)
                         if !data.queuePairs.isEmpty {
                             queueDemandCard(data)
+                            recommendationCard(data)
                         }
                         trainingSpeedCard(data)
                     }
@@ -109,7 +110,7 @@ struct AttributeRemapView: View {
                 VStack(spacing: 4) {
                     Image(systemName: "calendar").font(.title2).foregroundStyle(.secondary)
                     Text(EVEFormatters.dateFormatter.string(from: lastRemap))
-                        .font(.caption.bold.monospacedDigit())
+                        .font(.caption.bold().monospacedDigit())
                     Text("Last Remap").font(.caption).foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity)
@@ -196,7 +197,7 @@ struct AttributeRemapView: View {
                         }
                         .frame(height: 14)
                         Text("\(Int(fraction * 100))%")
-                            .font(.caption.bold.monospacedDigit())
+                            .font(.caption.bold().monospacedDigit())
                             .frame(width: 36, alignment: .trailing)
                     }
                 }
@@ -276,6 +277,123 @@ struct AttributeRemapView: View {
         }
         .padding()
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    // MARK: - Recommendation Card
+
+    /// EVE remap pool: 5 attributes × min 17 + 14 free points = 99 total.
+    /// Optimal for one pair: put 10 into primary (→ 27), 4 into secondary (→ 21), rest stay at 17.
+    private func recommendationCard(_ data: CharacterRemapData) -> some View {
+        let pairs = data.queuePairs.sorted { $0.value > $1.value }
+        guard let dominant = pairs.first else { return AnyView(EmptyView()) }
+
+        let totalSP = pairs.reduce(0) { $0 + $1.value }
+        let dominantPct = Int(Double(dominant.value) / Double(max(totalSP, 1)) * 100)
+        let (primary, secondary) = splitPair(dominant.key)
+
+        // Recommended base values after optimal remap for this pair
+        let recommended: [(String, Int, Color)] = [
+            ("Intelligence", primary == "Intelligence" ? 27 : secondary == "Intelligence" ? 21 : 17, .blue),
+            ("Memory",       primary == "Memory"       ? 27 : secondary == "Memory"       ? 21 : 17, .cyan),
+            ("Perception",   primary == "Perception"   ? 27 : secondary == "Perception"   ? 21 : 17, .green),
+            ("Willpower",    primary == "Willpower"    ? 27 : secondary == "Willpower"    ? 21 : 17, .orange),
+            ("Charisma",     primary == "Charisma"     ? 27 : secondary == "Charisma"     ? 21 : 17, .pink),
+        ]
+
+        let remapReady = data.bonusRemaps > 0
+            || data.nextAnnualRemap == nil
+            || (data.nextAnnualRemap.map { $0 <= now } ?? false)
+
+        // Current speed for the dominant pair (includes implant bonuses in current attrs)
+        let curPrimary = attributeValue(data.attributes, name: primary)
+        let curSecondary = attributeValue(data.attributes, name: secondary)
+        let currentSpeed = curPrimary + curSecondary / 2
+
+        // Optimal base speed (no implants considered)
+        let optimalSpeed = 27 + 21 / 2  // = 37
+
+        return AnyView(
+            VStack(alignment: .leading, spacing: 14) {
+                // Header
+                HStack(spacing: 8) {
+                    Image(systemName: remapReady ? "checkmark.circle.fill" : "clock.fill")
+                        .foregroundStyle(remapReady ? .green : .orange)
+                    Text(remapReady ? "Remap Available — Recommendation" : "Remap on Cooldown — Planned Recommendation")
+                        .font(.headline)
+                }
+
+                // Summary sentence
+                Text("Your queue is **\(dominantPct)% \(primary) / \(secondary)** skills. For fastest training, remap to:")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
+                // Recommended values table
+                VStack(spacing: 6) {
+                    ForEach(recommended, id: \.0) { name, value, color in
+                        HStack(spacing: 8) {
+                            Text(name)
+                                .font(.subheadline)
+                                .frame(width: 110, alignment: .trailing)
+                            ZStack(alignment: .leading) {
+                                RoundedRectangle(cornerRadius: 4).fill(.quaternary)
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(value > 17 ? color : Color.secondary.opacity(0.3))
+                                    .frame(width: max(1, CGFloat(value - 17) / 10.0) * 120)
+                            }
+                            .frame(width: 120, height: 14)
+                            Text("\(value)")
+                                .font(.subheadline.bold().monospacedDigit())
+                                .frame(width: 28, alignment: .trailing)
+                                .foregroundStyle(value == 27 ? color : value == 21 ? color.opacity(0.7) : .secondary)
+                            Text(value == 27 ? "Primary" : value == 21 ? "Secondary" : "Min")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                                .frame(width: 60, alignment: .leading)
+                        }
+                    }
+                }
+
+                Divider()
+
+                // Speed comparison
+                HStack(spacing: 20) {
+                    VStack(spacing: 2) {
+                        Text("Current speed")
+                            .font(.caption).foregroundStyle(.secondary)
+                        Text("\(currentSpeed) SP/min")
+                            .font(.subheadline.bold().monospacedDigit())
+                    }
+                    Image(systemName: "arrow.right").foregroundStyle(.secondary)
+                    VStack(spacing: 2) {
+                        Text("Optimal base")
+                            .font(.caption).foregroundStyle(.secondary)
+                        Text("\(optimalSpeed) SP/min")
+                            .font(.subheadline.bold().monospacedDigit())
+                            .foregroundStyle(.green)
+                    }
+                    if currentSpeed < optimalSpeed {
+                        Text("+\(optimalSpeed - currentSpeed) SP/min")
+                            .font(.caption.bold())
+                            .padding(.horizontal, 8).padding(.vertical, 3)
+                            .background(Color.green.opacity(0.15))
+                            .foregroundStyle(.green)
+                            .clipShape(Capsule())
+                    }
+                }
+
+                // Instruction
+                VStack(alignment: .leading, spacing: 4) {
+                    Label(remapReady ? "How to remap:" : "How to remap when ready:", systemImage: "info.circle")
+                        .font(.caption.bold()).foregroundStyle(.secondary)
+                    Text("In EVE: Character Sheet → Neural Remap → Manually Remap. Set \(primary) to 27 and \(secondary) to 21. All others stay at 17. You have 14 free points (max 10 per attribute).")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Text("Note: implant bonuses add on top of these base values and are not affected by the remap.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            .padding()
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        )
     }
 
     // MARK: - Load
