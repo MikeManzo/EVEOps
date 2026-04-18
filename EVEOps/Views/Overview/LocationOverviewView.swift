@@ -50,87 +50,110 @@ struct LocationOverviewView: View {
 
     private func locationCard(_ info: CharacterLocationInfo) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Ship render banner
-            ZStack(alignment: .bottomLeading) {
-                AsyncImage(url: EVEImageURL.typeRender(info.shipTypeId, size: 1024)) { phase in
-                    if let image = phase.image {
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(height: 140)
-                            .clipped()
-                    } else {
-                        Rectangle()
-                            .fill(Color(white: 0.1))
-                            .frame(height: 140)
-                    }
-                }
-
-                // Gradient overlay for readability
-                LinearGradient(
-                    colors: [.clear, .black.opacity(0.7)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: 80)
-                .frame(maxHeight: .infinity, alignment: .bottom)
-
-                // Character identity overlay
-                HStack(spacing: 10) {
-                    AsyncImage(url: EVEImageURL.characterPortrait(info.characterID, size: 256)) { image in
-                        image.resizable()
-                    } placeholder: {
-                        RoundedRectangle(cornerRadius: 8).fill(.quaternary)
-                    }
-                    .frame(width: 44, height: 44)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .strokeBorder(.white.opacity(0.2), lineWidth: 1)
-                    )
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        HStack(spacing: 6) {
-                            Circle()
-                                .fill(info.isOnline ? .green : .gray)
-                                .frame(width: 8, height: 8)
-                            Text(info.characterName)
-                                .font(.headline)
-                                .foregroundStyle(.white)
-                        }
-                        Text(info.corporationName)
-                            .font(.caption)
-                            .foregroundStyle(.white.opacity(0.7))
-                    }
-
-                    Spacer()
-
-                    // Online status badge
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text(info.isOnline ? "Online" : "Offline")
-                            .font(.caption.bold())
-                            .foregroundStyle(info.isOnline ? .green : .secondary)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
-                            .background(
-                                (info.isOnline ? Color.green : Color.gray).opacity(0.2),
-                                in: Capsule()
-                            )
-                        if let logins = info.loginCount {
-                            Text("\(logins) logins")
-                                .font(.caption2)
-                                .foregroundStyle(.white.opacity(0.5))
-                        }
-                    }
-                }
-                .padding(12)
-            }
-
             VStack(alignment: .leading, spacing: 12) {
-                // Location details
+                // Character · Location · Ship — single row
                 HStack(alignment: .top, spacing: 20) {
-                    // System / Region info
-                    VStack(alignment: .leading, spacing: 8) {
+
+                    // Column 1: Character portrait (128×128) · name/corp
+                    HStack(alignment: .top, spacing: 10) {
+
+                        // 128×128 character portrait
+                        AsyncImage(url: EVEImageURL.characterPortrait(info.characterID, size: 256)) { image in
+                            image.resizable()
+                        } placeholder: {
+                            RoundedRectangle(cornerRadius: 10).fill(.quaternary)
+                        }
+                        .frame(width: 128, height: 128)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.separator, lineWidth: 1))
+
+                        // Name + corp + online status
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: 6) {
+                                Circle()
+                                    .fill(info.isOnline ? .green : .gray)
+                                    .frame(width: 8, height: 8)
+                                Text(info.characterName)
+                                    .font(.headline)
+                                    .lineLimit(1)
+                            }
+                            Text(info.corporationName)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                            Text(info.isOnline ? "Online" : "Offline")
+                                .font(.caption2.bold())
+                                .foregroundStyle(info.isOnline ? .green : .secondary)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(
+                                    (info.isOnline ? Color.green : Color.gray).opacity(0.15),
+                                    in: Capsule()
+                                )
+                            if info.lastLogin != nil || info.lastLogout != nil || info.loginCount != nil {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    if let login = info.lastLogin {
+                                        HStack(spacing: 4) {
+                                            Text("Login:")
+                                                .font(.caption2)
+                                                .foregroundStyle(.tertiary)
+                                            Text(login, style: .relative)
+                                                .font(.caption2.monospacedDigit())
+                                                .foregroundStyle(.secondary)
+                                            Text("ago")
+                                                .font(.caption2)
+                                                .foregroundStyle(.tertiary)
+                                        }
+                                    }
+                                    if let logout = info.lastLogout {
+                                        HStack(spacing: 4) {
+                                            Text("Logout:")
+                                                .font(.caption2)
+                                                .foregroundStyle(.tertiary)
+                                            Text(logout, style: .relative)
+                                                .font(.caption2.monospacedDigit())
+                                                .foregroundStyle(.secondary)
+                                            Text("ago")
+                                                .font(.caption2)
+                                                .foregroundStyle(.tertiary)
+                                        }
+                                    }
+                                    if let logins = info.loginCount {
+                                        HStack(spacing: 4) {
+                                            Text("Total:")
+                                                .font(.caption2)
+                                                .foregroundStyle(.tertiary)
+                                            Text("\(logins) logins")
+                                                .font(.caption2.monospacedDigit())
+                                                .foregroundStyle(.secondary)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    Divider().frame(height: 132)
+
+                    // Column 2: Station image + location info
+                    HStack(alignment: .top, spacing: 10) {
+                        // 128×128 station render (ship render when in space)
+                        AsyncImage(url: info.dockedStation.map { EVEImageURL.typeRender($0.typeId, size: 512) }
+                                        ?? EVEImageURL.typeRender(info.shipTypeId, size: 512)) { phase in
+                            if let image = phase.image {
+                                image.resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(width: 128, height: 128)
+                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                            } else {
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(.quaternary)
+                                    .frame(width: 128, height: 128)
+                            }
+                        }
+
+                        VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Image(systemName: "location.fill")
                                 .foregroundStyle(.blue)
@@ -139,24 +162,20 @@ struct LocationOverviewView: View {
                         }
 
                         VStack(alignment: .leading, spacing: 4) {
-                            // Solar system with security
                             HStack(spacing: 6) {
                                 Text(info.systemName)
                                     .font(.body.bold())
                                 securityBadge(info.securityValue)
                             }
 
-                            // Constellation
                             if let constellation = info.constellationName {
                                 infoRow(label: "Constellation", value: constellation)
                             }
 
-                            // Region
                             if let region = info.regionName {
                                 infoRow(label: "Region", value: region)
                             }
 
-                            // Docked location
                             if let docked = info.dockedAt {
                                 HStack(spacing: 4) {
                                     Image(systemName: "building.2.fill")
@@ -177,13 +196,27 @@ struct LocationOverviewView: View {
                                 }
                             }
                         }
-                    }
+                        }  // end location VStack
+                    }  // end column 2 HStack
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                    Divider().frame(height: 100)
+                    Divider().frame(height: 132)
 
-                    // Ship info
-                    VStack(alignment: .leading, spacing: 8) {
+                    // Column 3: Ship icon (128×128) + ship info
+                    HStack(alignment: .top, spacing: 10) {
+                        AsyncImage(url: EVEImageURL.typeIcon(info.shipTypeId, size: 256)) { phase in
+                            if let image = phase.image {
+                                image.resizable()
+                                    .frame(width: 128, height: 128)
+                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                            } else {
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(.quaternary)
+                                    .frame(width: 128, height: 128)
+                            }
+                        }
+
+                        VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Image(systemName: "airplane")
                                 .foregroundStyle(.purple)
@@ -191,32 +224,18 @@ struct LocationOverviewView: View {
                                 .font(.subheadline.bold())
                         }
 
-                        HStack(spacing: 10) {
-                            AsyncImage(url: EVEImageURL.typeIcon(info.shipTypeId, size: 256)) { phase in
-                                if let image = phase.image {
-                                    image.resizable()
-                                        .frame(width: 48, height: 48)
-                                        .clipShape(RoundedRectangle(cornerRadius: 6))
-                                } else {
-                                    RoundedRectangle(cornerRadius: 6)
-                                        .fill(.quaternary)
-                                        .frame(width: 48, height: 48)
-                                }
-                            }
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(info.shipName)
+                                .font(.body.bold())
+                                .lineLimit(1)
+                            Text(info.shipTypeName)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
 
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(info.shipName)
-                                    .font(.body.bold())
-                                    .lineLimit(1)
-                                Text(info.shipTypeName)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-
-                                if let group = info.shipGroupName {
-                                    Text(group)
-                                        .font(.caption2)
-                                        .foregroundStyle(.tertiary)
-                                }
+                            if let group = info.shipGroupName {
+                                Text(group)
+                                    .font(.caption2)
+                                    .foregroundStyle(.tertiary)
                             }
                         }
 
@@ -234,54 +253,11 @@ struct LocationOverviewView: View {
                                 }
                             }
                         }
-                    }
+                        }  // end ship info VStack
+                    }  // end column 3 HStack
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
-                // Login/Logout times
-                if info.lastLogin != nil || info.lastLogout != nil {
-                    Divider()
-
-                    HStack(spacing: 20) {
-                        if let login = info.lastLogin {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Last Login")
-                                    .font(.caption2)
-                                    .foregroundStyle(.tertiary)
-                                Text(EVEFormatters.dateFormatter.string(from: login))
-                                    .font(.caption.monospacedDigit())
-                                    .foregroundStyle(.secondary)
-                                Text(login, style: .relative)
-                                    .font(.caption2)
-                                    .foregroundStyle(.tertiary)
-                            }
-                        }
-                        if let logout = info.lastLogout {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Last Logout")
-                                    .font(.caption2)
-                                    .foregroundStyle(.tertiary)
-                                Text(EVEFormatters.dateFormatter.string(from: logout))
-                                    .font(.caption.monospacedDigit())
-                                    .foregroundStyle(.secondary)
-                                Text(logout, style: .relative)
-                                    .font(.caption2)
-                                    .foregroundStyle(.tertiary)
-                            }
-                        }
-                        Spacer()
-                        if let logins = info.loginCount {
-                            VStack(alignment: .trailing, spacing: 2) {
-                                Text("Total Logins")
-                                    .font(.caption2)
-                                    .foregroundStyle(.tertiary)
-                                Text("\(logins)")
-                                    .font(.caption.bold().monospacedDigit())
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                }
                 // Docked station services
                 if let station = info.dockedStation, let services = station.services, !services.isEmpty {
                     Divider()
