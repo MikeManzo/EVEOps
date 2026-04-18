@@ -101,8 +101,6 @@ struct MainContentView: View {
                 MarketBrowserView()
             case .stationBrowser:
                 RegionStationBrowserView(onNavigateToMarket: { selectedSection = .market })
-            case .appraisal:
-                ItemAppraisalView()
             case .remapAdvisor:
                 AttributeRemapView()
             case .research:

@@ -9,6 +9,19 @@ private let attrIDToKey: [Int: String] = [
     167: "perception", 168: "willpower"
 ]
 
+// Dogma attribute IDs for attribute-enhancing implants (+1 through +5).
+// Confirmed working: 175=cha, 176=mem, 177=per, 179=int.
+// Willpower is unconfirmed — try both 178 (boost attr) and 168 (char attr ID) as candidates.
+// Detection uses per-implant max to prevent double-counting if both IDs fire on the same type.
+private let implantAttrIDs: [Int: String] = [
+    168: "willpower",   // char attr ID fallback
+    175: "charisma",
+    176: "memory",
+    177: "perception",
+    178: "willpower",   // boost attr ID candidate
+    179: "intelligence"
+]
+
 struct AttributeRemapView: View {
     @Environment(AccountManager.self) private var accountManager
     @Environment(DashboardPrefetcher.self) private var prefetcher
@@ -44,6 +57,7 @@ struct AttributeRemapView: View {
                     if let data = selectedData {
                         remapStatusCard(data)
                         attributesCard(data)
+                        implantsCard(data)
                         if !data.queuePairs.isEmpty {
                             queueDemandCard(data)
                             recommendationCard(data)
@@ -55,6 +69,19 @@ struct AttributeRemapView: View {
             }
         }
         .navigationTitle("Remap Advisor")
+        .toolbar {
+            ToolbarItem(placement: .automatic) {
+                Button {
+                    Task {
+                        await UniverseCache.shared.clearDiskCache()
+                        await load()
+                    }
+                } label: {
+                    Label("Refresh Implant Data", systemImage: "arrow.clockwise")
+                }
+                .help("Clears the local type cache and re-fetches implant data from ESI. Use this if implant bonuses appear incorrect.")
+            }
+        }
         .task(id: accountManager.selectedCharacterID) { await load() }
         .task(id: "timer") {
             while !Task.isCancelled {
@@ -67,57 +94,38 @@ struct AttributeRemapView: View {
     // MARK: - Remap Status
 
     private func remapStatusCard(_ data: CharacterRemapData) -> some View {
-        HStack(spacing: 16) {
-            // Bonus remaps
-            VStack(spacing: 4) {
-                Image(systemName: "arrow.triangle.2.circlepath")
-                    .font(.title2)
-                    .foregroundStyle(data.bonusRemaps > 0 ? .green : .secondary)
-                Text("\(data.bonusRemaps)")
-                    .font(.title.bold())
-                    .foregroundStyle(data.bonusRemaps > 0 ? .green : .primary)
-                Text("Bonus Remaps")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        HStack(spacing: 12) {
+            // Bonus remaps pill
+            Label("\(data.bonusRemaps) bonus remap\(data.bonusRemaps == 1 ? "" : "s")",
+                  systemImage: "arrow.triangle.2.circlepath")
+                .font(.caption.bold())
+                .foregroundStyle(data.bonusRemaps > 0 ? .green : .secondary)
 
-            // Annual remap cooldown
-            VStack(spacing: 4) {
-                if let cooldown = data.nextAnnualRemap {
-                    if cooldown > now {
-                        Image(systemName: "clock.fill").font(.title2).foregroundStyle(.orange)
-                        Text(timeUntil(cooldown)).font(.title3.bold().monospacedDigit()).foregroundStyle(.orange)
-                        Text("Until Annual Remap").font(.caption).foregroundStyle(.secondary)
-                    } else {
-                        Image(systemName: "checkmark.circle.fill").font(.title2).foregroundStyle(.green)
-                        Text("Available").font(.title3.bold()).foregroundStyle(.green)
-                        Text("Annual Remap").font(.caption).foregroundStyle(.secondary)
-                    }
-                } else {
-                    Image(systemName: "checkmark.circle.fill").font(.title2).foregroundStyle(.green)
-                    Text("Available").font(.title3.bold()).foregroundStyle(.green)
-                    Text("Annual Remap").font(.caption).foregroundStyle(.secondary)
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+            Divider().frame(height: 14)
 
-            // Last remap
+            // Annual remap status
+            if let cooldown = data.nextAnnualRemap, cooldown > now {
+                Label("Annual: \(timeUntil(cooldown))", systemImage: "clock")
+                    .font(.caption.bold())
+                    .foregroundStyle(.orange)
+            } else {
+                Label("Annual available", systemImage: "checkmark.circle")
+                    .font(.caption.bold())
+                    .foregroundStyle(.green)
+            }
+
             if let lastRemap = data.lastRemapDate {
-                VStack(spacing: 4) {
-                    Image(systemName: "calendar").font(.title2).foregroundStyle(.secondary)
-                    Text(EVEFormatters.dateFormatter.string(from: lastRemap))
-                        .font(.caption.bold().monospacedDigit())
-                    Text("Last Remap").font(.caption).foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+                Divider().frame(height: 14)
+                Label(EVEFormatters.dateFormatter.string(from: lastRemap), systemImage: "calendar")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
+
+            Spacer()
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
     }
 
     // MARK: - Attributes Card
@@ -125,10 +133,10 @@ struct AttributeRemapView: View {
     private func attributesCard(_ data: CharacterRemapData) -> some View {
         let attrs = data.attributes
         let attrList: [(String, Int, Color)] = [
-            ("Intelligence", attrs.intelligence, .blue),
-            ("Memory",       attrs.memory,       .cyan),
             ("Perception",   attrs.perception,   .green),
+            ("Memory",       attrs.memory,       .cyan),
             ("Willpower",    attrs.willpower,    .orange),
+            ("Intelligence", attrs.intelligence, .blue),
             ("Charisma",     attrs.charisma,     .pink)
         ]
         let maxVal = attrList.map(\.1).max() ?? 1
@@ -136,7 +144,7 @@ struct AttributeRemapView: View {
         return VStack(alignment: .leading, spacing: 12) {
             Text("Current Attributes")
                 .font(.headline)
-            Text("Values include implant bonuses. Remapping only changes base attribute points.")
+            Text("Total values including implants. See below for the implant breakdown.")
                 .font(.caption).foregroundStyle(.secondary)
 
             ForEach(attrList, id: \.0) { name, value, color in
@@ -161,6 +169,104 @@ struct AttributeRemapView: View {
         }
         .padding()
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    // MARK: - Implants Card
+
+    private func implantsCard(_ data: CharacterRemapData) -> some View {
+        let attrs = data.attributes
+        let bonuses = data.implantBonuses
+        let attrList: [(String, Int, Int, Color)] = [
+            ("Perception",   attrs.perception   - bonuses["perception",   default: 0], bonuses["perception",   default: 0], .green),
+            ("Memory",       attrs.memory       - bonuses["memory",       default: 0], bonuses["memory",       default: 0], .cyan),
+            ("Willpower",    attrs.willpower    - bonuses["willpower",    default: 0], bonuses["willpower",    default: 0], .orange),
+            ("Intelligence", attrs.intelligence - bonuses["intelligence", default: 0], bonuses["intelligence", default: 0], .blue),
+            ("Charisma",     attrs.charisma     - bonuses["charisma",     default: 0], bonuses["charisma",     default: 0], .pink),
+        ]
+        let maxVal = attrList.map { $0.1 + $0.2 }.max() ?? 1
+
+        let pairs = data.queuePairs.sorted { $0.value > $1.value }
+        let dominantPair = pairs.first.map { splitPair($0.key) }
+
+        return VStack(alignment: .leading, spacing: 12) {
+            Text("Attribute Implants")
+                .font(.headline)
+            Text("Base attributes (light) plus any attribute-enhancing implants (bright). Implants are unaffected by remapping.")
+                .font(.caption).foregroundStyle(.secondary)
+
+            ForEach(attrList, id: \.0) { name, base, bonus, color in
+                HStack(spacing: 10) {
+                    Text(name)
+                        .font(.subheadline)
+                        .frame(width: 110, alignment: .trailing)
+
+                    // Grade chip
+                    Text(bonus > 0 ? "+\(bonus)" : "—")
+                        .font(.caption2.bold())
+                        .padding(.horizontal, 5).padding(.vertical, 2)
+                        .background(gradeColor(bonus).opacity(0.15))
+                        .foregroundStyle(gradeColor(bonus))
+                        .clipShape(Capsule())
+                        .frame(width: 34)
+
+                    // Stacked bar: base (muted) + implant (vivid)
+                    GeometryReader { geo in
+                        let scale = Double(maxVal + 5)
+                        let baseW = geo.size.width * Double(base) / scale
+                        let bonusW = geo.size.width * Double(bonus) / scale
+                        ZStack(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 4).fill(.quaternary)
+                            HStack(spacing: 0) {
+                                Rectangle().fill(color.opacity(0.35)).frame(width: baseW)
+                                if bonus > 0 {
+                                    Rectangle().fill(color).frame(width: bonusW)
+                                }
+                            }
+                            .clipShape(RoundedRectangle(cornerRadius: 4))
+                        }
+                    }
+                    .frame(height: 16)
+
+                    Text("\(base + bonus)")
+                        .font(.subheadline.bold().monospacedDigit())
+                        .frame(width: 32, alignment: .trailing)
+                }
+            }
+
+            // Upgrade suggestion for dominant pair
+            if let (primary, secondary) = dominantPair {
+                let primaryBonus = bonuses[primary.lowercased(), default: 0]
+                let secondaryBonus = bonuses[secondary.lowercased(), default: 0]
+                let upgradeGain = (5 - primaryBonus) + (5 - secondaryBonus) / 2
+                if upgradeGain > 0 {
+                    Divider()
+                    HStack(spacing: 8) {
+                        Image(systemName: "arrow.up.circle.fill")
+                            .foregroundStyle(.blue)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Implant Upgrade Potential")
+                                .font(.caption.bold())
+                            let pLabel = primaryBonus > 0 ? "+\(primaryBonus) → +5" : "none → +5"
+                            let sLabel = secondaryBonus > 0 ? "+\(secondaryBonus) → +5" : "none → +5"
+                            Text("\(primary) (\(pLabel)) and \(secondary) (\(sLabel)): up to +\(upgradeGain) SP/min.")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+        }
+        .padding()
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func gradeColor(_ bonus: Int) -> Color {
+        switch bonus {
+        case 0:    return .secondary
+        case 1, 2: return .blue
+        case 3:    return .teal
+        case 4:    return .orange
+        default:   return .green
+        }
     }
 
     // MARK: - Queue Demand Card
@@ -202,7 +308,7 @@ struct AttributeRemapView: View {
                     }
                 }
 
-                if let dominant = pairs.first, let _ = pairs.second {
+                if let dominant = pairs.first {
                     let (p, s) = splitPair(dominant.key)
                     let currentP = attributeValue(data.attributes, name: p)
                     let currentS = attributeValue(data.attributes, name: s)
@@ -281,8 +387,8 @@ struct AttributeRemapView: View {
 
     // MARK: - Recommendation Card
 
-    /// EVE remap pool: 5 attributes × min 17 + 14 free points = 99 total.
-    /// Optimal for one pair: put 10 into primary (→ 27), 4 into secondary (→ 21), rest stay at 17.
+    /// EVE remap pool: 5 attributes × base 17 + 14 free remap points = 99 base total (implants add on top).
+    /// Optimal for one pair: put 10 into primary (base → 27), 4 into secondary (base → 21), rest stay at base 17.
     private func recommendationCard(_ data: CharacterRemapData) -> some View {
         let pairs = data.queuePairs.sorted { $0.value > $1.value }
         guard let dominant = pairs.first else { return AnyView(EmptyView()) }
@@ -291,12 +397,12 @@ struct AttributeRemapView: View {
         let dominantPct = Int(Double(dominant.value) / Double(max(totalSP, 1)) * 100)
         let (primary, secondary) = splitPair(dominant.key)
 
-        // Recommended base values after optimal remap for this pair
+        // Recommended base values after optimal remap for this pair (base only, before implants)
         let recommended: [(String, Int, Color)] = [
-            ("Intelligence", primary == "Intelligence" ? 27 : secondary == "Intelligence" ? 21 : 17, .blue),
-            ("Memory",       primary == "Memory"       ? 27 : secondary == "Memory"       ? 21 : 17, .cyan),
             ("Perception",   primary == "Perception"   ? 27 : secondary == "Perception"   ? 21 : 17, .green),
+            ("Memory",       primary == "Memory"       ? 27 : secondary == "Memory"       ? 21 : 17, .cyan),
             ("Willpower",    primary == "Willpower"    ? 27 : secondary == "Willpower"    ? 21 : 17, .orange),
+            ("Intelligence", primary == "Intelligence" ? 27 : secondary == "Intelligence" ? 21 : 17, .blue),
             ("Charisma",     primary == "Charisma"     ? 27 : secondary == "Charisma"     ? 21 : 17, .pink),
         ]
 
@@ -309,8 +415,13 @@ struct AttributeRemapView: View {
         let curSecondary = attributeValue(data.attributes, name: secondary)
         let currentSpeed = curPrimary + curSecondary / 2
 
-        // Optimal base speed (no implants considered)
-        let optimalSpeed = 27 + 21 / 2  // = 37
+        // Optimal speed after remap, preserving current implants (base 27/21 + implants)
+        let implantP = data.implantBonuses[primary.lowercased(), default: 0]
+        let implantS = data.implantBonuses[secondary.lowercased(), default: 0]
+        let optimalSpeed = (27 + implantP) + (21 + implantS) / 2
+
+        // Theoretical max with +5 implants on both
+        let maxSpeed = (27 + 5) + (21 + 5) / 2  // = 45
 
         return AnyView(
             VStack(alignment: .leading, spacing: 14) {
@@ -327,28 +438,60 @@ struct AttributeRemapView: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 
-                // Recommended values table
-                VStack(spacing: 6) {
-                    ForEach(recommended, id: \.0) { name, value, color in
-                        HStack(spacing: 8) {
-                            Text(name)
-                                .font(.subheadline)
-                                .frame(width: 110, alignment: .trailing)
-                            ZStack(alignment: .leading) {
-                                RoundedRectangle(cornerRadius: 4).fill(.quaternary)
-                                RoundedRectangle(cornerRadius: 4)
-                                    .fill(value > 17 ? color : Color.secondary.opacity(0.3))
-                                    .frame(width: max(1, CGFloat(value - 17) / 10.0) * 120)
+                // Single table: target values to enter in EVE's remap screen (floor + allocated points)
+                // floor = 17 + implant; allocation = 10 (primary), 4 (secondary), 0 (others)
+                let remapAttrs: [(String, Int, Int, Int, Color)] = recommended.map { name, base, color in
+                    let implant = data.implantBonuses[name.lowercased(), default: 0]
+                    let floor   = 17 + implant          // minimum shown in EVE's remap screen
+                    let alloc   = base - 17             // remap points added (0, 4, or 10)
+                    return (name, floor, alloc, floor + alloc, color)
+                }
+                let remapMax = remapAttrs.map { $0.1 + $0.2 }.max() ?? 1
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Enter in EVE's Remap Screen")
+                        .font(.caption.bold())
+                        .foregroundStyle(.secondary)
+                    Text("Floor (muted) = 17 + implants. Bright segment = remap points added.")
+                        .font(.caption2).foregroundStyle(.tertiary)
+
+                    VStack(spacing: 6) {
+                        ForEach(remapAttrs, id: \.0) { name, floor, alloc, total, color in
+                            let isPrimary   = name == primary
+                            let isSecondary = name == secondary
+                            HStack(spacing: 8) {
+                                Text(name)
+                                    .font(.subheadline)
+                                    .frame(width: 110, alignment: .trailing)
+                                GeometryReader { geo in
+                                    let scale  = Double(remapMax + 3)
+                                    let floorW = geo.size.width * Double(floor) / scale
+                                    let allocW = geo.size.width * Double(alloc) / scale
+                                    ZStack(alignment: .leading) {
+                                        RoundedRectangle(cornerRadius: 4).fill(.quaternary)
+                                        HStack(spacing: 0) {
+                                            Rectangle()
+                                                .fill(isPrimary || isSecondary ? color.opacity(0.3) : Color.secondary.opacity(0.2))
+                                                .frame(width: floorW)
+                                            if alloc > 0 {
+                                                Rectangle()
+                                                    .fill(isPrimary ? color : color.opacity(0.65))
+                                                    .frame(width: allocW)
+                                            }
+                                        }
+                                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                                    }
+                                }
+                                .frame(height: 16)
+                                Text("\(total)")
+                                    .font(.subheadline.bold().monospacedDigit())
+                                    .frame(width: 32, alignment: .trailing)
+                                    .foregroundStyle(isPrimary ? color : isSecondary ? color.opacity(0.75) : .secondary)
+                                Text(isPrimary ? "Primary (+10)" : isSecondary ? "Secondary (+4)" : "Floor (+0)")
+                                    .font(.caption2)
+                                    .foregroundStyle(isPrimary ? color.opacity(0.8) : isSecondary ? color.opacity(0.6) : Color.secondary.opacity(0.5))
+                                    .frame(width: 100, alignment: .leading)
                             }
-                            .frame(width: 120, height: 14)
-                            Text("\(value)")
-                                .font(.subheadline.bold().monospacedDigit())
-                                .frame(width: 28, alignment: .trailing)
-                                .foregroundStyle(value == 27 ? color : value == 21 ? color.opacity(0.7) : .secondary)
-                            Text(value == 27 ? "Primary" : value == 21 ? "Secondary" : "Min")
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
-                                .frame(width: 60, alignment: .leading)
                         }
                     }
                 }
@@ -365,7 +508,7 @@ struct AttributeRemapView: View {
                     }
                     Image(systemName: "arrow.right").foregroundStyle(.secondary)
                     VStack(spacing: 2) {
-                        Text("Optimal base")
+                        Text("After remap")
                             .font(.caption).foregroundStyle(.secondary)
                         Text("\(optimalSpeed) SP/min")
                             .font(.subheadline.bold().monospacedDigit())
@@ -379,15 +522,24 @@ struct AttributeRemapView: View {
                             .foregroundStyle(.green)
                             .clipShape(Capsule())
                     }
+                    if optimalSpeed < maxSpeed {
+                        VStack(spacing: 2) {
+                            Text("+5 implants")
+                                .font(.caption).foregroundStyle(.secondary)
+                            Text("\(maxSpeed) SP/min")
+                                .font(.caption.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                 }
 
                 // Instruction
                 VStack(alignment: .leading, spacing: 4) {
                     Label(remapReady ? "How to remap:" : "How to remap when ready:", systemImage: "info.circle")
                         .font(.caption.bold()).foregroundStyle(.secondary)
-                    Text("In EVE: Character Sheet → Neural Remap → Manually Remap. Set \(primary) to 27 and \(secondary) to 21. All others stay at 17. You have 14 free points (max 10 per attribute).")
+                    Text("In EVE: Character Sheet → Neural Remap → Manually Remap. Set each attribute to the value shown in the table above. EVE's remap screen shows the floor automatically — just drag each slider to the target number. This uses all 14 remap points (10 to \(primary), 4 to \(secondary)).")
                         .font(.caption).foregroundStyle(.secondary)
-                    Text("Note: implant bonuses add on top of these base values and are not affected by the remap.")
+                    Text("Note: if an implant is not detected, its floor may show slightly low. The allocations (+10 / +4 / +0) are always correct regardless.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }
@@ -418,6 +570,28 @@ struct AttributeRemapView: View {
                 let (attrs, queue) = try await (fetchAttrs, fetchQueue)
                 let activeQueue = queue.filter { ($0.finishDate ?? .distantPast) > Date() }
 
+                // Fetch active implants and resolve their attribute bonuses
+                let implantIDs: [Int] = (try? await ESIClient.shared.fetch(
+                    "/characters/\(account.characterID)/implants/", token: token
+                )) ?? []
+                let implantTypeMap = await UniverseCache.shared.types(ids: implantIDs)
+                var implantBonuses: [String: Int] = [:]
+                for typeInfo in implantTypeMap.values {
+                    guard let dogma = typeInfo.dogmaAttributes else { continue }
+                    // Collect per-type max per attribute name to avoid double-counting
+                    // when multiple candidate IDs match the same attribute on the same implant.
+                    var typeBonus: [String: Int] = [:]
+                    for attr in dogma {
+                        if let attrName = implantAttrIDs[attr.attributeId] {
+                            let v = Int(attr.value)
+                            typeBonus[attrName] = max(typeBonus[attrName, default: 0], v)
+                        }
+                    }
+                    for (name, bonus) in typeBonus {
+                        implantBonuses[name, default: 0] += bonus
+                    }
+                }
+
                 // Batch-fetch type info for all queue skills
                 let skillIDs = Array(Set(activeQueue.map(\.skillId)))
                 let typeMap = await UniverseCache.shared.types(ids: skillIDs)
@@ -425,7 +599,10 @@ struct AttributeRemapView: View {
                 // Calculate SP demand per attribute pair
                 var pairSP: [String: Int] = [:]
                 for entry in activeQueue {
-                    let spNeeded = max((entry.levelEndSp ?? 0) - (entry.levelStartSp ?? 0), 0)
+                    // Use trainingStartSp (actual progress) for the in-progress skill;
+                    // fall back to levelStartSp (full level cost) for queued-but-not-started skills.
+                    let startSP = entry.trainingStartSp ?? entry.levelStartSp ?? 0
+                    let spNeeded = max((entry.levelEndSp ?? 0) - startSP, 0)
                     guard spNeeded > 0, let typeInfo = typeMap[entry.skillId],
                           let dogma = typeInfo.dogmaAttributes else { continue }
 
@@ -456,7 +633,8 @@ struct AttributeRemapView: View {
                     bonusRemaps: attrs.bonusRemaps ?? 0,
                     nextAnnualRemap: nextAnnual,
                     lastRemapDate: attrs.lastRemapDate,
-                    queuePairs: pairSP
+                    queuePairs: pairSP,
+                    implantBonuses: implantBonuses
                 ))
             } catch {
                 lastError = error
@@ -521,7 +699,8 @@ private struct CharacterRemapData {
     let bonusRemaps: Int
     let nextAnnualRemap: Date?
     let lastRemapDate: Date?
-    let queuePairs: [String: Int]  // "Intelligence/Memory" → total SP needed
+    let queuePairs: [String: Int]       // "Intelligence/Memory" → total SP needed
+    let implantBonuses: [String: Int]   // "intelligence" → implant bonus (0 if none)
 }
 
 private extension Array {
