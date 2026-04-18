@@ -56,8 +56,7 @@ struct AttributeRemapView: View {
 
                     if let data = selectedData {
                         remapStatusCard(data)
-                        attributesCard(data)
-                        implantsCard(data)
+                        attributesSection(data)
                         if !data.queuePairs.isEmpty {
                             queueDemandCard(data)
                             recommendationCard(data)
@@ -128,52 +127,9 @@ struct AttributeRemapView: View {
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
     }
 
-    // MARK: - Attributes Card
+    // MARK: - Attributes Section
 
-    private func attributesCard(_ data: CharacterRemapData) -> some View {
-        let attrs = data.attributes
-        let attrList: [(String, Int, Color)] = [
-            ("Perception",   attrs.perception,   .green),
-            ("Memory",       attrs.memory,       .cyan),
-            ("Willpower",    attrs.willpower,    .orange),
-            ("Intelligence", attrs.intelligence, .blue),
-            ("Charisma",     attrs.charisma,     .pink)
-        ]
-        let maxVal = attrList.map(\.1).max() ?? 1
-
-        return VStack(alignment: .leading, spacing: 12) {
-            Text("Current Attributes")
-                .font(.headline)
-            Text("Total values including implants. See below for the implant breakdown.")
-                .font(.caption).foregroundStyle(.secondary)
-
-            ForEach(attrList, id: \.0) { name, value, color in
-                HStack(spacing: 10) {
-                    Text(name)
-                        .font(.subheadline)
-                        .frame(width: 110, alignment: .trailing)
-                    GeometryReader { geo in
-                        ZStack(alignment: .leading) {
-                            RoundedRectangle(cornerRadius: 4).fill(.quaternary)
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(color)
-                                .frame(width: geo.size.width * Double(value) / Double(maxVal + 5))
-                        }
-                    }
-                    .frame(height: 16)
-                    Text("\(value)")
-                        .font(.subheadline.bold().monospacedDigit())
-                        .frame(width: 32, alignment: .trailing)
-                }
-            }
-        }
-        .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-    }
-
-    // MARK: - Implants Card
-
-    private func implantsCard(_ data: CharacterRemapData) -> some View {
+    private func attributesSection(_ data: CharacterRemapData) -> some View {
         let attrs = data.attributes
         let bonuses = data.implantBonuses
         let attrList: [(String, Int, Int, Color)] = [
@@ -189,70 +145,108 @@ struct AttributeRemapView: View {
         let dominantPair = pairs.first.map { splitPair($0.key) }
 
         return VStack(alignment: .leading, spacing: 12) {
-            Text("Attribute Implants")
+            Text("Attributes")
                 .font(.headline)
-            Text("Base attributes (light) plus any attribute-enhancing implants (bright). Implants are unaffected by remapping.")
-                .font(.caption).foregroundStyle(.secondary)
 
-            ForEach(attrList, id: \.0) { name, base, bonus, color in
-                HStack(spacing: 10) {
-                    Text(name)
-                        .font(.subheadline)
-                        .frame(width: 110, alignment: .trailing)
+            HStack(alignment: .top, spacing: 24) {
+                // Left: Current totals
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Current")
+                        .font(.subheadline.bold())
+                    Text("Total values including implants.")
+                        .font(.caption).foregroundStyle(.secondary)
 
-                    // Grade chip
-                    Text(bonus > 0 ? "+\(bonus)" : "—")
-                        .font(.caption2.bold())
-                        .padding(.horizontal, 5).padding(.vertical, 2)
-                        .background(gradeColor(bonus).opacity(0.15))
-                        .foregroundStyle(gradeColor(bonus))
-                        .clipShape(Capsule())
-                        .frame(width: 34)
-
-                    // Stacked bar: base (muted) + implant (vivid)
-                    GeometryReader { geo in
-                        let scale = Double(maxVal + 5)
-                        let baseW = geo.size.width * Double(base) / scale
-                        let bonusW = geo.size.width * Double(bonus) / scale
-                        ZStack(alignment: .leading) {
-                            RoundedRectangle(cornerRadius: 4).fill(.quaternary)
-                            HStack(spacing: 0) {
-                                Rectangle().fill(color.opacity(0.35)).frame(width: baseW)
-                                if bonus > 0 {
-                                    Rectangle().fill(color).frame(width: bonusW)
+                    ForEach(attrList, id: \.0) { name, base, bonus, color in
+                        let total = base + bonus
+                        HStack(spacing: 10) {
+                            Text(name)
+                                .font(.subheadline)
+                                .frame(width: 100, alignment: .trailing)
+                            GeometryReader { geo in
+                                ZStack(alignment: .leading) {
+                                    RoundedRectangle(cornerRadius: 4).fill(.quaternary)
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(color)
+                                        .frame(width: geo.size.width * Double(total) / Double(maxVal + 5))
                                 }
                             }
-                            .clipShape(RoundedRectangle(cornerRadius: 4))
-                        }
-                    }
-                    .frame(height: 16)
-
-                    Text("\(base + bonus)")
-                        .font(.subheadline.bold().monospacedDigit())
-                        .frame(width: 32, alignment: .trailing)
-                }
-            }
-
-            // Upgrade suggestion for dominant pair
-            if let (primary, secondary) = dominantPair {
-                let primaryBonus = bonuses[primary.lowercased(), default: 0]
-                let secondaryBonus = bonuses[secondary.lowercased(), default: 0]
-                let upgradeGain = (5 - primaryBonus) + (5 - secondaryBonus) / 2
-                if upgradeGain > 0 {
-                    Divider()
-                    HStack(spacing: 8) {
-                        Image(systemName: "arrow.up.circle.fill")
-                            .foregroundStyle(.blue)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Implant Upgrade Potential")
-                                .font(.caption.bold())
-                            let pLabel = primaryBonus > 0 ? "+\(primaryBonus) → +5" : "none → +5"
-                            let sLabel = secondaryBonus > 0 ? "+\(secondaryBonus) → +5" : "none → +5"
-                            Text("\(primary) (\(pLabel)) and \(secondary) (\(sLabel)): up to +\(upgradeGain) SP/min.")
-                                .font(.caption).foregroundStyle(.secondary)
+                            .frame(height: 16)
+                            Text("\(total)")
+                                .font(.subheadline.bold().monospacedDigit())
+                                .frame(width: 32, alignment: .trailing)
                         }
                     }
                 }
+                .frame(maxWidth: .infinity)
+
+                Divider()
+
+                // Right: Implant breakdown
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Implants")
+                        .font(.subheadline.bold())
+                    Text("Base (light) plus attribute-enhancing implants (bright).")
+                        .font(.caption).foregroundStyle(.secondary)
+
+                    ForEach(attrList, id: \.0) { name, base, bonus, color in
+                        HStack(spacing: 10) {
+                            Text(name)
+                                .font(.subheadline)
+                                .frame(width: 100, alignment: .trailing)
+
+                            Text(bonus > 0 ? "+\(bonus)" : "—")
+                                .font(.caption2.bold())
+                                .padding(.horizontal, 5).padding(.vertical, 2)
+                                .background(gradeColor(bonus).opacity(0.15))
+                                .foregroundStyle(gradeColor(bonus))
+                                .clipShape(Capsule())
+                                .frame(width: 34)
+
+                            GeometryReader { geo in
+                                let scale = Double(maxVal + 5)
+                                let baseW = geo.size.width * Double(base) / scale
+                                let bonusW = geo.size.width * Double(bonus) / scale
+                                ZStack(alignment: .leading) {
+                                    RoundedRectangle(cornerRadius: 4).fill(.quaternary)
+                                    HStack(spacing: 0) {
+                                        Rectangle().fill(color.opacity(0.35)).frame(width: baseW)
+                                        if bonus > 0 {
+                                            Rectangle().fill(color).frame(width: bonusW)
+                                        }
+                                    }
+                                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                                }
+                            }
+                            .frame(height: 16)
+
+                            Text("\(base + bonus)")
+                                .font(.subheadline.bold().monospacedDigit())
+                                .frame(width: 32, alignment: .trailing)
+                        }
+                    }
+
+                    if let (primary, secondary) = dominantPair {
+                        let primaryBonus = bonuses[primary.lowercased(), default: 0]
+                        let secondaryBonus = bonuses[secondary.lowercased(), default: 0]
+                        let upgradeGain = (5 - primaryBonus) + (5 - secondaryBonus) / 2
+                        if upgradeGain > 0 {
+                            Divider()
+                            HStack(spacing: 8) {
+                                Image(systemName: "arrow.up.circle.fill")
+                                    .foregroundStyle(.blue)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Implant Upgrade Potential")
+                                        .font(.caption.bold())
+                                    let pLabel = primaryBonus > 0 ? "+\(primaryBonus) → +5" : "none → +5"
+                                    let sLabel = secondaryBonus > 0 ? "+\(secondaryBonus) → +5" : "none → +5"
+                                    Text("\(primary) (\(pLabel)) and \(secondary) (\(sLabel)): up to +\(upgradeGain) SP/min.")
+                                        .font(.caption).foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity)
             }
         }
         .padding()
