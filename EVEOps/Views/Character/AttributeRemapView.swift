@@ -331,23 +331,46 @@ struct AttributeRemapView: View {
 
     // MARK: - Training Speed Card
 
+    // Comprehensive list of known EVE attribute pairings to supplement the queue.
+    // Queue-derived pairs always take precedence; any pair in the queue is shown
+    // automatically even if it isn't listed here.
+    private static let knownEVEPairs: [String] = [
+        "Perception/Willpower",  "Willpower/Perception",
+        "Intelligence/Memory",   "Memory/Intelligence",
+        "Intelligence/Charisma", "Charisma/Willpower",
+        "Memory/Charisma",       "Willpower/Charisma",
+    ]
+
     private func trainingSpeedCard(_ data: CharacterRemapData) -> some View {
         let attrs = data.attributes
-        let speeds: [(String, String, Int)] = [
-            ("Int / Mem", "Intelligence + Memory",
-             attrs.intelligence + attrs.memory / 2),
-            ("Per / Wil", "Perception + Willpower",
-             attrs.perception + attrs.willpower / 2),
-            ("Wil / Per", "Willpower + Perception",
-             attrs.willpower + attrs.perception / 2),
-            ("Int / Cha", "Intelligence + Charisma",
-             attrs.intelligence + attrs.charisma / 2),
-            ("Mem / Int", "Memory + Intelligence",
-             attrs.memory + attrs.intelligence / 2),
-            ("Cha / Mem", "Charisma + Memory",
-             attrs.charisma + attrs.memory / 2),
-        ]
-        let best = speeds.map(\.2).max() ?? 1
+        let totalQueueSP = data.queuePairs.values.reduce(0, +)
+
+        // Union of all queue pairs and all known EVE pairs so nothing is ever missing.
+        let allKeys = Set(data.queuePairs.keys).union(Self.knownEVEPairs)
+
+        struct SpeedEntry: Identifiable {
+            let id: String
+            let label: String
+            let rate: Int
+            let queueSP: Int
+        }
+
+        let entries: [SpeedEntry] = allKeys.compactMap { key in
+            let parts = key.components(separatedBy: "/")
+            guard parts.count == 2 else { return nil }
+            let rate = attributeValue(attrs, name: parts[0]) + attributeValue(attrs, name: parts[1]) / 2
+            return SpeedEntry(id: key,
+                              label: "\(parts[0]) + \(parts[1])",
+                              rate: rate,
+                              queueSP: data.queuePairs[key, default: 0])
+        }.sorted {
+            // Queue pairs first (by SP share descending), then non-queue by speed
+            if ($0.queueSP > 0) != ($1.queueSP > 0) { return $0.queueSP > $1.queueSP }
+            if $0.queueSP != $1.queueSP { return $0.queueSP > $1.queueSP }
+            return $0.rate > $1.rate
+        }
+
+        let best = entries.map(\.rate).max() ?? 1
 
         return VStack(alignment: .leading, spacing: 12) {
             Text("Training Speed by Attribute Pair")
@@ -355,22 +378,39 @@ struct AttributeRemapView: View {
             Text("SP per minute = primary + floor(secondary ÷ 2). Higher is faster.")
                 .font(.caption).foregroundStyle(.secondary)
 
-            ForEach(speeds.sorted { $0.2 > $1.2 }, id: \.0) { short, long, rate in
+            ForEach(entries) { entry in
+                let inQueue = entry.queueSP > 0
+                let queuePct = totalQueueSP > 0 ? Int(Double(entry.queueSP) / Double(totalQueueSP) * 100) : 0
+
                 HStack(spacing: 10) {
-                    Text(long)
-                        .font(.subheadline)
-                        .frame(width: 210, alignment: .leading)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(entry.label)
+                            .font(.subheadline)
+                            .foregroundStyle(inQueue ? .primary : .secondary)
+                        if inQueue {
+                            Text("\(queuePct)% of queue")
+                                .font(.caption2.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Text("not in queue")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .frame(width: 200, alignment: .leading)
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
                             RoundedRectangle(cornerRadius: 4).fill(.quaternary)
                             RoundedRectangle(cornerRadius: 4)
-                                .fill(rate == best ? Color.green : Color.blue.opacity(0.6))
-                                .frame(width: geo.size.width * Double(rate) / Double(best))
+                                .fill(inQueue ? (entry.rate == best ? Color.green : Color.blue.opacity(0.7))
+                                             : Color.secondary.opacity(0.3))
+                                .frame(width: geo.size.width * Double(entry.rate) / Double(best))
                         }
                     }
                     .frame(height: 14)
-                    Text("\(rate) SP/min")
+                    Text("\(entry.rate) SP/min")
                         .font(.caption.monospacedDigit())
+                        .foregroundStyle(inQueue ? .primary : .secondary)
                         .frame(width: 80, alignment: .trailing)
                 }
             }
