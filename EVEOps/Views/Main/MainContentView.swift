@@ -95,6 +95,8 @@ struct MainContentView: View {
                 CharacterContactsView()
             case .routePlanner:
                 RoutePlannerView()
+            case .galaxyMap:
+                GalaxyMapView()
             case .careerAgents:
                 CareerAgentsView()
             case .market:

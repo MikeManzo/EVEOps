@@ -225,7 +225,11 @@ struct GalaxyMapView: View {
                     }
                 }
 
-                // Constellation dots
+                // Constellation dots + progressive name labels.
+                // Labels fade in as zoom increases, with overlap avoidance at lower zoom levels
+                // so the map stays readable across the full zoom range.
+                var placedLabelRects: [CGRect] = []
+
                 for pt in allPoints {
                     let isMatch = search.isEmpty || filtered.contains(pt.id)
                     let isCurrent = pt.id == hlId
@@ -233,6 +237,11 @@ struct GalaxyMapView: View {
 
                     let raw = project(pt.x, pt.z)
                     let screen = transform(raw)
+
+                    // Cull off-screen points (keep a small margin for labels that bleed in)
+                    guard screen.x >= -30 && screen.x <= canvasSize.width + 30 &&
+                          screen.y >= -30 && screen.y <= canvasSize.height + 30 else { continue }
+
                     let color = regionColor(pt.regionId)
                     let opacity = isMatch ? 1.0 : 0.05
                     let radius: CGFloat = isCurrent ? 5.0 : (isHovered ? 4.5 : 2.5)
@@ -253,13 +262,53 @@ struct GalaxyMapView: View {
                         ctx.stroke(Circle().path(in: rect), with: .color(.white.opacity(0.6)), lineWidth: 1)
                     }
 
-                    if isHovered && isMatch {
-                        let label = Text(pt.name)
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundColor(.white.opacity(0.9))
-                        let resolved = ctx.resolve(label)
+                    guard isMatch else { continue }
+
+                    // Determine whether to draw a name label for this dot:
+                    //   - Hovered or current: always
+                    //   - scale >= 3.0: all visible labels (few enough that overlap isn't an issue)
+                    //   - scale 1.8–3.0: overlap-avoided labels (fade in as zoom increases)
+                    //   - scale < 1.8: no labels (too dense — region labels provide orientation)
+                    let showLabel: Bool
+                    if isHovered || isCurrent {
+                        showLabel = true
+                    } else if currentScale >= 3.0 {
+                        showLabel = true
+                    } else if currentScale >= 1.8 {
+                        // Estimate label footprint; skip if it overlaps an already-placed label.
+                        let fontSize = 6.0 + Double(currentScale) * 1.5
+                        let estWidth = CGFloat(pt.name.count) * CGFloat(fontSize) * 0.58
+                        let labelRect = CGRect(
+                            x: screen.x - estWidth / 2,
+                            y: screen.y - radius - CGFloat(fontSize) - 4,
+                            width: estWidth,
+                            height: CGFloat(fontSize) + 2
+                        )
+                        let overlaps = placedLabelRects.contains { $0.intersects(labelRect) }
+                        if !overlaps {
+                            placedLabelRects.append(labelRect)
+                            showLabel = true
+                        } else {
+                            showLabel = false
+                        }
+                    } else {
+                        showLabel = false
+                    }
+
+                    if showLabel {
+                        let fontSize: CGFloat = isCurrent
+                            ? max(10, min(13, 8 + currentScale * 1.5))
+                            : max(8,  min(11, 6 + currentScale * 1.5))
+                        let labelAlpha = isCurrent ? 1.0 : min(1.0, 0.45 + (currentScale - 1.8) * 0.4)
+                        let nameLabel = Text(pt.name)
+                            .font(.system(size: fontSize, weight: isCurrent ? .semibold : .regular))
+                            .foregroundColor(.white.opacity(labelAlpha))
+                        let resolved = ctx.resolve(nameLabel)
                         let labelSize = resolved.measure(in: canvasSize)
-                        ctx.draw(resolved, at: CGPoint(x: screen.x, y: screen.y - radius - labelSize.height / 2 - 3))
+                        ctx.draw(resolved, at: CGPoint(
+                            x: screen.x,
+                            y: screen.y - radius - labelSize.height / 2 - 2
+                        ))
                     }
                 }
             }
