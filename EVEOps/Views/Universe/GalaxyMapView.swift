@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - Private Models
 
-private struct GalaxyPoint: Identifiable {
+private struct GalaxyPoint: Identifiable, Equatable {
     let id: Int          // constellationId
     let name: String
     let regionId: Int
@@ -45,6 +45,9 @@ struct GalaxyMapView: View {
     @State private var currentSystemSecurity: Double?
     @State private var currentShipTypeName: String?
     @State private var currentShipCustomName: String?
+    // Lazily populated on hover: maps constellationId → set of adjacent constellationIds
+    @State private var adjacentConstellations: [Int: Set<Int>] = [:]
+    @State private var hasCenteredOnLoad = false
 
     private var displayPoints: [GalaxyPoint] {
         guard !searchText.isEmpty else { return points }
@@ -187,6 +190,7 @@ struct GalaxyMapView: View {
                 let currentOffset = offset
                 let hlId = currentConstellationId
                 let hovered = hoveredId
+                let selectedId = selectedPoint?.id
                 let search = searchText
                 let filtered: Set<Int> = search.isEmpty ? [] : Set(allPoints.filter {
                     $0.name.localizedCaseInsensitiveContains(search) ||
@@ -194,6 +198,8 @@ struct GalaxyMapView: View {
                 }.map(\.id))
 
                 let project = makeBaseProjector(points: allPoints, size: canvasSize)
+                // Build a fast ID→point lookup used by adjacency line drawing
+                let ptById = Dictionary(uniqueKeysWithValues: allPoints.map { ($0.id, $0) })
 
                 func transform(_ pt: CGPoint) -> CGPoint {
                     let cx = canvasSize.width / 2, cy = canvasSize.height / 2
@@ -225,6 +231,25 @@ struct GalaxyMapView: View {
                     }
                 }
 
+                // Adjacency lines — shown for the selected constellation (click to reveal).
+                // Solid for same-region connections, dashed for cross-region jumps.
+                let adjMap = adjacentConstellations
+                if let selId = selectedId, let adjIds = adjMap[selId],
+                   let selPt = ptById[selId] {
+                    let selScreen = transform(project(selPt.x, selPt.z))
+                    for adjId in adjIds {
+                        guard let adjPt = ptById[adjId] else { continue }
+                        let adjScreen = transform(project(adjPt.x, adjPt.z))
+                        let crossRegion = adjPt.regionId != selPt.regionId
+                        var path = Path()
+                        path.move(to: selScreen)
+                        path.addLine(to: adjScreen)
+                        ctx.stroke(path, with: .color(.white.opacity(crossRegion ? 0.2 : 0.45)),
+                                   style: StrokeStyle(lineWidth: crossRegion ? 0.8 : 1.2,
+                                                      dash: crossRegion ? [4, 3] : []))
+                    }
+                }
+
                 // Constellation dots + progressive name labels.
                 // Labels fade in as zoom increases, with overlap avoidance at lower zoom levels
                 // so the map stays readable across the full zoom range.
@@ -243,23 +268,52 @@ struct GalaxyMapView: View {
                           screen.y >= -30 && screen.y <= canvasSize.height + 30 else { continue }
 
                     let color = regionColor(pt.regionId)
-                    let opacity = isMatch ? 1.0 : 0.05
-                    let radius: CGFloat = isCurrent ? 5.0 : (isHovered ? 4.5 : 2.5)
+                    // Larger radii make the sphere shading clearly visible
+                    let isSelected = pt.id == selectedId
+                    let radius: CGFloat = (isSelected || isCurrent) ? 12.0 : (isHovered ? 10.0 : 8.0)
+                    let dotAlpha: Double = isMatch ? 1.0 : 0.07
 
-                    if isCurrent && isMatch {
-                        let glowRect = CGRect(x: screen.x - 13, y: screen.y - 13, width: 26, height: 26)
-                        ctx.fill(Circle().path(in: glowRect), with: .color(.white.opacity(0.15)))
-                        let innerGlow = CGRect(x: screen.x - 8, y: screen.y - 8, width: 16, height: 16)
-                        ctx.fill(Circle().path(in: innerGlow), with: .color(color.opacity(0.35)))
+                    // Outer glow — wider halo for current and selected
+                    if (isCurrent || isSelected) && isMatch {
+                        let glowR: CGFloat = radius + 7
+                        let glowRect = CGRect(x: screen.x - glowR, y: screen.y - glowR, width: glowR * 2, height: glowR * 2)
+                        ctx.fill(Circle().path(in: glowRect), with: .color(.white.opacity(0.12)))
+                        let innerR: CGFloat = radius + 3
+                        let innerRect = CGRect(x: screen.x - innerR, y: screen.y - innerR, width: innerR * 2, height: innerR * 2)
+                        ctx.fill(Circle().path(in: innerRect), with: .color(color.opacity(0.3)))
                     }
 
                     let rect = CGRect(x: screen.x - radius, y: screen.y - radius, width: radius * 2, height: radius * 2)
-                    ctx.fill(Circle().path(in: rect), with: .color(color.opacity(opacity)))
+
+                    // Sphere shading: light from top-left, dark limb at bottom-right.
+                    // Gradient centre is offset toward the light so the bright cap is clearly off-centre.
+                    let lightCenter = CGPoint(x: screen.x - radius * 0.35, y: screen.y - radius * 0.35)
+                    ctx.fill(Circle().path(in: rect), with: .radialGradient(
+                        Gradient(stops: [
+                            .init(color: color.opacity(dotAlpha),              location: 0.0),
+                            .init(color: color.opacity(dotAlpha * 0.55),       location: 0.5),
+                            .init(color: Color.black.opacity(dotAlpha * 0.9),  location: 1.0)
+                        ]),
+                        center: lightCenter,
+                        startRadius: 0,
+                        endRadius: radius * 2.2
+                    ))
+
+                    // Specular highlight — crisp white cap at the lit pole
+                    if isMatch {
+                        let specR = max(1.2, radius * 0.32)
+                        let specRect = CGRect(
+                            x: screen.x - radius * 0.38 - specR,
+                            y: screen.y - radius * 0.38 - specR,
+                            width: specR * 2, height: specR * 2
+                        )
+                        ctx.fill(Circle().path(in: specRect), with: .color(.white.opacity(0.75)))
+                    }
 
                     if isCurrent && isMatch {
-                        ctx.stroke(Circle().path(in: rect), with: .color(.white.opacity(0.9)), lineWidth: 1.5)
-                    } else if isHovered && isMatch {
-                        ctx.stroke(Circle().path(in: rect), with: .color(.white.opacity(0.6)), lineWidth: 1)
+                        ctx.stroke(Circle().path(in: rect), with: .color(.white.opacity(0.85)), lineWidth: 1.5)
+                    } else if (isSelected || isHovered) && isMatch {
+                        ctx.stroke(Circle().path(in: rect), with: .color(.white.opacity(0.5)), lineWidth: 1)
                     }
 
                     guard isMatch else { continue }
@@ -319,7 +373,7 @@ struct GalaxyMapView: View {
                     let screen = applyTransform(raw, size: geo.size)
                     Circle()
                         .fill(.clear)
-                        .frame(width: 20, height: 20)
+                        .frame(width: 28, height: 28)
                         .contentShape(Circle())
                         .position(screen)
                         .onHover { hoveredId = $0 ? pt.id : nil }
@@ -355,6 +409,18 @@ struct GalaxyMapView: View {
             )
             .onAppear { canvasSize = geo.size }
             .onChange(of: geo.size) { canvasSize = $1 }
+            .onChange(of: canvasSize) { _, newSize in
+                if newSize != .zero && !hasCenteredOnLoad, let cid = currentConstellationId {
+                    hasCenteredOnLoad = true
+                    selectedPoint = points.first(where: { $0.id == cid })
+                    centerOnCurrentLocation()
+                }
+            }
+            .onChange(of: selectedPoint) { _, newSel in
+                if let pt = newSel, adjacentConstellations[pt.id] == nil {
+                    Task { await loadAdjacency(for: pt.id) }
+                }
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(white: 0.03))
@@ -438,6 +504,14 @@ struct GalaxyMapView: View {
 
             Label("\(pt.systemCount) solar system\(pt.systemCount == 1 ? "" : "s")", systemImage: "sun.max.fill")
                 .font(.caption2).foregroundStyle(.secondary)
+
+            if let adjIds = adjacentConstellations[pt.id] {
+                Label("\(adjIds.count) constellation connection\(adjIds.count == 1 ? "" : "s")", systemImage: "point.3.connected.trianglepath.dotted")
+                    .font(.caption2).foregroundStyle(.secondary)
+            } else {
+                Label("Loading connections…", systemImage: "point.3.connected.trianglepath.dotted")
+                    .font(.caption2).foregroundStyle(.tertiary)
+            }
 
             Divider()
 
@@ -595,6 +669,44 @@ struct GalaxyMapView: View {
         await resolveCurrentLocation()
     }
 
+    /// Loads stargate adjacency for a constellation on first hover.
+    /// Walks constellation → systems → stargates → destination systems → destination constellations.
+    private func loadAdjacency(for constellationId: Int) async {
+        guard adjacentConstellations[constellationId] == nil else { return }
+
+        guard let cons = await UniverseCache.shared.constellation(id: constellationId),
+              let systemIds = cons.systems else {
+            adjacentConstellations[constellationId] = []
+            return
+        }
+
+        // Fetch all systems in the constellation, then all their stargates concurrently
+        let adjIds: Set<Int> = await withTaskGroup(of: Set<Int>.self) { group in
+            for sysId in systemIds {
+                group.addTask {
+                    guard let sys = await UniverseCache.shared.solarSystem(id: sysId),
+                          let gateIds = sys.stargates else { return [] }
+                    var local: Set<Int> = []
+                    for gateId in gateIds {
+                        guard let gate: ESIStargate = try? await ESIClient.shared.fetch(
+                            "/universe/stargates/\(gateId)/") else { continue }
+                        let destSysId = gate.destination.systemId
+                        if let destSys = await UniverseCache.shared.solarSystem(id: destSysId),
+                           destSys.constellationId != constellationId {
+                            local.insert(destSys.constellationId)
+                        }
+                    }
+                    return local
+                }
+            }
+            var result: Set<Int> = []
+            for await partial in group { result.formUnion(partial) }
+            return result
+        }
+
+        adjacentConstellations[constellationId] = adjIds
+    }
+
     private func resolveCurrentLocation() async {
         guard let account = accountManager.selectedAccount else { return }
         let charID = account.characterID
@@ -640,6 +752,20 @@ struct GalaxyMapView: View {
             currentShipTypeName = typeName
             // Show custom name only if different from the type name
             currentShipCustomName = (ship.shipName != typeName && !ship.shipName.isEmpty) ? ship.shipName : nil
+        }
+
+        // Pre-warm adjacency for the player's current constellation
+        let cid = sys.constellationId
+        if adjacentConstellations[cid] == nil {
+            Task { await loadAdjacency(for: cid) }
+        }
+
+        // Auto-center and select on first location resolve; if canvasSize isn't ready yet,
+        // onChange(of: canvasSize) below will finish the job.
+        if !hasCenteredOnLoad && canvasSize != .zero {
+            hasCenteredOnLoad = true
+            selectedPoint = points.first(where: { $0.id == sys.constellationId })
+            centerOnCurrentLocation()
         }
     }
 }
