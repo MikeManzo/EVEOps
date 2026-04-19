@@ -1,5 +1,9 @@
 import SwiftUI
 
+// MARK: - Map Color Mode
+
+private enum MapColorMode: Hashable { case region, security }
+
 // MARK: - Private Models
 
 private struct GalaxyPoint: Identifiable, Equatable {
@@ -10,6 +14,9 @@ private struct GalaxyPoint: Identifiable, Equatable {
     let x: Double
     let z: Double
     let systemCount: Int
+    let systemIds: [Int]  // first used for route/autopilot
+
+    static func == (lhs: GalaxyPoint, rhs: GalaxyPoint) -> Bool { lhs.id == rhs.id }
 }
 
 private struct RegionLabel {
@@ -49,6 +56,25 @@ struct GalaxyMapView: View {
     @State private var adjacentConstellations: [Int: Set<Int>] = [:]
     @State private var hasCenteredOnLoad = false
 
+    // Color mode
+    @State private var colorMode: MapColorMode = .region
+    @State private var constellationSecMap: [Int: Double] = [:]
+    @State private var isLoadingSecMap = false
+
+    // Route feature
+    @State private var isRouteMode = false
+    @State private var routeOriginId: Int?
+    @State private var routeDestId: Int?
+    @State private var routeConstellationPath: [Int] = []
+    @State private var isLoadingRoute = false
+    @State private var routeMessage: String?
+
+    // Minimap
+    @State private var showMinimap = true
+
+    // Autopilot toast
+    @State private var autopilotToast: String?
+
     private var displayPoints: [GalaxyPoint] {
         guard !searchText.isEmpty else { return points }
         return points.filter {
@@ -61,6 +87,10 @@ struct GalaxyMapView: View {
         VStack(spacing: 0) {
             toolbar
             Divider()
+            if isRouteMode && !isLoading && drillConstellationId == nil {
+                routeBanner
+                Divider()
+            }
             if isLoading {
                 loadingView
             } else if let cid = drillConstellationId {
@@ -73,7 +103,7 @@ struct GalaxyMapView: View {
             } else {
                 ZStack(alignment: .topTrailing) {
                     galaxyCanvas
-                    if let sel = selectedPoint {
+                    if let sel = selectedPoint, !isRouteMode {
                         popoverView(sel)
                     }
                 }
@@ -85,6 +115,11 @@ struct GalaxyMapView: View {
                 starfieldSeeds = (0..<250).map { _ in
                     (CGFloat.random(in: 0...1), CGFloat.random(in: 0...1), CGFloat.random(in: 0.1...1.0))
                 }
+            }
+        }
+        .onChange(of: colorMode) { _, newMode in
+            if newMode == .security && constellationSecMap.isEmpty && !isLoadingSecMap {
+                Task { await loadSecurityMap() }
             }
         }
     }
@@ -114,6 +149,37 @@ struct GalaxyMapView: View {
             Spacer()
 
             if drillConstellationId == nil && !isLoading {
+                // Color mode
+                Picker("Color Mode", selection: $colorMode) {
+                    Text("Region").tag(MapColorMode.region)
+                    Text("Security").tag(MapColorMode.security)
+                }
+                .pickerStyle(.segmented)
+                .controlSize(.small)
+                .frame(width: 130)
+                .overlay(alignment: .trailing) {
+                    if isLoadingSecMap && colorMode == .security {
+                        ProgressView().controlSize(.mini).offset(x: -2)
+                    }
+                }
+
+                Divider().frame(height: 16)
+
+                // Route mode toggle
+                Toggle(isOn: $isRouteMode) {
+                    Label("Route", systemImage: "point.3.connected.trianglepath.dotted")
+                        .font(.caption)
+                }
+                .toggleStyle(.button)
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .tint(isRouteMode ? .orange : nil)
+                .onChange(of: isRouteMode) { _, on in
+                    if !on { clearRoute() }
+                }
+
+                Divider().frame(height: 16)
+
                 HStack(spacing: 6) {
                     Image(systemName: "magnifyingglass")
                         .foregroundStyle(.secondary).font(.caption)
@@ -159,6 +225,41 @@ struct GalaxyMapView: View {
         .padding(.horizontal, 16).padding(.vertical, 8)
     }
 
+    // MARK: - Route Banner
+
+    private var routeBanner: some View {
+        HStack(spacing: 8) {
+            if isLoadingRoute {
+                ProgressView().controlSize(.mini)
+                Text("Calculating route…").font(.caption).foregroundStyle(.secondary)
+            } else if let msg = routeMessage {
+                Image(systemName: routeConstellationPath.isEmpty ? "exclamationmark.triangle" : "checkmark.circle.fill")
+                    .foregroundStyle(routeConstellationPath.isEmpty ? Color.orange : Color.green)
+                    .font(.caption)
+                Text(msg).font(.caption)
+            } else if routeOriginId == nil {
+                Image(systemName: "1.circle.fill").foregroundStyle(.blue).font(.caption)
+                Text("Click a constellation to set the route origin").font(.caption).foregroundStyle(.secondary)
+            } else {
+                Image(systemName: "2.circle.fill").foregroundStyle(.orange).font(.caption)
+                if let origin = points.first(where: { $0.id == routeOriginId }) {
+                    Text("Origin: ").font(.caption).foregroundStyle(.secondary) +
+                    Text(origin.name).font(.caption.bold())
+                }
+                Text("— click the destination").font(.caption).foregroundStyle(.secondary)
+            }
+            Spacer()
+            if routeOriginId != nil || !routeConstellationPath.isEmpty {
+                Button("Clear") { clearRoute() }
+                    .buttonStyle(.plain)
+                    .font(.caption)
+                    .foregroundStyle(.blue)
+            }
+        }
+        .padding(.horizontal, 16).padding(.vertical, 6)
+        .background(Color.orange.opacity(0.06))
+    }
+
     // MARK: - Loading View
 
     private var loadingView: some View {
@@ -196,9 +297,13 @@ struct GalaxyMapView: View {
                     $0.name.localizedCaseInsensitiveContains(search) ||
                     $0.regionName.localizedCaseInsensitiveContains(search)
                 }.map(\.id))
+                let mode = colorMode
+                let secMap = constellationSecMap
+                let routePath = routeConstellationPath
+                let routeOrigin = routeOriginId
+                let routeDest = routeDestId
 
                 let project = makeBaseProjector(points: allPoints, size: canvasSize)
-                // Build a fast ID→point lookup used by adjacency line drawing
                 let ptById = Dictionary(uniqueKeysWithValues: allPoints.map { ($0.id, $0) })
 
                 func transform(_ pt: CGPoint) -> CGPoint {
@@ -231,6 +336,24 @@ struct GalaxyMapView: View {
                     }
                 }
 
+                // Route path lines (drawn before dots so dots appear on top)
+                if !routePath.isEmpty {
+                    var prevScreen: CGPoint? = nil
+                    for cid in routePath {
+                        guard let pt = ptById[cid] else { continue }
+                        let raw = project(pt.x, pt.z)
+                        let screen = transform(raw)
+                        if let prev = prevScreen {
+                            var path = Path()
+                            path.move(to: prev)
+                            path.addLine(to: screen)
+                            ctx.stroke(path, with: .color(.orange.opacity(0.55)),
+                                       style: StrokeStyle(lineWidth: 1.5))
+                        }
+                        prevScreen = screen
+                    }
+                }
+
                 // Adjacency lines — shown for the selected constellation (click to reveal).
                 // Solid for same-region connections, dashed for cross-region jumps.
                 let adjMap = adjacentConstellations
@@ -251,30 +374,41 @@ struct GalaxyMapView: View {
                 }
 
                 // Constellation dots + progressive name labels.
-                // Labels fade in as zoom increases, with overlap avoidance at lower zoom levels
-                // so the map stays readable across the full zoom range.
                 var placedLabelRects: [CGRect] = []
 
                 for pt in allPoints {
                     let isMatch = search.isEmpty || filtered.contains(pt.id)
                     let isCurrent = pt.id == hlId
                     let isHovered = pt.id == hovered
+                    let isRouteOrigin = pt.id == routeOrigin
+                    let isRouteDest   = pt.id == routeDest
+                    let isOnRoute     = !isRouteOrigin && !isRouteDest && routePath.contains(pt.id)
 
                     let raw = project(pt.x, pt.z)
                     let screen = transform(raw)
 
-                    // Cull off-screen points (keep a small margin for labels that bleed in)
                     guard screen.x >= -30 && screen.x <= canvasSize.width + 30 &&
                           screen.y >= -30 && screen.y <= canvasSize.height + 30 else { continue }
 
-                    let color = regionColor(pt.regionId)
-                    // Larger radii make the sphere shading clearly visible
+                    // Dot color based on mode
+                    let color: Color
+                    if isRouteOrigin {
+                        color = .blue
+                    } else if isRouteDest {
+                        color = .green
+                    } else if mode == .security {
+                        color = secMap[pt.id].map { securityColor($0) } ?? Color(white: 0.45)
+                    } else {
+                        color = regionColor(pt.regionId)
+                    }
+
                     let isSelected = pt.id == selectedId
-                    let radius: CGFloat = (isSelected || isCurrent) ? 12.0 : (isHovered ? 10.0 : 8.0)
+                    let radius: CGFloat = (isSelected || isCurrent || isRouteOrigin || isRouteDest) ? 12.0
+                                        : (isHovered ? 10.0 : 8.0)
                     let dotAlpha: Double = isMatch ? 1.0 : 0.07
 
-                    // Outer glow — wider halo for current and selected
-                    if (isCurrent || isSelected) && isMatch {
+                    // Outer glow for highlighted dots
+                    if (isCurrent || isSelected || isRouteOrigin || isRouteDest) && isMatch {
                         let glowR: CGFloat = radius + 7
                         let glowRect = CGRect(x: screen.x - glowR, y: screen.y - glowR, width: glowR * 2, height: glowR * 2)
                         ctx.fill(Circle().path(in: glowRect), with: .color(.white.opacity(0.12)))
@@ -283,10 +417,16 @@ struct GalaxyMapView: View {
                         ctx.fill(Circle().path(in: innerRect), with: .color(color.opacity(0.3)))
                     }
 
+                    // Subtle glow for intermediate route waypoints
+                    if isOnRoute && isMatch {
+                        let glowR: CGFloat = radius + 4
+                        let glowRect = CGRect(x: screen.x - glowR, y: screen.y - glowR, width: glowR * 2, height: glowR * 2)
+                        ctx.fill(Circle().path(in: glowRect), with: .color(Color.orange.opacity(0.15)))
+                    }
+
                     let rect = CGRect(x: screen.x - radius, y: screen.y - radius, width: radius * 2, height: radius * 2)
 
-                    // Sphere shading: light from top-left, dark limb at bottom-right.
-                    // Gradient centre is offset toward the light so the bright cap is clearly off-centre.
+                    // Sphere shading: light from top-left
                     let lightCenter = CGPoint(x: screen.x - radius * 0.35, y: screen.y - radius * 0.35)
                     ctx.fill(Circle().path(in: rect), with: .radialGradient(
                         Gradient(stops: [
@@ -299,7 +439,7 @@ struct GalaxyMapView: View {
                         endRadius: radius * 2.2
                     ))
 
-                    // Specular highlight — crisp white cap at the lit pole
+                    // Specular highlight
                     if isMatch {
                         let specR = max(1.2, radius * 0.32)
                         let specRect = CGRect(
@@ -312,24 +452,22 @@ struct GalaxyMapView: View {
 
                     if isCurrent && isMatch {
                         ctx.stroke(Circle().path(in: rect), with: .color(.white.opacity(0.85)), lineWidth: 1.5)
+                    } else if isRouteOrigin && isMatch {
+                        ctx.stroke(Circle().path(in: rect), with: .color(.blue.opacity(0.9)), lineWidth: 2)
+                    } else if isRouteDest && isMatch {
+                        ctx.stroke(Circle().path(in: rect), with: .color(.green.opacity(0.9)), lineWidth: 2)
                     } else if (isSelected || isHovered) && isMatch {
                         ctx.stroke(Circle().path(in: rect), with: .color(.white.opacity(0.5)), lineWidth: 1)
                     }
 
                     guard isMatch else { continue }
 
-                    // Determine whether to draw a name label for this dot:
-                    //   - Hovered or current: always
-                    //   - scale >= 3.0: all visible labels (few enough that overlap isn't an issue)
-                    //   - scale 1.8–3.0: overlap-avoided labels (fade in as zoom increases)
-                    //   - scale < 1.8: no labels (too dense — region labels provide orientation)
                     let showLabel: Bool
-                    if isHovered || isCurrent {
+                    if isHovered || isCurrent || isRouteOrigin || isRouteDest {
                         showLabel = true
                     } else if currentScale >= 3.0 {
                         showLabel = true
                     } else if currentScale >= 1.8 {
-                        // Estimate label footprint; skip if it overlaps an already-placed label.
                         let fontSize = 6.0 + Double(currentScale) * 1.5
                         let estWidth = CGFloat(pt.name.count) * CGFloat(fontSize) * 0.58
                         let labelRect = CGRect(
@@ -368,6 +506,8 @@ struct GalaxyMapView: View {
             }
             .overlay {
                 let proj = makeBaseProjector(points: points, size: geo.size)
+
+                // Constellation hit targets
                 ForEach(displayPoints) { pt in
                     let raw = proj(pt.x, pt.z)
                     let screen = applyTransform(raw, size: geo.size)
@@ -378,15 +518,50 @@ struct GalaxyMapView: View {
                         .position(screen)
                         .onHover { hoveredId = $0 ? pt.id : nil }
                         .onTapGesture {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                selectedPoint = (selectedPoint?.id == pt.id) ? nil : pt
+                            if isRouteMode {
+                                handleRouteTap(pt)
+                            } else {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    selectedPoint = (selectedPoint?.id == pt.id) ? nil : pt
+                                }
                             }
                         }
+                }
+
+                // Region label hit targets — invisible tap areas over each region label.
+                // Only shown when labels are visible (low zoom, no active search).
+                if scale < 2.5 && searchText.isEmpty {
+                    ForEach(regionLabels, id: \.regionId) { label in
+                        let raw = proj(label.x, label.z)
+                        let screen = applyTransform(raw, size: geo.size)
+                        Button { centerOnRegion(label.regionId) } label: {
+                            Color.clear.frame(width: 90, height: 24)
+                        }
+                        .buttonStyle(.plain)
+                        .position(screen)
+                        .help("Zoom to \(label.name)")
+                    }
                 }
             }
             .overlay(alignment: .bottomLeading) {
                 locationHUD
             }
+            .overlay(alignment: .bottomTrailing) {
+                if showMinimap && !points.isEmpty {
+                    minimapView(mainSize: geo.size)
+                }
+            }
+            .overlay(alignment: .top) {
+                if let toast = autopilotToast {
+                    Text(toast)
+                        .font(.caption)
+                        .padding(.horizontal, 12).padding(.vertical, 6)
+                        .background(.thinMaterial, in: Capsule())
+                        .padding(.top, 8)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
+            }
+            .animation(.easeInOut(duration: 0.3), value: autopilotToast)
             .gesture(
                 DragGesture()
                     .onChanged { value in
@@ -424,6 +599,123 @@ struct GalaxyMapView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(white: 0.03))
+    }
+
+    // MARK: - Minimap
+
+    /// Small overview in the bottom-right corner showing the full galaxy and a viewport rectangle.
+    private func minimapView(mainSize: CGSize) -> some View {
+        let mmW: CGFloat = 130
+        let mmH: CGFloat = 84
+        let pts = points
+        let secMap = constellationSecMap
+        let mode = colorMode
+        let hlId = currentConstellationId
+        let routePath = routeConstellationPath
+        let currentScale = scale
+        let currentOffset = offset
+
+        return Canvas { ctx, mmSize in
+            // Background
+            ctx.fill(Rectangle().path(in: CGRect(origin: .zero, size: mmSize)),
+                     with: .color(Color(white: 0.06).opacity(0.92)))
+
+            guard !pts.isEmpty else { return }
+
+            // Galaxy bounds for minimap projection
+            let xs = pts.map(\.x), zs = pts.map(\.z)
+            let minX = xs.min()!, maxX = xs.max()!
+            let minZ = zs.min()!, maxZ = zs.max()!
+            let maxRange = max(maxX - minX, maxZ - minZ, 1)
+            let mmPad: CGFloat = 5
+            let sMini = min(mmSize.width - mmPad * 2, mmSize.height - mmPad * 2) / CGFloat(maxRange)
+            let cxGal = (minX + maxX) / 2
+            let czGal = (minZ + maxZ) / 2
+
+            func projMini(_ x: Double, _ z: Double) -> CGPoint {
+                CGPoint(x: mmSize.width / 2 + CGFloat(x - cxGal) * sMini,
+                        y: mmSize.height / 2 + CGFloat(z - czGal) * sMini)
+            }
+
+            // Draw route path first (so dots sit on top)
+            if routePath.count >= 2 {
+                let ptById = Dictionary(uniqueKeysWithValues: pts.map { ($0.id, $0) })
+                var prevMm: CGPoint? = nil
+                for cid in routePath {
+                    guard let pt = ptById[cid] else { continue }
+                    let mm = projMini(pt.x, pt.z)
+                    if let prev = prevMm {
+                        var path = Path()
+                        path.move(to: prev)
+                        path.addLine(to: mm)
+                        ctx.stroke(path, with: .color(Color.orange.opacity(0.7)),
+                                   style: StrokeStyle(lineWidth: 0.75))
+                    }
+                    prevMm = mm
+                }
+            }
+
+            // Constellation dots
+            for pt in pts {
+                let screen = projMini(pt.x, pt.z)
+                let isOnRoute = routePath.contains(pt.id)
+                let r: CGFloat = isOnRoute ? 1.3 : 0.85
+                let rect = CGRect(x: screen.x - r, y: screen.y - r, width: r * 2, height: r * 2)
+                let col: Color
+                if isOnRoute {
+                    col = .orange
+                } else if mode == .security, let sec = secMap[pt.id] {
+                    col = securityColor(sec)
+                } else {
+                    col = regionColor(pt.regionId)
+                }
+                ctx.fill(Circle().path(in: rect), with: .color(col.opacity(isOnRoute ? 0.9 : 0.6)))
+            }
+
+            // Current location
+            if let cid = hlId, let pt = pts.first(where: { $0.id == cid }) {
+                let screen = projMini(pt.x, pt.z)
+                let gr: CGFloat = 4
+                ctx.fill(Circle().path(in: CGRect(x: screen.x - gr, y: screen.y - gr, width: gr * 2, height: gr * 2)),
+                         with: .color(.white.opacity(0.2)))
+                let r: CGFloat = 2.5
+                ctx.fill(Circle().path(in: CGRect(x: screen.x - r, y: screen.y - r, width: r * 2, height: r * 2)),
+                         with: .color(.white))
+            }
+
+            // Viewport rectangle.
+            // sMain and sMini share the same maxRange, so ratio = sMini / sMain.
+            let mainPad: CGFloat = 40
+            let sMain = min(mainSize.width - mainPad * 2, mainSize.height - mainPad * 2) / CGFloat(maxRange)
+            let ratio = CGFloat(sMini / sMain)
+
+            // Viewport center in main canvas raw-projection coords (scale=1, offset=0):
+            //   vpCenterRaw = mainCenter - offset / scale
+            let vpCenterRawX = mainSize.width  / 2 - currentOffset.width  / currentScale
+            let vpCenterRawY = mainSize.height / 2 - currentOffset.height / currentScale
+            let vpHalfW = (mainSize.width  / 2) / currentScale
+            let vpHalfH = (mainSize.height / 2) / currentScale
+
+            let mmCx = mmSize.width  / 2
+            let mmCy = mmSize.height / 2
+            let mainCx = mainSize.width  / 2
+            let mainCy = mainSize.height / 2
+
+            let vpLeft   = mmCx + (vpCenterRawX - mainCx - vpHalfW) * ratio
+            let vpRight  = mmCx + (vpCenterRawX - mainCx + vpHalfW) * ratio
+            let vpTop    = mmCy + (vpCenterRawY - mainCy - vpHalfH) * ratio
+            let vpBottom = mmCy + (vpCenterRawY - mainCy + vpHalfH) * ratio
+
+            if vpRight > vpLeft + 1 && vpBottom > vpTop + 1 {
+                let vr = CGRect(x: vpLeft, y: vpTop, width: vpRight - vpLeft, height: vpBottom - vpTop)
+                ctx.fill(Rectangle().path(in: vr), with: .color(.white.opacity(0.04)))
+                ctx.stroke(Rectangle().path(in: vr), with: .color(.white.opacity(0.45)), lineWidth: 0.75)
+            }
+        }
+        .frame(width: mmW, height: mmH)
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.white.opacity(0.15), lineWidth: 0.5))
+        .padding(12)
     }
 
     // MARK: - Location HUD
@@ -525,11 +817,132 @@ struct GalaxyMapView: View {
             }
             .buttonStyle(.plain)
             .foregroundStyle(.blue)
+
+            // Set autopilot destination to first system in this constellation
+            if let systemId = pt.systemIds.first, accountManager.selectedAccount != nil {
+                Button {
+                    selectedPoint = nil
+                    Task { await setAutopilotDestination(systemId: systemId, label: pt.name) }
+                } label: {
+                    Label("Set Destination", systemImage: "paperplane.fill")
+                        .font(.caption)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.blue)
+            }
+
+            // Start a route from this constellation
+            Button {
+                selectedPoint = nil
+                isRouteMode = true
+                routeOriginId = pt.id
+                routeDestId = nil
+                routeConstellationPath = []
+                routeMessage = nil
+            } label: {
+                Label("Plan Route From Here", systemImage: "point.3.connected.trianglepath.dotted")
+                    .font(.caption)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.orange)
         }
         .padding(12)
         .frame(width: 230)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
         .padding(12)
+    }
+
+    // MARK: - Route Handling
+
+    private func handleRouteTap(_ pt: GalaxyPoint) {
+        if routeOriginId == nil {
+            // Set origin
+            routeOriginId = pt.id
+            routeDestId = nil
+            routeConstellationPath = []
+            routeMessage = nil
+        } else if pt.id == routeOriginId {
+            // Tap origin again to deselect it
+            routeOriginId = nil
+        } else {
+            // Set destination and calculate
+            routeDestId = pt.id
+            Task { await calculateRoute() }
+        }
+    }
+
+    private func calculateRoute() async {
+        guard let originPt = points.first(where: { $0.id == routeOriginId }),
+              let destPt   = points.first(where: { $0.id == routeDestId }),
+              let originSys = originPt.systemIds.first,
+              let destSys   = destPt.systemIds.first else {
+            routeMessage = "Missing system data"
+            return
+        }
+
+        isLoadingRoute = true
+        routeConstellationPath = []
+        routeMessage = nil
+
+        do {
+            // ESI returns a list of solar system IDs for the route (public endpoint, no auth needed)
+            let sysIds: [Int] = try await ESIClient.shared.fetch("/route/\(originSys)/\(destSys)/")
+
+            // Map each system → constellation, deduplicating consecutive same-constellation entries
+            var conPath: [Int] = []
+            for sysId in sysIds {
+                if let sys = await UniverseCache.shared.solarSystem(id: sysId) {
+                    let cid = sys.constellationId
+                    if conPath.last != cid { conPath.append(cid) }
+                }
+            }
+
+            routeConstellationPath = conPath
+            let jumps = sysIds.count - 1
+            routeMessage = "\(jumps) jump\(jumps == 1 ? "" : "s") · \(conPath.count) constellation\(conPath.count == 1 ? "" : "s")"
+        } catch {
+            routeMessage = "No route found"
+        }
+
+        isLoadingRoute = false
+    }
+
+    private func clearRoute() {
+        routeOriginId = nil
+        routeDestId = nil
+        routeConstellationPath = []
+        routeMessage = nil
+        isLoadingRoute = false
+    }
+
+    // MARK: - Autopilot
+
+    private func setAutopilotDestination(systemId: Int, label: String) async {
+        guard let account = accountManager.selectedAccount, !account.isTokenExpired else { return }
+        do {
+            let token = try await accountManager.validToken(for: account)
+            try await ESIClient.shared.postAction(
+                "/ui/autopilot/waypoint/",
+                token: token,
+                queryItems: [
+                    URLQueryItem(name: "add_to_beginning",    value: "false"),
+                    URLQueryItem(name: "clear_other_waypoints", value: "true"),
+                    URLQueryItem(name: "destination_id",       value: "\(systemId)")
+                ]
+            )
+            withAnimation { autopilotToast = "Destination set: \(label)" }
+        } catch let err as ESIError {
+            switch err {
+            case .serverError(let code, _) where code == 403:
+                withAnimation { autopilotToast = "Requires esi-ui.write_waypoint.v1 scope" }
+            default:
+                withAnimation { autopilotToast = "Could not set destination" }
+            }
+        } catch {
+            withAnimation { autopilotToast = "Could not set destination" }
+        }
+        try? await Task.sleep(for: .seconds(3))
+        withAnimation { autopilotToast = nil }
     }
 
     // MARK: - Center On Location
@@ -543,6 +956,33 @@ struct GalaxyMapView: View {
         let targetScale: CGFloat = 3.5
         let cx = canvasSize.width / 2, cy = canvasSize.height / 2
         let newOffset = CGSize(width: -(raw.x - cx) * targetScale, height: -(raw.y - cy) * targetScale)
+        withAnimation(.easeInOut(duration: 0.5)) {
+            scale = targetScale
+            baseScale = targetScale
+            offset = newOffset
+            dragStart = newOffset
+        }
+    }
+
+    // MARK: - Center On Region
+
+    /// Animate the viewport to fit the selected region.
+    private func centerOnRegion(_ regionId: Int) {
+        let regionPts = points.filter { $0.regionId == regionId }
+        guard !regionPts.isEmpty, canvasSize != .zero else { return }
+        let proj = makeBaseProjector(points: points, size: canvasSize)
+        let screens = regionPts.map { proj($0.x, $0.z) }
+        let minX = screens.map(\.x).min()!
+        let maxX = screens.map(\.x).max()!
+        let minY = screens.map(\.y).min()!
+        let maxY = screens.map(\.y).max()!
+        let midX = (minX + maxX) / 2
+        let midY = (minY + maxY) / 2
+        let rangeX = maxX - minX + 120
+        let rangeY = maxY - minY + 80
+        let targetScale = min(canvasSize.width / rangeX, canvasSize.height / rangeY, 5.0)
+        let cx = canvasSize.width / 2, cy = canvasSize.height / 2
+        let newOffset = CGSize(width: -(midX - cx) * targetScale, height: -(midY - cy) * targetScale)
         withAnimation(.easeInOut(duration: 0.5)) {
             scale = targetScale
             baseScale = targetScale
@@ -643,7 +1083,8 @@ struct GalaxyMapView: View {
                     id: cid, name: cons.name,
                     regionId: region.id, regionName: region.name,
                     x: pos.x, z: pos.z,
-                    systemCount: cons.systems?.count ?? 0
+                    systemCount: cons.systems?.count ?? 0,
+                    systemIds: cons.systems ?? []
                 ))
             }
         }
@@ -665,11 +1106,43 @@ struct GalaxyMapView: View {
         loadingProgress = 1.0
         isLoading = false
 
-        // Resolve current character location
         await resolveCurrentLocation()
     }
 
-    /// Loads stargate adjacency for a constellation on first hover.
+    /// Loads average security status per constellation in the background.
+    /// Called the first time the user switches to Security color mode.
+    private func loadSecurityMap() async {
+        guard !isLoadingSecMap else { return }
+        isLoadingSecMap = true
+        let pts = points
+        var secMap: [Int: Double] = [:]
+
+        await withTaskGroup(of: (Int, Double?).self) { group in
+            for pt in pts {
+                group.addTask {
+                    let sysIds = pt.systemIds
+                    guard !sysIds.isEmpty else { return (pt.id, nil) }
+                    var total = 0.0
+                    var count = 0
+                    for sysId in sysIds {
+                        if let sys = await UniverseCache.shared.solarSystem(id: sysId) {
+                            total += sys.securityStatus
+                            count += 1
+                        }
+                    }
+                    return (pt.id, count > 0 ? total / Double(count) : nil)
+                }
+            }
+            for await (id, sec) in group {
+                if let sec { secMap[id] = sec }
+            }
+        }
+
+        constellationSecMap = secMap
+        isLoadingSecMap = false
+    }
+
+    /// Loads stargate adjacency for a constellation on first select.
     /// Walks constellation → systems → stargates → destination systems → destination constellations.
     private func loadAdjacency(for constellationId: Int) async {
         guard adjacentConstellations[constellationId] == nil else { return }
@@ -680,7 +1153,6 @@ struct GalaxyMapView: View {
             return
         }
 
-        // Fetch all systems in the constellation, then all their stargates concurrently
         let adjIds: Set<Int> = await withTaskGroup(of: Set<Int>.self) { group in
             for sysId in systemIds {
                 group.addTask {
@@ -711,21 +1183,18 @@ struct GalaxyMapView: View {
         guard let account = accountManager.selectedAccount else { return }
         let charID = account.characterID
 
-        // Try prefetcher first (instant, no network)
         if let data = prefetcher.data(for: charID) {
             let sysId = data.location.solarSystemId
             if let sys = prefetcher.resolvedSystems[sysId] {
                 applyLocationInfo(sys: sys, ship: data.ship, charID: charID)
                 return
             }
-            // System not pre-resolved — fetch it
             if let sys = await UniverseCache.shared.solarSystem(id: sysId) {
                 applyLocationInfo(sys: sys, ship: data.ship, charID: charID)
                 return
             }
         }
 
-        // Fallback: live fetch
         guard !account.isTokenExpired,
               let token = try? await accountManager.validToken(for: account),
               let location: ESICharacterLocation = try? await ESIClient.shared.fetch(
@@ -750,18 +1219,14 @@ struct GalaxyMapView: View {
         if let ship {
             let typeName = prefetcher.resolvedTypes[ship.shipTypeId]?.name
             currentShipTypeName = typeName
-            // Show custom name only if different from the type name
             currentShipCustomName = (ship.shipName != typeName && !ship.shipName.isEmpty) ? ship.shipName : nil
         }
 
-        // Pre-warm adjacency for the player's current constellation
         let cid = sys.constellationId
         if adjacentConstellations[cid] == nil {
             Task { await loadAdjacency(for: cid) }
         }
 
-        // Auto-center and select on first location resolve; if canvasSize isn't ready yet,
-        // onChange(of: canvasSize) below will finish the job.
         if !hasCenteredOnLoad && canvasSize != .zero {
             hasCenteredOnLoad = true
             selectedPoint = points.first(where: { $0.id == sys.constellationId })
