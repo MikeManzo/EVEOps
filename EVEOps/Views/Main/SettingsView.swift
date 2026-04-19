@@ -443,6 +443,18 @@ private struct AboutTab: View {
                 .padding(.horizontal, 40)
 
             VStack(spacing: 12) {
+                Text("Acknowledgements")
+                    .font(.headline)
+
+                Text("Inspired by EVE Buddy")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            Divider()
+                .padding(.horizontal, 40)
+
+            VStack(spacing: 12) {
                 Text("Legal Notices")
                     .font(.headline)
 
@@ -460,7 +472,7 @@ private struct AboutTab: View {
 
             Spacer()
 
-            Text("\u{00A9} \(currentYear) EVEOps Contributors")
+            Text("\u{00A9} \(currentYear) CitizenCoder")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         }

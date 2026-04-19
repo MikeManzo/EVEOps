@@ -765,6 +765,22 @@ nonisolated struct ESIContactLabel: Codable, Sendable, Identifiable {
     var id: Int { labelId }
 }
 
+// MARK: - Factions
+
+nonisolated struct ESIFaction: Codable, Sendable, Identifiable {
+    let factionId: Int
+    let name: String
+    let description: String
+    let solarSystemId: Int?
+    let corporationId: Int?
+    let militiaCorporationId: Int?
+    let stationCount: Int?
+    let stationSystemCount: Int?
+    let sizeFactor: Double?
+    let isUnique: Bool?
+    var id: Int { factionId }
+}
+
 // MARK: - Standings
 
 nonisolated struct ESIStanding: Codable, Sendable, Identifiable {

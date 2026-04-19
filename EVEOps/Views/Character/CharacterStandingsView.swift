@@ -10,7 +10,7 @@ struct CharacterStandingsView: View {
         LoadingStateView(isLoading: isLoading, error: error, isEmpty: groups.isEmpty, emptyMessage: "No standings found") {
             List {
                 ForEach(groups, id: \.characterName) { group in
-                    Section(group.characterName) {
+                    Section(header: Text(group.characterName).font(.title3).bold()) {
                         ForEach(["faction", "npc_corp", "agent"], id: \.self) { fromType in
                             let filtered = group.standings.filter { $0.fromType == fromType }
                             if !filtered.isEmpty {
@@ -63,12 +63,21 @@ struct StandingsGroup {
 struct StandingTypeSection: View {
     let label: String
     let standings: [ESIStanding]
+    @AppStorage private var isExpanded: Bool
+
+    init(label: String, standings: [ESIStanding]) {
+        self.label = label
+        self.standings = standings
+        self._isExpanded = AppStorage(wrappedValue: true, "standings.section.\(label)")
+    }
 
     var body: some View {
-        DisclosureGroup(label) {
+        DisclosureGroup(isExpanded: $isExpanded) {
             ForEach(standings.sorted { abs($0.standing) > abs($1.standing) }) { standing in
                 StandingRow(standing: standing)
             }
+        } label: {
+            Text(label).font(.headline)
         }
     }
 }
@@ -76,9 +85,26 @@ struct StandingTypeSection: View {
 struct StandingRow: View {
     let standing: ESIStanding
     @State private var name = ""
+    @State private var showPopover = false
+
+    private var iconURL: URL? {
+        switch standing.fromType {
+        case "faction", "npc_corp": return EVEImageURL.corporationLogo(standing.fromId, size: 64)
+        case "agent": return EVEImageURL.characterPortrait(standing.fromId, size: 64)
+        default: return nil
+        }
+    }
 
     var body: some View {
         HStack(spacing: 10) {
+            AsyncImage(url: iconURL) { image in
+                image.resizable().scaledToFit()
+            } placeholder: {
+                RoundedRectangle(cornerRadius: 6).fill(.quaternary)
+            }
+            .frame(width: 32, height: 32)
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+
             VStack(alignment: .leading, spacing: 2) {
                 Text(name.isEmpty ? "ID #\(standing.fromId)" : name).font(.subheadline)
             }
@@ -102,6 +128,92 @@ struct StandingRow: View {
                     .frame(width: 40, alignment: .trailing)
             }
         }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if standing.fromType == "faction" { showPopover = true }
+        }
+        .popover(isPresented: $showPopover) {
+            FactionPopoverView(standing: standing)
+                .frame(width: 320)
+        }
         .task { name = await NameResolver.shared.resolve(id: standing.fromId) }
+    }
+}
+
+struct FactionPopoverView: View {
+    let standing: ESIStanding
+    @State private var faction: ESIFaction?
+    @State private var homeSystemName: String?
+
+    private var standingColor: Color {
+        standing.standing > 0 ? .green : standing.standing < 0 ? .red : .secondary
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Header: logo + name + standing
+            HStack(spacing: 12) {
+                AsyncImage(url: EVEImageURL.corporationLogo(standing.fromId, size: 64)) { image in
+                    image.resizable().scaledToFit()
+                } placeholder: {
+                    RoundedRectangle(cornerRadius: 6).fill(.quaternary)
+                }
+                .frame(width: 64, height: 64)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+
+                VStack(alignment: .leading, spacing: 4) {
+                    if let faction {
+                        Text(faction.name).font(.headline)
+                    } else {
+                        ProgressView().controlSize(.small)
+                    }
+                    Text(String(format: "%+.1f standing", standing.standing))
+                        .font(.subheadline.bold().monospacedDigit())
+                        .foregroundStyle(standingColor)
+                }
+            }
+
+            if let faction {
+                Divider()
+
+                // Description
+                if !faction.description.isEmpty {
+                    Text(faction.description)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        //.lineLimit(6)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                // Stats grid
+                Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 6) {
+                    if let sysName = homeSystemName {
+                        GridRow {
+                            Text("Home System").font(.caption).foregroundStyle(.secondary)
+                            Text(sysName).font(.caption.bold())
+                        }
+                    }
+                    if let count = faction.stationCount {
+                        GridRow {
+                            Text("Stations").font(.caption).foregroundStyle(.secondary)
+                            Text("\(count)").font(.caption.bold())
+                        }
+                    }
+                    if let sysCount = faction.stationSystemCount {
+                        GridRow {
+                            Text("Systems w/ Stations").font(.caption).foregroundStyle(.secondary)
+                            Text("\(sysCount)").font(.caption.bold())
+                        }
+                    }
+                }
+            }
+        }
+        .padding()
+        .task {
+            faction = await UniverseCache.shared.faction(id: standing.fromId)
+            if let sysId = faction?.solarSystemId {
+                homeSystemName = await NameResolver.shared.resolve(id: sysId)
+            }
+        }
     }
 }

@@ -20,6 +20,9 @@ actor UniverseCache {
     // In-memory cache of all k-space regions (loaded once per app session)
     private var cachedKnownSpaceRegions: [(id: Int, name: String, factionId: Int?)]? = nil
 
+    // In-memory cache of all factions (small, static list — no disk persistence needed)
+    private var factions: [Int: ESIFaction] = [:]
+
     private var dirty = false
 
     private static let cacheDir: URL = {
@@ -138,6 +141,15 @@ actor UniverseCache {
         result.sort { $0.name < $1.name }
         cachedKnownSpaceRegions = result
         return result
+    }
+
+    /// Returns a single faction by ID, loading all factions from ESI on first call.
+    func faction(id: Int) async -> ESIFaction? {
+        if factions.isEmpty {
+            guard let all: [ESIFaction] = try? await ESIClient.shared.fetch("/universe/factions/") else { return nil }
+            for f in all { factions[f.factionId] = f }
+        }
+        return factions[id]
     }
 
     /// Batch-fetch multiple types concurrently, returning all resolved types

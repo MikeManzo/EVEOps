@@ -8,7 +8,7 @@ struct TrainingOverviewView: View {
     @State private var isLoading = false
     @State private var error: String?
     @State private var now = Date()
-    @State private var expandedCharacterSkills: Set<Int> = []
+    @AppStorage("collapsedSkillCharacters") private var collapsedSkillCharactersRaw: String = ""
     @State private var selectedSkill: SkillSelection?
 
     private struct SkillSelection: Equatable {
@@ -395,17 +395,27 @@ struct TrainingOverviewView: View {
 
     // MARK: - Known Skills Section
 
+    private var collapsedSkillCharacters: Set<Int> {
+        Set(collapsedSkillCharactersRaw.split(separator: ",").compactMap { Int($0) })
+    }
+
+    private func toggleSkillExpansion(for characterID: Int) {
+        var set = collapsedSkillCharacters
+        if set.contains(characterID) {
+            set.remove(characterID)
+        } else {
+            set.insert(characterID)
+        }
+        collapsedSkillCharactersRaw = set.map(String.init).joined(separator: ",")
+    }
+
     private func knownSkillsSection(_ info: CharacterTrainingInfo) -> some View {
-        let isExpanded = expandedCharacterSkills.contains(info.characterID)
+        let isExpanded = !collapsedSkillCharacters.contains(info.characterID)
 
         return VStack(alignment: .leading, spacing: 0) {
             Button {
                 withAnimation(.easeInOut(duration: 0.2)) {
-                    if isExpanded {
-                        expandedCharacterSkills.remove(info.characterID)
-                    } else {
-                        expandedCharacterSkills.insert(info.characterID)
-                    }
+                    toggleSkillExpansion(for: info.characterID)
                 }
             } label: {
                 HStack {
