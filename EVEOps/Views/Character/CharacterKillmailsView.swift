@@ -94,7 +94,7 @@ struct CharacterKillmailsView: View {
     }
 }
 
-// MARK: - Shared Kill Mail types
+// MARK:  Shared Kill Mail types
 
 struct KillmailEntry: Identifiable {
     let killmail: ESIKillmail
@@ -108,7 +108,7 @@ struct KillmailGroup {
     let killmails: [KillmailEntry]
 }
 
-// MARK: - Kill Mail Row
+// MARK:  Kill Mail Row
 
 struct KillmailRow: View {
     let entry: KillmailEntry
@@ -158,7 +158,7 @@ struct KillmailRow: View {
     }
 }
 
-// MARK: - Kill Mail Detail Sheet
+// MARK:  Kill Mail Detail Sheet
 
 struct KillmailDetailSheet: View {
     let killmail: ESIKillmail

@@ -52,7 +52,7 @@ actor UniverseCache {
         }
     }
 
-    // MARK: - Public API
+    // MARK:  Public API
 
     func type(id: Int) async -> ESIType? {
         if let cached = types[id] { return cached }
@@ -242,7 +242,7 @@ actor UniverseCache {
         return marketGroups
     }
 
-    // MARK: - Persistence
+    // MARK:  Persistence
 
     private var saveTask: Task<Void, Never>?
 

@@ -149,7 +149,7 @@ final class SSOAuthenticator: NSObject {
         return try JSONDecoder().decode(SSOTokenResponse.self, from: data)
     }
 
-    // MARK: - Private
+    // MARK:  Private
 
     private func exchangeCode(_ code: String, codeVerifier: String) async throws -> SSOTokenResponse {
         var request = URLRequest(url: URL(string: "https://login.eveonline.com/v2/oauth/token")!)

@@ -1,6 +1,6 @@
 import SwiftUI
 
-// MARK: - Selected System
+// MARK:  Selected System
 
 struct SelectedSystem: Equatable {
     let id: Int
@@ -8,7 +8,7 @@ struct SelectedSystem: Equatable {
     let securityStatus: Double
 }
 
-// MARK: - Route Planner View
+// MARK:  Route Planner View
 
 struct RoutePlannerView: View {
     @Environment(AccountManager.self) private var accountManager
@@ -37,7 +37,7 @@ struct RoutePlannerView: View {
         .navigationTitle("Route Planner")
     }
 
-    // MARK: - Input Panel
+    // MARK:  Input Panel
 
     private var inputPanel: some View {
         GroupBox {
@@ -130,7 +130,7 @@ struct RoutePlannerView: View {
         .background(.quaternary, in: RoundedRectangle(cornerRadius: 10))
     }
 
-    // MARK: - Route Panel
+    // MARK:  Route Panel
 
     private var routePanel: some View {
         GroupBox {
@@ -213,7 +213,7 @@ struct RoutePlannerView: View {
             .background(color.opacity(0.15), in: Capsule())
     }
 
-    // MARK: - Autopilot
+    // MARK:  Autopilot
 
     private func setWaypoint(systemId: Int, clear: Bool) async {
         guard let account = accountManager.selectedAccount else { return }
@@ -275,7 +275,7 @@ struct RoutePlannerView: View {
         isSettingAutopilot = false
     }
 
-    // MARK: - Route Calculation
+    // MARK:  Route Calculation
 
     private func plotRoute() async {
         guard let origin = originSystem, let destination = destinationSystem else { return }
@@ -316,7 +316,7 @@ struct RoutePlannerView: View {
     }
 }
 
-// MARK: - Route System Model
+// MARK:  Route System Model
 
 struct RouteSystem {
     let id: Int
@@ -330,7 +330,7 @@ struct RouteSystem {
     var securityColor: Color { eveSecurityColor(securityStatus) }
 }
 
-// MARK: - System Search Field
+// MARK:  System Search Field
 
 struct SystemSearchField: View {
     let label: String
@@ -535,7 +535,7 @@ struct SystemSearchField: View {
     }
 }
 
-// MARK: - System Search Result
+// MARK:  System Search Result
 
 struct SystemSearchResult: Identifiable, Equatable {
     let id: Int
@@ -576,7 +576,7 @@ struct SystemResultRow: View {
     }
 }
 
-// MARK: - Route System Row
+// MARK:  Route System Row
 
 struct RouteSystemRow: View {
     let system: RouteSystem
@@ -664,7 +664,7 @@ struct RouteSystemRow: View {
     }
 }
 
-// MARK: - Helpers
+// MARK:  Helpers
 
 private func eveSecurityColor(_ status: Double) -> Color {
     switch status {

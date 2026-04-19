@@ -46,7 +46,7 @@ struct LocationOverviewView: View {
         }
     }
 
-    // MARK: - Location Card
+    // MARK:  Location Card
 
     private func locationCard(_ info: CharacterLocationInfo) -> some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -297,7 +297,7 @@ struct LocationOverviewView: View {
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
-    // MARK: - Station Services
+    // MARK:  Station Services
 
     private func stationServicesSection(station: ESIStation, services: [String]) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -377,7 +377,7 @@ struct LocationOverviewView: View {
         }
     }
 
-    // MARK: - System Stations
+    // MARK:  System Stations
 
     private func systemStationsSection(_ stations: [ESIStation], characterID: Int) -> some View {
         let isExpanded = Binding(
@@ -428,7 +428,7 @@ struct LocationOverviewView: View {
         }
     }
 
-    // MARK: - Star Info
+    // MARK:  Star Info
 
     private func starInfoSection(_ info: CharacterLocationInfo) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -528,7 +528,7 @@ struct LocationOverviewView: View {
         }
     }
 
-    // MARK: - Nearby Systems
+    // MARK:  Nearby Systems
 
     private func nearbySystemsSection(_ info: CharacterLocationInfo) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -573,7 +573,7 @@ struct LocationOverviewView: View {
         }
     }
 
-    // MARK: - Helpers
+    // MARK:  Helpers
 
     private func securityBadge(_ value: Double) -> some View {
         Text(String(format: "%.1f", value))
@@ -629,7 +629,7 @@ struct LocationOverviewView: View {
         return String(format: "%.0f", value)
     }
 
-    // MARK: - Prefetcher Fast Path
+    // MARK:  Prefetcher Fast Path
 
     private func buildFromPrefetcher() -> Bool {
         var data: [CharacterLocationInfo] = []
@@ -689,7 +689,7 @@ struct LocationOverviewView: View {
         return !data.isEmpty
     }
 
-    // MARK: - Data Loading
+    // MARK:  Data Loading
 
     private func loadLocations() async {
         if locations.isEmpty { isLoading = true }
@@ -859,7 +859,7 @@ struct LocationOverviewView: View {
     }
 }
 
-// MARK: - Data Model
+// MARK:  Data Model
 
 struct CharacterLocationInfo {
     let characterID: Int

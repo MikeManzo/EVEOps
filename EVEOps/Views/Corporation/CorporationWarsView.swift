@@ -31,7 +31,7 @@ struct CorporationWarsView: View {
         .task(id: accountManager.selectedCharacterID) { await load() }
     }
 
-    // MARK: - Row
+    // MARK:  Row
 
     private func warRow(_ war: ESIWar) -> some View {
         let account = accountManager.accounts.first
@@ -88,7 +88,7 @@ struct CorporationWarsView: View {
             .clipShape(Capsule())
     }
 
-    // MARK: - Load
+    // MARK:  Load
 
     private func load() async {
         guard let account = accountManager.accounts.first else { return }

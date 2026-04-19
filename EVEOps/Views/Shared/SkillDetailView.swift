@@ -50,7 +50,7 @@ struct SkillDetailView: View {
         }
     }
 
-    // MARK: - Header
+    // MARK:  Header
 
     private var headerSection: some View {
         ZStack(alignment: .bottom) {
@@ -85,7 +85,7 @@ struct SkillDetailView: View {
         }
     }
 
-    // MARK: - Training Status
+    // MARK:  Training Status
 
     private func trainingStatusSection(_ entry: TrainingQueueEntry) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -145,7 +145,7 @@ struct SkillDetailView: View {
         }
     }
 
-    // MARK: - Levels
+    // MARK:  Levels
 
     private var levelsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -228,7 +228,7 @@ struct SkillDetailView: View {
         return Color.white.opacity(0.05)
     }
 
-    // MARK: - Skill Info
+    // MARK:  Skill Info
 
     private var skillInfoSection: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -268,7 +268,7 @@ struct SkillDetailView: View {
         }
     }
 
-    // MARK: - Helpers
+    // MARK:  Helpers
 
     private func levelBadge(_ level: Int) -> some View {
         Text("L\(level)")
@@ -360,7 +360,7 @@ struct SkillDetailView: View {
         return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    // MARK: - Data Loading
+    // MARK:  Data Loading
 
     private func loadTypeInfo() async {
         typeInfo = try? await ESIClient.shared.fetch("/universe/types/\(skillId)/")

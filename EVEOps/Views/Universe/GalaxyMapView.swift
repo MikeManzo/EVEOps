@@ -1,10 +1,10 @@
 import SwiftUI
 
-// MARK: - Map Color Mode
+// MARK:  Map Color Mode
 
 private enum MapColorMode: Hashable { case region, security }
 
-// MARK: - Private Models
+// MARK:  Private Models
 
 private struct GalaxyPoint: Identifiable, Equatable {
     let id: Int          // constellationId
@@ -26,7 +26,7 @@ private struct RegionLabel {
     let z: Double
 }
 
-// MARK: - GalaxyMapView
+// MARK:  GalaxyMapView
 
 struct GalaxyMapView: View {
     @Environment(AccountManager.self) private var accountManager
@@ -124,7 +124,7 @@ struct GalaxyMapView: View {
         }
     }
 
-    // MARK: - Toolbar
+    // MARK:  Toolbar
 
     private var toolbar: some View {
         HStack(spacing: 10) {
@@ -226,7 +226,7 @@ struct GalaxyMapView: View {
         .padding(.horizontal, 16).padding(.vertical, 8)
     }
 
-    // MARK: - Route Banner
+    // MARK:  Route Banner
 
     private var routeBanner: some View {
         HStack(spacing: 8) {
@@ -263,7 +263,7 @@ struct GalaxyMapView: View {
         .background(Color.orange.opacity(0.06))
     }
 
-    // MARK: - Loading View
+    // MARK:  Loading View
 
     private var loadingView: some View {
         VStack(spacing: 16) {
@@ -282,7 +282,7 @@ struct GalaxyMapView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    // MARK: - Galaxy Canvas
+    // MARK:  Galaxy Canvas
 
     private var galaxyCanvas: some View {
         GeometryReader { geo in
@@ -604,7 +604,7 @@ struct GalaxyMapView: View {
         .background(Color(white: 0.03))
     }
 
-    // MARK: - Minimap
+    // MARK:  Minimap
 
     /// Small overview in the bottom-right corner showing the full galaxy and a viewport rectangle.
     private func minimapView(mainSize: CGSize) -> some View {
@@ -721,7 +721,7 @@ struct GalaxyMapView: View {
         .padding(12)
     }
 
-    // MARK: - Location HUD
+    // MARK:  Location HUD
 
     @ViewBuilder
     private var locationHUD: some View {
@@ -773,7 +773,7 @@ struct GalaxyMapView: View {
         }
     }
 
-    // MARK: - Constellation Popover
+    // MARK:  Constellation Popover
 
     private func popoverView(_ pt: GalaxyPoint) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -855,7 +855,7 @@ struct GalaxyMapView: View {
         .padding(12)
     }
 
-    // MARK: - Route Handling
+    // MARK:  Route Handling
 
     private func handleRouteTap(_ pt: GalaxyPoint) {
         if routeOriginId == nil {
@@ -918,7 +918,7 @@ struct GalaxyMapView: View {
         isLoadingRoute = false
     }
 
-    // MARK: - Autopilot
+    // MARK:  Autopilot
 
     private func setAutopilotDestination(systemId: Int, label: String) async {
         guard let account = accountManager.selectedAccount, !account.isTokenExpired else { return }
@@ -948,7 +948,7 @@ struct GalaxyMapView: View {
         withAnimation { autopilotToast = nil }
     }
 
-    // MARK: - Center On Location
+    // MARK:  Center On Location
 
     private func centerOnCurrentLocation() {
         guard let cid = currentConstellationId,
@@ -967,7 +967,7 @@ struct GalaxyMapView: View {
         }
     }
 
-    // MARK: - Center On Region
+    // MARK:  Center On Region
 
     /// Animate the viewport to fit the selected region.
     private func centerOnRegion(_ regionId: Int) {
@@ -994,7 +994,7 @@ struct GalaxyMapView: View {
         }
     }
 
-    // MARK: - Projection Helpers
+    // MARK:  Projection Helpers
 
     private func makeBaseProjector(points: [GalaxyPoint], size: CGSize) -> (Double, Double) -> CGPoint {
         guard !points.isEmpty else { return { _, _ in CGPoint(x: size.width / 2, y: size.height / 2) } }
@@ -1038,7 +1038,7 @@ struct GalaxyMapView: View {
         return Color(hue: hue, saturation: 0.65, brightness: 0.95)
     }
 
-    // MARK: - Data Loading
+    // MARK:  Data Loading
 
     private func loadData() async {
         isLoading = true

@@ -178,7 +178,7 @@ struct CharacterMailsView: View {
     }
 }
 
-// MARK: - Compose Mail Sheet
+// MARK:  Compose Mail Sheet
 
 struct ComposeMailSheet: View {
     let onSend: (String, [ESIMailRecipient], String) async -> Void
@@ -352,7 +352,7 @@ struct ComposeMailSheet: View {
     }
 }
 
-// MARK: - Recipient pill grid
+// MARK:  Recipient pill grid
 
 struct RecipientPillGrid<Data: RandomAccessCollection, Content: View>: View where Data.Element: Identifiable {
     let data: Data

@@ -62,7 +62,7 @@ struct ColonyDetailView: View {
         }
     }
 
-    // MARK: - Stats Bar
+    // MARK:  Stats Bar
 
     private var statsBar: some View {
         HStack(spacing: 0) {
@@ -92,7 +92,7 @@ struct ColonyDetailView: View {
         .frame(maxWidth: .infinity)
     }
 
-    // MARK: - Extractors
+    // MARK:  Extractors
 
     private var extractorsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -160,7 +160,7 @@ struct ColonyDetailView: View {
         .padding(.vertical, 6)
     }
 
-    // MARK: - Factories
+    // MARK:  Factories
 
     private var factoriesSection: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -231,7 +231,7 @@ struct ColonyDetailView: View {
         .padding(.vertical, 6)
     }
 
-    // MARK: - Storage / Launchpads
+    // MARK:  Storage / Launchpads
 
     private var storageSection: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -280,7 +280,7 @@ struct ColonyDetailView: View {
         .padding(.vertical, 4)
     }
 
-    // MARK: - Load
+    // MARK:  Load
 
     private func load() async {
         guard let account = accountManager.accounts.first(where: { $0.characterID == characterID }) else {
@@ -335,7 +335,7 @@ struct ColonyDetailView: View {
         isLoading = false
     }
 
-    // MARK: - Helpers
+    // MARK:  Helpers
 
     private func timeUntil(_ date: Date) -> String {
         let interval = date.timeIntervalSince(now)

@@ -1,6 +1,6 @@
 import Foundation
 
-// MARK: - Character
+// MARK:  Character
 
 nonisolated struct ESICharacterPublic: Codable, Sendable {
     let allianceId: Int?
@@ -22,7 +22,7 @@ nonisolated struct ESICharacterPortrait: Codable, Sendable {
     let px512x512: String?
 }
 
-// MARK: - Location & Ship
+// MARK:  Location & Ship
 
 nonisolated struct ESICharacterLocation: Codable, Sendable {
     let solarSystemId: Int
@@ -43,7 +43,7 @@ nonisolated struct ESICharacterOnline: Codable, Sendable {
     let online: Bool
 }
 
-// MARK: - Skills
+// MARK:  Skills
 
 nonisolated struct ESISkillQueue: Codable, Sendable {
     let finishDate: Date?
@@ -69,7 +69,7 @@ nonisolated struct ESISkill: Codable, Sendable {
     let trainedSkillLevel: Int
 }
 
-// MARK: - Wallet
+// MARK:  Wallet
 
 nonisolated struct ESIWalletJournalEntry: Codable, Sendable, Identifiable {
     let amount: Double?
@@ -102,7 +102,7 @@ nonisolated struct ESIWalletTransaction: Codable, Sendable, Identifiable {
     var id: Int { transactionId }
 }
 
-// MARK: - Assets
+// MARK:  Assets
 
 nonisolated struct ESIAsset: Codable, Sendable, Identifiable {
     let isBlueprintCopy: Bool?
@@ -122,7 +122,7 @@ nonisolated struct ESIAssetName: Codable, Sendable {
     let name: String
 }
 
-// MARK: - Clones
+// MARK:  Clones
 
 nonisolated struct ESIClonesResponse: Codable, Sendable {
     let homeLocation: ESIHomeLocation?
@@ -150,7 +150,7 @@ nonisolated struct ESIImplant: Codable, Sendable {
     let typeId: Int
 }
 
-// MARK: - Planetary Interaction (PI)
+// MARK:  Planetary Interaction (PI)
 
 nonisolated struct ESIColony: Codable, Sendable, Identifiable {
     let lastUpdate: Date
@@ -224,7 +224,7 @@ nonisolated struct ESIPlanetRoute: Codable, Sendable {
     let waypoints: [Int]?
 }
 
-// MARK: - Contracts
+// MARK:  Contracts
 
 nonisolated struct ESIContract: Codable, Sendable, Identifiable {
     let acceptorId: Int
@@ -253,7 +253,7 @@ nonisolated struct ESIContract: Codable, Sendable, Identifiable {
     var id: Int { contractId }
 }
 
-// MARK: - Industry
+// MARK:  Industry
 
 nonisolated struct ESIIndustryJob: Codable, Sendable, Identifiable {
     let activityId: Int
@@ -282,7 +282,7 @@ nonisolated struct ESIIndustryJob: Codable, Sendable, Identifiable {
     var id: Int { jobId }
 }
 
-// MARK: - Mail
+// MARK:  Mail
 
 nonisolated struct ESIMailHeader: Codable, Sendable, Identifiable, Hashable, Equatable {
     let from: Int?
@@ -324,7 +324,7 @@ nonisolated struct ESIMailLabelsResponse: Codable, Sendable {
     let totalUnreadCount: Int?
 }
 
-// MARK: - Notifications
+// MARK:  Notifications
 
 nonisolated struct ESINotification: Codable, Sendable, Identifiable, Hashable {
     let isRead: Bool?
@@ -338,7 +338,7 @@ nonisolated struct ESINotification: Codable, Sendable, Identifiable, Hashable {
     var id: Int { notificationId }
 }
 
-// MARK: - Corporation
+// MARK:  Corporation
 
 nonisolated struct ESIAlliancePublic: Codable, Sendable {
     let name: String
@@ -435,7 +435,7 @@ nonisolated struct ESIStructureService: Codable, Sendable {
     let state: String
 }
 
-// MARK: - Universe Lookups
+// MARK:  Universe Lookups
 
 nonisolated struct ESIDogmaAttribute: Codable, Sendable {
     let attributeId: Int
@@ -572,7 +572,7 @@ nonisolated struct ESISystemJumps: Codable, Sendable {
     let systemId: Int
 }
 
-// MARK: - Market Orders
+// MARK:  Market Orders
 
 nonisolated struct ESIMarketOrder: Codable, Sendable, Identifiable {
     let duration: Int
@@ -594,14 +594,14 @@ nonisolated struct ESIMarketOrder: Codable, Sendable, Identifiable {
     var id: Int { orderId }
 }
 
-// MARK: - Loyalty Points
+// MARK:  Loyalty Points
 
 nonisolated struct ESILoyaltyPoints: Codable, Sendable {
     let corporationId: Int
     let loyaltyPoints: Int
 }
 
-// MARK: - LP Store
+// MARK:  LP Store
 
 nonisolated struct ESILPStoreOffer: Codable, Sendable, Identifiable {
     let akCost: Int?
@@ -620,7 +620,7 @@ nonisolated struct ESILPStoreRequiredItem: Codable, Sendable {
     let typeId: Int
 }
 
-// MARK: - Search / Names
+// MARK:  Search / Names
 
 nonisolated struct ESIIDsResponse: Codable, Sendable {
     let characters: [ESIIDName]?
@@ -646,7 +646,7 @@ nonisolated struct ESISearchResponse: Codable, Sendable {
     let solarSystem: [Int]?
 }
 
-// MARK: - Kill Mails
+// MARK:  Kill Mails
 
 nonisolated struct ESIKillmailRef: Codable, Sendable, Identifiable {
     let killmailHash: String
@@ -694,7 +694,7 @@ nonisolated struct ESIKillmailItem: Codable, Sendable {
     let singleton: Int
 }
 
-// MARK: - Fittings
+// MARK:  Fittings
 
 nonisolated struct ESIFitting: Codable, Sendable, Identifiable, Hashable {
     let description: String
@@ -712,7 +712,7 @@ nonisolated struct ESIFittingItem: Codable, Sendable, Identifiable, Hashable {
     var id: String { "\(flag)-\(typeId)" }
 }
 
-// MARK: - Calendar
+// MARK:  Calendar
 
 nonisolated struct ESICalendarEvent: Codable, Sendable, Identifiable {
     let eventDate: Date?
@@ -736,7 +736,7 @@ nonisolated struct ESICalendarEventDetail: Codable, Sendable {
     let title: String
 }
 
-// MARK: - Contacts
+// MARK:  Contacts
 
 nonisolated struct ESIContact: Codable, Sendable, Identifiable {
     let contactId: Int
@@ -765,7 +765,7 @@ nonisolated struct ESIContactLabel: Codable, Sendable, Identifiable {
     var id: Int { labelId }
 }
 
-// MARK: - Factions
+// MARK:  Factions
 
 nonisolated struct ESIFaction: Codable, Sendable, Identifiable {
     let factionId: Int
@@ -781,7 +781,7 @@ nonisolated struct ESIFaction: Codable, Sendable, Identifiable {
     var id: Int { factionId }
 }
 
-// MARK: - Standings
+// MARK:  Standings
 
 nonisolated struct ESIStanding: Codable, Sendable, Identifiable {
     let fromId: Int
@@ -790,7 +790,7 @@ nonisolated struct ESIStanding: Codable, Sendable, Identifiable {
     var id: Int { fromId }
 }
 
-// MARK: - Mining
+// MARK:  Mining
 
 nonisolated struct ESIMiningObserver: Codable, Sendable, Identifiable {
     let lastUpdated: Date
@@ -807,7 +807,7 @@ nonisolated struct ESIMiningLedgerEntry: Codable, Sendable {
     let typeId: Int
 }
 
-// MARK: - Write Request Models
+// MARK:  Write Request Models
 
 /// Body for sending a new mail via POST /characters/{id}/mail/
 nonisolated struct ESIMailSendRequest: Encodable, Sendable {
@@ -821,7 +821,7 @@ nonisolated struct ESICalendarResponseRequest: Encodable, Sendable {
     let response: String // "accepted", "declined", "tentative"
 }
 
-// MARK: - Token Verification (JWT)
+// MARK:  Token Verification (JWT)
 
 nonisolated struct ESITokenCharacter: Sendable {
     let characterID: Int
@@ -830,7 +830,7 @@ nonisolated struct ESITokenCharacter: Sendable {
     let expiresOn: Date
 }
 
-// MARK: - Market (Region)
+// MARK:  Market (Region)
 
 /// Market order from GET /markets/{region_id}/orders/ — different from character orders (ESIMarketOrder)
 nonisolated struct ESIRegionMarketOrder: Codable, Sendable, Identifiable {
@@ -869,7 +869,7 @@ nonisolated struct ESIMarketPrice: Codable, Sendable {
     let typeId: Int
 }
 
-// MARK: - Character Attributes (Remap Advisor)
+// MARK:  Character Attributes (Remap Advisor)
 
 nonisolated struct ESICharacterAttributes: Codable, Sendable {
     let charisma: Int
@@ -882,7 +882,7 @@ nonisolated struct ESICharacterAttributes: Codable, Sendable {
     let lastRemapDate: Date?
 }
 
-// MARK: - Research Agents
+// MARK:  Research Agents
 
 nonisolated struct ESIResearchAgent: Codable, Sendable, Identifiable {
     let agentId: Int
@@ -893,7 +893,7 @@ nonisolated struct ESIResearchAgent: Codable, Sendable, Identifiable {
     var id: Int { agentId }
 }
 
-// MARK: - Wars
+// MARK:  Wars
 
 nonisolated struct ESIWar: Codable, Sendable, Identifiable {
     let aggressor: ESIWarParty
@@ -922,7 +922,7 @@ nonisolated struct ESIWarAlly: Codable, Sendable {
     let corporationId: Int?
 }
 
-// MARK: - Bookmarks
+// MARK:  Bookmarks
 
 nonisolated struct ESIBookmarkFolder: Codable, Sendable, Identifiable {
     let folderId: Int?
@@ -954,7 +954,7 @@ nonisolated struct ESIBookmarkCoordinates: Codable, Sendable {
     let z: Double
 }
 
-// MARK: - PI Schematics
+// MARK:  PI Schematics
 
 nonisolated struct ESIPlanetSchematic: Codable, Sendable {
     let cycleTime: Int

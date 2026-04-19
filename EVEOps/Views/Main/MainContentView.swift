@@ -116,7 +116,7 @@ struct MainContentView: View {
     }
 }
 
-// MARK: - API Status Banner
+// MARK:  API Status Banner
 
 struct APIStatusBanner: View {
     let message: String

@@ -122,7 +122,7 @@ struct ItemAppraisalView: View {
         .navigationTitle("Item Appraisal")
     }
 
-    // MARK: - Row
+    // MARK:  Row
 
     private func appraisalRow(_ row: AppraisalRow) -> some View {
         HStack(spacing: 10) {
@@ -154,7 +154,7 @@ struct ItemAppraisalView: View {
         .padding(.vertical, 2)
     }
 
-    // MARK: - Appraisal Logic
+    // MARK:  Appraisal Logic
 
     private func appraise() async {
         isLoading = true
@@ -221,7 +221,7 @@ struct ItemAppraisalView: View {
         isLoading = false
     }
 
-    // MARK: - Parsing
+    // MARK:  Parsing
 
     private func parseInput(_ text: String) -> [(name: String, quantity: Int)] {
         var items: [(name: String, quantity: Int)] = []
@@ -261,7 +261,7 @@ struct ItemAppraisalView: View {
     }
 }
 
-// MARK: - Data Model
+// MARK:  Data Model
 
 private struct AppraisalRow: Identifiable {
     let typeID: Int

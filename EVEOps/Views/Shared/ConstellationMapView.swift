@@ -57,7 +57,7 @@ struct ConstellationMapView: View {
         }
     }
 
-    // MARK: - Header
+    // MARK:  Header
 
     private var mapHeader: some View {
         HStack {
@@ -104,7 +104,7 @@ struct ConstellationMapView: View {
         }
     }
 
-    // MARK: - Map Canvas
+    // MARK:  Map Canvas
 
     private var mapCanvas: some View {
         GeometryReader { geo in
@@ -338,7 +338,7 @@ struct ConstellationMapView: View {
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
-    // MARK: - System Popover
+    // MARK:  System Popover
 
     private func systemPopover(_ sys: MapSystem) -> some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -418,7 +418,7 @@ struct ConstellationMapView: View {
         .padding(8)
     }
 
-    // MARK: - Legend
+    // MARK:  Legend
 
     private var mapLegend: some View {
         HStack(spacing: 10) {
@@ -456,7 +456,7 @@ struct ConstellationMapView: View {
         }
     }
 
-    // MARK: - Projection
+    // MARK:  Projection
 
     private func projectSystems(in size: CGSize) -> [Int: CGPoint] {
         guard !systems.isEmpty else { return [:] }
@@ -496,7 +496,7 @@ struct ConstellationMapView: View {
         )
     }
 
-    // MARK: - Helpers
+    // MARK:  Helpers
 
     private func securityColor(_ value: Double) -> Color {
         switch value {
@@ -525,7 +525,7 @@ struct ConstellationMapView: View {
         }
     }
 
-    // MARK: - Data Loading
+    // MARK:  Data Loading
 
     private func loadConstellationData() async {
         isLoading = true
@@ -666,7 +666,7 @@ struct ConstellationMapView: View {
     }
 }
 
-// MARK: - Map Data Models
+// MARK:  Map Data Models
 
 struct MapSystem {
     let systemId: Int

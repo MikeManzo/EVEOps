@@ -70,7 +70,7 @@ struct TrainingOverviewView: View {
         }
     }
 
-    // MARK: - Aggregate Summary
+    // MARK:  Aggregate Summary
 
     private var aggregateSummary: some View {
         let totalSP = trainingData.reduce(0) { $0 + $1.totalSP }
@@ -122,7 +122,7 @@ struct TrainingOverviewView: View {
         .frame(maxWidth: .infinity)
     }
 
-    // MARK: - Character Training Card
+    // MARK:  Character Training Card
 
     private func characterTrainingCard(_ info: CharacterTrainingInfo) -> some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -225,7 +225,7 @@ struct TrainingOverviewView: View {
         }
     }
 
-    // MARK: - Currently Training
+    // MARK:  Currently Training
 
     private func currentlyTrainingSection(_ entry: TrainingQueueEntry, info: CharacterTrainingInfo) -> some View {
         Button {
@@ -317,7 +317,7 @@ struct TrainingOverviewView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Queue List
+    // MARK:  Queue List
 
     private func queueList(_ queue: [TrainingQueueEntry], info: CharacterTrainingInfo) -> some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -393,7 +393,7 @@ struct TrainingOverviewView: View {
         }
     }
 
-    // MARK: - Known Skills Section
+    // MARK:  Known Skills Section
 
     private var collapsedSkillCharacters: Set<Int> {
         Set(collapsedSkillCharactersRaw.split(separator: ",").compactMap { Int($0) })
@@ -551,7 +551,7 @@ struct TrainingOverviewView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Selection Helpers
+    // MARK:  Selection Helpers
 
     private func skillSelection(for entry: TrainingQueueEntry, in info: CharacterTrainingInfo) -> SkillSelection {
         let known = info.skillGroups.flatMap(\.skills).first { $0.skillId == entry.skillId }
@@ -568,7 +568,7 @@ struct TrainingOverviewView: View {
         return Color.white.opacity(0.05)
     }
 
-    // MARK: - Helpers
+    // MARK:  Helpers
 
     private func levelBadge(_ level: Int) -> some View {
         Text("L\(level)")
@@ -641,7 +641,7 @@ struct TrainingOverviewView: View {
         return "\(sp)"
     }
 
-    // MARK: - Prefetcher Fast Path
+    // MARK:  Prefetcher Fast Path
 
     private func buildFromPrefetcher() -> Bool {
         var data: [CharacterTrainingInfo] = []
@@ -721,7 +721,7 @@ struct TrainingOverviewView: View {
         return !data.isEmpty
     }
 
-    // MARK: - Data Loading
+    // MARK:  Data Loading
 
     private func loadTraining() async {
         isLoading = true
@@ -857,7 +857,7 @@ struct TrainingOverviewView: View {
     }
 }
 
-// MARK: - Data Models
+// MARK:  Data Models
 
 struct CharacterTrainingInfo {
     let characterID: Int

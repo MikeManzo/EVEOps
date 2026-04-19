@@ -1,6 +1,6 @@
 import SwiftUI
 
-// MARK: - Career Agent Type
+// MARK:  Career Agent Type
 
 enum CareerAgentType: String, CaseIterable {
     case industry = "Industry"
@@ -45,7 +45,7 @@ enum CareerAgentType: String, CaseIterable {
     }
 }
 
-// MARK: - Career Faction Data
+// MARK:  Career Faction Data
 
 struct CareerFactionData: Identifiable {
     let id: String
@@ -112,7 +112,7 @@ struct CareerFactionData: Identifiable {
     ]
 }
 
-// MARK: - Resolved System
+// MARK:  Resolved System
 
 struct ResolvedCareerSystem {
     let systemID: Int
@@ -120,7 +120,7 @@ struct ResolvedCareerSystem {
     let securityClass: String?
 }
 
-// MARK: - Selected Career Entry
+// MARK:  Selected Career Entry
 
 struct SelectedCareerEntry: Equatable {
     let factionID: String
@@ -132,7 +132,7 @@ struct SelectedCareerEntry: Equatable {
     }
 }
 
-// MARK: - Career Agents View
+// MARK:  Career Agents View
 
 struct CareerAgentsView: View {
     @Environment(AccountManager.self) private var accountManager
@@ -184,7 +184,7 @@ struct CareerAgentsView: View {
         }
     }
 
-    // MARK: - Faction Section
+    // MARK:  Faction Section
 
     private func factionSection(_ faction: CareerFactionData) -> some View {
         GroupBox {
@@ -216,7 +216,7 @@ struct CareerAgentsView: View {
         }
     }
 
-    // MARK: - Agent Row
+    // MARK:  Agent Row
 
     @ViewBuilder
     private func agentRow(faction: CareerFactionData, entry: (type: CareerAgentType, systemName: String)) -> some View {
@@ -264,7 +264,7 @@ struct CareerAgentsView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Security Badge
+    // MARK:  Security Badge
 
     private func securityBadge(_ sec: Double) -> some View {
         Text(String(format: "%.1f", max(0.0, sec)))
@@ -275,7 +275,7 @@ struct CareerAgentsView: View {
             .background(careerSecColor(sec).opacity(0.15), in: Capsule())
     }
 
-    // MARK: - Data Loading
+    // MARK:  Data Loading
 
     private func resolveAllSystems() async {
         guard resolvedSystems.isEmpty else { return }
@@ -314,7 +314,7 @@ struct CareerAgentsView: View {
     }
 }
 
-// MARK: - Career Agent Detail View
+// MARK:  Career Agent Detail View
 
 struct CareerAgentDetailView: View {
     let faction: CareerFactionData
@@ -368,7 +368,7 @@ struct CareerAgentDetailView: View {
         }
     }
 
-    // MARK: - Header
+    // MARK:  Header
 
     private var header: some View {
         ZStack(alignment: .bottomLeading) {
@@ -425,7 +425,7 @@ struct CareerAgentDetailView: View {
         }
     }
 
-    // MARK: - Action Bar
+    // MARK:  Action Bar
 
     private var actionBar: some View {
         HStack(spacing: 8) {
@@ -458,7 +458,7 @@ struct CareerAgentDetailView: View {
         .background(.bar)
     }
 
-    // MARK: - Description
+    // MARK:  Description
 
     private var descriptionSection: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -473,7 +473,7 @@ struct CareerAgentDetailView: View {
         }
     }
 
-    // MARK: - Location
+    // MARK:  Location
 
     private var locationSection: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -564,7 +564,7 @@ struct CareerAgentDetailView: View {
         }
     }
 
-    // MARK: - LP Store Section
+    // MARK:  LP Store Section
 
     private var lpStoreSection: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -663,7 +663,7 @@ struct CareerAgentDetailView: View {
         return String(format: "%.0f", value)
     }
 
-    // MARK: - Data Loading
+    // MARK:  Data Loading
 
     private func loadLocationDetails() async {
         guard let resolved else { return }
@@ -733,7 +733,7 @@ struct CareerAgentDetailView: View {
         }
     }
 
-    // MARK: - Autopilot
+    // MARK:  Autopilot
 
     private func setDestination() async {
         guard let account = accountManager.selectedAccount,
@@ -761,7 +761,7 @@ struct CareerAgentDetailView: View {
     }
 }
 
-// MARK: - Security Color
+// MARK:  Security Color
 
 private func careerSecColor(_ status: Double) -> Color {
     switch status {

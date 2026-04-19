@@ -101,7 +101,7 @@ struct CharacterCommunicationsView: View {
     }
 }
 
-// MARK: - Detail Pane
+// MARK:  Detail Pane
 
 struct NotificationDetailView: View {
     let notification: ESINotification
@@ -201,7 +201,7 @@ struct NotificationDetailView: View {
     }
 }
 
-// MARK: - Shared helpers (used by both views)
+// MARK:  Shared helpers (used by both views)
 
 private func notificationIcon(_ type: String) -> String {
     let lower = type.lowercased()

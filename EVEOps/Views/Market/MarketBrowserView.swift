@@ -1,7 +1,7 @@
 import SwiftUI
 import Charts
 
-// MARK: - Supporting Types
+// MARK:  Supporting Types
 
 private struct MarketGroupNode: Identifiable {
     let group: ESIMarketGroup
@@ -24,7 +24,7 @@ private struct ResolvedOrder: Identifiable {
     var id: Int { order.orderId }
 }
 
-// MARK: - SplitDivider (NSView-backed for jitter-free dragging)
+// MARK:  SplitDivider (NSView-backed for jitter-free dragging)
 //
 // SwiftUI's DragGesture can lose its internal translation state when the parent
 // view re-renders mid-drag, causing the pane to snap back. By routing mouse
@@ -136,7 +136,7 @@ private struct SplitDivider: View {
     }
 }
 
-// MARK: - MarketBrowserView
+// MARK:  MarketBrowserView
 
 struct MarketBrowserView: View {
     @Environment(AccountManager.self) private var accountManager
@@ -234,7 +234,7 @@ struct MarketBrowserView: View {
         .task { await loadInitialData() }
     }
 
-    // MARK: - Toolbar
+    // MARK:  Toolbar
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
@@ -276,7 +276,7 @@ struct MarketBrowserView: View {
         }
     }
 
-    // MARK: - Left Pane (search bar + group tree)
+    // MARK:  Left Pane (search bar + group tree)
 
     private var leftPane: some View {
         VStack(spacing: 0) {
@@ -288,7 +288,7 @@ struct MarketBrowserView: View {
         .background(Color(NSColor.controlBackgroundColor))
     }
 
-    // MARK: - Search Bar
+    // MARK:  Search Bar
 
     private var searchBar: some View {
         HStack(spacing: 6) {
@@ -327,7 +327,7 @@ struct MarketBrowserView: View {
         }
     }
 
-    // MARK: - Right Pane (items list — search results or group contents)
+    // MARK:  Right Pane (items list — search results or group contents)
 
     @ViewBuilder
     private var rightPane: some View {
@@ -351,7 +351,7 @@ struct MarketBrowserView: View {
         }
     }
 
-    // MARK: - Search Results List
+    // MARK:  Search Results List
 
     @ViewBuilder
     private var searchResultsList: some View {
@@ -379,7 +379,7 @@ struct MarketBrowserView: View {
         }
     }
 
-    // MARK: - Group Tree
+    // MARK:  Group Tree
 
     @ViewBuilder
     private var groupTree: some View {
@@ -429,7 +429,7 @@ struct MarketBrowserView: View {
         }
     }
 
-    // MARK: - Type Row (shared)
+    // MARK:  Type Row (shared)
 
     private func typeRow(typeId: Int, name: String) -> some View {
         HStack(spacing: 8) {
@@ -446,7 +446,7 @@ struct MarketBrowserView: View {
         }
     }
 
-    // MARK: - Detail Pane (bottom, full width)
+    // MARK:  Detail Pane (bottom, full width)
 
     @ViewBuilder
     private var detailPane: some View {
@@ -469,7 +469,7 @@ struct MarketBrowserView: View {
         }
     }
 
-    // MARK: - Group Types Panel
+    // MARK:  Group Types Panel
 
     @ViewBuilder
     private var groupTypesPanel: some View {
@@ -496,7 +496,7 @@ struct MarketBrowserView: View {
         }
     }
 
-    // MARK: - Item Detail View
+    // MARK:  Item Detail View
 
     private func itemDetailView(typeId: Int) -> some View {
         ScrollView {
@@ -535,7 +535,7 @@ struct MarketBrowserView: View {
         }
     }
 
-    // MARK: - Item Header
+    // MARK:  Item Header
 
     private func itemHeader(typeId: Int) -> some View {
         HStack(spacing: 16) {
@@ -604,7 +604,7 @@ struct MarketBrowserView: View {
         }
     }
 
-    // MARK: - Market Stats Bar
+    // MARK:  Market Stats Bar
 
     private var marketStatsBar: some View {
         HStack(spacing: 0) {
@@ -654,7 +654,7 @@ struct MarketBrowserView: View {
         .frame(maxWidth: .infinity)
     }
 
-    // MARK: - Orders Table
+    // MARK:  Orders Table
 
     private func ordersTable(orders: [ResolvedOrder], isBuy: Bool) -> some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -803,7 +803,7 @@ struct MarketBrowserView: View {
         .background(isEven ? Color.primary.opacity(0.03) : Color.clear)
     }
 
-    // MARK: - Price History
+    // MARK:  Price History
 
     @ViewBuilder
     private var priceHistoryView: some View {
@@ -907,7 +907,7 @@ struct MarketBrowserView: View {
         }
     }
 
-    // MARK: - Data Loading
+    // MARK:  Data Loading
 
     private func loadInitialData() async {
         if let account = accountManager.selectedAccount,
@@ -1003,7 +1003,7 @@ struct MarketBrowserView: View {
         isSearching = false
     }
 
-    // MARK: - Type Selection & Order Loading
+    // MARK:  Type Selection & Order Loading
 
     private func selectType(_ typeId: Int, name: String) async {
         selectedTypeId = typeId
@@ -1193,7 +1193,7 @@ struct MarketBrowserView: View {
         )
     }
 
-    // MARK: - Computed Helpers
+    // MARK:  Computed Helpers
 
     private var filteredHistory: [ESIMarketHistory] {
         guard let cutoff = Calendar.current.date(byAdding: .day, value: -historyDays, to: Date()) else {

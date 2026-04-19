@@ -23,7 +23,7 @@ struct SettingsView: View {
     }
 }
 
-// MARK: - Accounts Tab
+// MARK:  Accounts Tab
 
 private struct AccountsTab: View {
     @Environment(AccountManager.self) private var accountManager
@@ -142,7 +142,7 @@ private struct AccountRowView: View {
     }
 }
 
-// MARK: - Notifications Tab
+// MARK:  Notifications Tab
 
 private struct NotificationsTab: View {
     @AppStorage("notificationsEnabled") private var notificationsEnabled = true
@@ -184,7 +184,7 @@ private struct NotificationsTab: View {
     }
 }
 
-// MARK: - General Tab
+// MARK:  General Tab
 
 private struct GeneralTab: View {
     @Environment(AccountManager.self) private var accountManager
@@ -246,7 +246,7 @@ private struct GeneralTab: View {
     }
 }
 
-// MARK: - Appearance Tab
+// MARK:  Appearance Tab
 
 private struct AppearanceTab: View {
     @AppStorage("colorScheme") private var colorSchemePref: String = "system"
@@ -280,7 +280,7 @@ private struct AppearanceTab: View {
     }
 }
 
-// MARK: - Cache & Data Tab
+// MARK:  Cache & Data Tab
 
 private struct CacheTab: View {
     @Environment(AccountManager.self) private var accountManager
@@ -382,7 +382,7 @@ private struct CacheTab: View {
     }
 }
 
-// MARK: - Advanced Tab
+// MARK:  Advanced Tab
 
 private struct AdvancedTab: View {
     @AppStorage("esiServer") private var esiServer: String = "tranquility"
@@ -417,7 +417,7 @@ private struct AdvancedTab: View {
     }
 }
 
-// MARK: - About Tab
+// MARK:  About Tab
 
 private struct AboutTab: View {
     var body: some View {
@@ -460,9 +460,13 @@ private struct AboutTab: View {
 
                 VStack(spacing: 8) {
                     Text("EVE Online and the EVE logo are registered trademarks of CCP hf. All rights are reserved worldwide.")
+                        .fixedSize(horizontal: false, vertical: true)
                     Text("EVEOps is an independent third-party application and is not affiliated with, endorsed by, or sponsored by CCP hf.")
+                        .fixedSize(horizontal: false, vertical: true)
                     Text("All EVE Online related materials including images, characters, names, and game data are the intellectual property of CCP hf. and are used in accordance with the EVE Online Third-Party Developer License Agreement.")
+                        .fixedSize(horizontal: false, vertical: true)
                     Text("\u{201C}EVE\u{201D}, \u{201C}EVE Online\u{201D}, \u{201C}CCP\u{201D}, and all related logos and images are trademarks or registered trademarks of CCP hf.")
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)

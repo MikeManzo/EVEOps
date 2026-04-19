@@ -37,7 +37,7 @@ actor NameResolver {
         dirty = false
     }
 
-    // MARK: - Resolution
+    // MARK:  Resolution
 
     /// Batch-resolve IDs to names using universe/names endpoint.
     func resolve(ids: [Int]) async -> [Int: String] {

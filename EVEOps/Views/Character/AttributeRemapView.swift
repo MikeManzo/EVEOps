@@ -90,7 +90,7 @@ struct AttributeRemapView: View {
         }
     }
 
-    // MARK: - Remap Status
+    // MARK:  Remap Status
 
     private func remapStatusCard(_ data: CharacterRemapData) -> some View {
         HStack(spacing: 12) {
@@ -127,7 +127,7 @@ struct AttributeRemapView: View {
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
     }
 
-    // MARK: - Attributes Section
+    // MARK:  Attributes Section
 
     private func attributesSection(_ data: CharacterRemapData) -> some View {
         let attrs = data.attributes
@@ -263,7 +263,7 @@ struct AttributeRemapView: View {
         }
     }
 
-    // MARK: - Queue Demand Card
+    // MARK:  Queue Demand Card
 
     private func queueDemandCard(_ data: CharacterRemapData) -> some View {
         let pairs = data.queuePairs.sorted { $0.value > $1.value }
@@ -329,7 +329,7 @@ struct AttributeRemapView: View {
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
     }
 
-    // MARK: - Training Speed Card
+    // MARK:  Training Speed Card
 
     // Comprehensive list of known EVE attribute pairings to supplement the queue.
     // Queue-derived pairs always take precedence; any pair in the queue is shown
@@ -419,7 +419,7 @@ struct AttributeRemapView: View {
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
     }
 
-    // MARK: - Recommendation Card
+    // MARK:  Recommendation Card
 
     /// EVE remap pool: 5 attributes × base 17 + 14 free remap points = 99 base total (implants add on top).
     /// Optimal for one pair: put 10 into primary (base → 27), 4 into secondary (base → 21), rest stay at base 17.
@@ -582,7 +582,7 @@ struct AttributeRemapView: View {
         )
     }
 
-    // MARK: - Load
+    // MARK:  Load
 
     private func load() async {
         isLoading = true
@@ -681,7 +681,7 @@ struct AttributeRemapView: View {
         isLoading = false
     }
 
-    // MARK: - Helpers
+    // MARK:  Helpers
 
     private func splitPair(_ key: String) -> (String, String) {
         let parts = key.components(separatedBy: "/")
@@ -724,7 +724,7 @@ struct AttributeRemapView: View {
     }
 }
 
-// MARK: - Data Models
+// MARK:  Data Models
 
 private struct CharacterRemapData {
     let characterID: Int

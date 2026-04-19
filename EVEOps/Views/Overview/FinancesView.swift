@@ -59,7 +59,7 @@ struct FinancesView: View {
         }
     }
 
-    // MARK: - Summary Cards
+    // MARK:  Summary Cards
 
     private var summaryCards: some View {
         HStack(spacing: 16) {
@@ -84,7 +84,7 @@ struct FinancesView: View {
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
     }
 
-    // MARK: - Wealth Distribution
+    // MARK:  Wealth Distribution
 
     private var wealthDistribution: some View {
         HStack(alignment: .top, spacing: 20) {
@@ -153,7 +153,7 @@ struct FinancesView: View {
         }
     }
 
-    // MARK: - Character Selector
+    // MARK:  Character Selector
 
     private var characterSelector: some View {
         VStack(spacing: 0) {
@@ -169,7 +169,7 @@ struct FinancesView: View {
         }
     }
 
-    // MARK: - Character Detail
+    // MARK:  Character Detail
 
     @ViewBuilder
     private func characterDetail(_ finance: CharacterFinanceData) -> some View {
@@ -255,7 +255,7 @@ struct FinancesView: View {
         }
     }
 
-    // MARK: - Journal
+    // MARK:  Journal
 
     private func journalSection(_ journal: [ESIWalletJournalEntry]) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -351,7 +351,7 @@ struct FinancesView: View {
         .padding(.vertical, 8)
     }
 
-    // MARK: - Transactions
+    // MARK:  Transactions
 
     private func transactionSection(_ transactions: [ESIWalletTransaction]) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -456,7 +456,7 @@ struct FinancesView: View {
         .padding(.vertical, 8)
     }
 
-    // MARK: - Market Orders
+    // MARK:  Market Orders
 
     private func marketOrdersSection(_ orders: [ESIMarketOrder]) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -591,7 +591,7 @@ struct FinancesView: View {
         .padding(.vertical, 8)
     }
 
-    // MARK: - Loyalty Points
+    // MARK:  Loyalty Points
 
     private func loyaltyPointsSection(_ lp: [ResolvedLoyaltyPoints]) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -642,13 +642,13 @@ struct FinancesView: View {
         }
     }
 
-    // MARK: - Helpers
+    // MARK:  Helpers
 
     private func formatRefType(_ refType: String) -> String {
         refType.replacingOccurrences(of: "_", with: " ").capitalized
     }
 
-    // MARK: - Prefetcher Fast Path
+    // MARK:  Prefetcher Fast Path
 
     private func buildFromPrefetcher() -> Bool {
         var results: [CharacterFinanceData] = []
@@ -682,7 +682,7 @@ struct FinancesView: View {
         return !results.isEmpty
     }
 
-    // MARK: - Data Loading
+    // MARK:  Data Loading
 
     private func loadAllFinances() async {
         isLoading = true
@@ -750,7 +750,7 @@ struct FinancesView: View {
     }
 }
 
-// MARK: - Data Models
+// MARK:  Data Models
 
 struct CharacterFinanceData {
     let characterID: Int

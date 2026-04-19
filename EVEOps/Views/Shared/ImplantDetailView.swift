@@ -26,7 +26,7 @@ struct ImplantDetailView: View {
         .task(id: implant.typeId) { await loadTypeInfo() }
     }
 
-    // MARK: - Header
+    // MARK:  Header
 
     private var headerSection: some View {
         ZStack(alignment: .bottom) {
@@ -65,7 +65,7 @@ struct ImplantDetailView: View {
         }
     }
 
-    // MARK: - Type Info
+    // MARK:  Type Info
 
     private var typeInfoSection: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -89,7 +89,7 @@ struct ImplantDetailView: View {
         }
     }
 
-    // MARK: - Description
+    // MARK:  Description
 
     private func descriptionSection(_ description: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -104,7 +104,7 @@ struct ImplantDetailView: View {
         }
     }
 
-    // MARK: - Helpers
+    // MARK:  Helpers
 
     private func infoRow(label: String, value: String) -> some View {
         HStack(alignment: .top) {
@@ -141,7 +141,7 @@ struct ImplantDetailView: View {
         return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    // MARK: - Data Loading
+    // MARK:  Data Loading
 
     private func loadTypeInfo() async {
         guard let type = await UniverseCache.shared.type(id: implant.typeId) else { return }

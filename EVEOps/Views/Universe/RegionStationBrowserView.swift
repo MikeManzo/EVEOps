@@ -1,6 +1,6 @@
 import SwiftUI
 
-// MARK: - Security Class Filter
+// MARK:  Security Class Filter
 
 private enum SecurityClassFilter: String, CaseIterable {
     case all      = "All"
@@ -18,7 +18,7 @@ private enum SecurityClassFilter: String, CaseIterable {
     }
 }
 
-// MARK: - Region Station Browser
+// MARK:  Region Station Browser
 
 struct RegionStationBrowserView: View {
     var onNavigateToMarket: (() -> Void)? = nil
@@ -71,7 +71,7 @@ struct RegionStationBrowserView: View {
         }
     }
 
-    // MARK: - Filter Bar
+    // MARK:  Filter Bar
 
     private var filterBar: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -179,7 +179,7 @@ struct RegionStationBrowserView: View {
         .background(.bar)
     }
 
-    // MARK: - Content Area
+    // MARK:  Content Area
 
     @ViewBuilder
     private var contentArea: some View {
@@ -231,7 +231,7 @@ struct RegionStationBrowserView: View {
         }
     }
 
-    // MARK: - List Rows
+    // MARK:  List Rows
 
     private func systemHeader(_ sys: SystemGroup) -> some View {
         HStack(spacing: 6) {
@@ -283,7 +283,7 @@ struct RegionStationBrowserView: View {
         .padding(.leading, 10)
     }
 
-    // MARK: - Computed filtered/grouped data
+    // MARK:  Computed filtered/grouped data
 
     private var filteredStations: [StationEntry] {
         stations.filter { entry in
@@ -315,7 +315,7 @@ struct RegionStationBrowserView: View {
         }.sorted { $0.constellationName < $1.constellationName }
     }
 
-    // MARK: - Data Loading
+    // MARK:  Data Loading
 
     private func loadRegions() async {
         guard availableRegions.isEmpty else { return }
@@ -438,7 +438,7 @@ struct RegionStationBrowserView: View {
         }
     }
 
-    // MARK: - Helpers
+    // MARK:  Helpers
 
     private func securityColor(_ value: Double) -> Color {
         switch value {
@@ -486,7 +486,7 @@ struct RegionStationBrowserView: View {
     }
 }
 
-// MARK: - Data Models
+// MARK:  Data Models
 
 struct StationEntry: Hashable, Equatable {
     let station: ESIStation

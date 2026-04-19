@@ -160,7 +160,7 @@ struct MenuBarView: View {
         .padding(.vertical, 4)
     }
 
-    // MARK: - Data Loading
+    // MARK:  Data Loading
 
     private func loadAllSummaries() async {
         // Build summaries for all characters from prefetched data first

@@ -67,7 +67,7 @@ struct StationDetailView: View {
         }
     }
 
-    // MARK: - Action Bar
+    // MARK:  Action Bar
 
     private var actionBar: some View {
         HStack(spacing: 8) {
@@ -119,7 +119,7 @@ struct StationDetailView: View {
         .background(.bar)
     }
 
-    // MARK: - Header
+    // MARK:  Header
 
     private var header: some View {
         ZStack(alignment: .bottomLeading) {
@@ -178,7 +178,7 @@ struct StationDetailView: View {
         }
     }
 
-    // MARK: - Location
+    // MARK:  Location
 
     private var locationSection: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -229,7 +229,7 @@ struct StationDetailView: View {
         }
     }
 
-    // MARK: - Services
+    // MARK:  Services
 
     private func servicesSection(_ services: [String]) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -263,7 +263,7 @@ struct StationDetailView: View {
         .background(info.color.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
     }
 
-    // MARK: - Assets At Station
+    // MARK:  Assets At Station
 
     private var assetsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -312,7 +312,7 @@ struct StationDetailView: View {
         }
     }
 
-    // MARK: - Details
+    // MARK:  Details
 
     private var detailsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -362,7 +362,7 @@ struct StationDetailView: View {
         }
     }
 
-    // MARK: - Helpers
+    // MARK:  Helpers
 
     private func infoRow(_ label: String, _ value: String) -> some View {
         HStack(spacing: 6) {
@@ -434,7 +434,7 @@ struct StationDetailView: View {
         }
     }
 
-    // MARK: - Autopilot
+    // MARK:  Autopilot
 
     private func setAutopilot(clear: Bool) async {
         guard let account = accountManager.selectedAccount else { return }
@@ -460,7 +460,7 @@ struct StationDetailView: View {
         isSettingAutopilot = false
     }
 
-    // MARK: - Data Loading
+    // MARK:  Data Loading
 
     private func loadDetails() async {
         async let typeTask = UniverseCache.shared.type(id: entry.station.typeId)
@@ -529,7 +529,7 @@ struct StationDetailView: View {
     }
 }
 
-// MARK: - Supporting Types
+// MARK:  Supporting Types
 
 private struct StationAsset: Identifiable {
     let typeId: Int

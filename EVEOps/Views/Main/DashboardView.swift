@@ -404,7 +404,7 @@ struct DashboardView: View {
     }
 }
 
-// MARK: - Summary Data
+// MARK:  Summary Data
 
 struct CharacterSummary {
     let characterID: Int
@@ -431,7 +431,7 @@ struct CharacterSummary {
     var allianceName: String? = nil
 }
 
-// MARK: - Contact Summary
+// MARK:  Contact Summary
 
 struct ContactSummary: Identifiable {
     let contactID: Int
@@ -473,7 +473,7 @@ struct ContactSummary: Identifiable {
     }
 }
 
-// MARK: - Aggregate Summary Bar
+// MARK:  Aggregate Summary Bar
 
 struct SummaryBarView: View {
     let summaries: [CharacterSummary]
@@ -555,7 +555,7 @@ struct SummaryBarView: View {
     }
 }
 
-// MARK: - Character Card
+// MARK:  Character Card
 
 struct CharacterCardView: View {
     let account: StoredAccount
@@ -905,7 +905,7 @@ struct CharacterCardView: View {
     }
 }
 
-// MARK: - Contact Card
+// MARK:  Contact Card
 
 struct ContactCardView: View {
     let contact: ContactSummary

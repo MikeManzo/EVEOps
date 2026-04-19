@@ -31,7 +31,7 @@ struct CharacterResearchAgentsView: View {
         }
     }
 
-    // MARK: - Row
+    // MARK:  Row
 
     private func agentRow(_ agent: ResolvedResearchAgent) -> some View {
         let elapsed = now.timeIntervalSince(agent.startedAt)
@@ -66,7 +66,7 @@ struct CharacterResearchAgentsView: View {
         .padding(.vertical, 4)
     }
 
-    // MARK: - Load
+    // MARK:  Load
 
     private func load() async {
         isLoading = true
@@ -139,7 +139,7 @@ struct CharacterResearchAgentsView: View {
     }
 }
 
-// MARK: - Models
+// MARK:  Models
 
 private struct ResolvedResearchAgent: Identifiable {
     let agentId: Int

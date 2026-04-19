@@ -234,7 +234,7 @@ struct CharacterFittingsView: View {
     }
 }
 
-// MARK: - Ship List Row
+// MARK:  Ship List Row
 
 struct ShipRow: View {
     let ship: ShipEntry
@@ -284,7 +284,7 @@ struct ShipRow: View {
     }
 }
 
-// MARK: - Ship Detail Pane
+// MARK:  Ship Detail Pane
 
 struct ShipDetailPane: View {
     let ship: ShipEntry
@@ -376,7 +376,7 @@ struct ShipDetailPane: View {
     }
 }
 
-// MARK: - Fitting Slots Pane
+// MARK:  Fitting Slots Pane
 
 struct CurrentFittingPane: View {
     let modules: [ESIAsset]
@@ -447,7 +447,7 @@ struct CurrentFittingPane: View {
     }
 }
 
-// MARK: - Module Grid Cell
+// MARK:  Module Grid Cell
 
 struct ModuleCell: View {
     let module: ESIAsset
@@ -493,7 +493,7 @@ struct ModuleCell: View {
     }
 }
 
-// MARK: - Module Detail Popover
+// MARK:  Module Detail Popover
 
 struct ModuleDetailPopover: View {
     let typeId: Int

@@ -34,7 +34,7 @@ struct CorporationMembersView: View {
         .task { await loadMembers() }
     }
 
-    // MARK: - Member List
+    // MARK:  Member List
 
     private var memberList: some View {
         VStack(spacing: 0) {
@@ -134,7 +134,7 @@ struct CorporationMembersView: View {
         .padding(.vertical, 2)
     }
 
-    // MARK: - Detail Pane
+    // MARK:  Detail Pane
 
     @ViewBuilder
     private var detailPane: some View {
@@ -389,7 +389,7 @@ struct CorporationMembersView: View {
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
     }
 
-    // MARK: - Helpers
+    // MARK:  Helpers
 
     private func infoRow(_ label: String, value: String) -> some View {
         HStack {
@@ -489,7 +489,7 @@ struct CorporationMembersView: View {
         }
     }
 
-    // MARK: - Data Loading
+    // MARK:  Data Loading
 
     private func loadMembers() async {
         guard let account = accountManager.selectedAccount else { return }
@@ -595,7 +595,7 @@ struct CorporationMembersView: View {
     }
 }
 
-// MARK: - Data Models
+// MARK:  Data Models
 
 struct ResolvedMember {
     let characterId: Int
@@ -623,7 +623,7 @@ struct ResolvedCorpHistory {
     let isDeleted: Bool
 }
 
-// MARK: - Flow Layout
+// MARK:  Flow Layout
 
 struct FlowLayout: Layout {
     var spacing: CGFloat = 6
