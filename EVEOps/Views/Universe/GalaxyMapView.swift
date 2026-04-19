@@ -155,6 +155,7 @@ struct GalaxyMapView: View {
                     Text("Security").tag(MapColorMode.security)
                 }
                 .pickerStyle(.segmented)
+                .labelsHidden()
                 .controlSize(.small)
                 .frame(width: 130)
                 .overlay(alignment: .trailing) {
@@ -243,8 +244,10 @@ struct GalaxyMapView: View {
             } else {
                 Image(systemName: "2.circle.fill").foregroundStyle(.orange).font(.caption)
                 if let origin = points.first(where: { $0.id == routeOriginId }) {
-                    Text("Origin: ").font(.caption).foregroundStyle(.secondary) +
-                    Text(origin.name).font(.caption.bold())
+                    HStack(spacing: 3) {
+                        Text("Origin:").font(.caption).foregroundStyle(.secondary)
+                        Text(origin.name).font(.caption.bold())
+                    }
                 }
                 Text("— click the destination").font(.caption).foregroundStyle(.secondary)
             }
