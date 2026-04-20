@@ -53,6 +53,8 @@ struct CareerFactionData: Identifiable {
     let factionColor: Color
     /// NPC corporation ID used for the faction logo on the image server
     let factionCorpID: Int
+    /// ESI faction ID for /v2/universe/factions/
+    let factionID: Int
     /// (agent type, system name) pairs — one system per career type
     let systems: [(type: CareerAgentType, systemName: String)]
 
@@ -62,6 +64,7 @@ struct CareerFactionData: Identifiable {
             name: "Caldari State",
             factionColor: .cyan,
             factionCorpID: 1000035,   // Caldari Navy
+            factionID: 500001,
             systems: [
                 (.industry, "Uitra"),
                 (.business, "Kisogo"),
@@ -75,6 +78,7 @@ struct CareerFactionData: Identifiable {
             name: "Gallente Federation",
             factionColor: .teal,
             factionCorpID: 1000046,   // Federation Navy
+            factionID: 500004,
             systems: [
                 (.industry, "Clellinon"),
                 (.business, "Trossere"),
@@ -88,6 +92,7 @@ struct CareerFactionData: Identifiable {
             name: "Amarr Empire",
             factionColor: .yellow,
             factionCorpID: 1000096,   // Imperial Navy
+            factionID: 500003,
             systems: [
                 (.industry, "Deepari"),
                 (.business, "Conoban"),
@@ -101,6 +106,7 @@ struct CareerFactionData: Identifiable {
             name: "Minmatar Republic",
             factionColor: .orange,
             factionCorpID: 1000060,   // Republic Fleet
+            factionID: 500002,
             systems: [
                 (.industry, "Embod"),
                 (.business, "Hadaugago"),
@@ -138,6 +144,7 @@ struct CareerAgentsView: View {
     @Environment(AccountManager.self) private var accountManager
 
     @State private var resolvedSystems: [String: ResolvedCareerSystem] = [:]
+    @State private var factionDescriptions: [Int: String] = [:]
     @State private var isLoading = false
     @State private var loadError: String?
     @State private var selectedEntry: SelectedCareerEntry?
@@ -173,7 +180,8 @@ struct CareerAgentsView: View {
                     faction: faction,
                     agentType: entry.agentType,
                     systemName: entry.systemName,
-                    resolved: resolvedSystems[entry.systemName]
+                    resolved: resolvedSystems[entry.systemName],
+                    factionDescription: factionDescriptions[faction.factionID]
                 )
                 .frame(width: 300)
             }
@@ -282,35 +290,78 @@ struct CareerAgentsView: View {
         isLoading = true
         defer { isLoading = false }
 
-        let allNames = CareerFactionData.all.flatMap { $0.systems.map(\.systemName) }
+        let allFactions = CareerFactionData.all
+        let allNames = allFactions.flatMap { $0.systems.map(\.systemName) }
 
-        do {
-            let response: ESIIDsResponse = try await ESIClient.shared.post(
-                "/universe/ids/",
-                body: allNames
-            )
-            let esiSystems = response.solarSystems ?? []
+        enum FetchResult {
+            case systems([String: ResolvedCareerSystem], String?)
+            case descriptions([Int: String])
+        }
 
-            await withTaskGroup(of: (String, ResolvedCareerSystem)?.self) { group in
-                for esiSystem in esiSystems {
-                    group.addTask {
-                        guard let details = await UniverseCache.shared.solarSystem(id: esiSystem.id) else { return nil }
-                        return (esiSystem.name, ResolvedCareerSystem(
-                            systemID: esiSystem.id,
-                            securityStatus: details.securityStatus,
-                            securityClass: details.securityClass
-                        ))
+        var systemsResult: [String: ResolvedCareerSystem] = [:]
+        var systemsError: String? = nil
+        var descriptionsResult: [Int: String] = [:]
+
+        await withTaskGroup(of: FetchResult.self) { group in
+            // Resolve career system IDs + security status
+            group.addTask {
+                do {
+                    let response: ESIIDsResponse = try await ESIClient.shared.post(
+                        "/universe/ids/",
+                        body: allNames
+                    )
+                    let esiSystems = response.solarSystems ?? []
+                    var resolved: [String: ResolvedCareerSystem] = [:]
+
+                    await withTaskGroup(of: (String, ResolvedCareerSystem)?.self) { inner in
+                        for esiSystem in esiSystems {
+                            inner.addTask {
+                                guard let details = await UniverseCache.shared.solarSystem(id: esiSystem.id) else { return nil }
+                                return (esiSystem.name, ResolvedCareerSystem(
+                                    systemID: esiSystem.id,
+                                    securityStatus: details.securityStatus,
+                                    securityClass: details.securityClass
+                                ))
+                            }
+                        }
+                        for await result in inner {
+                            if let (name, system) = result {
+                                resolved[name] = system
+                            }
+                        }
                     }
-                }
-                for await result in group {
-                    if let (name, resolved) = result {
-                        resolvedSystems[name] = resolved
-                    }
+                    return .systems(resolved, nil)
+                } catch {
+                    return .systems([:], "Could not resolve system locations: \(error.localizedDescription)")
                 }
             }
-        } catch {
-            loadError = "Could not resolve system locations: \(error.localizedDescription)"
+
+            // Fetch ESI faction descriptions
+            group.addTask {
+                var descriptions: [Int: String] = [:]
+                if let factions: [ESIFaction] = try? await ESIClient.shared.fetch("/universe/factions/") {
+                    let ids = Set(allFactions.map(\.factionID))
+                    for faction in factions where ids.contains(faction.factionId) {
+                        descriptions[faction.factionId] = faction.description
+                    }
+                }
+                return .descriptions(descriptions)
+            }
+
+            for await result in group {
+                switch result {
+                case .systems(let s, let err):
+                    systemsResult = s
+                    systemsError = err
+                case .descriptions(let d):
+                    descriptionsResult = d
+                }
+            }
         }
+
+        resolvedSystems = systemsResult
+        if let err = systemsError { loadError = err }
+        factionDescriptions = descriptionsResult
     }
 }
 
@@ -321,6 +372,7 @@ struct CareerAgentDetailView: View {
     let agentType: CareerAgentType
     let systemName: String
     let resolved: ResolvedCareerSystem?
+    var factionDescription: String? = nil
 
     @Environment(AccountManager.self) private var accountManager
 
@@ -342,6 +394,10 @@ struct CareerAgentDetailView: View {
                 Divider()
                 VStack(alignment: .leading, spacing: 20) {
                     descriptionSection
+                    if factionDescription != nil {
+                        Divider()
+                        factionLoreSection
+                    }
                     Divider()
                     locationSection
                     if !lpOffers.isEmpty || lpBalance != nil {
@@ -470,6 +526,23 @@ struct CareerAgentDetailView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    // MARK:  Faction Lore
+
+    private var factionLoreSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label(faction.name, systemImage: "shield.fill")
+                .font(.subheadline.bold())
+                .foregroundStyle(faction.factionColor)
+
+            if let desc = factionDescription {
+                Text(desc)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 

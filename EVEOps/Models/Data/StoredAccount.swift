@@ -46,7 +46,9 @@ final class StoredAccount {
     }
 
     var isTokenExpired: Bool {
-        Date() >= tokenExpiry
+        // Treat token as expired 30 seconds early to guard against clock skew
+        // and the latency of sending a nearly-expired token to ESI.
+        Date() >= tokenExpiry.addingTimeInterval(-30)
     }
 
     var portraitImageURL: URL? {

@@ -12,6 +12,9 @@ final class AccountManager {
 
     private let modelContext: ModelContext
     private let authenticator: SSOAuthenticator
+    // Tracks in-flight refresh tasks keyed by character ID to prevent duplicate
+    // concurrent refreshes from consuming a single-use refresh token twice.
+    private var refreshTasks: [Int: Task<SSOTokenResponse, Error>] = [:]
 
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
@@ -103,12 +106,33 @@ final class AccountManager {
         if !account.isTokenExpired {
             return account.accessToken
         }
-        let tokenResponse = try await authenticator.refreshToken(account.refreshToken)
-        account.accessToken = tokenResponse.accessToken
-        account.refreshToken = tokenResponse.refreshToken
-        account.tokenExpiry = Date().addingTimeInterval(TimeInterval(tokenResponse.expiresIn))
-        try? modelContext.save()
-        return tokenResponse.accessToken
+
+        let charID = account.characterID
+
+        // If a refresh is already in-flight for this account, reuse it rather than
+        // sending a second request with the same (single-use) refresh token.
+        if let existing = refreshTasks[charID] {
+            let tokenResponse = try await existing.value
+            return tokenResponse.accessToken
+        }
+
+        let task = Task<SSOTokenResponse, Error> {
+            try await self.authenticator.refreshToken(account.refreshToken)
+        }
+        refreshTasks[charID] = task
+
+        do {
+            let tokenResponse = try await task.value
+            refreshTasks.removeValue(forKey: charID)
+            account.accessToken = tokenResponse.accessToken
+            account.refreshToken = tokenResponse.refreshToken
+            account.tokenExpiry = Date().addingTimeInterval(TimeInterval(tokenResponse.expiresIn))
+            try? modelContext.save()
+            return tokenResponse.accessToken
+        } catch {
+            refreshTasks.removeValue(forKey: charID)
+            throw error
+        }
     }
 
     /// Fetches current public ESI data for all accounts and unconditionally updates
