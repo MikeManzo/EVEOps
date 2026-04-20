@@ -10,6 +10,7 @@ struct FinancesView: View {
     @State private var selectedCharacterID: Int?
     @State private var selectedTab = 0
     @State private var typeNames: [Int: String] = [:]
+    @State private var isLoadingAssets = false
 
     private var totalWealth: Double {
         characterFinances.reduce(0) { $0 + $1.balance }
@@ -27,8 +28,12 @@ struct FinancesView: View {
         characterFinances.reduce(0) { $0 + $1.totalBuyOrderValue }
     }
 
+    private var totalAssetValue: Double {
+        characterFinances.reduce(0) { $0 + $1.assetValue }
+    }
+
     private var netWorth: Double {
-        totalWealth + totalEscrow + totalSellOrderValue
+        totalWealth + totalEscrow + totalSellOrderValue + totalAssetValue
     }
 
     private var selectedFinance: CharacterFinanceData? {
@@ -56,11 +61,13 @@ struct FinancesView: View {
         .task(id: accountManager.selectedCharacterID) {
             if buildFromPrefetcher() {
                 await resolveTypeNames()
+                await loadAssetValues()
                 return
             }
             isLoading = true
             await loadAllFinances()
             await resolveTypeNames()
+            await loadAssetValues()
         }
     }
 
@@ -91,69 +98,170 @@ struct FinancesView: View {
 
     // MARK:  Wealth Distribution
 
+    private var wealthCategoryData: [WealthCategory] {
+        [
+            WealthCategory(name: "Assets", value: totalAssetValue, color: .purple),
+            WealthCategory(name: "Sell Orders", value: totalSellOrderValue, color: .green),
+            WealthCategory(name: "Escrow", value: totalEscrow, color: .orange),
+            WealthCategory(name: "Wallet", value: totalWealth, color: .blue),
+        ].filter { $0.value > 0 }
+    }
+
     private var wealthDistribution: some View {
-        HStack(alignment: .top, spacing: 20) {
-            // Pie chart
-            VStack(alignment: .leading) {
+        HStack(alignment: .top, spacing: 12) {
+            // Category breakdown — always shown regardless of character count
+            VStack(alignment: .leading, spacing: 6) {
                 Text("Wealth Distribution")
-                    .font(.headline)
+                    .font(.subheadline.bold())
+
+                let categories = wealthCategoryData
+                if categories.isEmpty {
+                    Text("No wealth data")
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, minHeight: 60, alignment: .center)
+                } else {
+                    Chart(categories) { cat in
+                        SectorMark(
+                            angle: .value("ISK", cat.value),
+                            innerRadius: .ratio(0.55),
+                            angularInset: 2
+                        )
+                        .foregroundStyle(cat.color)
+                        .cornerRadius(4)
+                    }
+                    .chartLegend(.hidden)
+                    .frame(height: 100)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        ForEach(categories) { cat in
+                            HStack(spacing: 6) {
+                                Circle()
+                                    .fill(cat.color)
+                                    .frame(width: 7, height: 7)
+                                Text(cat.name)
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                                if cat.name == "Assets" && isLoadingAssets {
+                                    ProgressView()
+                                        .scaleEffect(0.4)
+                                        .frame(width: 10, height: 10)
+                                }
+                                Spacer()
+                                VStack(alignment: .trailing, spacing: 0) {
+                                    Text(EVEFormatters.formatISKShort(cat.value))
+                                        .font(.caption2.bold().monospacedDigit())
+                                        .foregroundStyle(cat.color)
+                                    if netWorth > 0 {
+                                        Text(String(format: "%.1f%%", (cat.value / netWorth) * 100))
+                                            .font(.system(size: 9))
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                            }
+                        }
+
+                        if isLoadingAssets && totalAssetValue == 0 {
+                            HStack(spacing: 4) {
+                                ProgressView().scaleEffect(0.5)
+                                Text("Valuing assets...")
+                                    .font(.system(size: 9))
+                                    .foregroundStyle(.tertiary)
+                            }
+                        }
+
+                        Text("Asset values estimated using current market average prices")
+                            .font(.system(size: 9))
+                            .foregroundStyle(.tertiary)
+                            .padding(.top, 1)
+                    }
+                }
+            }
+            .padding(10)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+
+            // Per-character breakdown
+            VStack(alignment: .leading, spacing: 6) {
+                Text("By Character")
+                    .font(.subheadline.bold())
+
                 if characterFinances.count > 1 {
                     Chart(characterFinances, id: \.characterID) { data in
                         SectorMark(
-                            angle: .value("ISK", data.balance),
+                            angle: .value("ISK", data.balance + data.totalSellOrderValue + data.totalEscrow + data.assetValue),
                             innerRadius: .ratio(0.5),
                             angularInset: 2
                         )
                         .foregroundStyle(by: .value("Character", data.characterName))
                         .cornerRadius(4)
                     }
-                    .frame(height: 220)
-                } else if let first = characterFinances.first {
-                    Text(EVEFormatters.formatISK(first.balance))
-                        .font(.title2.bold().monospacedDigit())
-                        .frame(maxWidth: .infinity, minHeight: 100, alignment: .center)
+                    .frame(height: 90)
                 }
-            }
-            .padding()
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
 
-            // Breakdown list
-            VStack(alignment: .leading, spacing: 10) {
-                Text("By Character")
-                    .font(.headline)
                 ForEach(characterFinances.sorted(by: { $0.balance > $1.balance }), id: \.characterID) { data in
-                    HStack(spacing: 10) {
-                        AsyncImage(url: EVEImageURL.characterPortrait(data.characterID, size: 128)) { image in
-                            image.resizable()
-                        } placeholder: {
-                            RoundedRectangle(cornerRadius: 4).fill(.quaternary)
-                        }
-                        .frame(width: 32, height: 32)
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(data.characterName)
-                                .font(.subheadline)
-                            Text(data.corporationName)
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
-                        }
-
-                        Spacer()
-
-                        VStack(alignment: .trailing, spacing: 2) {
-                            Text(EVEFormatters.formatISKShort(data.balance))
-                                .font(.subheadline.monospacedDigit())
-                            if totalWealth > 0 {
-                                Text(String(format: "%.1f%%", (data.balance / totalWealth) * 100))
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
+                    VStack(spacing: 3) {
+                        HStack(spacing: 6) {
+                            AsyncImage(url: EVEImageURL.characterPortrait(data.characterID, size: 128)) { image in
+                                image.resizable()
+                            } placeholder: {
+                                RoundedRectangle(cornerRadius: 3).fill(.quaternary)
                             }
+                            .frame(width: 22, height: 22)
+                            .clipShape(RoundedRectangle(cornerRadius: 3))
+
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(data.characterName)
+                                    .font(.caption2)
+                                Text(data.corporationName)
+                                    .font(.system(size: 9))
+                                    .foregroundStyle(.tertiary)
+                            }
+
+                            Spacer()
+
+                            VStack(alignment: .trailing, spacing: 1) {
+                                let charNet = data.balance + data.totalSellOrderValue + data.totalEscrow + data.assetValue
+                                Text(EVEFormatters.formatISKShort(charNet))
+                                    .font(.caption2.monospacedDigit())
+                                if netWorth > 0 {
+                                    Text(String(format: "%.1f%%", (charNet / netWorth) * 100))
+                                        .font(.system(size: 9))
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+
+                        // Mini stacked bar: assets / sell orders / escrow / wallet per character
+                        let charTotal = data.balance + data.totalSellOrderValue + data.totalEscrow + data.assetValue
+                        if charTotal > 0 {
+                            GeometryReader { geo in
+                                HStack(spacing: 1) {
+                                    if data.assetValue > 0 {
+                                        RoundedRectangle(cornerRadius: 1)
+                                            .fill(Color.purple)
+                                            .frame(width: geo.size.width * data.assetValue / charTotal)
+                                    }
+                                    if data.totalSellOrderValue > 0 {
+                                        RoundedRectangle(cornerRadius: 1)
+                                            .fill(Color.green)
+                                            .frame(width: geo.size.width * data.totalSellOrderValue / charTotal)
+                                    }
+                                    if data.totalEscrow > 0 {
+                                        RoundedRectangle(cornerRadius: 1)
+                                            .fill(Color.orange)
+                                            .frame(width: geo.size.width * data.totalEscrow / charTotal)
+                                    }
+                                    if data.balance > 0 {
+                                        RoundedRectangle(cornerRadius: 1)
+                                            .fill(Color.blue)
+                                    }
+                                }
+                            }
+                            .frame(height: 4)
                         }
                     }
                 }
             }
-            .padding()
+            .padding(10)
             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
         }
     }
@@ -647,6 +755,46 @@ struct FinancesView: View {
         }
     }
 
+    // MARK:  Asset Valuation
+
+    /// Fetches all character assets and values them using /markets/prices/ (average market prices).
+    /// Runs after finances are loaded; updates characterFinances in place as each character resolves.
+    private func loadAssetValues() async {
+        isLoadingAssets = true
+        defer { isLoadingAssets = false }
+
+        // Fetch global market prices once (public endpoint, ESI-cached ~1 hour)
+        let marketPrices: [ESIMarketPrice]
+        do {
+            marketPrices = try await ESIClient.shared.fetch("/markets/prices/")
+        } catch {
+            return
+        }
+        let priceMap = Dictionary(
+            marketPrices.map { ($0.typeId, $0.averagePrice ?? $0.adjustedPrice ?? 0.0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+
+        for i in characterFinances.indices {
+            let finance = characterFinances[i]
+            guard let account = accountManager.accounts.first(where: { $0.characterID == finance.characterID }),
+                  let token = try? await accountManager.validToken(for: account) else { continue }
+            do {
+                let assets: [ESIAsset] = try await ESIClient.shared.fetchPages(
+                    "/characters/\(finance.characterID)/assets/", token: token
+                )
+                let value = assets
+                    .filter { !($0.isBlueprintCopy ?? false) }
+                    .reduce(0.0) { sum, asset in
+                        sum + (priceMap[asset.typeId] ?? 0) * Double(asset.quantity)
+                    }
+                characterFinances[i].assetValue = value
+            } catch {
+                continue
+            }
+        }
+    }
+
     // MARK:  Type Name Resolution
 
     private func resolveTypeNames() async {
@@ -779,6 +927,8 @@ struct CharacterFinanceData {
     let transactions: [ESIWalletTransaction]
     let marketOrders: [ESIMarketOrder]
     let loyaltyPoints: [ResolvedLoyaltyPoints]
+    /// Estimated total asset value using ESI market average prices. Populated after initial load.
+    var assetValue: Double = 0
 
     var totalEscrow: Double {
         marketOrders.filter { $0.isBuyOrder ?? false }.compactMap(\.escrow).reduce(0, +)
@@ -802,4 +952,11 @@ struct ResolvedLoyaltyPoints {
 struct BalancePoint {
     let date: Date
     let balance: Double
+}
+
+struct WealthCategory: Identifiable {
+    let id = UUID()
+    let name: String
+    let value: Double
+    let color: Color
 }

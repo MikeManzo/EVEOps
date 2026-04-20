@@ -43,6 +43,57 @@ enum CareerAgentType: String, CaseIterable {
             return "Discover the universe through probe scanning, hacking, and archaeology. Agents teach data and relic site mechanics, covert navigation, and the secrets of unknown space."
         }
     }
+
+    /// Skill names (matching ESI) and a brief reason for recommending each
+    var recommendedSkills: [(name: String, reason: String)] {
+        switch self {
+        case .industry:
+            return [
+                ("Mining", "Extract ore from asteroids"),
+                ("Astrogeology", "Mine 50% more ore per cycle"),
+                ("Reprocessing", "Refine ore into minerals"),
+                ("Industry", "Faster blueprint manufacturing"),
+                ("Science", "Prerequisite for research & invention"),
+                ("Mining Upgrades", "Fit mining upgrade modules")
+            ]
+        case .business:
+            return [
+                ("Trade", "Increases active market orders"),
+                ("Retail", "Even more concurrent orders"),
+                ("Accounting", "Reduces sales tax"),
+                ("Broker Relations", "Reduces market broker fees"),
+                ("Contracting", "Run more simultaneous contracts"),
+                ("Daytrading", "Modify orders from any station")
+            ]
+        case .military:
+            return [
+                ("Gunnery", "Base skill for all turret weapons"),
+                ("Missile Launcher Operation", "Base skill for all missiles"),
+                ("Drones", "Deploy combat drones"),
+                ("Shield Management", "Increases shield capacity"),
+                ("Hull Upgrades", "Armor HP and damage control fitting"),
+                ("Navigation", "Faster base sub-warp speed")
+            ]
+        case .advancedMilitary:
+            return [
+                ("Electronic Warfare", "Operate ECM jamming modules"),
+                ("Target Painting", "Increase target signature radius"),
+                ("Weapon Upgrades", "Fit damage-boosting modules"),
+                ("Advanced Weapon Upgrades", "Reduce power grid use of weapons"),
+                ("Thermodynamics", "Overheat modules for burst performance"),
+                ("Evasive Maneuvering", "Faster ship agility and align time")
+            ]
+        case .exploration:
+            return [
+                ("Astrometrics", "Core probe scanning skill"),
+                ("Astrometric Rangefinding", "Stronger scan signal"),
+                ("Astrometric Pinpointing", "Tighter scan accuracy"),
+                ("Hacking", "Hack data site containers"),
+                ("Archaeology", "Open relic site containers"),
+                ("Covert Ops", "Fly cloaked scanning frigates")
+            ]
+        }
+    }
 }
 
 // MARK:  Career Faction Data
@@ -375,6 +426,7 @@ struct CareerAgentDetailView: View {
     var factionDescription: String? = nil
 
     @Environment(AccountManager.self) private var accountManager
+    @Environment(DashboardPrefetcher.self) private var prefetcher
 
     @State private var constellationName: String?
     @State private var regionName: String?
@@ -384,6 +436,12 @@ struct CareerAgentDetailView: View {
     @State private var lpBalance: Int?
     @State private var lpOffers: [ESILPStoreOffer] = []
     @State private var offerTypeNames: [Int: String] = [:]
+    @State private var resolvedSkillInfo: [String: ResolvedSkillInfo] = [:]
+
+    private struct ResolvedSkillInfo {
+        let skillId: Int
+        let currentLevel: Int  // 0 = not injected
+    }
 
     var body: some View {
         ScrollView {
@@ -394,6 +452,8 @@ struct CareerAgentDetailView: View {
                 Divider()
                 VStack(alignment: .leading, spacing: 20) {
                     descriptionSection
+                    Divider()
+                    recommendedSkillsSection
                     if factionDescription != nil {
                         Divider()
                         factionLoreSection
@@ -417,9 +477,11 @@ struct CareerAgentDetailView: View {
             lpBalance = nil
             lpOffers = []
             offerTypeNames = [:]
+            resolvedSkillInfo = [:]
             await withTaskGroup(of: Void.self) { group in
                 group.addTask { await loadLocationDetails() }
                 group.addTask { await loadLPStore() }
+                group.addTask { await loadRecommendedSkills() }
             }
         }
     }
@@ -734,6 +796,167 @@ struct CareerAgentDetailView: View {
         if value >= 1_000_000     { return String(format: "%.1fM", value / 1_000_000) }
         if value >= 1_000         { return String(format: "%.0fK", value / 1_000) }
         return String(format: "%.0f", value)
+    }
+
+    // MARK: Recommended Skills
+
+    private var recommendedSkillsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label("Recommended Skills", systemImage: "graduationcap.fill")
+                .font(.subheadline.bold())
+                .foregroundStyle(agentType.color)
+
+            if resolvedSkillInfo.isEmpty {
+                HStack(spacing: 6) {
+                    ProgressView().scaleEffect(0.7)
+                    Text("Loading skill data…")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                VStack(spacing: 2) {
+                    ForEach(agentType.recommendedSkills, id: \.name) { rec in
+                        if let info = resolvedSkillInfo[rec.name] {
+                            recommendedSkillRow(rec, info: info)
+                            if rec.name != agentType.recommendedSkills.last?.name {
+                                Divider().padding(.leading, 40)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func recommendedSkillRow(_ rec: (name: String, reason: String), info: ResolvedSkillInfo) -> some View {
+        HStack(spacing: 10) {
+            AsyncImage(url: EVEImageURL.typeIcon(info.skillId, size: 64)) { phase in
+                if let image = phase.image {
+                    image.resizable()
+                        .frame(width: 28, height: 28)
+                        .clipShape(RoundedRectangle(cornerRadius: 5))
+                } else {
+                    RoundedRectangle(cornerRadius: 5)
+                        .fill(.quaternary)
+                        .frame(width: 28, height: 28)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(rec.name)
+                    .font(.caption.bold())
+                    .lineLimit(1)
+                Text(rec.reason)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer()
+
+            // Current level badge
+            skillLevelBadge(info.currentLevel)
+
+            // Add to plan button
+            if info.currentLevel < 5 {
+                let nextLevel = info.currentLevel + 1
+                Menu {
+                    ForEach(nextLevel...5, id: \.self) { level in
+                        Button("Plan to L\(level)") {
+                            addSkillToPlan(skillId: info.skillId, skillName: rec.name, fromLevel: info.currentLevel, targetLevel: level)
+                        }
+                    }
+                } label: {
+                    Image(systemName: "plus.circle")
+                        .font(.callout)
+                        .foregroundStyle(agentType.color)
+                }
+                .menuStyle(.button)
+                .buttonStyle(.plain)
+            } else {
+                Text("Maxed")
+                    .font(.caption2.bold())
+                    .foregroundStyle(.orange)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(.orange.opacity(0.12), in: Capsule())
+            }
+        }
+        .padding(.vertical, 5)
+    }
+
+    private func skillLevelBadge(_ level: Int) -> some View {
+        let color: Color = switch level {
+        case 0: .secondary
+        case 1: .gray
+        case 2: .blue
+        case 3: .green
+        case 4: .purple
+        default: .orange
+        }
+        return Text(level == 0 ? "—" : "L\(level)")
+            .font(.caption2.bold().monospacedDigit())
+            .foregroundStyle(color)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(color.opacity(0.15), in: Capsule())
+    }
+
+    // MARK: Plan Integration
+
+    private func planKey(for characterID: Int) -> String {
+        "skillPlan-\(characterID)"
+    }
+
+    private func addSkillToPlan(skillId: Int, skillName: String, fromLevel: Int, targetLevel: Int) {
+        guard let account = accountManager.selectedAccount else { return }
+        let key = planKey(for: account.characterID)
+        var items = (try? JSONDecoder().decode([SkillPlanItem].self, from: UserDefaults.standard.data(forKey: key) ?? Data())) ?? []
+        items.removeAll { $0.skillId == skillId }
+        items.append(SkillPlanItem(skillId: skillId, skillName: skillName, fromLevel: fromLevel, targetLevel: targetLevel))
+        if let data = try? JSONEncoder().encode(items) {
+            UserDefaults.standard.set(data, forKey: key)
+        }
+    }
+
+    // MARK: Skill Data Loading
+
+    private func loadRecommendedSkills() async {
+        let names = agentType.recommendedSkills.map(\.name)
+        guard !names.isEmpty else { return }
+
+        // Build name → current level from prefetcher (fast path)
+        var charSkillByName: [String: Int] = [:]  // name → trained level
+        var nameToID: [String: Int] = [:]
+
+        if let account = accountManager.selectedAccount,
+           let charData = prefetcher.data(for: account.characterID) {
+            for skill in charData.skills.skills {
+                if let name = prefetcher.resolvedName(skill.skillId) {
+                    charSkillByName[name] = skill.trainedSkillLevel
+                    if names.contains(name) {
+                        nameToID[name] = skill.skillId
+                    }
+                }
+            }
+        }
+
+        // Resolve any skill IDs not yet known via /universe/ids/
+        let unknownNames = names.filter { nameToID[$0] == nil }
+        if !unknownNames.isEmpty,
+           let response: ESIIDsResponse = try? await ESIClient.shared.post("/universe/ids/", body: unknownNames) {
+            for item in response.inventoryTypes ?? [] {
+                nameToID[item.name] = item.id
+            }
+        }
+
+        // Build final resolved info
+        var result: [String: ResolvedSkillInfo] = [:]
+        for name in names {
+            guard let skillId = nameToID[name] else { continue }
+            result[name] = ResolvedSkillInfo(skillId: skillId, currentLevel: charSkillByName[name] ?? 0)
+        }
+        resolvedSkillInfo = result
     }
 
     // MARK:  Data Loading
