@@ -19,6 +19,7 @@ actor NotificationService {
                 await checkSkillQueue(for: account, token: token)
                 await checkNotifications(for: account, token: token)
                 await checkContracts(for: account, token: token)
+                await checkIndustryJobs(for: account, token: token)
             } catch {
                 // Skip this character
             }
@@ -50,8 +51,11 @@ actor NotificationService {
     }
 
     private func checkNotifications(for account: StoredAccount, token: String) async {
-        guard UserDefaults.standard.object(forKey: "notificationsEnabled") as? Bool ?? true,
-              UserDefaults.standard.object(forKey: "notifyStructureAlerts") as? Bool ?? true else { return }
+        guard UserDefaults.standard.object(forKey: "notificationsEnabled") as? Bool ?? true else { return }
+        let structureAlertsOn = UserDefaults.standard.object(forKey: "notifyStructureAlerts") as? Bool ?? true
+        let warAlertsOn = UserDefaults.standard.object(forKey: "notifyWarAlerts") as? Bool ?? true
+        guard structureAlertsOn || warAlertsOn else { return }
+
         do {
             let notifications: [ESINotification] = try await ESIClient.shared.fetch(
                 "/characters/\(account.characterID)/notifications/", token: token
@@ -64,9 +68,13 @@ actor NotificationService {
 
             for notification in newNotifications {
                 let type = notification.type.lowercased()
-                if type.contains("structure") || type.contains("attack") || type.contains("reinforce") {
+                let isStructure = type.contains("structure") || type.contains("attack") || type.contains("reinforce") || type.contains("tower") || type.contains("moonmining")
+                let isWar = type.contains("wardec") || type.contains("allyjoined") || type.contains("war") && (type.contains("declared") || type.contains("started") || type.contains("surrender"))
+                let isPIExpiry = type.contains("pi") || type.contains("planet") || type.contains("extractor")
+
+                if (structureAlertsOn && (isStructure || isPIExpiry)) || (warAlertsOn && isWar) {
                     await sendNotification(
-                        title: "EVE Communication - \(account.characterName)",
+                        title: "EVE: \(account.characterName)",
                         body: formatNotificationType(notification.type),
                         identifier: "notification-\(notification.notificationId)"
                     )
@@ -74,6 +82,33 @@ actor NotificationService {
             }
 
             lastCheckedNotifications[account.characterID] = latest.notificationId
+        } catch {
+            // Skip
+        }
+    }
+
+    private func checkIndustryJobs(for account: StoredAccount, token: String) async {
+        guard UserDefaults.standard.object(forKey: "notificationsEnabled") as? Bool ?? true,
+              UserDefaults.standard.object(forKey: "notifyIndustryFinished") as? Bool ?? true else { return }
+        do {
+            let jobs: [ESIIndustryJob] = try await ESIClient.shared.fetch(
+                "/characters/\(account.characterID)/industry/jobs/", token: token
+            )
+            let justCompleted = jobs.filter { $0.status == "delivered" || ($0.status == "ready" && $0.endDate < Date()) }
+            let key = "lastIndustryJobIDs-\(account.characterID)"
+            let lastIDs = Set((UserDefaults.standard.array(forKey: key) as? [Int]) ?? [])
+            let newlyDone = justCompleted.filter { !lastIDs.contains($0.jobId) }
+
+            if !newlyDone.isEmpty {
+                await sendNotification(
+                    title: "Industry Complete — \(account.characterName)",
+                    body: "\(newlyDone.count) job\(newlyDone.count == 1 ? "" : "s") finished",
+                    identifier: "industry-\(account.characterID)-\(Date().timeIntervalSince1970)"
+                )
+            }
+
+            let currentIDs = justCompleted.map { $0.jobId }
+            UserDefaults.standard.set(currentIDs, forKey: key)
         } catch {
             // Skip
         }

@@ -9,6 +9,7 @@ struct FinancesView: View {
     @State private var error: String?
     @State private var selectedCharacterID: Int?
     @State private var selectedTab = 0
+    @State private var typeNames: [Int: String] = [:]
 
     private var totalWealth: Double {
         characterFinances.reduce(0) { $0 + $1.balance }
@@ -53,9 +54,13 @@ struct FinancesView: View {
         }
         .navigationTitle("Finances")
         .task(id: accountManager.selectedCharacterID) {
-            if buildFromPrefetcher() { return }
+            if buildFromPrefetcher() {
+                await resolveTypeNames()
+                return
+            }
             isLoading = true
             await loadAllFinances()
+            await resolveTypeNames()
         }
     }
 
@@ -430,7 +435,7 @@ struct FinancesView: View {
             .clipShape(RoundedRectangle(cornerRadius: 4))
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("Type #\(tx.typeId)")
+                Text(typeNames[tx.typeId] ?? "Type #\(tx.typeId)")
                     .font(.subheadline)
                 Text("\(tx.quantity)x @ \(EVEFormatters.formatISK(tx.unitPrice))")
                     .font(.caption)
@@ -553,7 +558,7 @@ struct FinancesView: View {
             .clipShape(RoundedRectangle(cornerRadius: 4))
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("Type #\(order.typeId)")
+                Text(typeNames[order.typeId] ?? "Type #\(order.typeId)")
                     .font(.subheadline)
                 Text("\(order.volumeRemain)/\(order.volumeTotal) remaining")
                     .font(.caption)
@@ -640,6 +645,19 @@ struct FinancesView: View {
                 .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
             }
         }
+    }
+
+    // MARK:  Type Name Resolution
+
+    private func resolveTypeNames() async {
+        var allTypeIDs = Set<Int>()
+        for finance in characterFinances {
+            finance.transactions.forEach { allTypeIDs.insert($0.typeId) }
+            finance.marketOrders.forEach { allTypeIDs.insert($0.typeId) }
+        }
+        guard !allTypeIDs.isEmpty else { return }
+        let types = await UniverseCache.shared.types(ids: Array(allTypeIDs))
+        typeNames = types.mapValues { $0.name }
     }
 
     // MARK:  Helpers

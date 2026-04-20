@@ -45,6 +45,8 @@ struct MainContentView: View {
                 LocationOverviewView()
             case .training:
                 TrainingOverviewView()
+            case .skillPlanner:
+                SkillPlannerView()
             case .finances:
                 FinancesView()
             case .assets:

@@ -24,6 +24,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
     case careerAgents = "Career Agents"
     case market = "Market"
     case stationBrowser = "Station Browser"
+    case skillPlanner = "Skill Planner"
     // Character — tools
     case remapAdvisor = "Remap Advisor"
     case research = "Research Agents"
@@ -72,13 +73,14 @@ enum NavigationSection: String, CaseIterable, Identifiable {
         case .corpWars: return "shield.lefthalf.filled"
         case .market: return "storefront"
         case .stationBrowser: return "building.2.crop.circle.fill"
+        case .skillPlanner: return "checklist"
         case .remapAdvisor: return "brain.filled.head.profile"
         case .research: return "atom"
         }
     }
 
     static var pilotSections: [NavigationSection] {
-        [.location, .training, .clones, .research, .remapAdvisor]
+        [.location, .training, .skillPlanner, .clones, .research, .remapAdvisor]
     }
 
     static var economySections: [NavigationSection] {

@@ -51,6 +51,7 @@ struct SkillPlannerView: View {
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
                     .background(.bar)
+                    .help("Estimates assume Omega clone. Alpha clone trains at 50% speed.")
                 Divider()
             }
 
@@ -130,8 +131,8 @@ struct SkillPlannerView: View {
 
     private var planSummaryBar: some View {
         let totalSP = planItems.reduce(0) { $0 + spNeeded(for: $1) }
-        let totalSeconds = planItems.reduce(0.0) {
-            $0 + (attributes.map { trainingTime(for: $1, attrs: $0) } ?? 0)
+        let totalSeconds = planItems.reduce(0.0) { sum, item in
+            sum + (attributes.map { attrs in trainingTime(for: item, attrs: attrs) } ?? 0)
         }
 
         return HStack(spacing: 0) {
@@ -177,7 +178,7 @@ struct SkillPlannerView: View {
                 savePlan()
             } label: {
                 Image(systemName: "trash")
-                    .foregroundStyle(planItems.isEmpty ? .tertiary : .red)
+                    .foregroundStyle(planItems.isEmpty ? Color.secondary : Color.red)
             }
             .buttonStyle(.plain)
             .disabled(planItems.isEmpty)
@@ -225,21 +226,29 @@ struct SkillPlannerView: View {
             }
 
             if item.fromLevel < 4 {
-                Menu {
-                    ForEach((item.targetLevel == 5 ? [] : Array((item.targetLevel + 1)...5)), id: \.self) { level in
-                        Button("Extend to L\(level)") { updateItem(item, targetLevel: level) }
+                let canExtend = item.targetLevel < 5
+                let canReduce = item.targetLevel > item.fromLevel + 1
+                if canExtend || canReduce {
+                    Menu {
+                        if canExtend {
+                            ForEach((item.targetLevel + 1)...5, id: \.self) { level in
+                                Button("Extend to L\(level)") { updateItem(item, targetLevel: level) }
+                            }
+                        }
+                        if canExtend && canReduce { Divider() }
+                        if canReduce {
+                            ForEach(((item.fromLevel + 1)...(item.targetLevel - 1)).reversed(), id: \.self) { level in
+                                Button("Reduce to L\(level)") { updateItem(item, targetLevel: level) }
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "slider.horizontal.3")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
-                    Divider()
-                    ForEach(Array(((item.fromLevel + 1)...(item.targetLevel - 1)).reversed()), id: \.self) { level in
-                        Button("Reduce to L\(level)") { updateItem(item, targetLevel: level) }
-                    }
-                } label: {
-                    Image(systemName: "slider.horizontal.3")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    .menuStyle(.button)
+                    .buttonStyle(.plain)
                 }
-                .menuStyle(.button)
-                .buttonStyle(.plain)
             }
 
             Button(role: .destructive) {
@@ -393,13 +402,13 @@ struct SkillPlannerView: View {
                 HStack(spacing: 6) {
                     Text("→ L\(existing.targetLevel)")
                         .font(.caption.bold())
-                        .foregroundStyle(.accentColor)
+                        .foregroundStyle(Color.accentColor)
                     Button {
                         planItems.removeAll { $0.skillId == skill.skillId }
                         savePlan()
                     } label: {
                         Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(.accentColor)
+                            .foregroundStyle(Color.accentColor)
                             .font(.title3)
                     }
                     .buttonStyle(.plain)
@@ -422,7 +431,7 @@ struct SkillPlannerView: View {
                 } label: {
                     Image(systemName: "plus.circle")
                         .font(.title3)
-                        .foregroundStyle(.accentColor)
+                        .foregroundStyle(Color.accentColor)
                 }
                 .menuStyle(.button)
                 .buttonStyle(.plain)
@@ -501,9 +510,10 @@ struct SkillPlannerView: View {
         let (primaryId, secondaryId) = dogmaAttributes(for: type)
         let primary = Double(characterAttr(attrs, dogmaId: primaryId))
         let secondary = Double(characterAttr(attrs, dogmaId: secondaryId))
-        let spPerHour = primary + secondary * 0.5
-        guard spPerHour > 0 else { return 0 }
-        return sp / spPerHour * 3600.0
+        // EVE formula: SP per minute = primary + secondary × 0.5
+        let spPerMinute = primary + secondary * 0.5
+        guard spPerMinute > 0 else { return 0 }
+        return sp / spPerMinute * 60.0
     }
 
     private func skillRank(for typeId: Int) -> Int {

@@ -151,6 +151,7 @@ private struct NotificationsTab: View {
     @AppStorage("notifyIndustryFinished") private var notifyIndustryFinished = true
     @AppStorage("notifyContractsUpdated") private var notifyContractsUpdated = true
     @AppStorage("notifyStructureAlerts") private var notifyStructureAlerts = true
+    @AppStorage("notifyWarAlerts") private var notifyWarAlerts = true
 
     var body: some View {
         Form {
@@ -168,6 +169,8 @@ private struct NotificationsTab: View {
                 Toggle("Contracts updated", isOn: $notifyContractsUpdated)
                     .disabled(!notificationsEnabled)
                 Toggle("Structure alerts", isOn: $notifyStructureAlerts)
+                    .disabled(!notificationsEnabled)
+                Toggle("War declarations", isOn: $notifyWarAlerts)
                     .disabled(!notificationsEnabled)
             }
 
