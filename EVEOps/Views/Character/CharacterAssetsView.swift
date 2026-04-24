@@ -106,7 +106,7 @@ struct CharacterAssetsView: View {
                 } label: {
                     HStack {
                         Text(sectionKey)
-                            .fontWeight(.semibold)
+                            .font(.title3.bold())
                         Spacer()
                         Text("\(items.count)")
                             .font(.caption.monospacedDigit())

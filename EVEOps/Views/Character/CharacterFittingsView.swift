@@ -19,6 +19,7 @@ struct CharacterShipGroup {
 
 struct CharacterFittingsView: View {
     @Environment(AccountManager.self) private var accountManager
+    @Environment(DashboardPrefetcher.self) private var prefetcher
     @AppStorage("backgroundPollInterval") private var pollInterval: Double = 300
     @State private var groups: [CharacterShipGroup] = []
     @State private var modulesByShip: [Int: [ESIAsset]] = [:]
@@ -26,7 +27,6 @@ struct CharacterFittingsView: View {
     @State private var isLoading = false
     @State private var error: String?
     @State private var selectedShip: ShipEntry?
-    @State private var collapsedGroups: Set<String> = []
 
     private var isEmpty: Bool { groups.allSatisfy { $0.ships.isEmpty } }
 
@@ -35,26 +35,29 @@ struct CharacterFittingsView: View {
             HStack(spacing: 0) {
                 List(selection: $selectedShip) {
                     ForEach(groups, id: \.characterName) { characterGroup in
-                        Section(characterGroup.characterName) {
-                            let byClass = Dictionary(grouping: characterGroup.ships, by: \.shipClassName)
-                            let classNames = byClass.keys.sorted()
-                            ForEach(classNames, id: \.self) { className in
-                                let key = "\(characterGroup.characterName)-\(className)"
-                                DisclosureGroup(isExpanded: expansionBinding(for: key)) {
-                                    ForEach(byClass[className]!) { ship in
-                                        ShipRow(ship: ship).tag(ship)
-                                    }
-                                } label: {
-                                    Label {
-                                        Text(className).font(.subheadline.bold())
-                                        Spacer()
-                                        Text("\(byClass[className]!.count)")
-                                            .font(.caption.monospacedDigit())
+                        let byClass = Dictionary(grouping: characterGroup.ships, by: \.shipClassName)
+                        let classNames = byClass.keys.sorted()
+                        ForEach(classNames, id: \.self) { className in
+                            Section {
+                                ForEach(byClass[className]!) { ship in
+                                    ShipRow(ship: ship).tag(ship)
+                                }
+                            } header: {
+                                HStack(spacing: 8) {
+                                    Image(systemName: shipClassIcon(className))
+                                        .font(.body)
+                                        .foregroundStyle(.primary)
+                                    if groups.count > 1 {
+                                        Text(characterGroup.characterName)
+                                            .font(.footnote)
                                             .foregroundStyle(.secondary)
-                                    } icon: {
-                                        Image(systemName: shipClassIcon(className))
-                                            .foregroundStyle(.secondary)
+                                        Text("·").foregroundStyle(.tertiary)
                                     }
+                                    Text(className).font(.title2.bold())
+                                    Spacer()
+                                    Text("\(byClass[className]!.count)")
+                                        .font(.subheadline.monospacedDigit())
+                                        .foregroundStyle(.secondary)
                                 }
                             }
                         }
@@ -94,6 +97,9 @@ struct CharacterFittingsView: View {
                 await load()
             }
         }
+        .onChange(of: prefetcher.lastRefresh) { _, _ in
+            Task { await load() }
+        }
     }
 
     private func load() async {
@@ -106,9 +112,13 @@ struct CharacterFittingsView: View {
         for account in accountManager.accounts {
             do {
                 let token = try await accountManager.validToken(for: account)
-                let assets: [ESIAsset] = try await ESIClient.shared.fetchPages(
+                let rawAssets: [ESIAsset] = try await ESIClient.shared.fetchPages(
                     "/characters/\(account.characterID)/assets/", token: token
                 )
+                // ESI can return duplicate itemIds across pages when items move during a multi-page fetch.
+                // Duplicate IDs in ForEach cause SwiftUI layout corruption (wrong counts, apparent nesting, doubled rows).
+                var seenItemIds = Set<Int>()
+                let assets = rawAssets.filter { seenItemIds.insert($0.itemId).inserted }
 
                 let typeIds = Array(Set(assets.map(\.typeId)))
                 let types = await UniverseCache.shared.types(ids: typeIds)
@@ -188,16 +198,6 @@ struct CharacterFittingsView: View {
         flag.hasPrefix("HiSlot") || flag.hasPrefix("MedSlot") || flag.hasPrefix("LoSlot") ||
         flag.hasPrefix("RigSlot") || flag.hasPrefix("SubSystem") ||
         flag == "DroneBay" || flag == "FighterBay" || flag == "Cargo"
-    }
-
-    private func expansionBinding(for key: String) -> Binding<Bool> {
-        Binding(
-            get: { !collapsedGroups.contains(key) },
-            set: { expanded in
-                if expanded { collapsedGroups.remove(key) }
-                else { collapsedGroups.insert(key) }
-            }
-        )
     }
 
     private func shipClassIcon(_ name: String) -> String {
