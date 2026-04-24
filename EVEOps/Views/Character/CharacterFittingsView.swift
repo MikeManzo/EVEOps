@@ -79,6 +79,7 @@ struct CharacterFittingsView: View {
                 Button {
                     Task {
                         await ESIClient.shared.clearCache()
+                        await UniverseCache.shared.clearDiskCache()
                         await load()
                     }
                 } label: {
@@ -112,12 +113,11 @@ struct CharacterFittingsView: View {
                 let typeIds = Array(Set(assets.map(\.typeId)))
                 let types = await UniverseCache.shared.types(ids: typeIds)
                 let groupIds = Set(types.values.map(\.groupId))
-                let groups = await UniverseCache.shared.groups(ids: groupIds)
+                let groupsById = await UniverseCache.shared.groups(ids: groupIds)
 
+                // Use dictionary keys (= asset typeId) to avoid any mismatch with ESIType.typeId field
                 let shipTypeIds = Set(
-                    types.values
-                        .filter { groups[$0.groupId]?.categoryId == 6 }
-                        .map(\.typeId)
+                    types.filter { groupsById[$0.value.groupId]?.categoryId == 6 }.keys
                 )
                 let shipAssets = assets.filter { shipTypeIds.contains($0.typeId) }
 
@@ -165,7 +165,7 @@ struct CharacterFittingsView: View {
                         customName: customNames[asset.itemId],
                         locationName: locationNames[asset.locationId] ?? "#\(asset.locationId)",
                         isSingleton: asset.isSingleton,
-                        shipClassName: groups[groupId]?.name ?? "Unknown"
+                        shipClassName: groupsById[groupId]?.name ?? "Unknown"
                     )
                 }.sorted { $0.displayName < $1.displayName }
 
