@@ -28,6 +28,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
     // Character — tools
     case remapAdvisor = "Remap Advisor"
     case research = "Research Agents"
+    case bookmarks = "Bookmarks"
 
     // Corporation
     case corpAssets = "Corp Assets"
@@ -40,6 +41,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
     case corpMarketOrders = "Corp Market Orders"
     case corpMining = "Corp Mining"
     case corpWars = "Corp Wars"
+    case corpMoonExtractions = "Moon Extractions"
 
     var id: String { rawValue }
 
@@ -76,6 +78,8 @@ enum NavigationSection: String, CaseIterable, Identifiable {
         case .skillPlanner: return "checklist"
         case .remapAdvisor: return "brain.filled.head.profile"
         case .research: return "atom"
+        case .bookmarks: return "bookmark.fill"
+        case .corpMoonExtractions: return "moon.fill"
         }
     }
 
@@ -92,11 +96,11 @@ enum NavigationSection: String, CaseIterable, Identifiable {
     }
 
     static var socialSections: [NavigationSection] {
-        [.mails, .communications, .calendar, .contacts, .standings, .routePlanner, .galaxyMap, .careerAgents]
+        [.mails, .communications, .calendar, .contacts, .standings, .routePlanner, .galaxyMap, .careerAgents, .bookmarks]
     }
 
     static var corporationSections: [NavigationSection] {
         [.corpAssets, .corpIndustry, .corpMembers, .corpStructures, .corpWallets,
-         .corpContracts, .corpKillmails, .corpMarketOrders, .corpMining, .corpWars]
+         .corpContracts, .corpKillmails, .corpMarketOrders, .corpMining, .corpWars, .corpMoonExtractions]
     }
 }

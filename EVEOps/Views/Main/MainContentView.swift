@@ -111,6 +111,10 @@ struct MainContentView: View {
                 CharacterResearchAgentsView()
             case .corpWars:
                 CorporationWarsView()
+            case .bookmarks:
+                CharacterBookmarksView()
+            case .corpMoonExtractions:
+                CorporationMoonExtractionsView()
             }
         } else {
             DashboardView()

@@ -9,6 +9,9 @@ final class AccountManager {
     var selectedCharacterID: Int?
     var isLoading = false
     var error: String?
+    // Increments whenever any account token is updated, allowing views to re-fire
+    // tasks after a re-authenticate even when selectedCharacterID hasn't changed.
+    var tokenVersion: Int = 0
 
     private let modelContext: ModelContext
     private let authenticator: SSOAuthenticator
@@ -55,6 +58,7 @@ final class AccountManager {
                 existing.refreshToken = tokenResponse.refreshToken
                 existing.tokenExpiry = Date().addingTimeInterval(TimeInterval(tokenResponse.expiresIn))
                 existing.scopes = character.scopes
+                tokenVersion += 1
             } else {
                 let charInfo: ESICharacterPublic = try await ESIClient.shared.fetch(
                     "/characters/\(character.characterID)/"
@@ -127,6 +131,7 @@ final class AccountManager {
             account.accessToken = tokenResponse.accessToken
             account.refreshToken = tokenResponse.refreshToken
             account.tokenExpiry = Date().addingTimeInterval(TimeInterval(tokenResponse.expiresIn))
+            tokenVersion += 1
             try? modelContext.save()
             return tokenResponse.accessToken
         } catch {

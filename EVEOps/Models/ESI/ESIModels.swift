@@ -967,3 +967,107 @@ nonisolated struct ESISchematicPin: Codable, Sendable {
     let quantity: Int
     let typeId: Int
 }
+
+// MARK: - Character Year Stats
+
+nonisolated struct ESICharacterYearStats: Codable, Sendable, Identifiable {
+    let year: Int
+    let character: ESIYearStatsSession?
+    let combat: ESIYearStatsCombat?
+    let industry: ESIYearStatsIndustry?
+    let isk: ESIYearStatsISK?
+    let market: ESIYearStatsMarket?
+    let mining: ESIYearStatsMining?
+    let pve: ESIYearStatsPVE?
+    let social: ESIYearStatsSocial?
+    let travel: ESIYearStatsTravel?
+    var id: Int { year }
+}
+
+nonisolated struct ESIYearStatsSession: Codable, Sendable {
+    let daysOfActivity: Int?
+    let minutes: Int?
+    let sessionsStarted: Int?
+}
+
+nonisolated struct ESIYearStatsCombat: Codable, Sendable {
+    let pvpKills: Int?
+    let npcKills: Int?
+    let killsHighSec: Int?
+    let killsLowSec: Int?
+    let killsNullSec: Int?
+    let lossesHighSec: Int?
+    let lossesLowSec: Int?
+    let lossesNullSec: Int?
+    let damageToPlayersAmountDealt: Int?
+    let damageFromPlayersAmountReceived: Int?
+    let damageToNpcsAmountDealt: Int?
+}
+
+nonisolated struct ESIYearStatsIndustry: Codable, Sendable {
+    let hackingSuccesses: Int?
+    let jobsCompletedManufacture: Int?
+    let jobsStartedManufacture: Int?
+    let jobsCompletedCopyBlueprint: Int?
+    let jobsStartedCopyBlueprint: Int?
+    let jobsStartedReaction: Int?
+    let jobsCancelled: Int?
+}
+
+nonisolated struct ESIYearStatsISK: Codable, Sendable {
+    let iskIn: Int?
+    let iskOut: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case iskIn = "in"
+        case iskOut = "out"
+    }
+}
+
+nonisolated struct ESIYearStatsMarket: Codable, Sendable {
+    let buyOrdersPlaced: Int?
+    let sellOrdersPlaced: Int?
+    let buyOrdersCancelled: Int?
+    let sellOrdersCancelled: Int?
+}
+
+nonisolated struct ESIYearStatsMining: Codable, Sendable {
+    let oreMined: Int?
+    let wasteQuantity: Int?
+}
+
+nonisolated struct ESIYearStatsPVE: Codable, Sendable {
+    let dungeonsCompletedAgent: Int?
+    let dungeonsCompletedDistribution: Int?
+    let missionsSucceeded: Int?
+    let missionsSucceededEpicArc: Int?
+}
+
+nonisolated struct ESIYearStatsSocial: Codable, Sendable {
+    let fleetJoins: Int?
+    let mailsSent: Int?
+    let mailsReceived: Int?
+    let corporationApplicationAccepted: Int?
+    let addedAsContactHigh: Int?
+    let addedAsContactGood: Int?
+}
+
+nonisolated struct ESIYearStatsTravel: Codable, Sendable {
+    let jumps: Int?
+    let warps: Int?
+    let docks: Int?
+    let wormholesVisited: Int?
+    let accelerationGateActivations: Int?
+}
+
+// MARK: - Moon Extractions
+
+nonisolated struct ESIMoonExtraction: Codable, Sendable, Identifiable {
+    let chunkArrivalTime: Date
+    let extractionStartTime: Date
+    let moonId: Int
+    let naturalDecayTime: Date
+    let structureId: Int
+
+    var id: Int { structureId }
+}

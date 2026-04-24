@@ -73,7 +73,7 @@ struct EVEOpsApp: App {
                 .preferredColorScheme(resolvedColorScheme)
         }
 
-        MenuBarExtra("EVEOps", systemImage: "aqi.medium") {
+        MenuBarExtra("EVEOps", image: "EveOpsTemplate" /*systemImage: "aqi.medium"*/) {
             MenuBarView()
                 .environment(accountManager)
                 .environment(prefetcher)
