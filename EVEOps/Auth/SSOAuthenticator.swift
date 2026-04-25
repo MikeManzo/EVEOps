@@ -51,6 +51,7 @@ struct SSOConfiguration: Sendable {
             "esi-calendar.read_calendar_events.v1",
             "esi-calendar.respond_calendar_events.v1",
             "esi-fittings.read_fittings.v1",
+            "esi-fittings.write_fittings.v1",
             "esi-killmails.read_killmails.v1",
             "esi-killmails.read_corporation_killmails.v1",
             "esi-markets.read_corporation_orders.v1",

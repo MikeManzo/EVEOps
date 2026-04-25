@@ -712,6 +712,25 @@ nonisolated struct ESIFittingItem: Codable, Sendable, Identifiable, Hashable {
     var id: String { "\(flag)-\(typeId)" }
 }
 
+/// Body for POST /characters/{id}/fittings/
+nonisolated struct ESIFittingSaveRequest: Encodable, Sendable {
+    let description: String
+    let items: [ESIFittingItemSave]
+    let name: String
+    let shipTypeId: Int
+}
+
+nonisolated struct ESIFittingItemSave: Encodable, Sendable {
+    let flag: String
+    let quantity: Int
+    let typeId: Int
+}
+
+/// Response from POST /characters/{id}/fittings/ — returns the new fitting's ID
+nonisolated struct ESIFittingCreatedResponse: Decodable, Sendable {
+    let fittingId: Int
+}
+
 // MARK:  Calendar
 
 nonisolated struct ESICalendarEvent: Codable, Sendable, Identifiable {
@@ -968,7 +987,7 @@ nonisolated struct ESISchematicPin: Codable, Sendable {
     let typeId: Int
 }
 
-// MARK: - Character Year Stats
+// MARK:  Character Year Stats
 
 nonisolated struct ESICharacterYearStats: Codable, Sendable, Identifiable {
     let year: Int
@@ -1060,7 +1079,7 @@ nonisolated struct ESIYearStatsTravel: Codable, Sendable {
     let accelerationGateActivations: Int?
 }
 
-// MARK: - Moon Extractions
+// MARK:  Moon Extractions
 
 nonisolated struct ESIMoonExtraction: Codable, Sendable, Identifiable {
     let chunkArrivalTime: Date

@@ -52,7 +52,7 @@ struct CorporationMoonExtractionsView: View {
     }
 }
 
-// MARK: - Row
+// MARK:  Row
 
 struct MoonExtractionRow: View {
     let extraction: ESIMoonExtraction

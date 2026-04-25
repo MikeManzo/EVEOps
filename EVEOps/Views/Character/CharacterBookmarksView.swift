@@ -44,7 +44,7 @@ struct CharacterBookmarksView: View {
         }
     }
 
-    // MARK: - Folder Bar
+    // MARK:  Folder Bar
 
     private var folderBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -89,7 +89,7 @@ struct CharacterBookmarksView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Bookmark List
+    // MARK:  Bookmark List
 
     private var bookmarkList: some View {
         List(visibleBookmarks) { bookmark in
@@ -97,7 +97,7 @@ struct CharacterBookmarksView: View {
         }
     }
 
-    // MARK: - Loading
+    // MARK:  Loading
 
     private func loadBookmarks() async {
         guard let account = accountManager.selectedAccount else { return }
@@ -123,7 +123,7 @@ struct CharacterBookmarksView: View {
     }
 }
 
-// MARK: - Bookmark Row
+// MARK:  Bookmark Row
 
 struct BookmarkRow: View {
     let bookmark: ESIBookmark

@@ -35,7 +35,7 @@ struct SkillPlannerView: View {
         }
     }
 
-    // MARK: - Plan Panel
+    // MARK:  Plan Panel
 
     private var planPanel: some View {
         VStack(spacing: 0) {
@@ -265,7 +265,7 @@ struct SkillPlannerView: View {
         .padding(.vertical, 6)
     }
 
-    // MARK: - Skill Browser
+    // MARK:  Skill Browser
 
     private var skillBrowser: some View {
         VStack(spacing: 0) {
@@ -441,7 +441,7 @@ struct SkillPlannerView: View {
         .padding(.vertical, 8)
     }
 
-    // MARK: - Filtering
+    // MARK:  Filtering
 
     private func filteredGroups(_ info: CharacterTrainingInfo) -> [KnownSkillGroup] {
         var groups = info.skillGroups
@@ -457,7 +457,7 @@ struct SkillPlannerView: View {
         return groups.sorted { $0.groupName < $1.groupName }
     }
 
-    // MARK: - Plan Management
+    // MARK:  Plan Management
 
     private func addToPlan(skill: KnownSkill, targetLevel: Int) {
         planItems.removeAll { $0.skillId == skill.skillId }
@@ -486,7 +486,7 @@ struct SkillPlannerView: View {
         savePlan()
     }
 
-    // MARK: - SP & Time Calculations
+    // MARK:  SP & Time Calculations
 
     // Total SP at each level for rank-1 skills
     private static let spThresholds: [Int: Int] = [
@@ -542,7 +542,7 @@ struct SkillPlannerView: View {
         }
     }
 
-    // MARK: - Persistence
+    // MARK:  Persistence
 
     private var planKey: String {
         "skillPlan-\(selectedCharacterID ?? accountManager.selectedAccount?.characterID ?? 0)"
@@ -565,7 +565,7 @@ struct SkillPlannerView: View {
         }
     }
 
-    // MARK: - Data Loading
+    // MARK:  Data Loading
 
     private func loadData() async {
         isLoading = true
@@ -664,7 +664,7 @@ struct SkillPlannerView: View {
         )
     }
 
-    // MARK: - Visual Helpers
+    // MARK:  Visual Helpers
 
     private func levelBadge(_ level: Int) -> some View {
         Text("L\(level)")
@@ -704,7 +704,7 @@ struct SkillPlannerView: View {
     }
 }
 
-// MARK: - Data Model
+// MARK:  Data Model
 
 struct SkillPlanItem: Identifiable, Codable, Equatable {
     let skillId: Int
