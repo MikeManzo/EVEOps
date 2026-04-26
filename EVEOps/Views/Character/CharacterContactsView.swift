@@ -2,6 +2,7 @@ import SwiftUI
 
 struct CharacterContactsView: View {
     @Environment(AccountManager.self) private var accountManager
+    @Environment(PresenceTracker.self) private var presenceTracker
     @State private var contacts: [ESIContact] = []
     @State private var isLoading = false
     @State private var error: String?
@@ -40,35 +41,41 @@ struct CharacterContactsView: View {
                     ForEach(groupedContacts, id: \.0) { type, group in
                         Section(typeLabel(type)) {
                             ForEach(group) { contact in
-                                ContactRow(contact: contact, name: contactNames[contact.contactId])
-                                    .swipeActions(edge: .leading) {
-                                        Button {
-                                            contactToEdit = contact
-                                        } label: {
-                                            Label("Edit Standing", systemImage: "pencil")
-                                        }
-                                        .tint(.blue)
+                                ContactRow(
+                                    contact: contact,
+                                    name: contactNames[contact.contactId],
+                                    presence: contact.contactType == "character"
+                                        ? presenceTracker.score(for: contact.contactId)
+                                        : nil
+                                )
+                                .swipeActions(edge: .leading) {
+                                    Button {
+                                        contactToEdit = contact
+                                    } label: {
+                                        Label("Edit Standing", systemImage: "pencil")
                                     }
-                                    .swipeActions(edge: .trailing) {
-                                        Button(role: .destructive) {
-                                            Task { await deleteContact(contact) }
-                                        } label: {
-                                            Label("Delete", systemImage: "trash")
-                                        }
+                                    .tint(.blue)
+                                }
+                                .swipeActions(edge: .trailing) {
+                                    Button(role: .destructive) {
+                                        Task { await deleteContact(contact) }
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
                                     }
-                                    .contextMenu {
-                                        Button {
-                                            contactToEdit = contact
-                                        } label: {
-                                            Label("Edit Standing", systemImage: "pencil")
-                                        }
-                                        Divider()
-                                        Button(role: .destructive) {
-                                            Task { await deleteContact(contact) }
-                                        } label: {
-                                            Label("Remove Contact", systemImage: "person.badge.minus")
-                                        }
+                                }
+                                .contextMenu {
+                                    Button {
+                                        contactToEdit = contact
+                                    } label: {
+                                        Label("Edit Standing", systemImage: "pencil")
                                     }
+                                    Divider()
+                                    Button(role: .destructive) {
+                                        Task { await deleteContact(contact) }
+                                    } label: {
+                                        Label("Remove Contact", systemImage: "person.badge.minus")
+                                    }
+                                }
                             }
                         }
                     }
@@ -142,6 +149,10 @@ struct CharacterContactsView: View {
             contacts = loaded
             let ids = loaded.map(\.contactId)
             contactNames = await NameResolver.shared.resolve(ids: ids)
+
+            // Register character contacts with the presence tracker.
+            let characterIDs = loaded.filter { $0.contactType == "character" }.map(\.contactId)
+            presenceTracker.updateContactIDs(characterIDs)
         } catch {
             self.error = error.localizedDescription
         }
@@ -205,22 +216,36 @@ struct CharacterContactsView: View {
     }
 }
 
-// MARK:  Contact Row
+// MARK: - Contact Row
 
 struct ContactRow: View {
     let contact: ESIContact
     let name: String?
+    var presence: PresenceScore?
 
     var body: some View {
         HStack(spacing: 12) {
-            AsyncImage(url: contact.imageURL) { image in
-                image.resizable().aspectRatio(contentMode: .fill)
-            } placeholder: {
-                RoundedRectangle(cornerRadius: contact.contactType == "character" ? 20 : 6)
-                    .fill(.quaternary)
+            // Portrait with optional presence badge overlay
+            ZStack(alignment: .bottomTrailing) {
+                AsyncImage(url: contact.imageURL) { image in
+                    image.resizable().aspectRatio(contentMode: .fill)
+                } placeholder: {
+                    RoundedRectangle(cornerRadius: contact.contactType == "character" ? 20 : 6)
+                        .fill(.quaternary)
+                }
+                .frame(width: 40, height: 40)
+                .clipShape(contact.contactType == "character" ? AnyShape(Circle()) : AnyShape(RoundedRectangle(cornerRadius: 6)))
+
+                if contact.contactType == "character" {
+                    if let presence {
+                        PresenceBadge(score: presence, size: 11)
+                            .offset(x: 3, y: 3)
+                    } else {
+                        PresencePlaceholder(size: 11)
+                            .offset(x: 3, y: 3)
+                    }
+                }
             }
-            .frame(width: 40, height: 40)
-            .clipShape(contact.contactType == "character" ? AnyShape(Circle()) : AnyShape(RoundedRectangle(cornerRadius: 6)))
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(name ?? "ID #\(contact.contactId)")
@@ -267,7 +292,7 @@ struct ContactRow: View {
     }
 }
 
-// MARK:  Add Contact Sheet
+// MARK: - Add Contact Sheet
 
 struct AddContactSheet: View {
     let onAdd: (Int, String, Double) async -> Void
@@ -402,7 +427,7 @@ struct AddContactSheet: View {
     }
 }
 
-// MARK:  Edit Standing Sheet
+// MARK: - Edit Standing Sheet
 
 struct EditStandingSheet: View {
     let contactName: String
@@ -479,7 +504,7 @@ struct EditStandingSheet: View {
     }
 }
 
-// MARK:  Standing Option Button
+// MARK: - Standing Option Button
 
 struct StandingOptionButton: View {
     let value: Double

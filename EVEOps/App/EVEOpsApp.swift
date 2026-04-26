@@ -20,6 +20,7 @@ struct EVEOpsApp: App {
     @State private var backgroundMonitor: BackgroundMonitor
     @State private var prefetcher: DashboardPrefetcher
     @State private var apiStatusMonitor: APIStatusMonitor
+    @State private var presenceTracker: PresenceTracker
     @AppStorage("colorScheme") private var colorSchemePref: String = "system"
 
     private var resolvedColorScheme: ColorScheme? {
@@ -35,15 +36,23 @@ struct EVEOpsApp: App {
         let bg = BackgroundMonitor()
         let pf = DashboardPrefetcher()
         let api = APIStatusMonitor()
+        let tracker = PresenceTracker()
 
         _accountManager = State(initialValue: manager)
         _backgroundMonitor = State(initialValue: bg)
         _prefetcher = State(initialValue: pf)
         _apiStatusMonitor = State(initialValue: api)
+        _presenceTracker = State(initialValue: tracker)
 
         Task { @MainActor in
             bg.start(accountManager: manager)
             api.start()
+
+            // Configure presence tracker before starting the poll loop so it
+            // has access to accounts and prefetched data from the first cycle.
+            tracker.configure(accountManager: manager, prefetcher: pf)
+            tracker.startPolling()
+
             // Refresh public info (corp/alliance) concurrently with the full prefetch
             // so the correct names are visible as soon as possible without waiting
             // for the heavier prefetchAll to complete.
@@ -59,6 +68,7 @@ struct EVEOpsApp: App {
                 .environment(accountManager)
                 .environment(prefetcher)
                 .environment(apiStatusMonitor)
+                .environment(presenceTracker)
                 .preferredColorScheme(resolvedColorScheme)
         }
         .modelContainer(sharedModelContainer)
