@@ -61,14 +61,16 @@ struct PresenceDetailPopover: View {
     let score: PresenceScore
 
     private static let signalLabels: [String: String] = [
-        "onlineNow":    "Online Status",
-        "kill":         "Kill Activity",
-        "location":     "Location Change",
-        "transaction":  "Wallet Transaction",
-        "industryJob":  "Industry Job",
-        "marketOrder":  "Market Activity",
-        "notification": "Notification",
-        "mail":         "Mail Activity",
+        "onlineNow":        "Online Status",
+        "kill":             "Kill Activity",
+        "location":         "Location Change",
+        "corpMemberChange": "Corp Membership",
+        "corpWallet":       "Corp Tax Activity",
+        "transaction":      "Wallet Transaction",
+        "industryJob":      "Industry Job",
+        "marketOrder":      "Market Activity",
+        "notification":     "Notification",
+        "mail":             "Mail Activity",
     ]
 
     var body: some View {

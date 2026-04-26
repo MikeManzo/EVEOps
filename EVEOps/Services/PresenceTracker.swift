@@ -139,6 +139,32 @@ final class PresenceTracker {
             if fetched { try? await Task.sleep(nanoseconds: 2_000_000_000) }
         }
 
+        // Step 4 — Corp wallet journal + member list for director accounts.
+        // Deduplicated by corp ID so multi-account users don't double-fetch the same corp.
+        // Silently skips non-director characters (ESI returns 403, try? discards it).
+        var processedCorps: Set<Int> = []
+        for account in accountManager.accounts {
+            guard !Task.isCancelled else { break }
+            let corpID = account.corporationID
+            guard !processedCorps.contains(corpID) else { continue }
+            processedCorps.insert(corpID)
+
+            guard let token = try? await accountManager.validToken(for: account) else { continue }
+
+            if let journal: [ESIWalletJournalEntry] = try? await ESIClient.shared.fetch(
+                "/corporations/\(corpID)/wallets/1/journal/", token: token
+            ) {
+                await engine.ingestCorpJournal(journal, contactIDs: contactIDs)
+            }
+
+            if let members: [ESICorporationMember] = try? await ESIClient.shared.fetch(
+                "/corporations/\(corpID)/members/", token: token
+            ) {
+                let memberSet = Set(members.map(\.characterId))
+                await engine.ingestCorpMemberDelta(corpID: corpID, currentMembers: memberSet, contactIDs: contactIDs)
+            }
+        }
+
         await recomputeScores()
     }
 

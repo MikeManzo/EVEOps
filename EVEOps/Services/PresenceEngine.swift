@@ -104,14 +104,16 @@ actor PresenceEngine {
     //   transaction:  Score < 0.75 alone (medium confidence)
     //   Two medium signals together can reach "Active Now".
     let signals: [String: SignalConfig] = [
-        "onlineNow":    SignalConfig(id: "onlineNow",    weight: 1.00, halfLife:   300),  // 5 min
-        "kill":         SignalConfig(id: "kill",         weight: 0.95, halfLife:  5400),  // 1.5 h
-        "location":     SignalConfig(id: "location",     weight: 0.90, halfLife:  1800),  // 30 min
-        "transaction":  SignalConfig(id: "transaction",  weight: 0.70, halfLife:  3600),  // 1 h
-        "industryJob":  SignalConfig(id: "industryJob",  weight: 0.60, halfLife:  7200),  // 2 h
-        "marketOrder":  SignalConfig(id: "marketOrder",  weight: 0.55, halfLife:  5400),  // 1.5 h
-        "notification": SignalConfig(id: "notification", weight: 0.35, halfLife: 14400),  // 4 h
-        "mail":         SignalConfig(id: "mail",         weight: 0.25, halfLife: 21600),  // 6 h
+        "onlineNow":        SignalConfig(id: "onlineNow",        weight: 1.00, halfLife:   300),  // 5 min
+        "kill":             SignalConfig(id: "kill",             weight: 0.95, halfLife:  5400),  // 1.5 h
+        "location":         SignalConfig(id: "location",         weight: 0.90, halfLife:  1800),  // 30 min
+        "corpMemberChange": SignalConfig(id: "corpMemberChange", weight: 0.85, halfLife: 86400),  // 24 h — online to join/leave
+        "corpWallet":       SignalConfig(id: "corpWallet",       weight: 0.75, halfLife:  3600),  // 1 h — tax activity in corp journal
+        "transaction":      SignalConfig(id: "transaction",      weight: 0.70, halfLife:  3600),  // 1 h
+        "industryJob":      SignalConfig(id: "industryJob",      weight: 0.60, halfLife:  7200),  // 2 h
+        "marketOrder":      SignalConfig(id: "marketOrder",      weight: 0.55, halfLife:  5400),  // 1.5 h
+        "notification":     SignalConfig(id: "notification",     weight: 0.35, halfLife: 14400),  // 4 h
+        "mail":             SignalConfig(id: "mail",             weight: 0.25, halfLife: 21600),  // 6 h
     ]
 
     // MARK: Private state
@@ -120,6 +122,8 @@ actor PresenceEngine {
     private var lastFetchedKills: [Int: Date] = [:]
     /// Last known system per character — location change detection.
     private var lastKnownLocations: [Int: Int] = [:]
+    /// Last known member set per corp ID — for join/leave delta detection.
+    private var lastKnownCorpMembers: [Int: Set<Int>] = [:]
     /// Earliest time the next zKillboard request may fire (global 2-s rate limit).
     private var zkillNextAllowed: Date = .distantPast
 
@@ -301,6 +305,48 @@ actor PresenceEngine {
         // Market orders issued within 24 h.
         for order in data.marketOrders where now.timeIntervalSince(order.issued) < 86_400 {
             record(ActivityEvent(characterID: characterID, signalID: "marketOrder", occurredAt: order.issued))
+        }
+    }
+
+    // Mark:  Corp Signal Ingestion (contacts in shared corp)
+
+    /// Scans a corporation wallet journal for member activity by matching contact IDs
+    /// against first/second party IDs on tax-generating ref types.
+    /// Requires a director-level token; silently no-ops if entries is empty.
+    func ingestCorpJournal(_ entries: [ESIWalletJournalEntry], contactIDs: Set<Int>) {
+        guard !entries.isEmpty, !contactIDs.isEmpty else { return }
+
+        // Ref types where first_party_id is the member who triggered the activity.
+        let taxRefs: Set<String> = [
+            "bounty_prize_corporation_tax",  // ratting
+            "industry_job_tax",              // manufacturing / reactions
+            "planet_export_tax",             // PI exports
+            "planet_import_tax",             // PI imports
+            "mining_tax",                    // moon/corp mining tax
+            "brokers_fee",                   // market orders placed
+        ]
+
+        let cutoff = Date().addingTimeInterval(-86_400)
+
+        for entry in entries where taxRefs.contains(entry.refType) && entry.date > cutoff {
+            for partyID in [entry.firstPartyId, entry.secondPartyId].compactMap({ $0 }) {
+                guard contactIDs.contains(partyID) else { continue }
+                record(ActivityEvent(characterID: partyID, signalID: "corpWallet", occurredAt: entry.date))
+            }
+        }
+    }
+
+    /// Diffs the current corp member set against the last known snapshot.
+    /// Any contact who joined or left since the last check was definitively online.
+    /// Skips the first call per corp (no baseline to compare against).
+    func ingestCorpMemberDelta(corpID: Int, currentMembers: Set<Int>, contactIDs: Set<Int>) {
+        defer { lastKnownCorpMembers[corpID] = currentMembers }
+        guard let previous = lastKnownCorpMembers[corpID] else { return }
+
+        let changed = currentMembers.symmetricDifference(previous)
+        let now = Date()
+        for id in changed where contactIDs.contains(id) {
+            record(ActivityEvent(characterID: id, signalID: "corpMemberChange", occurredAt: now))
         }
     }
 
