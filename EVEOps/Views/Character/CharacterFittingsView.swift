@@ -395,20 +395,22 @@ struct CharacterFittingsView: View {
     // MARK:  Delete Fitting
 
     private func deleteFitting(_ entry: SavedFittingEntry) async {
-        guard let account = accountManager.accounts.first(where: { $0.characterID == entry.characterID }),
-              let token = try? await accountManager.validToken(for: account) else { return }
-
-        try? await ESIClient.shared.delete(
-            "/characters/\(entry.characterID)/fittings/\(entry.fittingId)/",
-            token: token
-        )
-
-        fittingGroups = fittingGroups.compactMap { group in
-            let remaining = group.fittings.filter { $0.id != entry.fittingId }
-            return remaining.isEmpty ? nil : CharacterFittingGroup(characterName: group.characterName, fittings: remaining)
-        }
-        if selectedFitting?.id == entry.fittingId {
-            selectedFitting = fittingGroups.first?.fittings.first
+        guard let account = accountManager.accounts.first(where: { $0.characterID == entry.characterID }) else { return }
+        do {
+            let token = try await accountManager.validToken(for: account)
+            try await ESIClient.shared.delete(
+                "/characters/\(entry.characterID)/fittings/\(entry.fittingId)/",
+                token: token
+            )
+            fittingGroups = fittingGroups.compactMap { group in
+                let remaining = group.fittings.filter { $0.id != entry.fittingId }
+                return remaining.isEmpty ? nil : CharacterFittingGroup(characterName: group.characterName, fittings: remaining)
+            }
+            if selectedFitting?.id == entry.fittingId {
+                selectedFitting = fittingGroups.first?.fittings.first
+            }
+        } catch {
+            savingsError = error.localizedDescription
         }
     }
 

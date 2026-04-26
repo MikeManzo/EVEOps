@@ -3,6 +3,7 @@ import Foundation
 enum ESIError: LocalizedError {
     case invalidURL
     case unauthorized
+    case forbidden
     case rateLimited(retryAfter: Int)
     case serverError(statusCode: Int, message: String)
     case decodingError(Error)
@@ -13,6 +14,7 @@ enum ESIError: LocalizedError {
         switch self {
         case .invalidURL: return "Invalid URL"
         case .unauthorized: return "Authentication expired. Please log in again."
+        case .forbidden: return "Access denied. Your character may lack the required ESI scope or permission."
         case .rateLimited(let retry): return "Rate limited. Retry after \(retry) seconds."
         case .serverError(let code, let msg): return "Server error (\(code)): \(msg)"
         case .decodingError(let err): return "Failed to decode response: \(err.localizedDescription)"
@@ -119,8 +121,8 @@ actor ESIClient {
         switch httpResponse.statusCode {
         case 200...299:
             break
-        case 401, 403:
-            throw ESIError.unauthorized
+        case 401: throw ESIError.unauthorized
+        case 403: throw ESIError.forbidden
         case 420:
             let retryAfter = Int(httpResponse.value(forHTTPHeaderField: "Retry-After") ?? "60") ?? 60
             throw ESIError.rateLimited(retryAfter: retryAfter)
@@ -169,7 +171,8 @@ actor ESIClient {
         guard let httpResponse = response as? HTTPURLResponse else { throw ESIError.noData }
         switch httpResponse.statusCode {
         case 200...299: break
-        case 401, 403: throw ESIError.unauthorized
+        case 401: throw ESIError.unauthorized
+        case 403: throw ESIError.forbidden
         case 420:
             let retryAfter = Int(httpResponse.value(forHTTPHeaderField: "Retry-After") ?? "60") ?? 60
             throw ESIError.rateLimited(retryAfter: retryAfter)
@@ -205,7 +208,8 @@ actor ESIClient {
         guard let httpResponse = response as? HTTPURLResponse else { throw ESIError.noData }
         switch httpResponse.statusCode {
         case 200...299: break
-        case 401, 403: throw ESIError.unauthorized
+        case 401: throw ESIError.unauthorized
+        case 403: throw ESIError.forbidden
         case 420:
             let retryAfter = Int(httpResponse.value(forHTTPHeaderField: "Retry-After") ?? "60") ?? 60
             throw ESIError.rateLimited(retryAfter: retryAfter)
@@ -233,7 +237,8 @@ actor ESIClient {
         guard let httpResponse = response as? HTTPURLResponse else { throw ESIError.noData }
         switch httpResponse.statusCode {
         case 200...299: break
-        case 401, 403: throw ESIError.unauthorized
+        case 401: throw ESIError.unauthorized
+        case 403: throw ESIError.forbidden
         case 420:
             let retryAfter = Int(httpResponse.value(forHTTPHeaderField: "Retry-After") ?? "60") ?? 60
             throw ESIError.rateLimited(retryAfter: retryAfter)
@@ -261,7 +266,44 @@ actor ESIClient {
         guard let httpResponse = response as? HTTPURLResponse else { throw ESIError.noData }
         switch httpResponse.statusCode {
         case 200...299: break
-        case 401, 403: throw ESIError.unauthorized
+        case 401: throw ESIError.unauthorized
+        case 403: throw ESIError.forbidden
+        case 420:
+            let retryAfter = Int(httpResponse.value(forHTTPHeaderField: "Retry-After") ?? "60") ?? 60
+            throw ESIError.rateLimited(retryAfter: retryAfter)
+        default:
+            let msg = String(data: data, encoding: .utf8) ?? "Unknown error"
+            throw ESIError.serverError(statusCode: httpResponse.statusCode, message: msg)
+        }
+    }
+
+    /// POST with JSON body, discards response body (for 204 responses)
+    func postVoid<Body: Encodable>(_ endpoint: String, body: Body, token: String? = nil, queryItems: [URLQueryItem]? = nil) async throws {
+        guard var components = URLComponents(string: "\(baseURL)\(endpoint)") else { throw ESIError.invalidURL }
+        var allItems = [URLQueryItem(name: "datasource", value: "tranquility")]
+        if let extra = queryItems { allItems.append(contentsOf: extra) }
+        components.queryItems = allItems
+        guard let url = components.url else { throw ESIError.invalidURL }
+
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        let bodyData: Data
+        do { bodyData = try encoder.encode(body) } catch { throw ESIError.decodingError(error) }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.httpBody = bodyData
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let token { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
+
+        let (data, response): (Data, URLResponse)
+        do { (data, response) = try await session.data(for: request) } catch { throw ESIError.networkError(error) }
+
+        guard let httpResponse = response as? HTTPURLResponse else { throw ESIError.noData }
+        switch httpResponse.statusCode {
+        case 200...299: break
+        case 401: throw ESIError.unauthorized
+        case 403: throw ESIError.forbidden
         case 420:
             let retryAfter = Int(httpResponse.value(forHTTPHeaderField: "Retry-After") ?? "60") ?? 60
             throw ESIError.rateLimited(retryAfter: retryAfter)

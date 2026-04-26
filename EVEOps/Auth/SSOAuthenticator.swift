@@ -39,6 +39,9 @@ struct SSOConfiguration: Sendable {
             "esi-industry.read_character_jobs.v1",
             "esi-mail.read_mail.v1",
             "esi-mail.send_mail.v1",
+            "esi-mail.organize_mail.v1",
+            "esi-fleets.read_fleet.v1",
+            "esi-fleets.write_fleet.v1",
             "esi-characters.read_notifications.v1",
             "esi-corporations.read_structures.v1",
             "esi-corporations.read_corporation_membership.v1",
@@ -59,6 +62,7 @@ struct SSOConfiguration: Sendable {
             "esi-characters.read_contacts.v1",
             "esi-characters.write_contacts.v1",
             "esi-ui.write_waypoint.v1",
+            "esi-ui.open_window.v1",
             "esi-search.search_structures.v1",
             "esi-characters.read_agents_research.v1"
         ]

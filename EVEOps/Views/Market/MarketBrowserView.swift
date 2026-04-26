@@ -184,6 +184,7 @@ struct MarketBrowserView: View {
     // UI state
     @State private var selectedOrderTab = 0   // 0 = sell, 1 = buy, 2 = history
     @State private var historyDays = 90
+    @State private var openInEVEMessage: String?
 
     // Persisted pane sizes — written only on drag end to avoid UserDefaults
     // writes at 60 Hz, which would cause re-render jitter during dragging.
@@ -580,12 +581,20 @@ struct MarketBrowserView: View {
 
             if let account = accountManager.selectedAccount, !account.isTokenExpired {
                 let token = account.accessToken
-                Button {
-                    Task { await openInEVE(typeId: typeId, token: token) }
-                } label: {
-                    Label("Open in EVE", systemImage: "arrow.up.right.square")
+                VStack(alignment: .trailing, spacing: 4) {
+                    Button {
+                        Task { await openInEVE(typeId: typeId, token: token) }
+                    } label: {
+                        Label("Open in EVE", systemImage: "arrow.up.right.square")
+                    }
+                    .buttonStyle(.bordered)
+                    if let msg = openInEVEMessage {
+                        Text(msg)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.trailing)
+                    }
                 }
-                .buttonStyle(.bordered)
             }
         }
         .padding()
@@ -1186,11 +1195,18 @@ struct MarketBrowserView: View {
     }
 
     private func openInEVE(typeId: Int, token: String) async {
-        try? await ESIClient.shared.postAction(
-            "/ui/openwindow/marketdetails/",
-            token: token,
-            queryItems: [URLQueryItem(name: "type_id", value: "\(typeId)")]
-        )
+        openInEVEMessage = nil
+        do {
+            try await ESIClient.shared.postAction(
+                "/ui/openwindow/marketdetails/",
+                token: token,
+                queryItems: [URLQueryItem(name: "type_id", value: "\(typeId)")]
+            )
+        } catch ESIError.forbidden {
+            openInEVEMessage = "Needs esi-ui.open_window.v1 scope — re-add your character."
+        } catch {
+            openInEVEMessage = error.localizedDescription
+        }
     }
 
     // MARK:  Computed Helpers

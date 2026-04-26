@@ -9,6 +9,7 @@ struct CharacterContactsView: View {
     @State private var searchFilter = ""
     @State private var showingAddContact = false
     @State private var typeFilter = "all"
+    @State private var contactToEdit: ESIContact?
 
     private var filteredContacts: [ESIContact] {
         var result = contacts
@@ -40,6 +41,14 @@ struct CharacterContactsView: View {
                         Section(typeLabel(type)) {
                             ForEach(group) { contact in
                                 ContactRow(contact: contact, name: contactNames[contact.contactId])
+                                    .swipeActions(edge: .leading) {
+                                        Button {
+                                            contactToEdit = contact
+                                        } label: {
+                                            Label("Edit Standing", systemImage: "pencil")
+                                        }
+                                        .tint(.blue)
+                                    }
                                     .swipeActions(edge: .trailing) {
                                         Button(role: .destructive) {
                                             Task { await deleteContact(contact) }
@@ -48,6 +57,12 @@ struct CharacterContactsView: View {
                                         }
                                     }
                                     .contextMenu {
+                                        Button {
+                                            contactToEdit = contact
+                                        } label: {
+                                            Label("Edit Standing", systemImage: "pencil")
+                                        }
+                                        Divider()
                                         Button(role: .destructive) {
                                             Task { await deleteContact(contact) }
                                         } label: {
@@ -74,6 +89,14 @@ struct CharacterContactsView: View {
         .sheet(isPresented: $showingAddContact) {
             AddContactSheet { contactId, contactType, standing in
                 await addContact(contactId: contactId, contactType: contactType, standing: standing)
+            }
+        }
+        .sheet(item: $contactToEdit) { contact in
+            EditStandingSheet(
+                contactName: contactNames[contact.contactId] ?? "ID #\(contact.contactId)",
+                currentStanding: contact.standing
+            ) { newStanding in
+                await updateStanding(contact: contact, standing: newStanding)
             }
         }
         .task(id: accountManager.selectedCharacterID) {
@@ -135,6 +158,31 @@ struct CharacterContactsView: View {
                 queryItems: [URLQueryItem(name: "contact_ids", value: "\(contact.contactId)")]
             )
             contacts.removeAll { $0.contactId == contact.contactId }
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
+    private func updateStanding(contact: ESIContact, standing: Double) async {
+        guard let account = accountManager.selectedAccount else { return }
+        do {
+            let token = try await accountManager.validToken(for: account)
+            try await ESIClient.shared.put(
+                "/characters/\(account.characterID)/contacts/",
+                body: [contact.contactId],
+                token: token,
+                queryItems: [URLQueryItem(name: "standing", value: "\(standing)")]
+            )
+            if let idx = contacts.firstIndex(where: { $0.contactId == contact.contactId }) {
+                contacts[idx] = ESIContact(
+                    contactId: contact.contactId,
+                    contactType: contact.contactType,
+                    isBlocked: contact.isBlocked,
+                    isWatched: contact.isWatched,
+                    labelIds: contact.labelIds,
+                    standing: standing
+                )
+            }
         } catch {
             self.error = error.localizedDescription
         }
@@ -351,6 +399,83 @@ struct AddContactSheet: View {
         await onAdd(result.id, result.type, standing)
         isAdding = false
         dismiss()
+    }
+}
+
+// MARK:  Edit Standing Sheet
+
+struct EditStandingSheet: View {
+    let contactName: String
+    let currentStanding: Double
+    let onUpdate: (Double) async -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var standing: Double
+    @State private var isUpdating = false
+
+    private let standingOptions: [(Double, String, Color)] = [
+        (-10, "Terrible", .red),
+        (-5,  "Bad",      .orange),
+        (0,   "Neutral",  .secondary),
+        (5,   "Good",     .mint),
+        (10,  "Excellent", .green)
+    ]
+
+    init(contactName: String, currentStanding: Double, onUpdate: @escaping (Double) async -> Void) {
+        self.contactName = contactName
+        self.currentStanding = currentStanding
+        self.onUpdate = onUpdate
+        _standing = State(initialValue: currentStanding)
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("Edit Standing").font(.headline)
+                Spacer()
+                Button("Cancel") { dismiss() }.keyboardShortcut(.escape)
+            }
+            .padding()
+            Divider()
+
+            VStack(alignment: .leading, spacing: 20) {
+                Text(contactName).font(.title3.bold())
+
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Standing").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                    HStack(spacing: 8) {
+                        ForEach(standingOptions, id: \.0) { value, label, color in
+                            StandingOptionButton(
+                                value: value, label: label, color: color,
+                                isSelected: standing == value
+                            ) { standing = value }
+                        }
+                    }
+                }
+            }
+            .padding()
+
+            Divider()
+
+            HStack {
+                Spacer()
+                Button("Update Standing") {
+                    Task {
+                        isUpdating = true
+                        await onUpdate(standing)
+                        isUpdating = false
+                        dismiss()
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(standing == currentStanding || isUpdating)
+                .overlay(alignment: .leading) {
+                    if isUpdating { ProgressView().controlSize(.small).padding(.leading, 8) }
+                }
+            }
+            .padding()
+        }
+        .frame(minWidth: 420, minHeight: 260)
     }
 }
 

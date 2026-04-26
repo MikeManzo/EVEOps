@@ -27,6 +27,7 @@ struct SettingsView: View {
 
 private struct AccountsTab: View {
     @Environment(AccountManager.self) private var accountManager
+    @Environment(DashboardPrefetcher.self) private var prefetcher
 
     var body: some View {
         VStack(spacing: 0) {
@@ -50,10 +51,24 @@ private struct AccountsTab: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding()
             } else {
-                List(accountManager.accounts, id: \.characterID) { account in
-                    AccountRowView(account: account)
+                if let selected = accountManager.selectedAccount {
+                    CharacterDossierCard(
+                        account: selected,
+                        summary: prefetcher.menuBarSummaries[selected.characterID],
+                        onDelete: { accountManager.removeAccount(selected) }
+                    )
                 }
-                .listStyle(.inset)
+                let others = accountManager.accounts.filter {
+                    $0.characterID != accountManager.selectedCharacterID
+                }
+                if !others.isEmpty {
+                    List(others, id: \.characterID) { account in
+                        AccountRowView(account: account)
+                    }
+                    .listStyle(.inset)
+                } else {
+                    Spacer()
+                }
             }
 
             Divider()
@@ -142,6 +157,183 @@ private struct AccountRowView: View {
     }
 }
 
+// MARK: Character Dossier Card
+
+private struct CharacterDossierCard: View {
+    let account: StoredAccount
+    let summary: CharacterSummary?
+    let onDelete: () -> Void
+
+    @State private var showDeleteConfirm = false
+
+    var body: some View {
+        VStack(spacing: 10) {
+            // Header: portrait + identity + online badge only
+            HStack(spacing: 12) {
+                AsyncImage(url: EVEImageURL.characterPortrait(account.characterID, size: 128)) { image in
+                    image.resizable()
+                } placeholder: {
+                    RoundedRectangle(cornerRadius: 10).fill(.quaternary)
+                }
+                .frame(width: 56, height: 56)
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(account.characterName)
+                        .font(.system(size: 14, weight: .bold))
+                        .lineLimit(1)
+                    Text(summary?.corporationName.isEmpty == false ? summary!.corporationName : account.corporationName)
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                    if let alliance = summary?.allianceName ?? account.allianceName {
+                        Text(alliance)
+                            .font(.system(size: 11))
+                            .foregroundStyle(.tertiary)
+                            .lineLimit(1)
+                    }
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 5) {
+                    if let online = summary?.online {
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(online ? Color.green : Color.secondary.opacity(0.4))
+                                .frame(width: 6, height: 6)
+                            Text(online ? "Online" : "Offline")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundStyle(online ? .green : .secondary)
+                        }
+                    }
+                    if account.isTokenExpired {
+                        Label("Expired", systemImage: "exclamationmark.triangle.fill")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(.orange)
+                    } else {
+                        Label("Active", systemImage: "checkmark.circle.fill")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(.green)
+                    }
+                }
+            }
+
+            // Stats strip — includes token status and remove action
+            HStack(spacing: 0) {
+                statCell(
+                    icon: "banknote",
+                    color: .green,
+                    label: "WALLET",
+                    value: summary.map { EVEFormatters.formatISKShort($0.wallet) } ?? "--"
+                )
+                stripDivider
+                statCell(
+                    icon: "chart.bar.fill",
+                    color: .blue,
+                    label: "SKILL PTS",
+                    value: summary.map { formatSP($0.totalSP) } ?? "--"
+                )
+                stripDivider
+                statCell(
+                    icon: "graduationcap.fill",
+                    color: .purple,
+                    label: "IN QUEUE",
+                    value: summary.map { "\($0.skillQueueCount)" } ?? "--"
+                )
+                stripDivider
+                statCell(
+                    icon: "location.fill",
+                    color: securityColor(summary?.securityStatus),
+                    label: "SYSTEM",
+                    value: summary.map { $0.systemName.isEmpty ? "--" : $0.systemName } ?? "--"
+                )
+                stripDivider
+                statCell(
+                    icon: "diamond.fill",
+                    color: .cyan,
+                    label: "SHIP",
+                    value: summary.map { $0.shipTypeName.isEmpty ? "--" : $0.shipTypeName } ?? "--"
+                )
+                stripDivider
+                // Remove action cell
+                Button {
+                    showDeleteConfirm = true
+                } label: {
+                    VStack(spacing: 3) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(.red)
+                        Text("Remove")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(.red)
+                        Text("CHARACTER")
+                            .font(.system(size: 8, weight: .bold))
+                            .tracking(0.5)
+                            .foregroundStyle(.tertiary)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.plain)
+                .confirmationDialog(
+                    "Remove \(account.characterName)?",
+                    isPresented: $showDeleteConfirm,
+                    titleVisibility: .visible
+                ) {
+                    Button("Remove", role: .destructive, action: onDelete)
+                }
+            }
+            .padding(.vertical, 8)
+            .background(.primary.opacity(0.03), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(.primary.opacity(0.06)))
+        }
+        .padding(14)
+        .background(.background.secondary, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(.primary.opacity(0.07)))
+        .fixedSize(horizontal: false, vertical: true)
+        .padding(.horizontal, 8)
+        .padding(.top, 8)
+    }
+
+    private func statCell(icon: String, color: Color, label: String, value: String) -> some View {
+        VStack(spacing: 3) {
+            Image(systemName: icon)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(color)
+            Text(value)
+                .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+            Text(label)
+                .font(.system(size: 8, weight: .bold))
+                .tracking(0.5)
+                .foregroundStyle(.tertiary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var stripDivider: some View {
+        Rectangle()
+            .fill(.primary.opacity(0.08))
+            .frame(width: 0.5)
+            .padding(.vertical, 6)
+    }
+
+    private func formatSP(_ sp: Int) -> String {
+        if sp >= 1_000_000 { return String(format: "%.1fM", Double(sp) / 1_000_000) }
+        if sp >= 1_000 { return String(format: "%.0fK", Double(sp) / 1_000) }
+        return "\(sp)"
+    }
+
+    private func securityColor(_ sec: Double?) -> Color {
+        guard let sec else { return .orange }
+        if sec >= 0.5 { return .green }
+        if sec > 0.0 { return .yellow }
+        return .red
+    }
+}
+
 // MARK:  Notifications Tab
 
 private struct NotificationsTab: View {
@@ -220,7 +412,7 @@ private struct GeneralTab: View {
                     Text("30 minutes").tag(1800.0)
                 }
                 .pickerStyle(.menu)
-                Button(isRefreshing ? "Refreshing…" : "Refresh Now") {
+                Button(isRefreshing ? "Refreshing\u{2026}" : "Refresh Now") {
                     Task {
                         isRefreshing = true
                         await accountManager.refreshPublicInfo()
@@ -423,67 +615,301 @@ private struct AdvancedTab: View {
 // MARK:  About Tab
 
 private struct AboutTab: View {
+    @State private var glowPulse = false
+    @State private var ringRotation: Double = 0
+    @State private var legalExpanded = false
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
-        VStack(spacing: 20) {
-            VStack(spacing: 8) {
-                Image(nsImage: NSApp.applicationIconImage)
-                    .resizable()
-                    .frame(width: 96, height: 96)
+        ZStack {
+            // Background
+            if colorScheme == .dark {
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.03, green: 0.05, blue: 0.14),
+                        Color(red: 0.07, green: 0.04, blue: 0.11)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                Text("EVEOps")
-                    .font(.title)
-                    .fontWeight(.bold)
-
-                if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
-                   let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String {
-                    Text("Version \(version) (\(build))")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                // Deterministic starfield
+                Canvas { context, size in
+                    let w = max(Int(size.width), 1)
+                    let h = max(Int(size.height), 1)
+                    for i in 0..<60 {
+                        let x = CGFloat((i * 137 + 73) % w)
+                        let y = CGFloat((i * 239 + 41) % h)
+                        let r: CGFloat = (i % 4 == 0) ? 1.1 : 0.55
+                        let opacity = Double(i % 8) / 22.0 + 0.1
+                        context.fill(
+                            Path(ellipseIn: CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2)),
+                            with: .color(Color.white.opacity(opacity))
+                        )
+                    }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.93, green: 0.95, blue: 1.0),
+                        Color(red: 0.87, green: 0.90, blue: 0.97)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
 
-            Divider()
-                .padding(.horizontal, 40)
+            // Content
+            ScrollView {
+                VStack(spacing: 0) {
+                    // Hero: icon + title + version
+                    VStack(spacing: 10) {
+                        iconHero
+                        Text("EVEOps")
+                            .font(.system(size: 26, weight: .bold))
+                            .tracking(0.5)
+                        versionPill
+                    }
+                    .padding(.top, 28)
 
-            VStack(spacing: 12) {
-                Text("Acknowledgements")
-                    .font(.headline)
+                    // Gradient rule
+                    Rectangle()
+                        .fill(
+                            LinearGradient(
+                                colors: [.clear, .primary.opacity(0.12), .clear],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(height: 0.5)
+                        .padding(.horizontal, 44)
+                        .padding(.top, 18)
 
-                Text("Inspired by EVE Buddy")
-                    .font(.subheadline)
+                    // Feature chips
+                    HStack(spacing: 8) {
+                        chip("antenna.radiowaves.left.and.right", "ESI API")
+                        chip("lock.shield", "PKCE Auth")
+                        chip("internaldrive", "Smart Cache")
+                        chip("bell", "Notifications")
+                    }
+                    .padding(.top, 16)
+
+                    // Developer links
+                    HStack(spacing: 10) {
+                        linkButton("doc.text.magnifyingglass", "ESI Reference") {
+                            if let url = URL(string: "https://esi.evetech.net/ui/") {
+                                NSWorkspace.shared.open(url)
+                            }
+                        }
+                        linkButton("globe", "EVE Developers") {
+                            if let url = URL(string: "https://developers.eveonline.com") {
+                                NSWorkspace.shared.open(url)
+                            }
+                        }
+                    }
+                    .padding(.top, 12)
+
+                    // EVE Buddy standing card
+                    eveBuddyCard
+                        .padding(.top, 14)
+
+                    // Collapsible legal
+                    DisclosureGroup(isExpanded: $legalExpanded) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("EVE Online and the EVE logo are registered trademarks of CCP hf. All rights reserved worldwide.")
+                            Text("EVEOps is an independent third-party application not affiliated with, endorsed by, or sponsored by CCP hf.")
+                            Text("All EVE Online related materials are used in accordance with the EVE Online Third-Party Developer License Agreement.")
+                            Text("\"EVE\", \"EVE Online\", \"CCP\", and all related logos are trademarks of CCP hf.")
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 8)
+                    } label: {
+                        Label("Legal Notices", systemImage: "doc.text")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal, 44)
+                    .padding(.top, 14)
+
+                    Text("\u{00A9} \(currentYear) CitizenCoder  ·  Not affiliated with CCP hf.")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .padding(.top, 20)
+                        .padding(.bottom, 20)
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true)) {
+                glowPulse = true
+            }
+            withAnimation(.linear(duration: 12).repeatForever(autoreverses: false)) {
+                ringRotation = 360
+            }
+        }
+    }
+
+    // MARK: - Icon hero
+
+    private var iconHero: some View {
+        ZStack {
+            // Pulsing ambient glow
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            Color(hue: 0.62, saturation: 0.8, brightness: 1.0)
+                                .opacity(glowPulse ? 0.28 : 0.08),
+                            .clear
+                        ],
+                        center: .center,
+                        startRadius: 0,
+                        endRadius: 68
+                    )
+                )
+                .frame(width: 136, height: 136)
+
+            // Rotating comet-sweep ring
+            Circle()
+                .strokeBorder(
+                    AngularGradient(
+                        gradient: Gradient(stops: [
+                            .init(color: .blue.opacity(0), location: 0.0),
+                            .init(color: .blue, location: 0.3),
+                            .init(color: .cyan, location: 0.55),
+                            .init(color: .purple, location: 0.75),
+                            .init(color: .blue.opacity(0), location: 1.0)
+                        ]),
+                        center: .center
+                    ),
+                    lineWidth: 2.5
+                )
+                .frame(width: 104, height: 104)
+                .rotationEffect(.degrees(ringRotation))
+
+            // App icon
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable()
+                .frame(width: 84, height: 84)
+                .clipShape(RoundedRectangle(cornerRadius: 19, style: .continuous))
+                .shadow(color: .black.opacity(0.25), radius: 8, x: 0, y: 4)
+        }
+    }
+
+    // MARK: - Version pill
+
+    @ViewBuilder
+    private var versionPill: some View {
+        if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
+           let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(.green)
+                    .frame(width: 5, height: 5)
+                Text("v\(version)  ·  Build \(build)")
+                    .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(.secondary)
             }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 5)
+            .background(.primary.opacity(0.05), in: Capsule())
+            .overlay(Capsule().strokeBorder(.primary.opacity(0.1)))
+        }
+    }
 
-            Divider()
-                .padding(.horizontal, 40)
+    // MARK: - EVE Buddy acknowledgement
 
-            VStack(spacing: 12) {
-                Text("Legal Notices")
-                    .font(.headline)
+    private var eveBuddyCard: some View {
+        HStack(spacing: 14) {
+            // Max-standing gold star badge
+            ZStack {
+                Circle()
+                    .fill(Color(hue: 0.12, saturation: 0.85, brightness: 1.0).opacity(0.15))
+                    .frame(width: 38, height: 38)
+                Image(systemName: "star.fill")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(Color(hue: 0.12, saturation: 0.9, brightness: 1.0))
+            }
 
-                VStack(spacing: 8) {
-                    Text("EVE Online and the EVE logo are registered trademarks of CCP hf. All rights are reserved worldwide.")
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text("EVEOps is an independent third-party application and is not affiliated with, endorsed by, or sponsored by CCP hf.")
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text("All EVE Online related materials including images, characters, names, and game data are the intellectual property of CCP hf. and are used in accordance with the EVE Online Third-Party Developer License Agreement.")
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text("\u{201C}EVE\u{201D}, \u{201C}EVE Online\u{201D}, \u{201C}CCP\u{201D}, and all related logos and images are trademarks or registered trademarks of CCP hf.")
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("EVE Buddy")
+                    .font(.system(size: 13, weight: .semibold))
+                Text("ACKNOWLEDGED INSPIRATION")
+                    .font(.system(size: 9, weight: .bold))
+                    .tracking(1.2)
+                    .foregroundStyle(.tertiary)
             }
 
             Spacer()
 
-            Text("\u{00A9} \(currentYear) CitizenCoder")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
+            VStack(alignment: .trailing, spacing: 1) {
+                Text("+10.0")
+                    .font(.system(size: 15, weight: .bold, design: .monospaced))
+                    .foregroundStyle(Color(hue: 0.33, saturation: 0.65, brightness: 0.80))
+                Text("STANDING")
+                    .font(.system(size: 8, weight: .bold))
+                    .tracking(1.2)
+                    .foregroundStyle(.tertiary)
+            }
         }
-        .padding(.vertical, 24)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 11)
+        .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [
+                            Color(hue: 0.12, saturation: 0.85, brightness: 1.0).opacity(0.35),
+                            Color(hue: 0.12, saturation: 0.85, brightness: 1.0).opacity(0.10)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        )
+        .padding(.horizontal, 44)
+    }
+
+    // MARK: - Helpers
+
+    private func chip(_ icon: String, _ label: String) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: icon)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(.blue)
+            Text(label)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(.primary.opacity(0.08)))
+    }
+
+    private func linkButton(_ icon: String, _ label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                Image(systemName: icon)
+                    .font(.system(size: 11))
+                Text(label)
+                    .font(.system(size: 12, weight: .medium))
+            }
+            .foregroundStyle(.blue)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 7)
+            .background(.blue.opacity(0.08), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(.blue.opacity(0.18)))
+        }
+        .buttonStyle(.plain)
     }
 
     private var currentYear: String {

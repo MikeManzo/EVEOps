@@ -840,6 +840,21 @@ nonisolated struct ESICalendarResponseRequest: Encodable, Sendable {
     let response: String // "accepted", "declined", "tentative"
 }
 
+// MARK:  Fleet
+
+nonisolated struct ESIFleetInfo: Codable, Sendable {
+    let fleetId: Int
+    let role: String   // "fleet_commander", "wing_commander", "squad_commander", "squad_member"
+    let squadId: Int
+    let wingId: Int
+}
+
+/// Body for POST /fleets/{fleet_id}/members/
+nonisolated struct ESIFleetInvite: Encodable, Sendable {
+    let characterId: Int
+    let role: String
+}
+
 // MARK:  Token Verification (JWT)
 
 nonisolated struct ESITokenCharacter: Sendable {

@@ -9,6 +9,7 @@ struct CharacterMailsView: View {
     @State private var error: String?
     @State private var senderNames: [Int: String] = [:]
     @State private var showingCompose = false
+    @State private var deleteError: String?
 
     var body: some View {
         LoadingStateView(isLoading: isLoading, error: error, isEmpty: mails.isEmpty, emptyMessage: "No mails found") {
@@ -28,6 +29,16 @@ struct CharacterMailsView: View {
                     Label("Compose", systemImage: "square.and.pencil")
                 }
             }
+            ToolbarItem {
+                Button(role: .destructive) {
+                    Task {
+                        if let mail = selectedMail { await deleteMail(mail) }
+                    }
+                } label: {
+                    Label("Delete Mail", systemImage: "trash")
+                }
+                .disabled(selectedMail == nil)
+            }
         }
         .sheet(isPresented: $showingCompose) {
             ComposeMailSheet { subject, recipients, body in
@@ -38,35 +49,44 @@ struct CharacterMailsView: View {
     }
 
     private var mailList: some View {
-        List(mails, selection: $selectedMail) { mail in
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    if mail.isRead != true {
-                        Circle()
-                            .fill(.blue)
-                            .frame(width: 8, height: 8)
+        List(selection: $selectedMail) {
+            ForEach(mails) { mail in
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        if mail.isRead != true {
+                            Circle()
+                                .fill(.blue)
+                                .frame(width: 8, height: 8)
+                        }
+                        Text(mail.subject ?? "(No Subject)")
+                            .font(.subheadline)
+                            .fontWeight(mail.isRead == true ? .regular : .bold)
+                            .lineLimit(1)
                     }
-                    Text(mail.subject ?? "(No Subject)")
-                        .font(.subheadline)
-                        .fontWeight(mail.isRead == true ? .regular : .bold)
-                        .lineLimit(1)
+                    HStack {
+                        if let fromID = mail.from {
+                            Text(senderNames[fromID] ?? "#\(fromID)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        if let timestamp = mail.timestamp {
+                            Text(timestamp, style: .date)
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
                 }
-                HStack {
-                    if let fromID = mail.from {
-                        Text(senderNames[fromID] ?? "#\(fromID)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    if let timestamp = mail.timestamp {
-                        Text(timestamp, style: .date)
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
+                .padding(.vertical, 2)
+                .tag(mail)
+                .swipeActions(edge: .trailing) {
+                    Button(role: .destructive) {
+                        Task { await deleteMail(mail) }
+                    } label: {
+                        Label("Delete", systemImage: "trash")
                     }
                 }
             }
-            .padding(.vertical, 2)
-            .tag(mail)
         }
     }
 
@@ -160,6 +180,23 @@ struct CharacterMailsView: View {
             mailBody = body.body ?? "(Empty)"
         } catch {
             mailBody = "Failed to load mail body."
+        }
+    }
+
+    private func deleteMail(_ mail: ESIMailHeader) async {
+        guard let account = accountManager.selectedAccount, let mailId = mail.mailId else { return }
+        do {
+            let token = try await accountManager.validToken(for: account)
+            try await ESIClient.shared.delete(
+                "/characters/\(account.characterID)/mail/\(mailId)/",
+                token: token
+            )
+            mails.removeAll { $0.mailId == mail.mailId }
+            if selectedMail?.mailId == mail.mailId {
+                selectedMail = mails.first
+            }
+        } catch {
+            self.error = error.localizedDescription
         }
     }
 

@@ -101,6 +101,8 @@ struct MainContentView: View {
                 GalaxyMapView()
             case .careerAgents:
                 CareerAgentsView()
+            case .fleetManager:
+                FleetManagerView()
             case .market:
                 MarketBrowserView()
             case .stationBrowser:
@@ -111,8 +113,6 @@ struct MainContentView: View {
                 CharacterResearchAgentsView()
             case .corpWars:
                 CorporationWarsView()
-            case .bookmarks:
-                CharacterBookmarksView()
             case .corpMoonExtractions:
                 CorporationMoonExtractionsView()
             }

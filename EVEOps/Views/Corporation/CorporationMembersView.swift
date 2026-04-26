@@ -150,9 +150,7 @@ struct CorporationMembersView: View {
                 VStack(spacing: 20) {
                     memberHeader(detail)
                     memberInfoCards(detail)
-                    if !detail.roles.isEmpty {
-                        rolesSection(detail.roles)
-                    }
+                    rolesSection(detail)
                     if !detail.titles.isEmpty {
                         titlesSection(detail.titles)
                     }
@@ -311,17 +309,22 @@ struct CorporationMembersView: View {
         }
     }
 
-    private func rolesSection(_ roles: [String]) -> some View {
+    private func rolesSection(_ detail: MemberDetail) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Roles")
-                .font(.headline)
-            FlowLayout(spacing: 6) {
-                ForEach(roles, id: \.self) { role in
-                    Text(formatRole(role))
-                        .font(.caption)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(.blue.opacity(0.15), in: Capsule())
+            Text("Roles").font(.headline)
+            if detail.roles.isEmpty {
+                Text("No roles assigned")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                FlowLayout(spacing: 6) {
+                    ForEach(detail.roles, id: \.self) { role in
+                        Text(formatRole(role))
+                            .font(.caption)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(.blue.opacity(0.15), in: Capsule())
+                    }
                 }
             }
         }
