@@ -114,6 +114,21 @@ actor NotificationService {
         }
     }
 
+    func notifyPresenceChange(characterID: Int, characterName: String, cameOnline: Bool) async {
+        guard UserDefaults.standard.object(forKey: "notificationsEnabled") as? Bool ?? true,
+              UserDefaults.standard.object(forKey: "notifyContactPresence") as? Bool ?? true else { return }
+        let title = cameOnline ? "Contact Online" : "Contact Offline"
+        let body = cameOnline
+            ? "\(characterName) appears to be online."
+            : "\(characterName) appears to have gone offline."
+        let suffix = cameOnline ? "online" : "offline"
+        await sendNotification(
+            title: title,
+            body: body,
+            identifier: "presence-\(characterID)-\(suffix)-\(Int(Date().timeIntervalSince1970))"
+        )
+    }
+
     private func checkContracts(for account: StoredAccount, token: String) async {
         guard UserDefaults.standard.object(forKey: "notificationsEnabled") as? Bool ?? true,
               UserDefaults.standard.object(forKey: "notifyContractsUpdated") as? Bool ?? true else { return }

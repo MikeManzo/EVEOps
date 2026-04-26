@@ -35,7 +35,7 @@ final class PresenceTracker {
     private let networkInterval: TimeInterval = 300   // 5 min between zKillboard cycles
     private let scoreInterval:   TimeInterval = 30    // 30 s between score recomputations
 
-    // MARK: - Setup
+    // Mark:  Setup
 
     /// Must be called once before startPolling so the tracker knows which accounts and
     /// prefetched data to use.
@@ -44,7 +44,7 @@ final class PresenceTracker {
         self.prefetcher = prefetcher
     }
 
-    // MARK: - Lifecycle
+    // Mark:  Lifecycle
 
     func startPolling() {
         guard pollTask == nil else { return }
@@ -56,7 +56,7 @@ final class PresenceTracker {
         pollTask = nil
     }
 
-    // MARK: - Contact Management
+    // Mark:  Contact Management
 
     /// Replace the full set of character contact IDs to track.
     /// Call this whenever the contacts list is (re)loaded.
@@ -64,7 +64,7 @@ final class PresenceTracker {
         contactIDs = Set(ids)
     }
 
-    // MARK: - Manual Refresh
+    // Mark:  Manual Refresh
 
     /// Trigger an immediate network fetch + score recompute (e.g. from a Refresh button).
     func triggerRefresh() async {
@@ -72,7 +72,7 @@ final class PresenceTracker {
         await recomputeScores()
     }
 
-    // MARK: - Score Access
+    // Mark:  Score Access
 
     func score(for characterID: Int) -> PresenceScore {
         if let cached = scores[characterID] { return cached }
@@ -86,7 +86,7 @@ final class PresenceTracker {
         )
     }
 
-    // MARK: - Polling Loop
+    // Mark:  Polling Loop
 
     private func pollingLoop() async {
         // Immediate first cycle so contacts have data as soon as the view appears.
@@ -105,7 +105,7 @@ final class PresenceTracker {
         }
     }
 
-    // MARK: - Network Cycle
+    // Mark:  Network Cycle
 
     /// Ingests ESI data for own characters then fetches zKillboard for all tracked contacts.
     /// The 2-second inter-request delay required by zKillboard is enforced here, outside
@@ -142,7 +142,7 @@ final class PresenceTracker {
         await recomputeScores()
     }
 
-    // MARK: - Score Recomputation
+    // Mark:  Score Recomputation
 
     /// Recomputes all scores from the current event store. Pure math, no network.
     private func recomputeScores() async {
@@ -157,6 +157,50 @@ final class PresenceTracker {
                 updated[account.characterID] = await engine.score(for: account.characterID)
             }
         }
+
+        await checkPresenceTransitions(old: scores, new: updated)
         scores = updated
+    }
+
+    // Mark:  Presence Change Notifications
+
+    /// Compares old and new scores for contacts and fires notifications on meaningful state transitions.
+    /// Skips the first cycle (when `old` is empty) to avoid spurious notifications on launch.
+    private func checkPresenceTransitions(old: [Int: PresenceScore], new: [Int: PresenceScore]) async {
+        guard !old.isEmpty else { return }
+
+        var cameOnlineIDs: [Int] = []
+        var wentOfflineIDs: [Int] = []
+
+        for id in contactIDs {
+            guard let oldScore = old[id], let newScore = new[id] else { continue }
+            let wasOnline = oldScore.state == .activeNow || oldScore.state == .recentlyActive
+            let isOnline  = newScore.state == .activeNow || newScore.state == .recentlyActive
+            if !wasOnline && isOnline {
+                cameOnlineIDs.append(id)
+            } else if wasOnline && newScore.state == .offline {
+                wentOfflineIDs.append(id)
+            }
+        }
+
+        guard !cameOnlineIDs.isEmpty || !wentOfflineIDs.isEmpty else { return }
+
+        let names = await NameResolver.shared.resolve(ids: cameOnlineIDs + wentOfflineIDs)
+        let notifier = NotificationService.shared
+
+        for id in cameOnlineIDs {
+            await notifier.notifyPresenceChange(
+                characterID: id,
+                characterName: names[id] ?? "Unknown",
+                cameOnline: true
+            )
+        }
+        for id in wentOfflineIDs {
+            await notifier.notifyPresenceChange(
+                characterID: id,
+                characterName: names[id] ?? "Unknown",
+                cameOnline: false
+            )
+        }
     }
 }

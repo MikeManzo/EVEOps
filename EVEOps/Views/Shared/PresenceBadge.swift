@@ -1,6 +1,6 @@
 import SwiftUI
 
-// MARK: - Presence Badge
+// Mark:  Presence Badge
 
 /// A small colored dot that conveys a character's inferred presence state.
 /// Tap/click to reveal a detail popover with score, dominant signal, and last-seen time.
@@ -55,7 +55,7 @@ struct PresenceBadge: View {
     }
 }
 
-// MARK: - Presence Detail Popover
+// Mark:  Presence Detail Popover
 
 struct PresenceDetailPopover: View {
     let score: PresenceScore
@@ -155,7 +155,7 @@ struct PresenceDetailPopover: View {
     }
 }
 
-// MARK: - Helpers
+// Mark:  Helpers
 
 private struct LabeledRow: View {
     let icon: String
@@ -178,7 +178,7 @@ private struct LabeledRow: View {
     }
 }
 
-// MARK: - Offline Placeholder
+// Mark:  Offline Placeholder
 
 /// A faded dot used when no score is available yet (loading state).
 struct PresencePlaceholder: View {

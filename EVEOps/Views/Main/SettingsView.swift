@@ -344,6 +344,7 @@ private struct NotificationsTab: View {
     @AppStorage("notifyContractsUpdated") private var notifyContractsUpdated = true
     @AppStorage("notifyStructureAlerts") private var notifyStructureAlerts = true
     @AppStorage("notifyWarAlerts") private var notifyWarAlerts = true
+    @AppStorage("notifyContactPresence") private var notifyContactPresence = true
 
     var body: some View {
         Form {
@@ -363,6 +364,8 @@ private struct NotificationsTab: View {
                 Toggle("Structure alerts", isOn: $notifyStructureAlerts)
                     .disabled(!notificationsEnabled)
                 Toggle("War declarations", isOn: $notifyWarAlerts)
+                    .disabled(!notificationsEnabled)
+                Toggle("Contact comes online / goes offline", isOn: $notifyContactPresence)
                     .disabled(!notificationsEnabled)
             }
 
@@ -756,7 +759,7 @@ private struct AboutTab: View {
         }
     }
 
-    // MARK: - Icon hero
+    // Mark:  Icon hero
 
     private var iconHero: some View {
         ZStack {
@@ -803,7 +806,7 @@ private struct AboutTab: View {
         }
     }
 
-    // MARK: - Version pill
+    // Mark:  Version pill
 
     @ViewBuilder
     private var versionPill: some View {
@@ -824,7 +827,7 @@ private struct AboutTab: View {
         }
     }
 
-    // MARK: - EVE Buddy acknowledgement
+    // Mark:  EVE Buddy acknowledgement
 
     private var eveBuddyCard: some View {
         HStack(spacing: 14) {
@@ -878,7 +881,7 @@ private struct AboutTab: View {
         .padding(.horizontal, 44)
     }
 
-    // MARK: - Helpers
+    // Mark:  Helpers
 
     private func chip(_ icon: String, _ label: String) -> some View {
         HStack(spacing: 5) {

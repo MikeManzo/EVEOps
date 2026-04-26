@@ -1,6 +1,6 @@
 import Foundation
 
-// MARK: - Signal Configuration
+// Mark:  Signal Configuration
 
 /// Describes one observable activity signal: its maximum contribution and decay rate.
 nonisolated struct SignalConfig: Sendable {
@@ -21,7 +21,7 @@ nonisolated struct SignalConfig: Sendable {
     }
 }
 
-// MARK: - Presence State
+// Mark:  Presence State
 
 enum PresenceState: String, Sendable {
     case activeNow      = "Active Now"
@@ -39,7 +39,7 @@ enum PresenceState: String, Sendable {
     }
 }
 
-// MARK: - Activity Event
+// Mark:  Activity Event
 
 /// A single observable activity event persisted to disk for decay computation.
 nonisolated struct ActivityEvent: Codable, Sendable {
@@ -48,7 +48,7 @@ nonisolated struct ActivityEvent: Codable, Sendable {
     let occurredAt: Date
 }
 
-// MARK: - Presence Score
+// Mark:  Presence Score
 
 /// The computed presence result for a single character.
 nonisolated struct PresenceScore: Sendable {
@@ -84,7 +84,7 @@ nonisolated struct PresenceScore: Sendable {
     }
 }
 
-// MARK: - Presence Engine
+// Mark:  Presence Engine
 
 /// Core actor that owns the event store, decay math, and all network fetches.
 ///
@@ -139,7 +139,7 @@ actor PresenceEngine {
         events = Self.loadEvents(from: url, ttl: 172_800)
     }
 
-    // MARK: - Event Recording
+    // Mark:  Event Recording
 
     func record(_ event: ActivityEvent) {
         var charEvents = events[event.characterID] ?? []
@@ -157,7 +157,7 @@ actor PresenceEngine {
         persistEvents()
     }
 
-    // MARK: - Scoring
+    // Mark:  Scoring
 
     /// Compute the current presence score by decaying all stored events.
     func score(for characterID: Int) -> PresenceScore {
@@ -207,7 +207,7 @@ actor PresenceEngine {
         )
     }
 
-    // MARK: - zKillboard Integration
+    // Mark:  zKillboard Integration
 
     /// Fetches the most recent kill activity for a character from zKillboard.
     ///
@@ -261,7 +261,7 @@ actor PresenceEngine {
         return true
     }
 
-    // MARK: - ESI Signal Ingestion (own characters)
+    // Mark:  ESI Signal Ingestion (own characters)
 
     /// Extracts all available signals from a freshly-prefetched character dataset.
     /// Called by PresenceTracker after each DashboardPrefetcher cycle.
@@ -304,7 +304,7 @@ actor PresenceEngine {
         }
     }
 
-    // MARK: - Cache Management
+    // Mark:  Cache Management
 
     func clearEvents(for characterID: Int) {
         events.removeValue(forKey: characterID)
@@ -316,7 +316,7 @@ actor PresenceEngine {
         persistEvents()
     }
 
-    // MARK: - Disk Persistence
+    // Mark:  Disk Persistence
 
     private static func loadEvents(from url: URL, ttl: TimeInterval) -> [Int: [ActivityEvent]] {
         guard let data = try? Data(contentsOf: url) else { return [:] }

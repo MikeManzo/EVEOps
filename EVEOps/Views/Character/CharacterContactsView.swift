@@ -233,7 +233,7 @@ struct CharacterContactsView: View {
     }
 }
 
-// MARK: - Contact Row
+// Mark:  Contact Row
 
 struct ContactRow: View {
     let contact: ESIContact
@@ -309,7 +309,7 @@ struct ContactRow: View {
     }
 }
 
-// MARK: - Add Contact Sheet
+// Mark:  Add Contact Sheet
 
 struct AddContactSheet: View {
     let onAdd: (Int, String, Double) async -> Void
@@ -444,7 +444,7 @@ struct AddContactSheet: View {
     }
 }
 
-// MARK: - Edit Standing Sheet
+// Mark:  Edit Standing Sheet
 
 struct EditStandingSheet: View {
     let contactName: String
@@ -521,7 +521,7 @@ struct EditStandingSheet: View {
     }
 }
 
-// MARK: - Standing Option Button
+// Mark:  Standing Option Button
 
 struct StandingOptionButton: View {
     let value: Double
