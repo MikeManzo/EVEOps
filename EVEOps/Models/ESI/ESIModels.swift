@@ -767,6 +767,19 @@ nonisolated struct ESIContact: Codable, Sendable, Identifiable {
 
     var id: Int { contactId }
 
+    /// Player characters have IDs >= 90,000,000; anything below is an NPC (agent, etc.)
+    var isPlayerCharacter: Bool { contactType == "character" && contactId >= 90_000_000 }
+
+    var displayTypeLabel: String {
+        switch contactType {
+        case "character":   return isPlayerCharacter ? "Player" : "NPC"
+        case "corporation": return "Corporation"
+        case "alliance":    return "Alliance"
+        case "faction":     return "Faction"
+        default:            return contactType.capitalized
+        }
+    }
+
     var imageURL: URL? {
         switch contactType {
         case "character":   return EVEImageURL.characterPortrait(contactId, size: 64)

@@ -9,13 +9,17 @@ struct CharacterContactsView: View {
     @State private var contactNames: [Int: String] = [:]
     @State private var searchFilter = ""
     @State private var showingAddContact = false
-    @State private var typeFilter = "all"
+    @AppStorage("contacts.typeFilter") private var typeFilter = "all"
     @State private var contactToEdit: ESIContact?
 
     private var filteredContacts: [ESIContact] {
         var result = contacts
-        if typeFilter != "all" {
-            result = result.filter { $0.contactType == typeFilter }
+        switch typeFilter {
+        case "player":      result = result.filter { $0.isPlayerCharacter }
+        case "npc":         result = result.filter { $0.contactType == "character" && !$0.isPlayerCharacter }
+        case "corporation": result = result.filter { $0.contactType == "corporation" }
+        case "alliance":    result = result.filter { $0.contactType == "alliance" }
+        default: break
         }
         if !searchFilter.isEmpty {
             result = result.filter {
@@ -26,11 +30,22 @@ struct CharacterContactsView: View {
     }
 
     private var groupedContacts: [(String, [ESIContact])] {
-        let types = ["character", "corporation", "alliance", "faction"]
-        return types.compactMap { type in
-            let group = filteredContacts.filter { $0.contactType == type }
-            return group.isEmpty ? nil : (type, group)
+        if typeFilter != "all" {
+            return filteredContacts.isEmpty ? [] : [(typeFilter, filteredContacts)]
         }
+        let all = filteredContacts
+        var groups: [(String, [ESIContact])] = []
+        let players   = all.filter { $0.isPlayerCharacter }
+        let npcs      = all.filter { $0.contactType == "character" && !$0.isPlayerCharacter }
+        let corps     = all.filter { $0.contactType == "corporation" }
+        let alliances = all.filter { $0.contactType == "alliance" }
+        let factions  = all.filter { $0.contactType == "faction" }
+        if !players.isEmpty   { groups.append(("player", players)) }
+        if !npcs.isEmpty      { groups.append(("npc", npcs)) }
+        if !corps.isEmpty     { groups.append(("corporation", corps)) }
+        if !alliances.isEmpty { groups.append(("alliance", alliances)) }
+        if !factions.isEmpty  { groups.append(("faction", factions)) }
+        return groups
     }
 
     var body: some View {
@@ -44,7 +59,7 @@ struct CharacterContactsView: View {
                                 ContactRow(
                                     contact: contact,
                                     name: contactNames[contact.contactId],
-                                    presence: contact.contactType == "character"
+                                    presence: contact.isPlayerCharacter
                                         ? presenceTracker.score(for: contact.contactId)
                                         : nil
                                 )
@@ -115,12 +130,13 @@ struct CharacterContactsView: View {
         HStack {
             Picker("Type", selection: $typeFilter) {
                 Text("All").tag("all")
-                Text("Characters").tag("character")
-                Text("Corporations").tag("corporation")
+                Text("Players").tag("player")
+                Text("NPCs").tag("npc")
+                Text("Corps").tag("corporation")
                 Text("Alliances").tag("alliance")
             }
             .pickerStyle(.segmented)
-            .frame(maxWidth: 420)
+            .frame(maxWidth: 520)
             Spacer()
         }
         .padding(10)
@@ -129,7 +145,8 @@ struct CharacterContactsView: View {
 
     private func typeLabel(_ type: String) -> String {
         switch type {
-        case "character":   return "Characters"
+        case "player":      return "Players"
+        case "npc":         return "NPCs"
         case "corporation": return "Corporations"
         case "alliance":    return "Alliances"
         case "faction":     return "Factions"
@@ -150,8 +167,8 @@ struct CharacterContactsView: View {
             let ids = loaded.map(\.contactId)
             contactNames = await NameResolver.shared.resolve(ids: ids)
 
-            // Register character contacts with the presence tracker.
-            let characterIDs = loaded.filter { $0.contactType == "character" }.map(\.contactId)
+            // Register player character contacts with the presence tracker (excludes NPC agents).
+            let characterIDs = loaded.filter { $0.isPlayerCharacter }.map(\.contactId)
             presenceTracker.updateContactIDs(characterIDs)
         } catch {
             self.error = error.localizedDescription
@@ -236,7 +253,7 @@ struct ContactRow: View {
                 .frame(width: 40, height: 40)
                 .clipShape(contact.contactType == "character" ? AnyShape(Circle()) : AnyShape(RoundedRectangle(cornerRadius: 6)))
 
-                if contact.contactType == "character" {
+                if contact.isPlayerCharacter {
                     if let presence {
                         PresenceBadge(score: presence, size: 11)
                             .offset(x: 3, y: 3)
@@ -250,7 +267,7 @@ struct ContactRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(name ?? "ID #\(contact.contactId)")
                     .font(.subheadline)
-                Text(contact.contactType.capitalized)
+                Text(contact.displayTypeLabel)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

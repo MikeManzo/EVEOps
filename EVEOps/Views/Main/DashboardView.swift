@@ -7,6 +7,9 @@ struct DashboardView: View {
     @State private var summaries: [CharacterSummary] = []
     @State private var isLoading = false
     @State private var contactSummaries: [ContactSummary] = []
+    @AppStorage("dashboard.contacts.playersExpanded") private var playersExpanded = true
+    @AppStorage("dashboard.contacts.npcsExpanded")    private var npcsExpanded = true
+    @AppStorage("dashboard.contacts.orgsExpanded")    private var orgsExpanded = true
 
     var body: some View {
         ScrollView {
@@ -33,16 +36,52 @@ struct DashboardView: View {
                 }
                 .padding(.horizontal)
 
-                // Contacts section
-                if !contactSummaries.isEmpty {
-                    Text("Contacts")
-                        .font(.title2.bold())
-                        .padding(.horizontal)
+                // Contacts section — split into Players, NPCs, Organizations
+                let playerContacts = contactSummaries.filter { $0.isPlayerCharacter }
+                let npcContacts    = contactSummaries.filter { $0.contactType == "character" && !$0.isPlayerCharacter }
+                let orgContacts    = contactSummaries.filter { $0.contactType != "character" }
 
-                    LazyVGrid(columns: columns, spacing: 16) {
-                        ForEach(contactSummaries) { contact in
-                            ContactCardView(contact: contact)
+                if !playerContacts.isEmpty {
+                    DisclosureGroup(isExpanded: $playersExpanded) {
+                        LazyVGrid(columns: columns, spacing: 16) {
+                            ForEach(playerContacts) { contact in
+                                ContactCardView(contact: contact)
+                            }
                         }
+                        .padding(.top, 8)
+                    } label: {
+                        Text("Players (\(playerContacts.count))")
+                            .font(.title2.bold())
+                    }
+                    .padding(.horizontal)
+                }
+
+                if !npcContacts.isEmpty {
+                    DisclosureGroup(isExpanded: $npcsExpanded) {
+                        LazyVGrid(columns: columns, spacing: 16) {
+                            ForEach(npcContacts) { contact in
+                                ContactCardView(contact: contact)
+                            }
+                        }
+                        .padding(.top, 8)
+                    } label: {
+                        Text("NPCs (\(npcContacts.count))")
+                            .font(.title2.bold())
+                    }
+                    .padding(.horizontal)
+                }
+
+                if !orgContacts.isEmpty {
+                    DisclosureGroup(isExpanded: $orgsExpanded) {
+                        LazyVGrid(columns: columns, spacing: 16) {
+                            ForEach(orgContacts) { contact in
+                                ContactCardView(contact: contact)
+                            }
+                        }
+                        .padding(.top, 8)
+                    } label: {
+                        Text("Organizations (\(orgContacts.count))")
+                            .font(.title2.bold())
                     }
                     .padding(.horizontal)
                 }
@@ -448,6 +487,8 @@ struct ContactSummary: Identifiable {
     var isBlocked: Bool = false
     var labelNames: [String] = []
     var title: String? = nil
+
+    var isPlayerCharacter: Bool { contactType == "character" && contactID >= 90_000_000 }
 
     var imageURL: URL? {
         switch contactType {
@@ -909,6 +950,7 @@ struct CharacterCardView: View {
 
 struct ContactCardView: View {
     let contact: ContactSummary
+    @Environment(PresenceTracker.self) private var presenceTracker
 
     var body: some View {
         VStack(spacing: 0) {
@@ -937,14 +979,21 @@ struct ContactCardView: View {
             VStack(alignment: .leading, spacing: 10) {
                 // Identity row
                 HStack(spacing: 12) {
-                    AsyncImage(url: contact.imageURL) { image in
-                        image.resizable()
-                    } placeholder: {
-                        RoundedRectangle(cornerRadius: 8).fill(.quaternary)
+                    ZStack(alignment: .bottomTrailing) {
+                        AsyncImage(url: contact.imageURL) { image in
+                            image.resizable()
+                        } placeholder: {
+                            RoundedRectangle(cornerRadius: 8).fill(.quaternary)
+                        }
+                        .frame(width: 52, height: 52)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.white.opacity(0.1), lineWidth: 1))
+
+                        if contact.isPlayerCharacter {
+                            PresenceBadge(score: presenceTracker.score(for: contact.contactID), size: 13)
+                                .offset(x: 3, y: 3)
+                        }
                     }
-                    .frame(width: 52, height: 52)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.white.opacity(0.1), lineWidth: 1))
 
                     VStack(alignment: .leading, spacing: 3) {
                         HStack(spacing: 6) {
@@ -1041,19 +1090,21 @@ struct ContactCardView: View {
 
     private var contactTypeIcon: String {
         switch contact.contactType {
-        case "corporation": return "building.2.fill"
-        case "alliance":    return "shield.fill"
-        case "faction":     return "globe"
-        default:            return "person.badge.plus"
+        case "corporation":                             return "building.2.fill"
+        case "alliance":                                return "shield.fill"
+        case "faction":                                 return "globe"
+        case "character" where contact.isPlayerCharacter: return "person.fill"
+        default:                                        return "cpu"
         }
     }
 
     private var contactTypeLabel: String {
         switch contact.contactType {
-        case "corporation": return "Corp"
-        case "alliance":    return "Alliance"
-        case "faction":     return "Faction"
-        default:            return "Contact"
+        case "corporation":                             return "Corp"
+        case "alliance":                                return "Alliance"
+        case "faction":                                 return "Faction"
+        case "character" where contact.isPlayerCharacter: return "Player"
+        default:                                        return "NPC"
         }
     }
 
