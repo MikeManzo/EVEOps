@@ -4,6 +4,7 @@ import SwiftData
 struct MainContentView: View {
     @Environment(AccountManager.self) private var accountManager
     @Environment(APIStatusMonitor.self) private var apiStatus
+    @Environment(\.scenePhase) private var scenePhase
     @State private var selectedSection: NavigationSection? = .dashboard
 
     var body: some View {
@@ -27,6 +28,11 @@ struct MainContentView: View {
                 selectedSection = nil
             } else if selectedSection == nil {
                 selectedSection = .dashboard
+            }
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .background {
+                Task { await ESIClient.shared.pruneCache() }
             }
         }
     }
