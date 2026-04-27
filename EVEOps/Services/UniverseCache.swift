@@ -6,7 +6,7 @@ actor UniverseCache {
     static let shared = UniverseCache()
 
     private static let ttl: TimeInterval = 7 * 24 * 3600 // 7 days
-    private static let schemaVersion = 3
+    private static let schemaVersion = 5
 
     private var types: [Int: ESIType] = [:]
     private var groups: [Int: ESIGroup] = [:]
@@ -34,18 +34,17 @@ actor UniverseCache {
 
     private init() {
         let meta: CacheMeta? = Self.loadMeta()
-        if let saved = meta?.savedDate, Date().timeIntervalSince(saved) > Self.ttl {
+        let expired = meta.map { Date().timeIntervalSince($0.savedDate) > Self.ttl } ?? false
+        let schemaMismatch = meta?.schemaVersion != Self.schemaVersion
+
+        if expired || schemaMismatch {
             Self.clearDiskCacheFiles()
         } else {
             types = Self.loadCache("types.json") ?? [:]
             groups = Self.loadCache("groups.json") ?? [:]
             systems = Self.loadCache("systems.json") ?? [:]
             constellations = Self.loadCache("constellations.json") ?? [:]
-            // Only load regions if schema version matches; otherwise evict so they
-            // re-fetch with the new factionId field.
-            if meta?.schemaVersion == Self.schemaVersion {
-                regions = Self.loadCache("regions.json") ?? [:]
-            }
+            regions = Self.loadCache("regions.json") ?? [:]
             stations = Self.loadCache("stations.json") ?? [:]
             stars = Self.loadCache("stars.json") ?? [:]
             marketGroups = Self.loadCache("marketGroups.json") ?? [:]
@@ -56,7 +55,7 @@ actor UniverseCache {
 
     func type(id: Int) async -> ESIType? {
         if let cached = types[id] { return cached }
-        guard let fetched: ESIType = try? await ESIClient.shared.fetch("/universe/types/\(id)/") else { return nil }
+        guard let fetched: ESIType = try? await ESIClient.shared.fetch("/universe/types/\(id)/", bypassCache: true) else { return nil }
         types[id] = fetched
         dirty = true
         scheduleSave()
@@ -65,7 +64,7 @@ actor UniverseCache {
 
     func group(id: Int) async -> ESIGroup? {
         if let cached = groups[id] { return cached }
-        guard let fetched: ESIGroup = try? await ESIClient.shared.fetch("/universe/groups/\(id)/") else { return nil }
+        guard let fetched: ESIGroup = try? await ESIClient.shared.fetch("/universe/groups/\(id)/", bypassCache: true) else { return nil }
         groups[id] = fetched
         dirty = true
         scheduleSave()
@@ -74,7 +73,7 @@ actor UniverseCache {
 
     func solarSystem(id: Int) async -> ESISolarSystem? {
         if let cached = systems[id] { return cached }
-        guard let fetched: ESISolarSystem = try? await ESIClient.shared.fetch("/universe/systems/\(id)/") else { return nil }
+        guard let fetched: ESISolarSystem = try? await ESIClient.shared.fetch("/universe/systems/\(id)/", bypassCache: true) else { return nil }
         systems[id] = fetched
         dirty = true
         scheduleSave()
@@ -83,7 +82,7 @@ actor UniverseCache {
 
     func constellation(id: Int) async -> ESIConstellation? {
         if let cached = constellations[id] { return cached }
-        guard let fetched: ESIConstellation = try? await ESIClient.shared.fetch("/universe/constellations/\(id)/") else { return nil }
+        guard let fetched: ESIConstellation = try? await ESIClient.shared.fetch("/universe/constellations/\(id)/", bypassCache: true) else { return nil }
         constellations[id] = fetched
         dirty = true
         scheduleSave()
@@ -92,7 +91,7 @@ actor UniverseCache {
 
     func region(id: Int) async -> ESIRegion? {
         if let cached = regions[id] { return cached }
-        guard let fetched: ESIRegion = try? await ESIClient.shared.fetch("/universe/regions/\(id)/") else { return nil }
+        guard let fetched: ESIRegion = try? await ESIClient.shared.fetch("/universe/regions/\(id)/", bypassCache: true) else { return nil }
         regions[id] = fetched
         dirty = true
         scheduleSave()
@@ -101,7 +100,7 @@ actor UniverseCache {
 
     func station(id: Int) async -> ESIStation? {
         if let cached = stations[id] { return cached }
-        guard let fetched: ESIStation = try? await ESIClient.shared.fetch("/universe/stations/\(id)/") else { return nil }
+        guard let fetched: ESIStation = try? await ESIClient.shared.fetch("/universe/stations/\(id)/", bypassCache: true) else { return nil }
         stations[id] = fetched
         dirty = true
         scheduleSave()
@@ -110,7 +109,7 @@ actor UniverseCache {
 
     func star(id: Int) async -> ESIStar? {
         if let cached = stars[id] { return cached }
-        guard let fetched: ESIStar = try? await ESIClient.shared.fetch("/universe/stars/\(id)/") else { return nil }
+        guard let fetched: ESIStar = try? await ESIClient.shared.fetch("/universe/stars/\(id)/", bypassCache: true) else { return nil }
         stars[id] = fetched
         dirty = true
         scheduleSave()
@@ -122,7 +121,7 @@ actor UniverseCache {
     func knownSpaceRegions() async -> [(id: Int, name: String, factionId: Int?)] {
         if let cached = cachedKnownSpaceRegions { return cached }
 
-        guard let regionIds: [Int] = try? await ESIClient.shared.fetch("/universe/regions/") else { return [] }
+        guard let regionIds: [Int] = try? await ESIClient.shared.fetch("/universe/regions/", bypassCache: true) else { return [] }
         let kspaceIds = regionIds.filter { $0 < 11000001 }
 
         var result: [(id: Int, name: String, factionId: Int?)] = []
@@ -146,7 +145,7 @@ actor UniverseCache {
     /// Returns a single faction by ID, loading all factions from ESI on first call.
     func faction(id: Int) async -> ESIFaction? {
         if factions.isEmpty {
-            guard let all: [ESIFaction] = try? await ESIClient.shared.fetch("/universe/factions/") else { return nil }
+            guard let all: [ESIFaction] = try? await ESIClient.shared.fetch("/universe/factions/", bypassCache: true) else { return nil }
             for f in all { factions[f.factionId] = f }
         }
         return factions[id]
@@ -160,7 +159,7 @@ actor UniverseCache {
             let results = await withTaskGroup(of: (Int, ESIType?).self) { group in
                 for id in uncached {
                     group.addTask {
-                        let fetched: ESIType? = try? await ESIClient.shared.fetch("/universe/types/\(id)/")
+                        let fetched: ESIType? = try? await ESIClient.shared.fetch("/universe/types/\(id)/", bypassCache: true)
                         return (id, fetched)
                     }
                 }
@@ -190,7 +189,7 @@ actor UniverseCache {
             let results = await withTaskGroup(of: (Int, ESIGroup?).self) { group in
                 for id in uncached {
                     group.addTask {
-                        let fetched: ESIGroup? = try? await ESIClient.shared.fetch("/universe/groups/\(id)/")
+                        let fetched: ESIGroup? = try? await ESIClient.shared.fetch("/universe/groups/\(id)/", bypassCache: true)
                         return (id, fetched)
                     }
                 }
@@ -218,7 +217,7 @@ actor UniverseCache {
     func allMarketGroups() async -> [Int: ESIMarketGroup] {
         guard marketGroups.isEmpty else { return marketGroups }
 
-        guard let ids: [Int] = try? await ESIClient.shared.fetch("/markets/groups/") else {
+        guard let ids: [Int] = try? await ESIClient.shared.fetch("/markets/groups/", bypassCache: true) else {
             return [:]
         }
 
@@ -227,7 +226,7 @@ actor UniverseCache {
             await withTaskGroup(of: (Int, ESIMarketGroup?).self) { group in
                 for id in missing {
                     group.addTask {
-                        let g: ESIMarketGroup? = try? await ESIClient.shared.fetch("/markets/groups/\(id)/")
+                        let g: ESIMarketGroup? = try? await ESIClient.shared.fetch("/markets/groups/\(id)/", bypassCache: true)
                         return (id, g)
                     }
                 }
@@ -308,6 +307,9 @@ actor UniverseCache {
     private nonisolated static func clearDiskCacheFiles() {
         try? FileManager.default.removeItem(at: cacheDir)
         try? FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
+        // Also flush URLSession's HTTP disk cache — stale group/type responses there
+        // survive ESIClient.clearCache() and cause wrong group names after app restarts.
+        URLCache.shared.removeAllCachedResponses()
     }
 
     func clearDiskCache() {

@@ -309,7 +309,7 @@ struct DashboardView: View {
         var rawContacts: [(contact: ESIContact, sourceCharID: Int)] = []
         var seenIDs = Set<Int>()
         for (charID, token) in tokenMap {
-            let contacts: [ESIContact] = (try? await ESIClient.shared.fetch(
+            let contacts: [ESIContact] = (try? await ESIClient.shared.fetchPages(
                 "/characters/\(charID)/contacts/", token: token
             )) ?? []
             for contact in contacts {
@@ -668,10 +668,10 @@ struct CharacterCardView: View {
                                     .foregroundStyle(summary?.online == true ? .green : .secondary)
                             }
                         }
-                        Text(liveCorpName ?? account.corporationName)
+                        Text(effectiveCorpName)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
-                        if let name = liveAllianceName ?? account.allianceName {
+                        if let name = effectiveAllianceName {
                             Text(name)
                                 .font(.caption)
                                 .foregroundStyle(.tertiary)
@@ -845,6 +845,16 @@ struct CharacterCardView: View {
         .onAppear { Task { await fetchIdentity() } }
         .onChange(of: prefetcher.lastRefresh) { _, _ in Task { await fetchIdentity() } }
 
+    }
+
+    private var effectiveCorpName: String {
+        if let live = liveCorpName { return live }
+        if let s = summary, !s.corporationName.isEmpty { return s.corporationName }
+        return account.corporationName
+    }
+
+    private var effectiveAllianceName: String? {
+        liveAllianceName ?? summary?.allianceName ?? account.allianceName
     }
 
     private func fetchIdentity() async {

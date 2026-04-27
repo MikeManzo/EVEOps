@@ -10,6 +10,7 @@ private enum FittingsTab {
 
 struct ShipEntry: Identifiable, Hashable {
     let characterID: Int
+    let characterName: String
     let itemId: Int
     let typeId: Int
     let typeName: String
@@ -30,6 +31,7 @@ struct CharacterShipGroup {
 
 struct SavedFittingEntry: Identifiable, Hashable {
     let characterID: Int
+    let characterName: String
     let fittingId: Int
     let name: String
     let fittingDescription: String
@@ -53,15 +55,16 @@ struct CharacterFittingsView: View {
     @AppStorage("backgroundPollInterval") private var pollInterval: Double = 300
 
     // Ships tab
-    @State private var groups: [CharacterShipGroup] = []
+    @State private var shipSections: [(className: String, ships: [ShipEntry])] = []
     @State private var modulesByShip: [Int: [ESIAsset]] = [:]
     @State private var moduleTypeNames: [Int: String] = [:]
     @State private var isLoading = false
     @State private var error: String?
     @State private var selectedShip: ShipEntry?
+    @State private var multiAccount = false
 
     // Saved fittings tab
-    @State private var fittingGroups: [CharacterFittingGroup] = []
+    @State private var fittingSections: [(className: String, fittings: [SavedFittingEntry])] = []
     @State private var fittingTypeNames: [Int: String] = [:]
     @State private var isSavingsLoading = false
     @State private var savingsError: String?
@@ -69,11 +72,13 @@ struct CharacterFittingsView: View {
     @State private var selectedFitting: SavedFittingEntry?
 
     @State private var activeTab: FittingsTab = .ships
+    @State private var shipListID = UUID()
+    @State private var fittingListID = UUID()
     @AppStorage("collapsedShipSections") private var collapsedShipRaw: String = ""
     @AppStorage("collapsedFittingSections") private var collapsedFittingRaw: String = ""
 
-    private var shipsEmpty: Bool { groups.allSatisfy { $0.ships.isEmpty } }
-    private var savedEmpty: Bool { fittingGroups.allSatisfy { $0.fittings.isEmpty } }
+    private var shipsEmpty: Bool { shipSections.isEmpty }
+    private var savedEmpty: Bool { fittingSections.isEmpty }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -120,7 +125,7 @@ struct CharacterFittingsView: View {
                 }
             }
         }
-        .task { isLoading = true; await load() }
+        .task { await load() }
         .task(id: pollInterval) {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(pollInterval))
@@ -140,43 +145,31 @@ struct CharacterFittingsView: View {
     private var shipsContent: some View {
         HStack(spacing: 0) {
             List(selection: $selectedShip) {
-                ForEach(groups, id: \.characterName) { characterGroup in
-                    let byClass = Dictionary(grouping: characterGroup.ships, by: \.shipClassName)
-                    let classNames = byClass.keys.sorted()
-                    ForEach(classNames, id: \.self) { className in
-                        let key = "\(characterGroup.characterName)-\(className)"
-                        DisclosureGroup(isExpanded: Binding(
-                            get: { !collapsedShipRaw.components(separatedBy: "\n").contains(key) },
-                            set: { isExpanded in
-                                var sections = Set(collapsedShipRaw.components(separatedBy: "\n").filter { !$0.isEmpty })
-                                if isExpanded { sections.remove(key) } else { sections.insert(key) }
-                                collapsedShipRaw = sections.joined(separator: "\n")
-                            }
-                        )) {
-                            ForEach(byClass[className]!) { ship in
-                                ShipRow(ship: ship).tag(ship)
-                            }
-                        } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: shipClassIcon(className))
-                                    .font(.body)
-                                    .foregroundStyle(.primary)
-                                if groups.count > 1 {
-                                    Text(characterGroup.characterName)
-                                        .font(.footnote)
-                                        .foregroundStyle(.secondary)
-                                    Text("·").foregroundStyle(.tertiary)
-                                }
-                                Text(className).font(.title2.bold())
-                                Spacer()
-                                Text("\(byClass[className]!.count)")
-                                    .font(.subheadline.monospacedDigit())
-                                    .foregroundStyle(.secondary)
-                            }
+                ForEach(shipSections, id: \.className) { section in
+                    Section(isExpanded: Binding(
+                        get: { !collapsedShipRaw.components(separatedBy: "\n").contains(section.className) },
+                        set: { expanded in
+                            var set = Set(collapsedShipRaw.components(separatedBy: "\n").filter { !$0.isEmpty })
+                            if expanded { set.remove(section.className) } else { set.insert(section.className) }
+                            collapsedShipRaw = set.joined(separator: "\n")
+                        }
+                    )) {
+                        ForEach(section.ships) { ship in
+                            ShipRow(ship: ship, showCharacterName: multiAccount).tag(ship)
+                        }
+                    } header: {
+                        HStack(spacing: 8) {
+                            Image(systemName: shipClassIcon(section.className)).font(.body)
+                            Text(section.className).font(.title2.bold())
+                            Spacer()
+                            Text("\(section.ships.count)")
+                                .font(.subheadline.monospacedDigit())
+                                .foregroundStyle(.secondary)
                         }
                     }
                 }
             }
+            .id(shipListID)
             .frame(maxWidth: .infinity)
 
             if let ship = selectedShip {
@@ -197,46 +190,34 @@ struct CharacterFittingsView: View {
     private var savedFittingsContent: some View {
         HStack(spacing: 0) {
             List(selection: $selectedFitting) {
-                ForEach(fittingGroups, id: \.characterName) { fittingGroup in
-                    let byClass = Dictionary(grouping: fittingGroup.fittings, by: \.shipClassName)
-                    let classNames = byClass.keys.sorted()
-                    ForEach(classNames, id: \.self) { className in
-                        let key = "\(fittingGroup.characterName)-\(className)"
-                        DisclosureGroup(isExpanded: Binding(
-                            get: { !collapsedFittingRaw.components(separatedBy: "\n").contains(key) },
-                            set: { isExpanded in
-                                var sections = Set(collapsedFittingRaw.components(separatedBy: "\n").filter { !$0.isEmpty })
-                                if isExpanded { sections.remove(key) } else { sections.insert(key) }
-                                collapsedFittingRaw = sections.joined(separator: "\n")
+                ForEach(fittingSections, id: \.className) { section in
+                    Section(isExpanded: Binding(
+                        get: { !collapsedFittingRaw.components(separatedBy: "\n").contains(section.className) },
+                        set: { expanded in
+                            var set = Set(collapsedFittingRaw.components(separatedBy: "\n").filter { !$0.isEmpty })
+                            if expanded { set.remove(section.className) } else { set.insert(section.className) }
+                            collapsedFittingRaw = set.joined(separator: "\n")
+                        }
+                    )) {
+                        ForEach(section.fittings) { fitting in
+                            SavedFittingRow(fitting: fitting, showCharacterName: multiAccount) {
+                                Task { await deleteFitting(fitting) }
                             }
-                        )) {
-                            ForEach(byClass[className]!) { fitting in
-                                SavedFittingRow(fitting: fitting) {
-                                    Task { await deleteFitting(fitting) }
-                                }
-                                .tag(fitting)
-                            }
-                        } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: shipClassIcon(className))
-                                    .font(.body)
-                                    .foregroundStyle(.primary)
-                                if fittingGroups.count > 1 {
-                                    Text(fittingGroup.characterName)
-                                        .font(.footnote)
-                                        .foregroundStyle(.secondary)
-                                    Text("·").foregroundStyle(.tertiary)
-                                }
-                                Text(className).font(.title2.bold())
-                                Spacer()
-                                Text("\(byClass[className]!.count)")
-                                    .font(.subheadline.monospacedDigit())
-                                    .foregroundStyle(.secondary)
-                            }
+                            .tag(fitting)
+                        }
+                    } header: {
+                        HStack(spacing: 8) {
+                            Image(systemName: shipClassIcon(section.className)).font(.body)
+                            Text(section.className).font(.title2.bold())
+                            Spacer()
+                            Text("\(section.fittings.count)")
+                                .font(.subheadline.monospacedDigit())
+                                .foregroundStyle(.secondary)
                         }
                     }
                 }
             }
+            .id(fittingListID)
             .frame(maxWidth: .infinity)
 
             if let fitting = selectedFitting {
@@ -247,11 +228,33 @@ struct CharacterFittingsView: View {
         }
     }
 
+    // MARK:  EVE Ship Group Table (Static SDE data — immune to API cache corruption)
+
+    private static let eveShipGroups: [Int: String] = [
+        29: "Capsule", 31: "Shuttle", 237: "Corvette",
+        25: "Frigate", 358: "Assault Frigate", 541: "Interceptor",
+        543: "Covert Ops", 831: "Electronic Attack Ship", 1022: "Expedition Frigate",
+        420: "Destroyer", 833: "Interdictor", 902: "Tactical Destroyer", 1202: "Command Destroyer",
+        26: "Cruiser", 359: "Heavy Assault Cruiser", 832: "Heavy Interdiction Cruiser",
+        834: "Logistics", 906: "Recon Ship", 963: "Strategic Cruiser",
+        419: "Battlecruiser", 1201: "Attack Battlecruiser", 540: "Command Ship",
+        27: "Battleship", 381: "Black Ops", 659: "Marauder",
+        485: "Dreadnought", 547: "Carrier", 893: "Force Auxiliary",
+        30: "Titan", 548: "Supercarrier",
+        28: "Industrial", 380: "Deep Space Transport", 894: "Blockade Runner",
+        441: "Freighter", 898: "Jump Freighter",
+        463: "Mining Barge", 900: "Exhumer", 1305: "Mining Frigate",
+    ]
+    private static let eveShipGroupIds: Set<Int> = Set(eveShipGroups.keys)
+
     // MARK:  Load Ships
 
     private func load() async {
+        guard !isLoading else { return }
+        isLoading = true
+        shipSections = []
         error = nil
-        var result: [CharacterShipGroup] = []
+        var allShips: [ShipEntry] = []
         var allModulesByShip: [Int: [ESIAsset]] = [:]
         var allModuleTypeIds: Set<Int> = []
         var lastError: Error?
@@ -268,11 +271,9 @@ struct CharacterFittingsView: View {
 
                 let typeIds = Array(Set(assets.map(\.typeId)))
                 let types = await UniverseCache.shared.types(ids: typeIds)
-                let groupIds = Set(types.values.map(\.groupId))
-                let groupsById = await UniverseCache.shared.groups(ids: groupIds)
 
                 let shipTypeIds = Set(
-                    types.filter { groupsById[$0.value.groupId]?.categoryId == 6 }.keys
+                    types.filter { Self.eveShipGroupIds.contains($0.value.groupId) }.keys
                 )
                 let shipAssets = assets.filter { shipTypeIds.contains($0.typeId) }
 
@@ -314,28 +315,35 @@ struct CharacterFittingsView: View {
                     let groupId = types[asset.typeId]?.groupId ?? 0
                     return ShipEntry(
                         characterID: account.characterID,
+                        characterName: account.characterName,
                         itemId: asset.itemId,
                         typeId: asset.typeId,
                         typeName: types[asset.typeId]?.name ?? "Ship #\(asset.typeId)",
                         customName: customNames[asset.itemId],
                         locationName: locationNames[asset.locationId] ?? "#\(asset.locationId)",
                         isSingleton: asset.isSingleton,
-                        shipClassName: groupsById[groupId]?.name ?? "Unknown"
+                        shipClassName: Self.eveShipGroups[groupId] ?? "Unknown"
                     )
-                }.sorted { $0.displayName < $1.displayName }
-
-                if !ships.isEmpty {
-                    result.append(CharacterShipGroup(characterName: account.characterName, ships: ships))
                 }
+                allShips.append(contentsOf: ships)
             } catch { lastError = error }
         }
 
         let moduleTypes = await UniverseCache.shared.types(ids: Array(allModuleTypeIds))
         moduleTypeNames = moduleTypes.mapValues(\.name)
         modulesByShip = allModulesByShip
-        groups = result
-        if selectedShip == nil { selectedShip = groups.first?.ships.first }
-        if result.isEmpty, let e = lastError { self.error = e.localizedDescription }
+        multiAccount = accountManager.accounts.count > 1
+
+        let byClass = Dictionary(grouping: allShips, by: \.shipClassName)
+        shipSections = byClass.keys
+            .sorted()
+            .map { className in
+                (className: className, ships: byClass[className]!.sorted { $0.displayName < $1.displayName })
+            }
+
+        if selectedShip == nil { selectedShip = shipSections.first?.ships.first }
+        if allShips.isEmpty, let e = lastError { self.error = e.localizedDescription }
+        shipListID = UUID()
         isLoading = false
     }
 
@@ -343,6 +351,7 @@ struct CharacterFittingsView: View {
 
     private func loadSavedFittings() async {
         isSavingsLoading = true
+        fittingSections = []
         savingsError = nil
 
         var rawByAccount: [(characterName: String, characterID: Int, fittings: [ESIFitting])] = []
@@ -361,33 +370,35 @@ struct CharacterFittingsView: View {
             item.fittings.map(\.shipTypeId) + item.fittings.flatMap { $0.items.map(\.typeId) }
         }))
         let types = await UniverseCache.shared.types(ids: allTypeIds)
-        let groupIds = Set(types.values.map(\.groupId))
-        let groupsById = await UniverseCache.shared.groups(ids: groupIds)
 
-        var result: [CharacterFittingGroup] = []
+        var allFittings: [SavedFittingEntry] = []
         for item in rawByAccount {
             let entries = item.fittings.map { fitting -> SavedFittingEntry in
                 let groupId = types[fitting.shipTypeId]?.groupId ?? 0
                 return SavedFittingEntry(
                     characterID: item.characterID,
+                    characterName: item.characterName,
                     fittingId: fitting.fittingId,
                     name: fitting.name,
                     fittingDescription: fitting.description,
                     shipTypeId: fitting.shipTypeId,
                     shipTypeName: types[fitting.shipTypeId]?.name ?? "Unknown Ship",
-                    shipClassName: groupsById[groupId]?.name ?? "Unknown",
+                    shipClassName: Self.eveShipGroups[groupId] ?? "Unknown",
                     items: fitting.items
                 )
-            }.sorted { $0.name < $1.name }
-
-            if !entries.isEmpty {
-                result.append(CharacterFittingGroup(characterName: item.characterName, fittings: entries))
             }
+            allFittings.append(contentsOf: entries)
         }
 
         fittingTypeNames = types.mapValues(\.name)
-        fittingGroups = result
-        if selectedFitting == nil { selectedFitting = result.first?.fittings.first }
+        let byClass = Dictionary(grouping: allFittings, by: \.shipClassName)
+        fittingSections = byClass.keys
+            .sorted()
+            .map { className in
+                (className: className, fittings: byClass[className]!.sorted { $0.name < $1.name })
+            }
+        if selectedFitting == nil { selectedFitting = fittingSections.first?.fittings.first }
+        fittingListID = UUID()
         isSavingsLoading = false
         savedFittingsLoaded = true
     }
@@ -402,12 +413,12 @@ struct CharacterFittingsView: View {
                 "/characters/\(entry.characterID)/fittings/\(entry.fittingId)/",
                 token: token
             )
-            fittingGroups = fittingGroups.compactMap { group in
-                let remaining = group.fittings.filter { $0.id != entry.fittingId }
-                return remaining.isEmpty ? nil : CharacterFittingGroup(characterName: group.characterName, fittings: remaining)
+            fittingSections = fittingSections.compactMap { section in
+                let remaining = section.fittings.filter { $0.id != entry.fittingId }
+                return remaining.isEmpty ? nil : (className: section.className, fittings: remaining)
             }
             if selectedFitting?.id == entry.fittingId {
-                selectedFitting = fittingGroups.first?.fittings.first
+                selectedFitting = fittingSections.first?.fittings.first
             }
         } catch {
             savingsError = error.localizedDescription
@@ -460,6 +471,7 @@ struct CharacterFittingsView: View {
 
 struct ShipRow: View {
     let ship: ShipEntry
+    var showCharacterName: Bool = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -479,6 +491,12 @@ struct ShipRow: View {
                 Text(ship.displayName).font(.subheadline.bold())
                 if ship.customName != nil {
                     Text(ship.typeName)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                if showCharacterName {
+                    Text(ship.characterName)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -742,6 +760,7 @@ struct SaveFittingSheet: View {
 
 struct SavedFittingRow: View {
     let fitting: SavedFittingEntry
+    var showCharacterName: Bool = false
     let onDelete: () -> Void
 
     var body: some View {
@@ -764,6 +783,12 @@ struct SavedFittingRow: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
+                if showCharacterName {
+                    Text(fitting.characterName)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
                 Text("\(fitting.items.count) modules")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
