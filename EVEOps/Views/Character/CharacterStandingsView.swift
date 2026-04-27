@@ -129,12 +129,15 @@ struct StandingRow: View {
             }
         }
         .contentShape(Rectangle())
-        .onTapGesture {
-            if standing.fromType == "faction" { showPopover = true }
-        }
+        .onTapGesture { showPopover = true }
         .popover(isPresented: $showPopover) {
-            FactionPopoverView(standing: standing)
-                .frame(width: 320)
+            if standing.fromType == "faction" {
+                FactionPopoverView(standing: standing).frame(width: 320)
+            } else if standing.fromType == "npc_corp" {
+                NpcCorpPopoverView(standing: standing).frame(width: 320)
+            } else if standing.fromType == "agent" {
+                AgentPopoverView(standing: standing).frame(width: 300)
+            }
         }
         .task { name = await NameResolver.shared.resolve(id: standing.fromId) }
     }
@@ -213,6 +216,138 @@ struct FactionPopoverView: View {
             faction = await UniverseCache.shared.faction(id: standing.fromId)
             if let sysId = faction?.solarSystemId {
                 homeSystemName = await NameResolver.shared.resolve(id: sysId)
+            }
+        }
+    }
+}
+
+struct NpcCorpPopoverView: View {
+    let standing: ESIStanding
+    @State private var corp: ESICorporationPublic?
+    @State private var ceoName: String?
+
+    private var standingColor: Color {
+        standing.standing > 0 ? .green : standing.standing < 0 ? .red : .secondary
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                AsyncImage(url: EVEImageURL.corporationLogo(standing.fromId, size: 64)) { image in
+                    image.resizable().scaledToFit()
+                } placeholder: {
+                    RoundedRectangle(cornerRadius: 6).fill(.quaternary)
+                }
+                .frame(width: 64, height: 64)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+
+                VStack(alignment: .leading, spacing: 4) {
+                    if let corp {
+                        Text(corp.name).font(.headline)
+                        Text("[\(corp.ticker)]").font(.subheadline).foregroundStyle(.secondary)
+                    } else {
+                        ProgressView().controlSize(.small)
+                    }
+                    Text(String(format: "%+.1f standing", standing.standing))
+                        .font(.subheadline.bold().monospacedDigit())
+                        .foregroundStyle(standingColor)
+                }
+            }
+
+            if let corp {
+                Divider()
+
+                if let desc = corp.description, !desc.isEmpty {
+                    Text(desc)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 6) {
+                    GridRow {
+                        Text("Members").font(.caption).foregroundStyle(.secondary)
+                        Text("\(corp.memberCount)").font(.caption.bold())
+                    }
+                    GridRow {
+                        Text("Tax Rate").font(.caption).foregroundStyle(.secondary)
+                        Text(String(format: "%.1f%%", corp.taxRate * 100)).font(.caption.bold())
+                    }
+                    if let ceoName {
+                        GridRow {
+                            Text("CEO").font(.caption).foregroundStyle(.secondary)
+                            Text(ceoName).font(.caption.bold())
+                        }
+                    }
+                }
+            }
+        }
+        .padding()
+        .task {
+            corp = try? await ESIClient.shared.fetch("/corporations/\(standing.fromId)/")
+            if let ceoId = corp?.ceoId {
+                ceoName = await NameResolver.shared.resolve(id: ceoId)
+            }
+        }
+    }
+}
+
+struct AgentPopoverView: View {
+    let standing: ESIStanding
+    @State private var agentInfo: ESICharacterPublic?
+    @State private var corpName: String?
+
+    private var standingColor: Color {
+        standing.standing > 0 ? .green : standing.standing < 0 ? .red : .secondary
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                AsyncImage(url: EVEImageURL.characterPortrait(standing.fromId, size: 64)) { image in
+                    image.resizable().scaledToFit()
+                } placeholder: {
+                    RoundedRectangle(cornerRadius: 6).fill(.quaternary)
+                }
+                .frame(width: 64, height: 64)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+
+                VStack(alignment: .leading, spacing: 4) {
+                    if let agentInfo {
+                        Text(agentInfo.name).font(.headline)
+                    } else {
+                        ProgressView().controlSize(.small)
+                    }
+                    Text(String(format: "%+.1f standing", standing.standing))
+                        .font(.subheadline.bold().monospacedDigit())
+                        .foregroundStyle(standingColor)
+                }
+            }
+
+            if agentInfo != nil {
+                Divider()
+
+                Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 6) {
+                    if let corpName {
+                        GridRow {
+                            Text("Corporation").font(.caption).foregroundStyle(.secondary)
+                            Text(corpName).font(.caption.bold())
+                        }
+                    }
+                    if let sec = agentInfo?.securityStatus {
+                        GridRow {
+                            Text("Security Status").font(.caption).foregroundStyle(.secondary)
+                            Text(String(format: "%.2f", sec)).font(.caption.bold())
+                        }
+                    }
+                }
+            }
+        }
+        .padding()
+        .task {
+            agentInfo = try? await ESIClient.shared.fetch("/characters/\(standing.fromId)/")
+            if let corpId = agentInfo?.corporationId {
+                corpName = await NameResolver.shared.resolve(id: corpId)
             }
         }
     }

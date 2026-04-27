@@ -18,9 +18,9 @@ struct DashboardView: View {
                     .font(.largeTitle.bold())
                     .padding(.horizontal)
 
-                // Aggregate summary bar
+                // #6: Metric tile grid replacing the old horizontal summary bar
                 if !summaries.isEmpty {
-                    SummaryBarView(summaries: summaries)
+                    SummaryGridView(summaries: summaries)
                         .padding(.horizontal)
                 }
 
@@ -36,54 +36,35 @@ struct DashboardView: View {
                 }
                 .padding(.horizontal)
 
-                // Contacts section — split into Players, NPCs, Organizations
+                // Contacts — split into Players, NPCs, Organizations
                 let playerContacts = contactSummaries.filter { $0.isPlayerCharacter }
                 let npcContacts    = contactSummaries.filter { $0.contactType == "character" && !$0.isPlayerCharacter }
                 let orgContacts    = contactSummaries.filter { $0.contactType != "character" }
 
+                // #8: Styled collapsible section headers
                 if !playerContacts.isEmpty {
-                    DisclosureGroup(isExpanded: $playersExpanded) {
-                        LazyVGrid(columns: columns, spacing: 16) {
-                            ForEach(playerContacts) { contact in
-                                ContactCardView(contact: contact)
-                            }
-                        }
-                        .padding(.top, 8)
-                    } label: {
-                        Text("Players (\(playerContacts.count))")
-                            .font(.title2.bold())
-                    }
-                    .padding(.horizontal)
+                    contactSection(
+                        icon: "person.2.fill", color: .blue,
+                        title: "Players", count: playerContacts.count,
+                        isExpanded: $playersExpanded,
+                        contacts: playerContacts, columns: columns
+                    )
                 }
-
                 if !npcContacts.isEmpty {
-                    DisclosureGroup(isExpanded: $npcsExpanded) {
-                        LazyVGrid(columns: columns, spacing: 16) {
-                            ForEach(npcContacts) { contact in
-                                ContactCardView(contact: contact)
-                            }
-                        }
-                        .padding(.top, 8)
-                    } label: {
-                        Text("NPCs (\(npcContacts.count))")
-                            .font(.title2.bold())
-                    }
-                    .padding(.horizontal)
+                    contactSection(
+                        icon: "cpu", color: .indigo,
+                        title: "NPCs", count: npcContacts.count,
+                        isExpanded: $npcsExpanded,
+                        contacts: npcContacts, columns: columns
+                    )
                 }
-
                 if !orgContacts.isEmpty {
-                    DisclosureGroup(isExpanded: $orgsExpanded) {
-                        LazyVGrid(columns: columns, spacing: 16) {
-                            ForEach(orgContacts) { contact in
-                                ContactCardView(contact: contact)
-                            }
-                        }
-                        .padding(.top, 8)
-                    } label: {
-                        Text("Organizations (\(orgContacts.count))")
-                            .font(.title2.bold())
-                    }
-                    .padding(.horizontal)
+                    contactSection(
+                        icon: "building.2.fill", color: .teal,
+                        title: "Organizations", count: orgContacts.count,
+                        isExpanded: $orgsExpanded,
+                        contacts: orgContacts, columns: columns
+                    )
                 }
             }
             .padding(.vertical)
@@ -106,14 +87,60 @@ struct DashboardView: View {
             }
         }
         .task {
-            // Try to populate from prefetcher immediately
             if !buildFromPrefetcher() {
-                // Fallback: load from network
                 isLoading = true
                 await loadAllSummaries()
             }
             await loadContacts()
         }
+    }
+
+    // #8: Reusable styled collapsible contact section header
+    @ViewBuilder
+    private func contactSection(
+        icon: String,
+        color: Color,
+        title: String,
+        count: Int,
+        isExpanded: Binding<Bool>,
+        contacts: [ContactSummary],
+        columns: [GridItem]
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button {
+                isExpanded.wrappedValue.toggle()
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: icon)
+                        .foregroundStyle(color)
+                        .font(.callout)
+                    Text(title)
+                        .font(.title3.bold())
+                    Text("(\(count))")
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Image(systemName: isExpanded.wrappedValue ? "chevron.down" : "chevron.right")
+                        .font(.caption.bold())
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(color.opacity(0.07), in: RoundedRectangle(cornerRadius: 10))
+                .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(color.opacity(0.15), lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+
+            if isExpanded.wrappedValue {
+                LazyVGrid(columns: columns, spacing: 16) {
+                    ForEach(contacts) { contact in
+                        ContactCardView(contact: contact)
+                    }
+                }
+                .padding(.top, 12)
+            }
+        }
+        .padding(.horizontal)
     }
 
     /// Build summaries synchronously from prefetcher data. Returns true if all accounts had data.
@@ -131,6 +158,7 @@ struct DashboardView: View {
             let activeQueue = prefetched.skillQueue.filter { $0.finishDate ?? .distantPast > Date() }
             s.skillQueueCount = activeQueue.count
             s.currentSkillFinish = activeQueue.first?.finishDate
+            s.currentSkillStart = activeQueue.first?.startDate
             s.queueEnd = activeQueue.last?.finishDate
             if let first = activeQueue.first { s.trainingSkillID = first.skillId }
             s.isQueueEmpty = activeQueue.isEmpty
@@ -142,7 +170,6 @@ struct DashboardView: View {
             s.nextJobFinish = activeJobs.map(\.endDate).min()
             s.colonyCount = prefetched.colonies.count
 
-            // Use pre-resolved data from prefetcher (synchronous, no async hops)
             if let sysInfo = prefetcher.resolvedSystems[prefetched.location.solarSystemId] {
                 s.systemName = sysInfo.name
                 s.securityStatus = sysInfo.securityStatus
@@ -182,12 +209,10 @@ struct DashboardView: View {
     private func loadSummary(for account: StoredAccount) async -> CharacterSummary {
         var summary = CharacterSummary(characterID: account.characterID)
 
-        // Try prefetched data first
         if let prefetched = prefetcher.data(for: account.characterID) {
             return await buildSummary(from: prefetched, for: account)
         }
 
-        // Fallback to fetching directly
         do {
             let token = try await accountManager.validToken(for: account)
 
@@ -230,26 +255,23 @@ struct DashboardView: View {
             summary.ship = ship
             summary.location = loc
 
-            // Skill queue
             let activeQueue = queue.filter { $0.finishDate ?? .distantPast > Date() }
             summary.skillQueueCount = activeQueue.count
             summary.currentSkillFinish = activeQueue.first?.finishDate
+            summary.currentSkillStart = activeQueue.first?.startDate
             summary.queueEnd = activeQueue.last?.finishDate
             if let first = activeQueue.first {
                 summary.trainingSkillID = first.skillId
             }
             summary.isQueueEmpty = activeQueue.isEmpty
 
-            // Contracts
             let activeContracts = contracts.filter { $0.status == "outstanding" || $0.status == "in_progress" }
             summary.activeContractCount = activeContracts.count
 
-            // Industry
             let activeJobs = industry.filter { $0.status == "active" }
             summary.activeIndustryJobCount = activeJobs.count
             summary.nextJobFinish = activeJobs.map(\.endDate).min()
 
-            // PI colonies
             summary.colonyCount = colonies.count
             for colony in colonies {
                 do {
@@ -263,25 +285,18 @@ struct DashboardView: View {
                 } catch {}
             }
 
-            // Resolve system name via UniverseCache
             if let sysInfo = await UniverseCache.shared.solarSystem(id: loc.solarSystemId) {
                 summary.systemName = sysInfo.name
                 summary.securityStatus = sysInfo.securityStatus
             }
-
-            // Resolve ship type name via UniverseCache
             if let typeInfo = await UniverseCache.shared.type(id: ship.shipTypeId) {
                 summary.shipTypeName = typeInfo.name
             }
-
-            // Resolve training skill name
             if let skillID = summary.trainingSkillID {
                 let resolved = await NameResolver.shared.resolve(ids: [skillID])
                 summary.trainingSkillName = resolved[skillID]
             }
-        } catch {
-            // Partial data is fine
-        }
+        } catch {}
         return summary
     }
 
@@ -296,7 +311,6 @@ struct DashboardView: View {
         }
         guard !tokenMap.isEmpty else { return }
 
-        // Fetch contact labels per account
         var labelsByAccount: [Int: [Int: String]] = [:]
         for (charID, token) in tokenMap {
             let labels: [ESIContactLabel] = (try? await ESIClient.shared.fetch(
@@ -305,7 +319,6 @@ struct DashboardView: View {
             labelsByAccount[charID] = Dictionary(uniqueKeysWithValues: labels.map { ($0.labelId, $0.labelName) })
         }
 
-        // Fetch all contact types, deduplicate
         var rawContacts: [(contact: ESIContact, sourceCharID: Int)] = []
         var seenIDs = Set<Int>()
         for (charID, token) in tokenMap {
@@ -323,7 +336,6 @@ struct DashboardView: View {
         guard !rawContacts.isEmpty else { return }
         rawContacts.sort { $0.contact.standing > $1.contact.standing }
 
-        // Build initial summaries with type and resolved label names
         var summaries = rawContacts.map { raw -> ContactSummary in
             let labelMap = labelsByAccount[raw.sourceCharID] ?? [:]
             let labelNames = (raw.contact.labelIds ?? []).compactMap { labelMap[$0] }
@@ -338,7 +350,6 @@ struct DashboardView: View {
         }
         contactSummaries = summaries
 
-        // Batch-resolve names for non-character contacts
         let nonCharIndices = summaries.indices.filter { summaries[$0].contactType != "character" }
         if !nonCharIndices.isEmpty {
             let ids = nonCharIndices.map { summaries[$0].contactID }
@@ -349,7 +360,6 @@ struct DashboardView: View {
             contactSummaries = summaries
         }
 
-        // Fetch public info for character contacts
         let charIndices = summaries.indices.filter { summaries[$0].contactType == "character" }
         for i in charIndices {
             let contactID = summaries[i].contactID
@@ -362,7 +372,6 @@ struct DashboardView: View {
             }
         }
 
-        // Batch-resolve corp/alliance names for character contacts
         var corpAllianceIDs: [Int] = []
         for i in charIndices {
             if let id = summaries[i].corporationID { corpAllianceIDs.append(id) }
@@ -383,7 +392,6 @@ struct DashboardView: View {
         contactSummaries = summaries
     }
 
-    /// Build a summary from prefetched data, only fetching universe lookups
     private nonisolated func buildSummary(from prefetched: DashboardPrefetcher.PrefetchedCharacterData, for account: StoredAccount) async -> CharacterSummary {
         var summary = CharacterSummary(characterID: account.characterID)
         summary.wallet = prefetched.wallet
@@ -395,6 +403,7 @@ struct DashboardView: View {
         let activeQueue = prefetched.skillQueue.filter { $0.finishDate ?? .distantPast > Date() }
         summary.skillQueueCount = activeQueue.count
         summary.currentSkillFinish = activeQueue.first?.finishDate
+        summary.currentSkillStart = activeQueue.first?.startDate
         summary.queueEnd = activeQueue.last?.finishDate
         if let first = activeQueue.first {
             summary.trainingSkillID = first.skillId
@@ -410,7 +419,6 @@ struct DashboardView: View {
 
         summary.colonyCount = prefetched.colonies.count
 
-        // PI extractor check still needs individual fetches (uses ESIClient cache)
         if !prefetched.colonies.isEmpty, !account.isTokenExpired {
             let token = account.accessToken
             for colony in prefetched.colonies {
@@ -423,7 +431,6 @@ struct DashboardView: View {
             }
         }
 
-        // Universe lookups (likely cached on disk already)
         if let sysInfo = await UniverseCache.shared.solarSystem(id: prefetched.location.solarSystemId) {
             summary.systemName = sysInfo.name
             summary.securityStatus = sysInfo.securityStatus
@@ -443,7 +450,7 @@ struct DashboardView: View {
     }
 }
 
-// MARK:  Summary Data
+// MARK: - Summary Data
 
 struct CharacterSummary {
     let characterID: Int
@@ -457,6 +464,7 @@ struct CharacterSummary {
     var securityStatus: Double?
     var skillQueueCount: Int = 0
     var currentSkillFinish: Date?
+    var currentSkillStart: Date?
     var queueEnd: Date?
     var trainingSkillID: Int?
     var trainingSkillName: String?
@@ -470,7 +478,7 @@ struct CharacterSummary {
     var allianceName: String? = nil
 }
 
-// MARK:  Contact Summary
+// MARK: - Contact Summary
 
 struct ContactSummary: Identifiable {
     let contactID: Int
@@ -514,89 +522,151 @@ struct ContactSummary: Identifiable {
     }
 }
 
-// MARK:  Aggregate Summary Bar
+// MARK: - Metric Tile Grid
 
-struct SummaryBarView: View {
+struct SummaryGridView: View {
     let summaries: [CharacterSummary]
 
-    private var totalWealth: Double { summaries.reduce(0) { $0 + $1.wallet } }
-    private var totalSP: Int { summaries.reduce(0) { $0 + $1.totalSP } }
-    private var emptyQueues: Int { summaries.filter(\.isQueueEmpty).count }
-    private var activeJobs: Int { summaries.reduce(0) { $0 + $1.activeIndustryJobCount } }
-    private var activeContracts: Int { summaries.reduce(0) { $0 + $1.activeContractCount } }
+    private var totalWealth: Double    { summaries.reduce(0) { $0 + $1.wallet } }
+    private var totalSP: Int           { summaries.reduce(0) { $0 + $1.totalSP } }
+    private var emptyQueues: Int       { summaries.filter(\.isQueueEmpty).count }
+    private var activeJobs: Int        { summaries.reduce(0) { $0 + $1.activeIndustryJobCount } }
+    private var activeContracts: Int   { summaries.reduce(0) { $0 + $1.activeContractCount } }
     private var expiredExtractors: Int { summaries.reduce(0) { $0 + $1.expiredExtractorCount } }
-    private var onlineCount: Int { summaries.filter(\.online).count }
+    private var onlineCount: Int       { summaries.filter(\.online).count }
+    private var nextSkillFinish: Date? { summaries.compactMap(\.currentSkillFinish).min() }
+    private var nextJobFinish: Date?   { summaries.compactMap(\.nextJobFinish).min() }
 
     var body: some View {
-        HStack(spacing: 0) {
-            summaryTile(icon: "creditcard.fill", color: .green, label: "Total Wealth",
-                        value: EVEFormatters.formatISKShort(totalWealth))
-
-            Divider().frame(height: 36)
-
-            summaryTile(icon: "brain.head.profile.fill", color: .cyan, label: "Total SP",
-                        value: formatSP(totalSP))
-
-            Divider().frame(height: 36)
-
-            summaryTile(icon: "person.fill.checkmark", color: .blue, label: "Online",
-                        value: "\(onlineCount) / \(summaries.count)")
-
-            Divider().frame(height: 36)
-
-            summaryTile(icon: "graduationcap.fill",
-                        color: emptyQueues > 0 ? .orange : .green,
-                        label: "Training",
-                        value: emptyQueues > 0 ? "\(emptyQueues) empty" : "All active")
-
-            Divider().frame(height: 36)
-
-            summaryTile(icon: "hammer.fill", color: .purple, label: "Industry",
-                        value: "\(activeJobs) active")
-
-            Divider().frame(height: 36)
-
-            summaryTile(icon: "doc.text.fill", color: .teal, label: "Contracts",
-                        value: "\(activeContracts) active")
-
+        let columns = [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())]
+        LazyVGrid(columns: columns, spacing: 8) {
+            MetricTileView(
+                icon: "creditcard.fill", color: .green,
+                value: EVEFormatters.formatISKShort(totalWealth),
+                label: "Total Wealth"
+            )
+            MetricTileView(
+                icon: "brain.head.profile.fill", color: .cyan,
+                value: formatSP(totalSP),
+                label: "Skill Points"
+            )
+            MetricTileView(
+                icon: "person.fill.checkmark", color: .blue,
+                value: "\(onlineCount) / \(summaries.count)",
+                label: onlineCount == summaries.count ? "All Online" : "Online"
+            )
+            // Training: show time remaining on current skill instead of a static count
+            if emptyQueues > 0 {
+                MetricTileView(
+                    icon: "exclamationmark.triangle.fill", color: .orange,
+                    value: "\(emptyQueues) empty",
+                    label: "Queue Alert",
+                    isAlert: true
+                )
+            } else if let finish = nextSkillFinish {
+                MetricTileView(
+                    icon: "graduationcap.fill", color: .green,
+                    value: EVEFormatters.timeUntil(finish),
+                    label: "Next Skill Done",
+                    subLabel: "\(summaries.count == 1 ? "" : "\(summaries.count) queues · ")All training"
+                )
+            } else {
+                MetricTileView(
+                    icon: "graduationcap.fill", color: .green,
+                    value: "All active",
+                    label: "Training"
+                )
+            }
+            // Industry: show time to next completion instead of a static count
+            if activeJobs == 0 {
+                MetricTileView(
+                    icon: "hammer.fill", color: .secondary,
+                    value: "None active",
+                    label: "Industry"
+                )
+            } else if let next = nextJobFinish {
+                MetricTileView(
+                    icon: "hammer.fill", color: .purple,
+                    value: EVEFormatters.timeUntil(next),
+                    label: "Next Job Done",
+                    subLabel: "\(activeJobs) job\(activeJobs == 1 ? "" : "s") active"
+                )
+            } else {
+                MetricTileView(
+                    icon: "hammer.fill", color: .purple,
+                    value: "\(activeJobs) active",
+                    label: "Industry"
+                )
+            }
+            MetricTileView(
+                icon: "doc.text.fill", color: .teal,
+                value: activeContracts == 0 ? "None active" : "\(activeContracts) active",
+                label: "Contracts"
+            )
             if expiredExtractors > 0 {
-                Divider().frame(height: 36)
-                summaryTile(icon: "exclamationmark.triangle.fill", color: .red, label: "PI Alerts",
-                            value: "\(expiredExtractors) offline")
+                MetricTileView(
+                    icon: "exclamationmark.triangle.fill", color: .red,
+                    value: "\(expiredExtractors) offline",
+                    label: "PI Extractors",
+                    isAlert: true
+                )
             }
         }
-        .padding(.vertical, 10)
-        .padding(.horizontal, 12)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
-    }
-
-    private func summaryTile(icon: String, color: Color, label: String, value: String) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: icon)
-                .foregroundStyle(color)
-                .font(.callout)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(label)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                Text(value)
-                    .font(.caption.bold())
-            }
-        }
-        .frame(maxWidth: .infinity)
     }
 
     private func formatSP(_ sp: Int) -> String {
-        if sp >= 1_000_000 {
-            return String(format: "%.1fM", Double(sp) / 1_000_000)
-        } else if sp >= 1_000 {
-            return String(format: "%.0fK", Double(sp) / 1_000)
-        }
+        if sp >= 1_000_000 { return String(format: "%.1fM", Double(sp) / 1_000_000) }
+        if sp >= 1_000 { return String(format: "%.0fK", Double(sp) / 1_000) }
         return "\(sp)"
     }
 }
 
-// MARK:  Character Card
+struct MetricTileView: View {
+    let icon: String
+    let color: Color
+    let value: String
+    let label: String
+    var subLabel: String? = nil
+    var isAlert: Bool = false
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.title3)
+                .foregroundStyle(color)
+                .frame(width: 22, alignment: .center)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(value)
+                    .font(.subheadline.bold().monospacedDigit())
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                Text(label)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                if let sub = subLabel {
+                    Text(sub)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary.opacity(0.65))
+                        .lineLimit(1)
+                }
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(color.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .strokeBorder(color.opacity(isAlert ? 0.45 : 0.15), lineWidth: 1)
+        )
+    }
+}
+
+// MARK: - Character Card
 
 struct CharacterCardView: View {
     let account: StoredAccount
@@ -608,65 +678,79 @@ struct CharacterCardView: View {
 
     @State private var liveCorpName: String?
     @State private var liveAllianceName: String?
+    @State private var pulsing = false  // #4: drives the online pulse animation
 
     var body: some View {
         VStack(spacing: 0) {
-            // Ship render banner with corp logo overlay
+            // #3: Status accent stripe — color signals state at a glance
+            Rectangle()
+                .fill(cardAccentColor)
+                .frame(height: 3)
+
+            // #1 + #2: Banner with gradient fade at bottom
             ZStack(alignment: .bottomTrailing) {
-                if let ship = summary?.ship {
-                    AsyncImage(url: EVEImageURL.typeRender(ship.shipTypeId, size: 1024)) { phase in
-                        switch phase {
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(height: 120)
-                                .clipped()
-                        default:
-                            bannerPlaceholder
+                Group {
+                    if let ship = summary?.ship {
+                        AsyncImage(url: EVEImageURL.typeRender(ship.shipTypeId, size: 1024)) { phase in
+                            switch phase {
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(height: 130)
+                                    .clipped()
+                            default:
+                                bannerPlaceholder
+                            }
                         }
+                    } else {
+                        bannerPlaceholder
                     }
-                } else {
-                    bannerPlaceholder
                 }
 
+                // #2: Gradient vignette darkens the banner bottom for portrait overlap contrast
+                LinearGradient(
+                    colors: [.clear, Color.black.opacity(0.70)],
+                    startPoint: .init(x: 0.5, y: 0.25),
+                    endPoint: .bottom
+                )
+                .frame(height: 130)
+                .allowsHitTesting(false)
+
+                // Corp logo — slightly larger for visual weight
                 AsyncImage(url: EVEImageURL.corporationLogo(account.corporationID, size: 256)) { phase in
                     if let image = phase.image {
                         image
                             .resizable()
-                            .frame(width: 32, height: 32)
-                            .clipShape(RoundedRectangle(cornerRadius: 4))
-                            .shadow(color: .black.opacity(0.5), radius: 3)
+                            .frame(width: 36, height: 36)
+                            .clipShape(RoundedRectangle(cornerRadius: 5))
+                            .shadow(color: .black.opacity(0.6), radius: 4)
                     }
                 }
                 .padding(8)
             }
+            .frame(height: 130)
 
+            // #1: Content pulled up to overlap the banner bottom
             VStack(alignment: .leading, spacing: 10) {
-                // Character identity row
+                // Identity row — portrait floats above the banner boundary
                 HStack(spacing: 12) {
                     AsyncImage(url: EVEImageURL.characterPortrait(account.characterID, size: 512)) { image in
                         image.resizable()
                     } placeholder: {
-                        RoundedRectangle(cornerRadius: 8).fill(.quaternary)
+                        RoundedRectangle(cornerRadius: 10).fill(.quaternary)
                     }
-                    .frame(width: 52, height: 52)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.white.opacity(0.1), lineWidth: 1))
+                    .frame(width: 60, height: 60)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.white.opacity(0.18), lineWidth: 1))
+                    .shadow(color: .black.opacity(0.55), radius: 7, y: 3)
 
                     VStack(alignment: .leading, spacing: 3) {
                         HStack(spacing: 6) {
                             Text(account.characterName)
                                 .font(.headline)
                             Spacer()
-                            HStack(spacing: 4) {
-                                Circle()
-                                    .fill(summary?.online == true ? .green : .gray)
-                                    .frame(width: 8, height: 8)
-                                Text(summary?.online == true ? "Online" : "Offline")
-                                    .font(.caption2)
-                                    .foregroundStyle(summary?.online == true ? .green : .secondary)
-                            }
+                            onlineIndicator
                         }
                         Text(effectiveCorpName)
                             .font(.subheadline)
@@ -674,7 +758,7 @@ struct CharacterCardView: View {
                         if let name = effectiveAllianceName {
                             Text(name)
                                 .font(.caption)
-                                .foregroundStyle(.tertiary)
+                                .foregroundStyle(.secondary.opacity(0.6))
                         }
                     }
                 }
@@ -749,7 +833,7 @@ struct CharacterCardView: View {
                     }
                 }
 
-                // Skill queue
+                // #5: Skill queue with progress bar
                 skillQueueRow
 
                 // Industry & Contracts
@@ -839,12 +923,65 @@ struct CharacterCardView: View {
                 }
             }
             .padding(12)
+            .padding(.top, -38)  // #1: portrait overlaps banner by ~28pt
         }
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
         .clipShape(RoundedRectangle(cornerRadius: 12))
-        .onAppear { Task { await fetchIdentity() } }
+        .onAppear {
+            Task { await fetchIdentity() }
+            if summary?.online == true {
+                withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
+                    pulsing = true
+                }
+            }
+        }
         .onChange(of: prefetcher.lastRefresh) { _, _ in Task { await fetchIdentity() } }
+        .onChange(of: summary?.online) { _, online in
+            if online == true {
+                withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
+                    pulsing = true
+                }
+            } else {
+                withAnimation(.default) { pulsing = false }
+            }
+        }
+    }
 
+    // #3: Accent stripe color based on most critical state
+    private var cardAccentColor: Color {
+        guard let s = summary else { return Color(white: 0.25) }
+        if s.expiredExtractorCount > 0 { return .red }
+        if s.isQueueEmpty { return .orange }
+        if s.online { return .green }
+        return Color(white: 0.25)
+    }
+
+    // #4: Animated online indicator with pulsing glow
+    @ViewBuilder
+    private var onlineIndicator: some View {
+        let isOnline = summary?.online == true
+        HStack(spacing: 4) {
+            ZStack {
+                if isOnline {
+                    Circle()
+                        .fill(Color.green.opacity(0.35))
+                        .frame(width: 16, height: 16)
+                        .scaleEffect(pulsing ? 1.6 : 0.7)
+                        .opacity(pulsing ? 0.0 : 0.5)
+                        .animation(
+                            .easeOut(duration: 0.9).repeatForever(autoreverses: false),
+                            value: pulsing
+                        )
+                }
+                Circle()
+                    .fill(isOnline ? Color.green : Color.gray)
+                    .frame(width: 8, height: 8)
+                    .shadow(color: isOnline ? .green.opacity(0.7) : .clear, radius: 4)
+            }
+            Text(isOnline ? "Online" : "Offline")
+                .font(.caption2)
+                .foregroundStyle(isOnline ? .green : .secondary)
+        }
     }
 
     private var effectiveCorpName: String {
@@ -876,6 +1013,7 @@ struct CharacterCardView: View {
         }
     }
 
+    // #5: Skill queue row with training progress bar
     @ViewBuilder
     private var skillQueueRow: some View {
         if let s = summary {
@@ -891,7 +1029,7 @@ struct CharacterCardView: View {
                 }
             } else {
                 Label {
-                    VStack(alignment: .leading, spacing: 1) {
+                    VStack(alignment: .leading, spacing: 3) {
                         HStack(spacing: 4) {
                             Text(s.trainingSkillName ?? "Training...")
                                 .font(.caption)
@@ -903,6 +1041,18 @@ struct CharacterCardView: View {
                                     .foregroundStyle(.secondary)
                             }
                         }
+
+                        // #5: Training progress bar
+                        if let start = s.currentSkillStart, let finish = s.currentSkillFinish {
+                            let total = finish.timeIntervalSince(start)
+                            let progress = total > 0
+                                ? min(1.0, max(0.0, Date().timeIntervalSince(start) / total))
+                                : 0.0
+                            ProgressView(value: progress)
+                                .tint(.blue)
+                                .frame(height: 3)
+                        }
+
                         HStack(spacing: 4) {
                             Text("\(s.skillQueueCount) skill\(s.skillQueueCount == 1 ? "" : "s") in queue")
                                 .font(.caption2)
@@ -924,39 +1074,59 @@ struct CharacterCardView: View {
         }
     }
 
+    // #7: EVE-themed placeholder with subtle tech-grid aesthetic
     private var bannerPlaceholder: some View {
-        Rectangle()
-            .fill(Color(white: 0.12))
-            .frame(height: 120)
-            .overlay {
-                if !apiStatus.isReachable {
-                    VStack(spacing: 6) {
-                        Image(systemName: "wifi.exclamationmark")
-                            .font(.title2)
-                            .foregroundStyle(.orange)
-                        Text(apiStatus.statusMessage.isEmpty ? "No connection" : apiStatus.statusMessage)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 16)
-                    }
-                } else if summary == nil {
-                    ProgressView().scaleEffect(0.7)
+        ZStack {
+            LinearGradient(
+                colors: [Color(white: 0.09), Color(white: 0.04)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            Canvas { ctx, size in
+                let spacing: CGFloat = 22
+                var path = Path()
+                var x: CGFloat = 0
+                while x <= size.width {
+                    path.move(to: CGPoint(x: x, y: 0))
+                    path.addLine(to: CGPoint(x: x, y: size.height))
+                    x += spacing
                 }
+                var y: CGFloat = 0
+                while y <= size.height {
+                    path.move(to: CGPoint(x: 0, y: y))
+                    path.addLine(to: CGPoint(x: size.width, y: y))
+                    y += spacing
+                }
+                ctx.stroke(path, with: .color(Color(red: 0, green: 0.75, blue: 1).opacity(0.07)), lineWidth: 0.5)
             }
+
+            if !apiStatus.isReachable {
+                VStack(spacing: 6) {
+                    Image(systemName: "wifi.exclamationmark")
+                        .font(.title2)
+                        .foregroundStyle(.orange)
+                    Text(apiStatus.statusMessage.isEmpty ? "No connection" : apiStatus.statusMessage)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 16)
+                }
+            } else if summary == nil {
+                ProgressView().scaleEffect(0.7)
+            }
+        }
+        .frame(height: 130)
     }
 
     private func formatSP(_ sp: Int) -> String {
-        if sp >= 1_000_000 {
-            return String(format: "%.1fM SP", Double(sp) / 1_000_000)
-        } else if sp >= 1_000 {
-            return String(format: "%.0fK SP", Double(sp) / 1_000)
-        }
+        if sp >= 1_000_000 { return String(format: "%.1fM SP", Double(sp) / 1_000_000) }
+        if sp >= 1_000 { return String(format: "%.0fK SP", Double(sp) / 1_000) }
         return "\(sp) SP"
     }
 }
 
-// MARK:  Contact Card
+// MARK: - Contact Card
 
 struct ContactCardView: View {
     let contact: ContactSummary
@@ -1030,7 +1200,7 @@ struct ContactCardView: View {
                         if let alliance = contact.allianceName {
                             Text(alliance)
                                 .font(.caption)
-                                .foregroundStyle(.tertiary)
+                                .foregroundStyle(.secondary.opacity(0.6))
                         }
                     }
                 }
@@ -1100,21 +1270,21 @@ struct ContactCardView: View {
 
     private var contactTypeIcon: String {
         switch contact.contactType {
-        case "corporation":                             return "building.2.fill"
-        case "alliance":                                return "shield.fill"
-        case "faction":                                 return "globe"
-        case "character" where contact.isPlayerCharacter: return "person.fill"
-        default:                                        return "cpu"
+        case "corporation":                                return "building.2.fill"
+        case "alliance":                                   return "shield.fill"
+        case "faction":                                    return "globe"
+        case "character" where contact.isPlayerCharacter:  return "person.fill"
+        default:                                           return "cpu"
         }
     }
 
     private var contactTypeLabel: String {
         switch contact.contactType {
-        case "corporation":                             return "Corp"
-        case "alliance":                                return "Alliance"
-        case "faction":                                 return "Faction"
-        case "character" where contact.isPlayerCharacter: return "Player"
-        default:                                        return "NPC"
+        case "corporation":                                return "Corp"
+        case "alliance":                                   return "Alliance"
+        case "faction":                                    return "Faction"
+        case "character" where contact.isPlayerCharacter:  return "Player"
+        default:                                           return "NPC"
         }
     }
 
