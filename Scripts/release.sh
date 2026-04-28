@@ -6,6 +6,16 @@
 
 set -e
 
+# ── Helpers ──────────────────────────────────────────────────
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+info()    { echo -e "${GREEN}==>${NC} $1"; }
+warning() { echo -e "${YELLOW}Warning:${NC} $1"; }
+error()   { echo -e "${RED}Error:${NC} $1"; exit 1; }
+
 # ── Config ───────────────────────────────────────────────────
 SCHEME="EVEOps"
 PROJECT="EVEOps.xcodeproj"
@@ -47,16 +57,6 @@ DMG_PATH="$WORK_DIR/$SCHEME.dmg"
 NOTARIZE_ZIP="$WORK_DIR/$SCHEME-notarize.zip"
 APPCAST_DIR="$WORK_DIR/appcast"
 SPARKLE_KEY="$WORK_DIR/sparkle_ed_key"
-
-# ── Helpers ──────────────────────────────────────────────────
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
-
-info()    { echo -e "${GREEN}==>${NC} $1"; }
-warning() { echo -e "${YELLOW}Warning:${NC} $1"; }
-error()   { echo -e "${RED}Error:${NC} $1"; exit 1; }
 
 # ── Validate version argument ────────────────────────────────
 VERSION=$1

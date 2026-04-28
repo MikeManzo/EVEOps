@@ -21,6 +21,7 @@ struct EVEOpsApp: App {
     @State private var prefetcher: DashboardPrefetcher
     @State private var apiStatusMonitor: APIStatusMonitor
     @State private var presenceTracker: PresenceTracker
+    @State private var appUpdater = AppUpdater()
     @AppStorage("colorScheme") private var colorSchemePref: String = "system"
 
     private var resolvedColorScheme: ColorScheme? {
@@ -80,6 +81,7 @@ struct EVEOpsApp: App {
             SettingsView()
                 .environment(accountManager)
                 .environment(prefetcher)
+                .environment(appUpdater)
                 .preferredColorScheme(resolvedColorScheme)
         }
 

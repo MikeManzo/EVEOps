@@ -1,5 +1,6 @@
 import SwiftUI
 import ServiceManagement
+import Sparkle
 
 struct SettingsView: View {
     var body: some View {
@@ -402,6 +403,7 @@ private struct NotificationsTab: View {
 private struct GeneralTab: View {
     @Environment(AccountManager.self) private var accountManager
     @Environment(DashboardPrefetcher.self) private var prefetcher
+    @Environment(AppUpdater.self) private var appUpdater
     @AppStorage("backgroundPollInterval") private var pollInterval: Double = 300
     @AppStorage("defaultCharacterMode") private var defaultCharacterMode: String = "last"
     @State private var launchAtLogin = false
@@ -450,6 +452,51 @@ private struct GeneralTab: View {
                     Text("First character alphabetically").tag("first")
                 }
                 .pickerStyle(.radioGroup)
+            }
+
+            Section("Software Update") {
+                if appUpdater.updateAvailable {
+                    HStack(spacing: 12) {
+                        Image(systemName: "arrow.down.circle.fill")
+                            .font(.title3)
+                            .foregroundStyle(.green)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Update Available")
+                                .font(.subheadline.weight(.semibold))
+                            Text("A new version of EVEOps is ready to install.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Button("Install Update") {
+                            appUpdater.checkForUpdates()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.green)
+                    }
+                    .padding(.vertical, 4)
+                }
+
+                Button {
+                    appUpdater.checkForUpdates()
+                } label: {
+                    Label("Check for Updates\u{2026}", systemImage: "arrow.triangle.2.circlepath")
+                }
+                .disabled(!appUpdater.canCheckForUpdates)
+
+                Toggle(isOn: Binding(
+                    get: { appUpdater.updater.automaticallyChecksForUpdates },
+                    set: { appUpdater.updater.automaticallyChecksForUpdates = $0 }
+                )) {
+                    Label("Automatically check for updates", systemImage: "clock.arrow.2.circlepath")
+                }
+
+                Toggle(isOn: Binding(
+                    get: { appUpdater.updater.automaticallyDownloadsUpdates },
+                    set: { appUpdater.updater.automaticallyDownloadsUpdates = $0 }
+                )) {
+                    Label("Automatically download updates", systemImage: "arrow.down.circle")
+                }
             }
         }
         .formStyle(.grouped)
