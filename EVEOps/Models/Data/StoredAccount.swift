@@ -16,6 +16,7 @@ final class StoredAccount {
     var scopes: [String]
     var addedDate: Date
     var lastRefresh: Date?
+    var needsReauth: Bool = false
 
     init(
         characterID: Int,

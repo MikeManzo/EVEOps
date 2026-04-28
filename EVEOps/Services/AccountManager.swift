@@ -131,13 +131,46 @@ final class AccountManager {
             account.accessToken = tokenResponse.accessToken
             account.refreshToken = tokenResponse.refreshToken
             account.tokenExpiry = Date().addingTimeInterval(TimeInterval(tokenResponse.expiresIn))
+            account.needsReauth = false
             tokenVersion += 1
             try? modelContext.save()
             return tokenResponse.accessToken
+        } catch SSOError.refreshTokenExpired {
+            // Refresh token is permanently invalid — user must log in again manually.
+            refreshTasks.removeValue(forKey: charID)
+            account.needsReauth = true
+            try? modelContext.save()
+            throw SSOError.refreshTokenExpired
         } catch {
             refreshTasks.removeValue(forKey: charID)
             throw error
         }
+    }
+
+    /// Re-runs the full SSO browser flow for an account whose refresh token has expired.
+    /// On success clears needsReauth and updates all tokens. On wrong character, sets error.
+    func reauthorize(_ account: StoredAccount) async {
+        isLoading = true
+        error = nil
+        do {
+            let tokenResponse = try await authenticator.authenticate()
+            let character = try decodeJWT(tokenResponse.accessToken)
+            guard character.characterID == account.characterID else {
+                self.error = "Wrong character. Please log in as \(account.characterName)."
+                isLoading = false
+                return
+            }
+            account.accessToken = tokenResponse.accessToken
+            account.refreshToken = tokenResponse.refreshToken
+            account.tokenExpiry = Date().addingTimeInterval(TimeInterval(tokenResponse.expiresIn))
+            account.scopes = character.scopes
+            account.needsReauth = false
+            try? modelContext.save()
+            tokenVersion += 1
+        } catch {
+            self.error = error.localizedDescription
+        }
+        isLoading = false
     }
 
     /// Fetches current public ESI data for all accounts and unconditionally updates

@@ -281,9 +281,9 @@ final class DashboardPrefetcher {
 
             s.colonyCount = prefetched.colonies.count
 
-            // PI extractor checks
-            if !prefetched.colonies.isEmpty, !account.isTokenExpired {
-                let token = account.accessToken
+            // PI extractor checks — use validToken so the token is refreshed if needed
+            if !prefetched.colonies.isEmpty, !account.needsReauth,
+               let token = try? await accountManager.validToken(for: account) {
                 for colony in prefetched.colonies {
                     if let layout: ESIColonyLayout = try? await ESIClient.shared.fetch(
                         "/characters/\(account.characterID)/planets/\(colony.planetId)/", token: token

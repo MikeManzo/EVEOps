@@ -14,6 +14,11 @@ struct SidebarView: View {
         VStack(spacing: 0) {
             accountSwitcher
 
+            let reauthAccounts = accountManager.accounts.filter { $0.needsReauth }
+            if !reauthAccounts.isEmpty {
+                reauthBanner(reauthAccounts)
+            }
+
             List(selection: $selectedSection) {
                 Label("Dashboard", systemImage: "square.grid.2x2.fill")
                     .tag(NavigationSection.dashboard)
@@ -62,6 +67,45 @@ struct SidebarView: View {
             addAccountButton
         }
         .frame(minWidth: 200)
+    }
+
+    @ViewBuilder
+    private func reauthBanner(_ accounts: [StoredAccount]) -> some View {
+        VStack(spacing: 0) {
+            ForEach(accounts, id: \.characterID) { account in
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                        .font(.caption)
+
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(account.characterName)
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .lineLimit(1)
+                        Text("Session expired")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
+
+                    Button("Fix") {
+                        Task { await accountManager.reauthorize(account) }
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.mini)
+                    .tint(.orange)
+                    .disabled(accountManager.isLoading)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+            }
+        }
+        .background(.orange.opacity(0.08))
+        .overlay(alignment: .bottom) {
+            Divider()
+        }
     }
 
     @ViewBuilder

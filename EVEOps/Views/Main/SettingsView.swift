@@ -126,10 +126,17 @@ private struct AccountRowView: View {
 
             Spacer()
 
-            if account.isTokenExpired {
-                Label("Expired", systemImage: "exclamationmark.triangle.fill")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
+            if account.needsReauth {
+                Button {
+                    Task { await accountManager.reauthorize(account) }
+                } label: {
+                    Label("Re-authenticate", systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .tint(.orange)
+                .disabled(accountManager.isLoading)
             } else {
                 Label("Active", systemImage: "checkmark.circle.fill")
                     .font(.caption)
@@ -160,6 +167,7 @@ private struct AccountRowView: View {
 // MARK: Character Dossier Card
 
 private struct CharacterDossierCard: View {
+    @Environment(AccountManager.self) private var accountManager
     let account: StoredAccount
     let summary: CharacterSummary?
     let onDelete: () -> Void
@@ -208,10 +216,17 @@ private struct CharacterDossierCard: View {
                                 .foregroundStyle(online ? .green : .secondary)
                         }
                     }
-                    if account.isTokenExpired {
-                        Label("Expired", systemImage: "exclamationmark.triangle.fill")
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(.orange)
+                    if account.needsReauth {
+                        Button {
+                            Task { await accountManager.reauthorize(account) }
+                        } label: {
+                            Label("Re-authenticate", systemImage: "exclamationmark.triangle.fill")
+                                .font(.system(size: 10, weight: .medium))
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.mini)
+                        .tint(.orange)
+                        .disabled(accountManager.isLoading)
                     } else {
                         Label("Active", systemImage: "checkmark.circle.fill")
                             .font(.system(size: 10, weight: .medium))

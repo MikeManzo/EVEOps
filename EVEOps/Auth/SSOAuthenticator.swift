@@ -147,11 +147,22 @@ final class SSOAuthenticator: NSObject {
             .data(using: .utf8)
 
         let (data, response) = try await URLSession.shared.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+        guard let httpResponse = response as? HTTPURLResponse else {
             throw SSOError.tokenExchangeFailed
         }
 
-        return try JSONDecoder().decode(SSOTokenResponse.self, from: data)
+        if httpResponse.statusCode == 200 {
+            return try JSONDecoder().decode(SSOTokenResponse.self, from: data)
+        }
+
+        // 400 invalid_grant means the refresh token is revoked or permanently expired
+        if httpResponse.statusCode == 400,
+           let body = try? JSONDecoder().decode([String: String].self, from: data),
+           body["error"] == "invalid_grant" {
+            throw SSOError.refreshTokenExpired
+        }
+
+        throw SSOError.tokenExchangeFailed
     }
 
     // MARK:  Private
@@ -203,12 +214,14 @@ enum SSOError: LocalizedError {
     case invalidCallback
     case tokenExchangeFailed
     case invalidToken
+    case refreshTokenExpired
 
     var errorDescription: String? {
         switch self {
         case .invalidCallback: return "Invalid authentication callback"
         case .tokenExchangeFailed: return "Failed to exchange authorization code"
         case .invalidToken: return "Invalid or expired token"
+        case .refreshTokenExpired: return "Your session has expired and must be renewed. Please re-authenticate."
         }
     }
 }
