@@ -1,7 +1,7 @@
 import Foundation
 import FoundationModels
 
-// MARK: - Generable Output Types
+// Mark:  Generable Output Types
 
 @available(macOS 26.0, *)
 @Generable(description: "Financial health analysis for an EVE Online character")
@@ -14,19 +14,26 @@ struct FinanceInsight: Sendable {
 }
 
 @available(macOS 26.0, *)
-@Generable(description: "Skill training recommendation for an EVE Online character based on their existing trained skills")
+@Generable(description: "A single EVE Online skill training recommendation")
+struct SkillRecommendation: Sendable {
+    @Guide(description: "A specific EVE Online skill to train, formatted as 'Skill Name to Level X' (e.g. 'Caldari Cruiser to Level V')")
+    var skill: String
+
+    @Guide(description: "One sentence explaining why this skill is valuable for this character")
+    var rationale: String
+}
+
+@available(macOS 26.0, *)
+@Generable(description: "Skill training recommendations for an EVE Online character based on their existing trained skills")
 struct SkillTrainingRecommendation: Sendable {
     @Guide(description: "Two to three sentence description of this character's evident EVE Online playstyle and strengths based on their trained skills")
     var playstyleSummary: String
 
-    @Guide(description: "A specific EVE Online skill to train next, formatted as 'Skill Name to Level X' (e.g. 'Caldari Cruiser to Level V')")
-    var topRecommendation: String
-
-    @Guide(description: "One sentence explaining why this skill complements their current training and playstyle")
-    var rationale: String
+    @Guide(description: "Five skill recommendations in priority order, from most to least impactful for this character's development", .count(5))
+    var recommendations: [SkillRecommendation]
 }
 
-// MARK: - Service
+// Mark:  Service
 
 @available(macOS 26.0, *)
 actor IntelligenceService {
@@ -87,7 +94,7 @@ actor IntelligenceService {
         """
 
         let session = LanguageModelSession(
-            instructions: "You are a concise EVE Online skill advisor. Analyze this character's training history to identify their playstyle, then recommend the single most impactful skill they should train next. Be specific and practical."
+            instructions: "You are a concise EVE Online skill advisor. Analyze this character's training history to identify their playstyle, then recommend the 5 most impactful skills they should train next, in priority order. Be specific and practical."
         )
         let response = try await session.respond(to: prompt, generating: SkillTrainingRecommendation.self)
         return response.content

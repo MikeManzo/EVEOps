@@ -450,7 +450,7 @@ struct DashboardView: View {
     }
 }
 
-// MARK: - Summary Data
+// Mark:  Summary Data
 
 struct CharacterSummary {
     let characterID: Int
@@ -478,7 +478,7 @@ struct CharacterSummary {
     var allianceName: String? = nil
 }
 
-// MARK: - Contact Summary
+// Mark:  Contact Summary
 
 struct ContactSummary: Identifiable {
     let contactID: Int
@@ -522,7 +522,7 @@ struct ContactSummary: Identifiable {
     }
 }
 
-// MARK: - Metric Tile Grid
+// Mark:  Metric Tile Grid
 
 struct SummaryGridView: View {
     let summaries: [CharacterSummary]
@@ -666,7 +666,7 @@ struct MetricTileView: View {
     }
 }
 
-// MARK: - Character Card
+// Mark:  Character Card
 
 struct CharacterCardView: View {
     let account: StoredAccount
@@ -1126,7 +1126,7 @@ struct CharacterCardView: View {
     }
 }
 
-// MARK: - Contact Card
+// Mark:  Contact Card
 
 struct ContactCardView: View {
     let contact: ContactSummary

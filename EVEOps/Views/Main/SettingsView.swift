@@ -1,6 +1,7 @@
 import SwiftUI
 import ServiceManagement
 import Sparkle
+import FoundationModels
 
 struct SettingsView: View {
     var body: some View {
@@ -19,8 +20,10 @@ struct SettingsView: View {
                 .tabItem { Label("Advanced", systemImage: "terminal") }
             AboutTab()
                 .tabItem { Label("About", systemImage: "info.circle") }
+            IntelligenceTab()
+                .tabItem { Label("Intelligence", systemImage: "brain") }
         }
-        .frame(width: 540, height: 460)
+        .frame(width: 580, height: 460)
     }
 }
 
@@ -979,5 +982,108 @@ private struct AboutTab: View {
 
     private var currentYear: String {
         Calendar.current.component(.year, from: Date()).description
+    }
+}
+
+// Mark:  Intelligence Tab
+
+private struct IntelligenceTab: View {
+    @AppStorage("aiInsightsEnabled") private var aiInsightsEnabled = false
+
+    var body: some View {
+        if #available(macOS 26.0, *) {
+            IntelligenceTabContent(aiInsightsEnabled: $aiInsightsEnabled)
+        } else {
+            VStack(spacing: 16) {
+                Image(systemName: "brain")
+                    .font(.system(size: 44))
+                    .foregroundStyle(.tertiary)
+                Text("Apple Intelligence requires macOS 26 or later.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+}
+
+@available(macOS 26.0, *)
+private struct IntelligenceTabContent: View {
+    @Binding var aiInsightsEnabled: Bool
+    private var model: SystemLanguageModel { .default }
+
+    var body: some View {
+        Form {
+            Section("Apple Intelligence") {
+                switch model.availability {
+                case .available:
+                    Toggle("Enable AI Insights", isOn: $aiInsightsEnabled)
+                    Text("Uses the on-device Apple Intelligence model to analyze your financial and skill training data. All processing is local — no data leaves your Mac.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                case .unavailable(.appleIntelligenceNotEnabled):
+                    Label {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("Apple Intelligence Not Enabled")
+                                .fontWeight(.medium)
+                            Text("Turn on Apple Intelligence in System Settings to use AI Insights.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    } icon: {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                    }
+                    Button("Open System Settings\u{2026}") {
+                        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.siri") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    }
+                    .buttonStyle(.link)
+
+                case .unavailable(.deviceNotEligible):
+                    Label {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("Device Not Eligible")
+                                .fontWeight(.medium)
+                            Text("Apple Intelligence requires Apple Silicon. This Mac is not supported.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    } icon: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.red)
+                    }
+
+                case .unavailable(.modelNotReady):
+                    Label {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("Model Downloading")
+                                .fontWeight(.medium)
+                            Text("The on-device model is still initializing. Check back shortly.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    } icon: {
+                        Image(systemName: "arrow.down.circle.fill")
+                            .foregroundStyle(.blue)
+                    }
+
+                default:
+                    Text("Apple Intelligence is not available on this device.")
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            if aiInsightsEnabled, case .available = model.availability {
+                Section("Where Insights Appear") {
+                    Label("Finances — financial health and ISK suggestions", systemImage: "banknote")
+                    Label("Skill Planner — playstyle analysis and training recommendations", systemImage: "graduationcap")
+                }
+            }
+        }
+        .formStyle(.grouped)
     }
 }
