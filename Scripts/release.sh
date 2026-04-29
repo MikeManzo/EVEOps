@@ -171,6 +171,16 @@ hdiutil create \
 [ -f "$DMG_PATH" ] || error "DMG creation failed"
 info "DMG created ✓"
 
+# ── Notarize DMG ─────────────────────────────────────────────
+info "Notarizing DMG..."
+xcrun notarytool submit "$DMG_PATH" \
+  --keychain-profile "$NOTARY_PROFILE" \
+  --wait
+
+info "Stapling notarization ticket to DMG..."
+xcrun stapler staple "$DMG_PATH"
+info "DMG notarized ✓"
+
 # ── Generate Appcast ─────────────────────────────────────────
 info "Generating appcast..."
 "$SPARKLE_BIN/generate_keys" -x "$SPARKLE_KEY"
