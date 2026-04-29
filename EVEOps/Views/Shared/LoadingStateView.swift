@@ -7,6 +7,7 @@ struct LoadingStateView<Content: View>: View {
     let error: String?
     let isEmpty: Bool
     let emptyMessage: String
+    let loadingMessage: String
     @ViewBuilder let content: () -> Content
 
     init(
@@ -14,12 +15,14 @@ struct LoadingStateView<Content: View>: View {
         error: String? = nil,
         isEmpty: Bool = false,
         emptyMessage: String = "No data available",
+        loadingMessage: String = "Loading...",
         @ViewBuilder content: @escaping () -> Content
     ) {
         self.isLoading = isLoading
         self.error = error
         self.isEmpty = isEmpty
         self.emptyMessage = emptyMessage
+        self.loadingMessage = loadingMessage
         self.content = content
     }
 
@@ -28,7 +31,7 @@ struct LoadingStateView<Content: View>: View {
             if isLoading {
                 VStack(spacing: 12) {
                     ProgressView()
-                    Text("Loading...")
+                    Text(loadingMessage)
                         .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

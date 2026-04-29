@@ -6,11 +6,18 @@ struct CharacterKillmailsView: View {
     @State private var groups: [KillmailGroup] = []
     @State private var isLoading = false
     @State private var error: String?
-    @State private var selectedKillmail: ESIKillmail?
+    @State private var selectedEntry: KillmailEntry?
+    @State private var loadingDetail: String?
     @State private var filter = "all"
 
     var body: some View {
-        LoadingStateView(isLoading: isLoading, error: error, isEmpty: groups.isEmpty, emptyMessage: "No kill/loss mails found") {
+        LoadingStateView(
+            isLoading: isLoading,
+            error: error,
+            isEmpty: groups.isEmpty,
+            emptyMessage: "No kill/loss mails found",
+            loadingMessage: loadingDetail ?? "Loading..."
+        ) {
             VStack(spacing: 0) {
                 filterBar
                 if #available(macOS 26.0, *) {
@@ -21,8 +28,8 @@ struct CharacterKillmailsView: View {
             }
         }
         .navigationTitle("Kill/Loss Mails")
-        .sheet(item: $selectedKillmail) { km in
-            KillmailDetailSheet(killmail: km)
+        .sheet(item: $selectedEntry) { entry in
+            KillmailDetailSheet(entry: entry)
         }
         .task { isLoading = true; await load() }
     }
@@ -57,7 +64,7 @@ struct CharacterKillmailsView: View {
                         ForEach(filtered) { entry in
                             KillmailRow(entry: entry)
                                 .contentShape(Rectangle())
-                                .onTapGesture { selectedKillmail = entry.killmail }
+                                .onTapGesture { selectedEntry = entry }
                         }
                     }
                 }
@@ -72,17 +79,40 @@ struct CharacterKillmailsView: View {
         for account in accountManager.accounts {
             do {
                 let token = try await accountManager.validToken(for: account)
-                let refs: [ESIKillmailRef] = try await ESIClient.shared.fetch(
-                    "/characters/\(account.characterID)/killmails/recent/", token: token
-                )
+
+                // Try zKillboard first — covers complete lifetime history
+                var killRefs: [(killmailId: Int, hash: String, zkb: ZKBMeta?)] = []
+                do {
+                    loadingDetail = "Fetching history from zKillboard..."
+                    let zkbRefs = try await ZKillboardClient.shared.fetchKillRefs(characterID: account.characterID)
+                    killRefs = zkbRefs.map { ($0.killmailId, $0.zkb.hash, $0.zkb) }
+                } catch {
+                    // Fall back to ESI recent killmails
+                    loadingDetail = "Fetching kill history..."
+                    let esiRefs: [ESIKillmailRef] = try await ESIClient.shared.fetchPages(
+                        "/characters/\(account.characterID)/killmails/recent/", token: token
+                    )
+                    killRefs = esiRefs.map { ($0.killmailId, $0.killmailHash, nil) }
+                }
+
+                if killRefs.isEmpty {
+                    continue
+                }
+
+                loadingDetail = "Loading \(killRefs.count) killmail details..."
+
                 var entries: [KillmailEntry] = []
                 await withTaskGroup(of: KillmailEntry?.self) { group in
-                    for ref in refs.prefix(50) {
+                    for ref in killRefs {
                         group.addTask {
                             guard let km: ESIKillmail = try? await ESIClient.shared.fetch(
-                                "/killmails/\(ref.killmailId)/\(ref.killmailHash)/"
+                                "/killmails/\(ref.killmailId)/\(ref.hash)/"
                             ) else { return nil }
-                            return KillmailEntry(killmail: km, isKill: km.victim.characterId != account.characterID)
+                            return KillmailEntry(
+                                killmail: km,
+                                isKill: km.victim.characterId != account.characterID,
+                                zkb: ref.zkb
+                            )
                         }
                     }
                     for await entry in group { if let e = entry { entries.append(e) } }
@@ -94,6 +124,7 @@ struct CharacterKillmailsView: View {
             } catch { lastError = error }
         }
         groups = result
+        loadingDetail = nil
         if result.isEmpty, let e = lastError { self.error = e.localizedDescription }
         isLoading = false
     }
@@ -104,7 +135,14 @@ struct CharacterKillmailsView: View {
 struct KillmailEntry: Identifiable {
     let killmail: ESIKillmail
     let isKill: Bool
+    let zkb: ZKBMeta?
     var id: Int { killmail.killmailId }
+
+    nonisolated init(killmail: ESIKillmail, isKill: Bool, zkb: ZKBMeta? = nil) {
+        self.killmail = killmail
+        self.isKill = isKill
+        self.zkb = zkb
+    }
 }
 
 struct KillmailGroup {
@@ -149,10 +187,28 @@ struct KillmailRow: View {
                 Text(entry.isKill ? "Kill" : "Loss")
                     .font(.caption.bold())
                     .foregroundStyle(entry.isKill ? .green : .red)
+                if let totalValue = entry.zkb?.totalValue, totalValue > 0 {
+                    Text(EVEFormatters.formatISKShort(totalValue))
+                        .font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
+                }
                 Text(entry.killmail.killmailTime, style: .date)
                     .font(.caption2).foregroundStyle(.secondary)
-                Text(entry.killmail.killmailTime, style: .time)
-                    .font(.caption2).foregroundStyle(.tertiary)
+                HStack(spacing: 4) {
+                    if entry.zkb?.isSolo == true {
+                        Text("Solo")
+                            .font(.caption2.bold())
+                            .padding(.horizontal, 4).padding(.vertical, 1)
+                            .background(.blue.opacity(0.15), in: Capsule())
+                            .foregroundStyle(.blue)
+                    }
+                    if entry.zkb?.isNPC == true {
+                        Text("NPC")
+                            .font(.caption2.bold())
+                            .padding(.horizontal, 4).padding(.vertical, 1)
+                            .background(.secondary.opacity(0.15), in: Capsule())
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
         }
         .padding(.vertical, 2)
@@ -166,7 +222,8 @@ struct KillmailRow: View {
 // MARK:  Kill Mail Detail Sheet
 
 struct KillmailDetailSheet: View {
-    let killmail: ESIKillmail
+    let entry: KillmailEntry
+    var killmail: ESIKillmail { entry.killmail }
     @State private var victimShipName = ""
     @State private var systemName = ""
     @Environment(\.dismiss) private var dismiss
@@ -217,6 +274,10 @@ struct KillmailDetailSheet: View {
                         Label("Victim", systemImage: "xmark.circle.fill").foregroundStyle(.red)
                     }
 
+                    if let zkb = entry.zkb {
+                        iskBreakdownBox(zkb: zkb)
+                    }
+
                     GroupBox {
                         LazyVStack(spacing: 8) {
                             ForEach(Array(killmail.attackers.sorted { $0.finalBlow && !$1.finalBlow }.enumerated()), id: \.offset) { _, attacker in
@@ -227,6 +288,23 @@ struct KillmailDetailSheet: View {
                         Label("Attackers (\(killmail.attackers.count))", systemImage: "flame.fill")
                             .foregroundStyle(.orange)
                     }
+
+                    if let items = killmail.victim.items, !items.isEmpty {
+                        let sorted = items.sorted {
+                            (($0.quantityDestroyed ?? 0) + ($0.quantityDropped ?? 0)) >
+                            (($1.quantityDestroyed ?? 0) + ($1.quantityDropped ?? 0))
+                        }
+                        GroupBox {
+                            LazyVStack(spacing: 6) {
+                                ForEach(Array(sorted.enumerated()), id: \.offset) { _, item in
+                                    KillmailItemRow(item: item)
+                                }
+                            }
+                        } label: {
+                            Label("Items Lost (\(items.count))", systemImage: "shippingbox.fill")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                 }
                 .padding()
             }
@@ -236,6 +314,65 @@ struct KillmailDetailSheet: View {
             victimShipName = (await UniverseCache.shared.type(id: killmail.victim.shipTypeId))?.name ?? ""
             systemName = await NameResolver.shared.resolve(id: killmail.solarSystemId)
         }
+    }
+
+    @ViewBuilder
+    private func iskBreakdownBox(zkb: ZKBMeta) -> some View {
+        GroupBox {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 16) {
+                    if let total = zkb.totalValue, total > 0 {
+                        iskStat("Total", value: total, color: .primary)
+                    }
+                    if let fitted = zkb.fittedValue, fitted > 0 {
+                        iskStat("Fitted", value: fitted, color: .secondary)
+                    }
+                    if let destroyed = zkb.destroyedValue, destroyed > 0 {
+                        iskStat("Destroyed", value: destroyed, color: .red)
+                    }
+                    if let dropped = zkb.droppedValue, dropped > 0 {
+                        iskStat("Dropped", value: dropped, color: .green)
+                    }
+                }
+                if zkb.isSolo || zkb.isNPC || zkb.isAWOX || (zkb.points ?? 0) > 0 {
+                    HStack(spacing: 6) {
+                        if zkb.isSolo {
+                            badge("Solo", color: .blue)
+                        }
+                        if zkb.isNPC {
+                            badge("NPC", color: .secondary)
+                        }
+                        if zkb.isAWOX {
+                            badge("AWOX", color: .orange)
+                        }
+                        if let pts = zkb.points, pts > 0 {
+                            Text("\(pts) pts")
+                                .font(.caption2.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+        } label: {
+            Label("Combat Value", systemImage: "banknote.fill").foregroundStyle(.yellow)
+        }
+    }
+
+    private func iskStat(_ label: String, value: Double, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label).font(.caption2).foregroundStyle(.secondary)
+            Text(EVEFormatters.formatISKShort(value))
+                .font(.caption.monospacedDigit().bold())
+                .foregroundStyle(color)
+        }
+    }
+
+    private func badge(_ text: String, color: Color) -> some View {
+        Text(text)
+            .font(.caption2.bold())
+            .padding(.horizontal, 5).padding(.vertical, 2)
+            .background(color.opacity(0.15), in: Capsule())
+            .foregroundStyle(color)
     }
 }
 
@@ -294,6 +431,50 @@ struct KillmailAttackerRow: View {
             if let charId = attacker.characterId { name = await NameResolver.shared.resolve(id: charId) }
             if let shipId = attacker.shipTypeId { shipName = (await UniverseCache.shared.type(id: shipId))?.name ?? "" }
         }
+    }
+}
+
+// MARK: Killmail Item Row
+
+struct KillmailItemRow: View {
+    let item: ESIKillmailItem
+    @State private var typeName = ""
+
+    var body: some View {
+        HStack(spacing: 8) {
+            AsyncImage(url: EVEImageURL.typeIcon(item.itemTypeId, size: 32)) { image in
+                image.resizable()
+            } placeholder: {
+                RoundedRectangle(cornerRadius: 3).fill(.quaternary)
+            }
+            .frame(width: 24, height: 24)
+            .clipShape(RoundedRectangle(cornerRadius: 3))
+
+            Text(typeName.isEmpty ? "Item #\(item.itemTypeId)" : typeName)
+                .font(.caption)
+
+            Spacer()
+
+            HStack(spacing: 6) {
+                let destroyed = item.quantityDestroyed ?? 0
+                let dropped = item.quantityDropped ?? 0
+                if destroyed > 0 || (destroyed == 0 && dropped == 0) {
+                    HStack(spacing: 3) {
+                        Image(systemName: "xmark.circle.fill").foregroundStyle(.red)
+                        Text("\(max(1, destroyed))").foregroundStyle(.red)
+                    }
+                    .font(.caption2.monospacedDigit())
+                }
+                if dropped > 0 {
+                    HStack(spacing: 3) {
+                        Image(systemName: "arrow.down.circle.fill").foregroundStyle(.green)
+                        Text("\(dropped)").foregroundStyle(.green)
+                    }
+                    .font(.caption2.monospacedDigit())
+                }
+            }
+        }
+        .task { typeName = (await UniverseCache.shared.type(id: item.itemTypeId))?.name ?? "" }
     }
 }
 

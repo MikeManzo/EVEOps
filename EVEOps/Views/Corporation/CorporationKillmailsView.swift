@@ -5,7 +5,7 @@ struct CorporationKillmailsView: View {
     @State private var killmails: [KillmailEntry] = []
     @State private var isLoading = false
     @State private var error: String?
-    @State private var selectedKillmail: ESIKillmail?
+    @State private var selectedEntry: KillmailEntry?
     @State private var filter = "all"
 
     var body: some View {
@@ -18,14 +18,14 @@ struct CorporationKillmailsView: View {
                     ForEach(filtered) { entry in
                         KillmailRow(entry: entry)
                             .contentShape(Rectangle())
-                            .onTapGesture { selectedKillmail = entry.killmail }
+                            .onTapGesture { selectedEntry = entry }
                     }
                 }
             }
         }
         .navigationTitle("Corp Kill/Loss Mails")
-        .sheet(item: $selectedKillmail) { km in
-            KillmailDetailSheet(killmail: km)
+        .sheet(item: $selectedEntry) { entry in
+            KillmailDetailSheet(entry: entry)
         }
         .task(id: accountManager.selectedCharacterID) {
             guard let account = accountManager.selectedAccount else { return }
@@ -33,12 +33,12 @@ struct CorporationKillmailsView: View {
             error = nil
             do {
                 let token = try await accountManager.validToken(for: account)
-                let refs: [ESIKillmailRef] = try await ESIClient.shared.fetch(
+                let refs: [ESIKillmailRef] = try await ESIClient.shared.fetchPages(
                     "/corporations/\(account.corporationID)/killmails/recent/", token: token
                 )
                 var entries: [KillmailEntry] = []
                 await withTaskGroup(of: KillmailEntry?.self) { group in
-                    for ref in refs.prefix(50) {
+                    for ref in refs {
                         group.addTask {
                             guard let km: ESIKillmail = try? await ESIClient.shared.fetch(
                                 "/killmails/\(ref.killmailId)/\(ref.killmailHash)/"

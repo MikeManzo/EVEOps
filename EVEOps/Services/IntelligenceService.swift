@@ -69,6 +69,18 @@ struct AssetInsight: Sendable {
     var suggestion: String
 }
 
+// MARK: Fitting Analysis Insight
+
+@available(macOS 26.0, *)
+@Generable(description: "Ship fitting role and optimization analysis for EVE Online")
+struct FittingInsight: Sendable {
+    @Guide(description: "Two to three sentence assessment of this fitting's intended role, tank type, and overall purpose based on the modules (e.g., active armor PvE Dominix, passive shield Raven for Level 4 missions)")
+    var roleAssessment: String
+
+    @Guide(description: "One specific, actionable module swap or addition to improve this fitting's performance, survivability, or ISK efficiency in EVE Online")
+    var suggestion: String
+}
+
 // Mark:  Service
 
 @available(macOS 26.0, *)
@@ -224,6 +236,32 @@ actor IntelligenceService {
             instructions: "You are a concise EVE Online logistics advisor. Analyze how this character's assets are distributed across New Eden and give one actionable suggestion to consolidate, liquidate, or better utilize their holdings."
         )
         let response = try await session.respond(to: prompt, generating: AssetInsight.self)
+        return response.content
+    }
+
+    // MARK: Fitting Analysis
+
+    func analyzeFitting(
+        shipName: String,
+        shipClass: String,
+        slotModules: [(category: String, names: [String])]
+    ) async throws -> FittingInsight {
+        let slotLines = slotModules
+            .filter { !$0.names.isEmpty }
+            .map { "  \($0.category): \($0.names.joined(separator: ", "))" }
+            .joined(separator: "\n")
+
+        let prompt = """
+        EVE Online ship fitting:
+        Ship: \(shipName) (\(shipClass))
+        Fitted modules:
+        \(slotLines.isEmpty ? "  No modules" : slotLines)
+        """
+
+        let session = LanguageModelSession(
+            instructions: "You are a concise EVE Online fitting advisor. Based on the module loadout, identify the fitting's role and tank type, then give one specific, practical module swap or addition to improve it. Use correct EVE Online module names and fitting terminology."
+        )
+        let response = try await session.respond(to: prompt, generating: FittingInsight.self)
         return response.content
     }
 
