@@ -16,7 +16,7 @@ struct FinanceInsight: Sendable {
 @available(macOS 26.0, *)
 @Generable(description: "A single EVE Online skill training recommendation")
 struct SkillRecommendation: Sendable {
-    @Guide(description: "A specific EVE Online skill to train, formatted as 'Skill Name to Level X' (e.g. 'Caldari Cruiser to Level V')")
+    @Guide(description: "A specific EVE Online skill to train, formatted as 'Skill Name to Level X' where X is a Roman numeral I through V. The maximum skill level in EVE Online is V — never recommend beyond Level V. Example: 'Caldari Cruiser to Level V'")
     var skill: String
 
     @Guide(description: "One sentence explaining why this skill is valuable for this character")
@@ -31,6 +31,42 @@ struct SkillTrainingRecommendation: Sendable {
 
     @Guide(description: "Five skill recommendations in priority order, from most to least impactful for this character's development", .count(5))
     var recommendations: [SkillRecommendation]
+}
+
+// MARK: Combat Analysis Insight
+
+@available(macOS 26.0, *)
+@Generable(description: "Combat performance analysis for an EVE Online character")
+struct CombatInsight: Sendable {
+    @Guide(description: "Two to three sentence assessment of this character's combat style, preferred ships or roles, and overall kill/loss performance based on recent killmail history")
+    var summary: String
+
+    @Guide(description: "One specific, actionable suggestion to improve combat performance, survivability, or ISK efficiency in EVE Online")
+    var suggestion: String
+}
+
+// MARK: Industry Analysis Insight
+
+@available(macOS 26.0, *)
+@Generable(description: "Industry and manufacturing efficiency analysis for an EVE Online character")
+struct IndustryInsight: Sendable {
+    @Guide(description: "Two to three sentence assessment of this character's industrial activity, production focus, and slot utilization based on their job history")
+    var summary: String
+
+    @Guide(description: "One specific, actionable suggestion to improve manufacturing output, profit margin, or expand into higher-value production chains in EVE Online")
+    var suggestion: String
+}
+
+// MARK: Asset Distribution Insight
+
+@available(macOS 26.0, *)
+@Generable(description: "Asset distribution and management analysis for an EVE Online character")
+struct AssetInsight: Sendable {
+    @Guide(description: "Two to three sentence assessment of this character's asset spread across the galaxy, notable holdings, and potential inefficiencies in asset management")
+    var summary: String
+
+    @Guide(description: "One specific, actionable suggestion to consolidate, liquidate, or better deploy underused or stranded assets in EVE Online")
+    var suggestion: String
 }
 
 // Mark:  Service
@@ -94,9 +130,100 @@ actor IntelligenceService {
         """
 
         let session = LanguageModelSession(
-            instructions: "You are a concise EVE Online skill advisor. Analyze this character's training history to identify their playstyle, then recommend the 5 most impactful skills they should train next, in priority order. Be specific and practical."
+            instructions: "You are a concise EVE Online skill advisor. Analyze this character's training history to identify their playstyle, then recommend the 5 most impactful skills they should train next, in priority order. Be specific and practical. EVE Online skill levels only go from I to V — the maximum is Level V. Never recommend training a skill beyond Level V."
         )
         let response = try await session.respond(to: prompt, generating: SkillTrainingRecommendation.self)
+        return response.content
+    }
+
+    // MARK: Combat Analysis
+
+    func analyzeCombat(
+        characterName: String,
+        killCount: Int,
+        lossCount: Int,
+        topLostShips: [(name: String, count: Int)],
+        activeSystemNames: [String],
+        avgAttackersOnLoss: Double,
+        commonThreatShips: [String]
+    ) async throws -> CombatInsight {
+        let lostShipSummary = topLostShips.prefix(4)
+            .map { "\($0.name) ×\($0.count)" }
+            .joined(separator: ", ")
+        let systemSummary = activeSystemNames.prefix(4).joined(separator: ", ")
+        let threatSummary = commonThreatShips.prefix(4).joined(separator: ", ")
+
+        let prompt = """
+        EVE Online character: \(characterName)
+        Recent combat (up to 50 killmails): \(killCount) kills, \(lossCount) losses
+        Most frequently lost ships: \(lostShipSummary.isEmpty ? "none" : lostShipSummary)
+        Average number of attackers on losses: \(String(format: "%.1f", avgAttackersOnLoss)) (1–2 = solo/small gang; 5+ = large fleet)
+        Most active systems: \(systemSummary.isEmpty ? "unknown" : systemSummary)
+        Common ships attacking this character: \(threatSummary.isEmpty ? "unknown" : threatSummary)
+        """
+
+        let session = LanguageModelSession(
+            instructions: "You are a concise EVE Online PvP analyst. Assess this character's combat style and efficiency based on their kill/loss data, then give one practical suggestion to improve their combat performance or survivability."
+        )
+        let response = try await session.respond(to: prompt, generating: CombatInsight.self)
+        return response.content
+    }
+
+    // MARK: Industry Analysis
+
+    func analyzeIndustry(
+        characterName: String,
+        totalJobs: Int,
+        activeJobs: Int,
+        activityBreakdown: [(activity: String, count: Int)],
+        topBlueprints: [String]
+    ) async throws -> IndustryInsight {
+        let activityLines = activityBreakdown
+            .map { "\($0.activity): \($0.count) jobs" }
+            .joined(separator: "; ")
+        let blueprintList = topBlueprints.prefix(8).joined(separator: ", ")
+
+        let prompt = """
+        EVE Online character: \(characterName)
+        Industry job history: \(totalJobs) total jobs (\(activeJobs) currently active)
+        Activity breakdown: \(activityLines.isEmpty ? "none recorded" : activityLines)
+        Most used blueprints: \(blueprintList.isEmpty ? "none" : blueprintList)
+        """
+
+        let session = LanguageModelSession(
+            instructions: "You are a concise EVE Online industrial advisor. Analyze this character's manufacturing and industry activity, then give one practical suggestion to improve efficiency, profitability, or production chain value. Use correct EVE Online industry terminology."
+        )
+        let response = try await session.respond(to: prompt, generating: IndustryInsight.self)
+        return response.content
+    }
+
+    // MARK: Asset Analysis
+
+    func analyzeAssets(
+        characterName: String,
+        totalStacks: Int,
+        locationCount: Int,
+        topLocationsByCount: [(location: String, count: Int)],
+        topItemsByQuantity: [(name: String, quantity: Int)]
+    ) async throws -> AssetInsight {
+        let locationLines = topLocationsByCount.prefix(5)
+            .map { "\($0.location): \($0.count) stacks" }
+            .joined(separator: "; ")
+        let itemLines = topItemsByQuantity.prefix(5)
+            .map { "\($0.name): ×\($0.quantity)" }
+            .joined(separator: "; ")
+
+        let prompt = """
+        EVE Online character: \(characterName)
+        Total assets: \(totalStacks) stacks across \(locationCount) locations
+        Top locations by asset count: \(locationLines.isEmpty ? "none" : locationLines)
+        Most-held items by quantity: \(itemLines.isEmpty ? "none" : itemLines)
+        """
+
+        let session = LanguageModelSession(
+            instructions: "You are a concise EVE Online logistics advisor. Analyze how this character's assets are distributed across New Eden and give one actionable suggestion to consolidate, liquidate, or better utilize their holdings."
+        )
+        let response = try await session.respond(to: prompt, generating: AssetInsight.self)
         return response.content
     }
 

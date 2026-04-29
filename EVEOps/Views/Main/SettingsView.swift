@@ -1081,6 +1081,9 @@ private struct IntelligenceTabContent: View {
                 Section("Where Insights Appear") {
                     Label("Finances — financial health and ISK suggestions", systemImage: "banknote")
                     Label("Skill Planner — playstyle analysis and training recommendations", systemImage: "graduationcap")
+                    Label("Kill/Loss Mails — combat style and performance analysis", systemImage: "flame")
+                    Label("Industry — production efficiency and output suggestions", systemImage: "hammer")
+                    Label("Assets — distribution and liquidation recommendations", systemImage: "cube.box")
                 }
             }
         }
