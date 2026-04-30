@@ -316,17 +316,18 @@ struct GalaxyMarketSearchView: View {
                 itemSearchText = result.name
                 itemSearchResults = []
             } label: {
-                HStack(spacing: 10) {
-                    AsyncImage(url: EVEImageURL.typeIcon(result.typeId, size: 64)) { img in
-                        img.resizable()
+                HStack(spacing: 14) {
+                    AsyncImage(url: EVEImageURL.typeIcon(result.typeId, size: 128)) { img in
+                        img.resizable().scaledToFit()
                     } placeholder: {
-                        RoundedRectangle(cornerRadius: 3).fill(.quaternary)
+                        RoundedRectangle(cornerRadius: 6).fill(.quaternary)
                     }
-                    .frame(width: 24, height: 24)
-                    .clipShape(RoundedRectangle(cornerRadius: 3))
-                    Text(result.name).font(.subheadline)
+                    .frame(width: 48, height: 48)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    Text(result.name).font(.title3)
                     Spacer()
                 }
+                .padding(.vertical, 4)
             }
             .buttonStyle(.plain)
         }
@@ -373,21 +374,21 @@ struct GalaxyMarketSearchView: View {
                         .frame(width: 40, alignment: .center)
                 }
                 columnHeader("Price", column: .price, alignment: .trailing)
-                    .frame(width: 130)
+                    .frame(width: 112)
                 columnHeader("Qty", column: .qty, alignment: .trailing)
-                    .frame(width: 80)
-                    .padding(.leading, 12)
+                    .frame(width: 68)
+                    .padding(.leading, 10)
                 columnHeader("Station / System", column: .location, alignment: .leading)
                     .frame(maxWidth: .infinity)
-                    .padding(.leading, 12)
+                    .padding(.leading, 10)
                 columnHeader("Region", column: .region, alignment: .leading)
-                    .frame(width: 140)
+                    .frame(width: 112)
                     .padding(.leading, 8)
                 columnHeader("Sec", column: .sec, alignment: .center)
-                    .frame(width: 36)
+                    .frame(width: 32)
                 if hasLocation {
                     columnHeader("Jumps", column: .jumps, alignment: .center)
-                        .frame(width: 52)
+                        .frame(width: 44)
                 }
             }
             .font(.subheadline.bold())
@@ -464,18 +465,18 @@ struct GalaxyMarketSearchView: View {
                 }
 
                 Text(EVEFormatters.formatISK(order.price))
-                    .font(.subheadline.monospacedDigit())
+                    .font(.subheadline.monospacedDigit().bold())
                     .foregroundStyle(accentColor)
-                    .frame(width: 130, alignment: .trailing)
+                    .frame(width: 112, alignment: .trailing)
 
                 Text(formatCount(order.volumeRemain))
-                    .font(.subheadline.monospacedDigit())
-                    .frame(width: 80, alignment: .trailing)
-                    .padding(.leading, 12)
+                    .font(.callout.monospacedDigit())
+                    .frame(width: 68, alignment: .trailing)
+                    .padding(.leading, 10)
 
-                VStack(alignment: .leading, spacing: 1) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text(resolved.locationName)
-                        .font(.subheadline)
+                        .font(.callout)
                         .lineLimit(1)
                     HStack(spacing: 4) {
                         Text(resolved.systemName)
@@ -488,13 +489,13 @@ struct GalaxyMarketSearchView: View {
                     .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.leading, 12)
+                .padding(.leading, 10)
 
                 Text(resolved.regionName)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
-                    .frame(width: 140, alignment: .leading)
+                    .frame(width: 112, alignment: .leading)
                     .padding(.leading, 8)
 
                 Text(String(format: "%.1f", max(0, sec)))
@@ -503,15 +504,15 @@ struct GalaxyMarketSearchView: View {
                     .padding(.horizontal, 5)
                     .padding(.vertical, 2)
                     .background(securityColor(sec), in: Capsule())
-                    .frame(width: 36, alignment: .center)
+                    .frame(width: 32, alignment: .center)
 
                 if hasLocation {
                     jumpBadge(jumps: resolved.jumps)
-                        .frame(width: 52, alignment: .center)
+                        .frame(width: 44, alignment: .center)
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 7)
+            .padding(.vertical, 9)
         }
         .background(isEven ? Color.primary.opacity(0.03) : Color.clear)
     }
