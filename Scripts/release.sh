@@ -56,7 +56,6 @@ APP_PATH="$EXPORT_PATH/$SCHEME.app"
 DMG_PATH="$WORK_DIR/$SCHEME.dmg"
 NOTARIZE_ZIP="$WORK_DIR/$SCHEME-notarize.zip"
 APPCAST_DIR="$WORK_DIR/appcast"
-SPARKLE_KEY="$WORK_DIR/sparkle_ed_key"
 
 # ── Validate version argument ────────────────────────────────
 VERSION=$1
@@ -148,6 +147,19 @@ xcodebuild -exportArchive \
 [ -d "$APP_PATH" ] || error "Export failed — .app not found"
 info "Export succeeded ✓"
 
+# Retries xcrun stapler staple up to 5 times with 30s back-off.
+# Apple's CDN can take up to ~60s to propagate a ticket after notarytool
+# reports success, so a bare `stapler staple` often hits "Record not found".
+staple_with_retry() {
+  local target="$1"
+  local attempts=5
+  for i in $(seq 1 $attempts); do
+    xcrun stapler staple "$target" && return 0
+    [ $i -lt $attempts ] && { warning "Staple attempt $i failed — retrying in 30s..."; sleep 30; }
+  done
+  error "Stapling failed after $attempts attempts for $target"
+}
+
 # ── Notarize ─────────────────────────────────────────────────
 info "Notarizing app (this may take a few minutes)..."
 ditto -c -k --keepParent "$APP_PATH" "$NOTARIZE_ZIP"
@@ -157,7 +169,7 @@ xcrun notarytool submit "$NOTARIZE_ZIP" \
   --wait
 
 info "Stapling notarization ticket..."
-xcrun stapler staple "$APP_PATH"
+staple_with_retry "$APP_PATH"
 info "Notarization succeeded ✓"
 
 # ── Create DMG ───────────────────────────────────────────────
@@ -178,22 +190,22 @@ xcrun notarytool submit "$DMG_PATH" \
   --wait
 
 info "Stapling notarization ticket to DMG..."
-xcrun stapler staple "$DMG_PATH"
+staple_with_retry "$DMG_PATH"
 info "DMG notarized ✓"
 
 # ── Generate Appcast ─────────────────────────────────────────
+# generate_appcast reads the private key from the macOS Keychain automatically
+# (the key that matches SUPublicEDKey in Info.plist, stored there by the one-time
+# `generate_keys` setup). Never call `generate_keys` here — that would create a
+# new key pair and invalidate the public key embedded in all previously shipped builds.
 info "Generating appcast..."
-"$SPARKLE_BIN/generate_keys" -x "$SPARKLE_KEY"
-chmod 600 "$SPARKLE_KEY"
 
 cp "$DMG_PATH" "$APPCAST_DIR/"
 
 "$SPARKLE_BIN/generate_appcast" \
-  --ed-key-file "$SPARKLE_KEY" \
   --download-url-prefix "$DOWNLOAD_URL_PREFIX" \
   "$APPCAST_DIR/"
 
-rm "$SPARKLE_KEY"
 [ -f "$APPCAST_DIR/appcast.xml" ] || error "Appcast generation failed"
 info "Appcast generated ✓"
 
