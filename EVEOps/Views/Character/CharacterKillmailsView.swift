@@ -484,7 +484,8 @@ struct KillmailItemRow: View {
 struct CombatAIInsightCard: View {
     let groups: [KillmailGroup]
 
-    @AppStorage("aiInsightsEnabled") private var aiInsightsEnabled = false
+    @AppStorage("aiInsightsEnabled")  private var aiInsightsEnabled  = false
+    @AppStorage("aiInsightKillmails") private var aiInsightKillmails = true
     @State private var insight: CombatInsight?
     @State private var isGenerating = false
     @State private var generationError: String?
@@ -493,7 +494,7 @@ struct CombatAIInsightCard: View {
     private var model: SystemLanguageModel { .default }
 
     var body: some View {
-        if aiInsightsEnabled, case .available = model.availability {
+        if aiInsightsEnabled && aiInsightKillmails, case .available = model.availability {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
                     Label("AI Insight", systemImage: "sparkles")

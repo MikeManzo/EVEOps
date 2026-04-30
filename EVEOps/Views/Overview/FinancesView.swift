@@ -975,6 +975,7 @@ struct FinanceAIInsightCard: View {
     let netWorth: Double
 
     @AppStorage("aiInsightsEnabled") private var aiInsightsEnabled = false
+    @AppStorage("aiInsightFinances") private var aiInsightFinances = true
     @State private var insight: FinanceInsight?
     @State private var isGenerating = false
     @State private var generationError: String?
@@ -983,7 +984,7 @@ struct FinanceAIInsightCard: View {
     private var model: SystemLanguageModel { .default }
 
     var body: some View {
-        if aiInsightsEnabled, case .available = model.availability {
+        if aiInsightsEnabled && aiInsightFinances, case .available = model.availability {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
                     Label("AI Insight", systemImage: "sparkles")

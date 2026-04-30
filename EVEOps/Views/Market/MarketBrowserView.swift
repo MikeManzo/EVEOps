@@ -1383,6 +1383,7 @@ private struct MarketAIInsightCard: View {
     let averagePrice: Double?
 
     @AppStorage("aiInsightsEnabled") private var aiInsightsEnabled = false
+    @AppStorage("aiInsightMarket")   private var aiInsightMarket   = true
     @State private var insight: MarketInsight?
     @State private var isGenerating = false
     @State private var generationError: String?
@@ -1390,7 +1391,7 @@ private struct MarketAIInsightCard: View {
     private var model: SystemLanguageModel { .default }
 
     var body: some View {
-        if aiInsightsEnabled, case .available = model.availability {
+        if aiInsightsEnabled && aiInsightMarket, case .available = model.availability {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
                     Label("AI Insight", systemImage: "sparkles")

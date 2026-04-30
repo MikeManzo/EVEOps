@@ -197,6 +197,7 @@ struct IndustryAIInsightCard: View {
     let jobs: [CharacterIndustryGroup]
 
     @AppStorage("aiInsightsEnabled") private var aiInsightsEnabled = false
+    @AppStorage("aiInsightIndustry") private var aiInsightIndustry = true
     @State private var insight: IndustryInsight?
     @State private var isGenerating = false
     @State private var generationError: String?
@@ -205,7 +206,7 @@ struct IndustryAIInsightCard: View {
     private var model: SystemLanguageModel { .default }
 
     var body: some View {
-        if aiInsightsEnabled, case .available = model.availability {
+        if aiInsightsEnabled && aiInsightIndustry, case .available = model.availability {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
                     Label("AI Insight", systemImage: "sparkles")

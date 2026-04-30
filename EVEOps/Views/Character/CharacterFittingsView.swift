@@ -1156,6 +1156,7 @@ struct FittingAIInsightCard: View {
     let slotModules: [(category: String, names: [String])]
 
     @AppStorage("aiInsightsEnabled") private var aiInsightsEnabled = false
+    @AppStorage("aiInsightFittings") private var aiInsightFittings = true
     @State private var insight: FittingInsight?
     @State private var isGenerating = false
     @State private var generationError: String?
@@ -1164,7 +1165,7 @@ struct FittingAIInsightCard: View {
     private var model: SystemLanguageModel { .default }
 
     var body: some View {
-        if aiInsightsEnabled, case .available = model.availability {
+        if aiInsightsEnabled && aiInsightFittings, case .available = model.availability {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
                     Label("AI Insight", systemImage: "sparkles")

@@ -1013,6 +1013,14 @@ private struct IntelligenceTabContent: View {
     @Binding var aiInsightsEnabled: Bool
     private var model: SystemLanguageModel { .default }
 
+    @AppStorage("aiInsightFinances")  private var aiInsightFinances  = true
+    @AppStorage("aiInsightSkills")    private var aiInsightSkills    = true
+    @AppStorage("aiInsightKillmails") private var aiInsightKillmails = true
+    @AppStorage("aiInsightIndustry")  private var aiInsightIndustry  = true
+    @AppStorage("aiInsightAssets")    private var aiInsightAssets    = true
+    @AppStorage("aiInsightFittings")  private var aiInsightFittings  = true
+    @AppStorage("aiInsightMarket")    private var aiInsightMarket    = true
+
     var body: some View {
         Form {
             Section("Apple Intelligence") {
@@ -1078,12 +1086,28 @@ private struct IntelligenceTabContent: View {
             }
 
             if aiInsightsEnabled, case .available = model.availability {
-                Section("Where Insights Appear") {
-                    Label("Finances — financial health and ISK suggestions", systemImage: "banknote")
-                    Label("Skill Planner — playstyle analysis and training recommendations", systemImage: "graduationcap")
-                    Label("Kill/Loss Mails — combat style and performance analysis", systemImage: "flame")
-                    Label("Industry — production efficiency and output suggestions", systemImage: "hammer")
-                    Label("Assets — distribution and liquidation recommendations", systemImage: "cube.box")
+                Section("Individual Insights") {
+                    Toggle(isOn: $aiInsightFinances) {
+                        Label("Finances", systemImage: "banknote")
+                    }
+                    Toggle(isOn: $aiInsightSkills) {
+                        Label("Skill Planner", systemImage: "graduationcap")
+                    }
+                    Toggle(isOn: $aiInsightKillmails) {
+                        Label("Kill/Loss Mails", systemImage: "flame")
+                    }
+                    Toggle(isOn: $aiInsightIndustry) {
+                        Label("Industry", systemImage: "hammer")
+                    }
+                    Toggle(isOn: $aiInsightAssets) {
+                        Label("Assets", systemImage: "cube.box")
+                    }
+                    Toggle(isOn: $aiInsightFittings) {
+                        Label("Fittings", systemImage: "cpu")
+                    }
+                    Toggle(isOn: $aiInsightMarket) {
+                        Label("Market Browser", systemImage: "chart.xyaxis.line")
+                    }
                 }
             }
         }

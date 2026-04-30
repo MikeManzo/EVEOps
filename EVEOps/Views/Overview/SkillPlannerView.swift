@@ -730,6 +730,7 @@ struct SkillPlanAIInsightCard: View {
     let characterInfo: CharacterTrainingInfo
 
     @AppStorage("aiInsightsEnabled") private var aiInsightsEnabled = false
+    @AppStorage("aiInsightSkills")   private var aiInsightSkills   = true
     @State private var recommendation: SkillTrainingRecommendation?
     @State private var isGenerating = false
     @State private var generationError: String?
@@ -738,7 +739,7 @@ struct SkillPlanAIInsightCard: View {
     private var model: SystemLanguageModel { .default }
 
     var body: some View {
-        if aiInsightsEnabled, case .available = model.availability {
+        if aiInsightsEnabled && aiInsightSkills, case .available = model.availability {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Label("AI Insight", systemImage: "sparkles")
