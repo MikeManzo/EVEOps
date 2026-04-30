@@ -81,6 +81,18 @@ struct FittingInsight: Sendable {
     var suggestion: String
 }
 
+// MARK: Market Analysis Insight
+
+@available(macOS 26.0, *)
+@Generable(description: "Market price and liquidity analysis for an EVE Online tradeable item")
+struct MarketInsight: Sendable {
+    @Guide(description: "Two to three sentence assessment of this item's current price trend, market liquidity, and buy/sell spread in the selected region based on order count, daily volume, and recent price movement")
+    var summary: String
+
+    @Guide(description: "One specific, actionable suggestion — whether to buy, sell, station trade, arbitrage between regions, or wait for a better price — based on current market conditions in EVE Online")
+    var suggestion: String
+}
+
 // Mark:  Service
 
 @available(macOS 26.0, *)
@@ -262,6 +274,54 @@ actor IntelligenceService {
             instructions: "You are a concise EVE Online fitting advisor. Based on the module loadout, identify the fitting's role and tank type, then give one specific, practical module swap or addition to improve it. Use correct EVE Online module names and fitting terminology."
         )
         let response = try await session.respond(to: prompt, generating: FittingInsight.self)
+        return response.content
+    }
+
+    // MARK: Market Analysis
+
+    func analyzeMarket(
+        itemName: String,
+        regionName: String,
+        bestSell: String,
+        bestBuy: String,
+        spreadPercent: Double,
+        sellOrderCount: Int,
+        buyOrderCount: Int,
+        avgDailyVolume: Int,
+        priceChange30dPercent: Double,
+        adjustedPrice: String?,
+        globalAveragePrice: String?
+    ) async throws -> MarketInsight {
+        let trend: String
+        if priceChange30dPercent > 5 {
+            trend = "rising (\(String(format: "+%.1f%%", priceChange30dPercent)) over 30 days)"
+        } else if priceChange30dPercent < -5 {
+            trend = "falling (\(String(format: "%.1f%%", priceChange30dPercent)) over 30 days)"
+        } else {
+            trend = "stable (\(String(format: "%.1f%%", priceChange30dPercent)) over 30 days)"
+        }
+
+        var priceLine = ""
+        if let adj = adjustedPrice { priceLine += "ESI adjusted price: \(adj). " }
+        if let avg = globalAveragePrice { priceLine += "Global average price: \(avg). " }
+
+        let prompt = """
+        EVE Online market analysis:
+        Item: \(itemName)
+        Region: \(regionName)
+        Best sell price: \(bestSell)
+        Best buy price: \(bestBuy)
+        Spread: \(String(format: "%.1f%%", spreadPercent))
+        Active orders: \(sellOrderCount) sell, \(buyOrderCount) buy
+        5-day average daily volume: \(avgDailyVolume > 0 ? "\(avgDailyVolume) units" : "unknown")
+        30-day price trend: \(trend)
+        \(priceLine)
+        """
+
+        let session = LanguageModelSession(
+            instructions: "You are a concise EVE Online market analyst. Assess this item's price trend, liquidity, and spread, then give one actionable trading suggestion. Use correct EVE Online market terminology (station trading, arbitrage, margin, buy/sell wall, etc.)."
+        )
+        let response = try await session.respond(to: prompt, generating: MarketInsight.self)
         return response.content
     }
 

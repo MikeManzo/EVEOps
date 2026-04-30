@@ -1,6 +1,6 @@
 import Foundation
 
-// MARK: - Models
+// Mark:  Models
 
 struct ZKBRef: Decodable, Sendable {
     let killmailId: Int
@@ -24,7 +24,7 @@ struct ZKBMeta: Decodable, Sendable {
     var isAWOX: Bool { (awox ?? 0) == 1 }
 }
 
-// MARK: - Client
+// Mark:  Client
 
 actor ZKillboardClient {
     static let shared = ZKillboardClient()

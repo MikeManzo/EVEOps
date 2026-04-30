@@ -1,5 +1,6 @@
 import SwiftUI
 import Charts
+import FoundationModels
 
 // MARK:  Supporting Types
 
@@ -185,6 +186,7 @@ struct MarketBrowserView: View {
     @State private var selectedOrderTab = 0   // 0 = sell, 1 = buy, 2 = history
     @State private var historyDays = 90
     @State private var openInEVEMessage: String?
+    @State private var insightResetKey = ""
 
     // Persisted pane sizes — written only on drag end to avoid UserDefaults
     // writes at 60 Hz, which would cause re-render jitter during dragging.
@@ -267,12 +269,14 @@ struct MarketBrowserView: View {
 
     private func onRegionChanged() {
         jumpCache.removeAll()
+        insightResetKey = ""
         if let typeId = selectedTypeId {
             Task {
                 await withTaskGroup(of: Void.self) { group in
                     group.addTask { await self.loadOrders(typeId: typeId) }
                     group.addTask { await self.loadPriceHistory(typeId: typeId) }
                 }
+                insightResetKey = "\(typeId)-\(selectedRegionId)"
             }
         }
     }
@@ -506,6 +510,20 @@ struct MarketBrowserView: View {
 
                 if adjustedPrice != nil || !sellOrders.isEmpty || !buyOrders.isEmpty {
                     marketStatsBar
+                }
+
+                if #available(macOS 26.0, *) {
+                    let regionName = availableRegions.first(where: { $0.id == selectedRegionId })?.name ?? "Unknown Region"
+                    MarketAIInsightCard(
+                        itemName: selectedTypeName,
+                        regionName: regionName,
+                        resetKey: insightResetKey,
+                        sellOrders: sellOrders,
+                        buyOrders: buyOrders,
+                        priceHistory: priceHistory,
+                        adjustedPrice: adjustedPrice,
+                        averagePrice: averagePrice
+                    )
                 }
 
                 Picker("View", selection: $selectedOrderTab) {
@@ -1022,6 +1040,7 @@ struct MarketBrowserView: View {
         priceHistory = []
         sellOrders = []
         buyOrders = []
+        insightResetKey = ""
 
         await withTaskGroup(of: Void.self) { group in
             group.addTask { await self.loadOrders(typeId: typeId) }
@@ -1031,6 +1050,7 @@ struct MarketBrowserView: View {
             }
             group.addTask { await self.loadPriceHistory(typeId: typeId) }
         }
+        insightResetKey = "\(typeId)-\(selectedRegionId)"
     }
 
     private func loadOrders(typeId: Int) async {
@@ -1346,5 +1366,146 @@ struct MarketBrowserView: View {
         case "40":         return "40 jumps"
         default:           return range
         }
+    }
+}
+
+// Mark:  Market AI Insight Card
+
+@available(macOS 26.0, *)
+private struct MarketAIInsightCard: View {
+    let itemName: String
+    let regionName: String
+    let resetKey: String
+    let sellOrders: [ResolvedOrder]
+    let buyOrders: [ResolvedOrder]
+    let priceHistory: [ESIMarketHistory]
+    let adjustedPrice: Double?
+    let averagePrice: Double?
+
+    @AppStorage("aiInsightsEnabled") private var aiInsightsEnabled = false
+    @State private var insight: MarketInsight?
+    @State private var isGenerating = false
+    @State private var generationError: String?
+
+    private var model: SystemLanguageModel { .default }
+
+    var body: some View {
+        if aiInsightsEnabled, case .available = model.availability {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Label("AI Insight", systemImage: "sparkles")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(.purple)
+                    Spacer()
+                    if insight != nil, !isGenerating {
+                        Button {
+                            Task { await generate() }
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                        .help("Regenerate insight")
+                    }
+                }
+
+                if isGenerating {
+                    HStack(spacing: 8) {
+                        ProgressView()
+                            .controlSize(.small)
+                        Text("Analyzing market\u{2026}")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                } else if let insight {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(insight.summary)
+                            .font(.subheadline)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        HStack(alignment: .top, spacing: 6) {
+                            Image(systemName: "lightbulb.fill")
+                                .font(.caption)
+                                .foregroundStyle(.yellow)
+                                .padding(.top, 1)
+                            Text(insight.suggestion)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                } else if let error = generationError {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundStyle(.red.opacity(0.8))
+                } else {
+                    Button("Generate Insight") {
+                        Task { await generate() }
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(.purple.opacity(0.2)))
+            .task(id: resetKey) {
+                guard !resetKey.isEmpty else { return }
+                insight = nil
+                generationError = nil
+                await generate()
+            }
+        }
+    }
+
+    private func generate() async {
+        isGenerating = true
+        generationError = nil
+
+        let bestSell = sellOrders.first?.order.price
+        let bestBuy = buyOrders.first?.order.price
+        let spread: Double
+        if let s = bestSell, let b = bestBuy, s > 0 {
+            spread = ((s - b) / s) * 100
+        } else {
+            spread = 0
+        }
+
+        let recentHistory = priceHistory.suffix(30)
+        let half = recentHistory.count / 2
+        let priceChange30d: Double
+        if half > 0 {
+            let firstSlice = recentHistory.prefix(half).map { $0.average }
+            let lastSlice = recentHistory.suffix(half).map { $0.average }
+            let firstAvg = firstSlice.reduce(0, +) / Double(firstSlice.count)
+            let lastAvg = lastSlice.reduce(0, +) / Double(lastSlice.count)
+            priceChange30d = firstAvg > 0 ? ((lastAvg - firstAvg) / firstAvg) * 100 : 0
+        } else {
+            priceChange30d = 0
+        }
+
+        let fiveDayVols = priceHistory.suffix(5).map { Double($0.volume) }
+        let avgVol = fiveDayVols.isEmpty ? 0 : Int(fiveDayVols.reduce(0, +) / Double(fiveDayVols.count))
+
+        do {
+            insight = try await IntelligenceService.shared.analyzeMarket(
+                itemName: itemName,
+                regionName: regionName,
+                bestSell: bestSell.map { EVEFormatters.formatISKShort($0) } ?? "no sell orders",
+                bestBuy: bestBuy.map { EVEFormatters.formatISKShort($0) } ?? "no buy orders",
+                spreadPercent: spread,
+                sellOrderCount: sellOrders.count,
+                buyOrderCount: buyOrders.count,
+                avgDailyVolume: avgVol,
+                priceChange30dPercent: priceChange30d,
+                adjustedPrice: adjustedPrice.map { EVEFormatters.formatISKShort($0) },
+                globalAveragePrice: averagePrice.map { EVEFormatters.formatISKShort($0) }
+            )
+        } catch {
+            generationError = "Unable to generate insight. Try again later."
+        }
+        isGenerating = false
     }
 }
