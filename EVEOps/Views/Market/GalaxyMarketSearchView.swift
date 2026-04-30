@@ -1,6 +1,6 @@
 import SwiftUI
 
-// MARK: - Private Types
+// MARK:  Private Types
 
 private struct GalaxyTypeResult: Identifiable {
     let typeId: Int
@@ -35,7 +35,7 @@ private enum OrderTypeFilter: String {
     }
 }
 
-// MARK: - GalaxyMarketSearchView
+// MARK:  GalaxyMarketSearchView
 
 struct GalaxyMarketSearchView: View {
     let initialTypeId: Int?
@@ -75,6 +75,9 @@ struct GalaxyMarketSearchView: View {
     // Sorting
     @State private var sortColumn: SortColumn = .price
     @State private var sortAscending = true
+
+    // Autopilot feedback
+    @State private var waypointMessage: String?
 
     private var hasLocation: Bool { characterSystemId != nil }
     private var canSearch: Bool { selectedTypeId != nil && !isSearching }
@@ -141,7 +144,7 @@ struct GalaxyMarketSearchView: View {
         }
     }
 
-    // MARK: - Header Panel
+    // MARK:  Header Panel
 
     private var headerPanel: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -241,7 +244,18 @@ struct GalaxyMarketSearchView: View {
 
                 Spacer()
 
-                if isComputingJumps {
+                if let msg = waypointMessage {
+                    HStack(spacing: 5) {
+                        Image(systemName: msg.hasPrefix("Destination") || msg.hasPrefix("Waypoint")
+                              ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                            .foregroundStyle(msg.hasPrefix("Destination") || msg.hasPrefix("Waypoint")
+                                             ? .green : .orange)
+                        Text(msg)
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .transition(.opacity)
+                } else if isComputingJumps {
                     HStack(spacing: 6) {
                         ProgressView().controlSize(.mini)
                         Text("Computing jump distances…")
@@ -277,7 +291,7 @@ struct GalaxyMarketSearchView: View {
         .foregroundStyle(.secondary)
     }
 
-    // MARK: - Content Area
+    // MARK:  Content Area
 
     @ViewBuilder
     private var contentArea: some View {
@@ -292,7 +306,7 @@ struct GalaxyMarketSearchView: View {
         }
     }
 
-    // MARK: - Item Search List
+    // MARK:  Item Search List
 
     private var itemSearchList: some View {
         List(itemSearchResults, id: \.id) { result in
@@ -319,7 +333,7 @@ struct GalaxyMarketSearchView: View {
         .listStyle(.plain)
     }
 
-    // MARK: - Searching Progress
+    // MARK:  Searching Progress
 
     private var searchingView: some View {
         VStack(spacing: 16) {
@@ -348,7 +362,7 @@ struct GalaxyMarketSearchView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    // MARK: - Results Table
+    // MARK:  Results Table
 
     private var resultsTable: some View {
         VStack(spacing: 0) {
@@ -376,7 +390,7 @@ struct GalaxyMarketSearchView: View {
                         .frame(width: 52)
                 }
             }
-            .font(.caption.bold())
+            .font(.subheadline.bold())
             .foregroundStyle(.secondary)
             .padding(.horizontal, 16)
             .padding(.vertical, 6)
@@ -388,6 +402,20 @@ struct GalaxyMarketSearchView: View {
                 LazyVStack(spacing: 0) {
                     ForEach(Array(sortedOrders.enumerated()), id: \.element.id) { index, order in
                         orderRow(order, isEven: index % 2 == 0)
+                            .contextMenu {
+                                let destId = order.order.locationId
+                                let name = order.locationName
+                                Button {
+                                    Task { await setWaypoint(destinationId: destId, clear: true) }
+                                } label: {
+                                    Label("Set Destination: \(name)", systemImage: "location.fill")
+                                }
+                                Button {
+                                    Task { await setWaypoint(destinationId: destId, clear: false) }
+                                } label: {
+                                    Label("Add Waypoint: \(name)", systemImage: "plus.circle")
+                                }
+                            }
                         Divider().padding(.leading, 16)
                     }
                 }
@@ -510,7 +538,7 @@ struct GalaxyMarketSearchView: View {
         }
     }
 
-    // MARK: - Empty State
+    // MARK:  Empty State
 
     @ViewBuilder
     private var emptyStateView: some View {
@@ -548,7 +576,7 @@ struct GalaxyMarketSearchView: View {
         }
     }
 
-    // MARK: - Item Search Logic
+    // MARK:  Item Search Logic
 
     private func onItemSearchChanged(_ text: String) {
         let trimmed = text.trimmingCharacters(in: .whitespaces)
@@ -590,7 +618,7 @@ struct GalaxyMarketSearchView: View {
         itemSearchResults = found
     }
 
-    // MARK: - Galaxy Search Logic
+    // MARK:  Galaxy Search Logic
 
     private func performGalaxySearch() async {
         guard let typeId = selectedTypeId else { return }
@@ -762,7 +790,34 @@ struct GalaxyMarketSearchView: View {
         isComputingJumps = false
     }
 
-    // MARK: - Helpers
+    // MARK:  Autopilot
+
+    private func setWaypoint(destinationId: Int, clear: Bool) async {
+        guard let account = accountManager.selectedAccount else {
+            waypointMessage = "No character logged in."
+            return
+        }
+        waypointMessage = nil
+        do {
+            let token = try await accountManager.validToken(for: account)
+            try await ESIClient.shared.postAction(
+                "/ui/autopilot/waypoint/",
+                token: token,
+                queryItems: [
+                    URLQueryItem(name: "add_to_beginning", value: "false"),
+                    URLQueryItem(name: "clear_other_waypoints", value: clear ? "true" : "false"),
+                    URLQueryItem(name: "destination_id", value: "\(destinationId)")
+                ]
+            )
+            waypointMessage = clear ? "Destination set in EVE client." : "Waypoint added in EVE client."
+        } catch ESIError.unauthorized {
+            waypointMessage = "Requires esi-ui.write_waypoint.v1 scope — re-add your character to grant autopilot access."
+        } catch {
+            waypointMessage = error.localizedDescription
+        }
+    }
+
+    // MARK:  Helpers
 
     private func securityColor(_ sec: Double) -> Color {
         switch sec {
