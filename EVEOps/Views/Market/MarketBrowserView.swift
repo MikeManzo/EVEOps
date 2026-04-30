@@ -144,7 +144,7 @@ struct MarketBrowserView: View {
     @Environment(DashboardPrefetcher.self) private var prefetcher
 
     // Region
-    @State private var selectedRegionId: Int = 10000002   // The Forge (Jita)
+    @AppStorage("market.selectedRegionId") private var selectedRegionId: Int = 10000002
     @State private var availableRegions: [(id: Int, name: String, factionId: Int?)] = []
 
     // Market group tree
@@ -160,6 +160,10 @@ struct MarketBrowserView: View {
     @State private var searchResults: [MarketTypeResult] = []
     @State private var isSearching = false
     @State private var searchTask: Task<Void, Never>?
+
+    // Persisted last-viewed item (restored on re-open)
+    @AppStorage("market.savedTypeId")   private var savedTypeId:   Int    = 0
+    @AppStorage("market.savedTypeName") private var savedTypeName: String = ""
 
     // Selected item
     @State private var selectedTypeId: Int?
@@ -187,6 +191,7 @@ struct MarketBrowserView: View {
     @State private var historyDays = 90
     @State private var openInEVEMessage: String?
     @State private var insightResetKey = ""
+    @State private var showGalaxySearch = false
 
     // Persisted pane sizes — written only on drag end to avoid UserDefaults
     // writes at 60 Hz, which would cause re-render jitter during dragging.
@@ -235,12 +240,28 @@ struct MarketBrowserView: View {
         .navigationTitle("Market Browser")
         .toolbar { toolbarContent }
         .task { await loadInitialData() }
+        .sheet(isPresented: $showGalaxySearch) {
+            GalaxyMarketSearchView(
+                initialTypeId: selectedTypeId,
+                initialTypeName: selectedTypeName
+            )
+            .environment(accountManager)
+            .environment(prefetcher)
+        }
     }
 
     // MARK:  Toolbar
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
+        ToolbarItem(placement: .automatic) {
+            Button {
+                showGalaxySearch = true
+            } label: {
+                Label("Galaxy Search", systemImage: "globe.europe.africa.fill")
+            }
+            .help("Search cheapest sell orders across all k-space regions")
+        }
         ToolbarItem(placement: .automatic) {
             Menu {
                 ForEach(availableRegions, id: \.id) { region in
@@ -947,14 +968,32 @@ struct MarketBrowserView: View {
             group.addTask { await self.loadMarketGroups() }
             group.addTask { await self.loadMarketPrices() }
         }
+
+        // Restore last-viewed item (ESIClient cache makes this cheap on re-open)
+        if savedTypeId > 0 && selectedTypeId == nil {
+            let typeId = savedTypeId
+            let name = savedTypeName
+            selectedTypeId = typeId
+            selectedTypeName = name
+            await withTaskGroup(of: Void.self) { group in
+                group.addTask { await self.loadOrders(typeId: typeId) }
+                group.addTask {
+                    let info = await UniverseCache.shared.type(id: typeId)
+                    await MainActor.run { self.selectedTypeInfo = info }
+                }
+                group.addTask { await self.loadPriceHistory(typeId: typeId) }
+            }
+            insightResetKey = "\(typeId)-\(selectedRegionId)"
+        }
     }
 
     private func loadRegions() async {
         guard availableRegions.isEmpty else { return }
         availableRegions = await UniverseCache.shared.knownSpaceRegions()
 
-        // Default to the character's current region if available
-        if let sysId = characterSystemId,
+        // Auto-set region from character location only on first-ever open (no saved session)
+        if savedTypeId == 0,
+           let sysId = characterSystemId,
            let system = await UniverseCache.shared.solarSystem(id: sysId),
            let constellation = await UniverseCache.shared.constellation(id: system.constellationId) {
             let regionId = constellation.regionId
@@ -1035,6 +1074,8 @@ struct MarketBrowserView: View {
     private func selectType(_ typeId: Int, name: String) async {
         selectedTypeId = typeId
         selectedTypeName = name
+        savedTypeId = typeId
+        savedTypeName = name
         selectedOrderTab = 0
         selectedTypeInfo = nil
         priceHistory = []
