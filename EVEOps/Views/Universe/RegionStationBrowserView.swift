@@ -321,7 +321,7 @@ struct RegionStationBrowserView: View {
         guard availableRegions.isEmpty else { return }
         availableRegions = await UniverseCache.shared.knownSpaceRegions()
 
-        // Default to character's current region
+        // Default to character's current region and system
         if let account = accountManager.selectedAccount,
            let data = prefetcher.data(for: account.characterID),
            let system = await UniverseCache.shared.solarSystem(id: data.location.solarSystemId),
@@ -330,6 +330,7 @@ struct RegionStationBrowserView: View {
             if availableRegions.contains(where: { $0.id == regionId }) {
                 selectedRegionId = regionId
             }
+            searchText = system.name
         }
     }
 

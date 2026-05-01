@@ -16,8 +16,11 @@ struct FinanceInsight: Sendable {
 @available(macOS 26.0, *)
 @Generable(description: "A single EVE Online skill training recommendation")
 struct SkillRecommendation: Sendable {
-    @Guide(description: "A specific EVE Online skill to train, formatted as 'Skill Name to Level X' where X is a Roman numeral I through V. The maximum skill level in EVE Online is V — never recommend beyond Level V. Example: 'Caldari Cruiser to Level V'")
-    var skill: String
+    @Guide(description: "The exact EVE Online skill name only — no prefixes, no level info. Examples: 'Caldari Cruiser', 'Shield Operation', 'Heavy Missiles'")
+    var skillName: String
+
+    @Guide(description: "The numeric level to train this skill to", .range(1...5))
+    var targetLevel: Int
 
     @Guide(description: "One sentence explaining why this skill is valuable for this character")
     var rationale: String
@@ -29,7 +32,7 @@ struct SkillTrainingRecommendation: Sendable {
     @Guide(description: "Two to three sentence description of this character's evident EVE Online playstyle and strengths based on their trained skills")
     var playstyleSummary: String
 
-    @Guide(description: "Five skill recommendations in priority order, from most to least impactful for this character's development", .count(5))
+    @Guide(description: "Seven skill recommendations in priority order, from most to least impactful for this character's development", .count(7))
     var recommendations: [SkillRecommendation]
 }
 
@@ -134,7 +137,8 @@ actor IntelligenceService {
         characterName: String,
         totalSP: Int,
         topGroups: [(name: String, spFormatted: String, skillCount: Int, maxedCount: Int)],
-        notableSkills: [String]
+        partialSkills: [(name: String, level: Int)],
+        maxedSkills: [String]
     ) async throws -> SkillTrainingRecommendation {
         let groupLines = topGroups
             .map { g -> String in
@@ -143,18 +147,25 @@ actor IntelligenceService {
             }
             .joined(separator: "\n")
 
-        let skillList = notableSkills.isEmpty ? "none" : notableSkills.joined(separator: ", ")
+        // e.g. "Caldari Cruiser (L3), Shield Operation (L4), Heavy Missiles (L2)"
+        let partialList = partialSkills.isEmpty ? "none"
+            : partialSkills.map { "\($0.name) (L\($0.level))" }.joined(separator: ", ")
+
+        let maxedList = maxedSkills.isEmpty ? "none" : maxedSkills.joined(separator: ", ")
 
         let prompt = """
         EVE Online character: \(characterName)
         Total Skill Points: \(formatSP(totalSP))
         Top skill areas by SP:
         \(groupLines)
-        High-trained skills (L4 and L5): \(skillList)
+        Partially trained skills with current level — eligible to train higher:
+        \(partialList)
+        Maxed skills (L5) — DO NOT recommend any of these:
+        \(maxedList)
         """
 
         let session = LanguageModelSession(
-            instructions: "You are a concise EVE Online skill advisor. Analyze this character's training history to identify their playstyle, then recommend the 5 most impactful skills they should train next, in priority order. Be specific and practical. EVE Online skill levels only go from I to V — the maximum is Level V. Never recommend training a skill beyond Level V."
+            instructions: "You are an EVE Online skill advisor. Based on the character's skill areas, recommend 7 skills to train next. You may suggest training a partially-trained skill to a higher level, or suggest a brand-new skill (not yet trained) that suits the character. For skillName give ONLY the bare EVE skill name — no level info, no prefixes (e.g. 'Caldari Cruiser', not 'Caldari Cruiser to Level V'). For targetLevel give the integer level to train TO; it must be strictly greater than the skill's current level shown in parentheses, or 1 if the skill is not listed. Never recommend maxed (L5) skills."
         )
         let response = try await session.respond(to: prompt, generating: SkillTrainingRecommendation.self)
         return response.content
