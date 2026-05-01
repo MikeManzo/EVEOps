@@ -1020,6 +1020,7 @@ private struct IntelligenceTabContent: View {
     @AppStorage("aiInsightAssets")    private var aiInsightAssets    = true
     @AppStorage("aiInsightFittings")  private var aiInsightFittings  = true
     @AppStorage("aiInsightMarket")    private var aiInsightMarket    = true
+    @AppStorage("aiInsightClones")    private var aiInsightClones    = true
 
     var body: some View {
         Form {
@@ -1107,6 +1108,9 @@ private struct IntelligenceTabContent: View {
                     }
                     Toggle(isOn: $aiInsightMarket) {
                         Label("Market Browser", systemImage: "chart.xyaxis.line")
+                    }
+                    Toggle(isOn: $aiInsightClones) {
+                        Label("Clones & Implants", systemImage: "brain.head.profile")
                     }
                 }
             }

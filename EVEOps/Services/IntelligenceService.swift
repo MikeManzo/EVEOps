@@ -96,6 +96,21 @@ struct MarketInsight: Sendable {
     var suggestion: String
 }
 
+// MARK: Clone / Implant Analysis Insight
+
+@available(macOS 26.0, *)
+@Generable(description: "Implant set analysis and upgrade recommendation for an EVE Online character")
+struct CloneInsight: Sendable {
+    @Guide(description: "At least three full sentences assessing the active implant set. Sentence 1: identify the overall implant grade (Basic +1/Standard +2/Improved +3/Enhanced +4/High-grade named set) and list which specific attribute slots (1–5) and hardwiring slots (6–10) are occupied versus empty. Sentence 2: evaluate how well the installed implants align with the character's evident playstyle and top skill areas — call out mismatches or notable synergies. Sentence 3: comment on the completeness of the set as a whole and whether the character would benefit more from filling gaps in attribute slots, adding hardwirings, or upgrading existing implants to a higher grade.")
+    var setAssessment: String
+
+    @Guide(description: "One specific, actionable implant to add or upgrade — use the exact EVE Online item name (e.g., 'Memory Augmentation - Improved', 'Zainou Gnome Mechanics MG-810'), name the slot number it occupies, and explain why it benefits this character given their current implants and playstyle")
+    var recommendation: String
+
+    @Guide(description: "The exact EVE Online skill name and minimum level required to equip the recommended implant (e.g., 'Cybernetics IV'). Write 'None required' if the existing implants already imply sufficient Cybernetics or the recommendation does not require additional training")
+    var skillsNeeded: String
+}
+
 // Mark:  Service
 
 @available(macOS 26.0, *)
@@ -333,6 +348,55 @@ actor IntelligenceService {
             instructions: "You are a concise EVE Online market analyst. Assess this item's price trend, liquidity, and spread, then give one actionable trading suggestion. Use correct EVE Online market terminology (station trading, arbitrage, margin, buy/sell wall, etc.)."
         )
         let response = try await session.respond(to: prompt, generating: MarketInsight.self)
+        return response.content
+    }
+
+    // MARK: Clone / Implant Analysis
+
+    func analyzeImplants(
+        characterName: String,
+        activeImplantNames: [String],
+        jumpCloneImplantNames: [[String]],
+        totalSP: Int,
+        topSkillAreas: [(name: String, spFormatted: String)]
+    ) async throws -> CloneInsight {
+        let implantList = activeImplantNames.isEmpty
+            ? "  none installed"
+            : activeImplantNames.enumerated()
+                .map { "  \($0.offset + 1). \($0.element)" }
+                .joined(separator: "\n")
+
+        let jumpCloneLines: String
+        if jumpCloneImplantNames.isEmpty {
+            jumpCloneLines = "  no jump clones"
+        } else {
+            jumpCloneLines = jumpCloneImplantNames.enumerated()
+                .map { idx, implants in
+                    let names = implants.isEmpty ? "empty clone" : implants.joined(separator: ", ")
+                    return "  Clone \(idx + 1): \(names)"
+                }
+                .joined(separator: "\n")
+        }
+
+        let skillAreaLines = topSkillAreas.prefix(5)
+            .map { "  \($0.name): \($0.spFormatted)" }
+            .joined(separator: "\n")
+
+        let prompt = """
+        EVE Online character: \(characterName)
+        Total Skill Points: \(formatSP(totalSP))
+        Top skill areas (indicates playstyle):
+        \(skillAreaLines.isEmpty ? "  not available" : skillAreaLines)
+        Active implants currently installed:
+        \(implantList)
+        Jump clone implants in storage:
+        \(jumpCloneLines)
+        """
+
+        let session = LanguageModelSession(
+            instructions: "You are a knowledgeable EVE Online implant advisor. Write a thorough, detailed assessment of the character's active implant set covering grade quality, slot coverage, and playstyle fit — use at least three complete, specific sentences for the set assessment. Slot numbering: slots 1–5 are attribute implants (1=Perception, 2=Memory, 3=Willpower, 4=Intelligence, 5=Charisma); slots 6–10 are hardwirings. Cybernetics skill gates grades: I=+1%, II=+2%, III=+3%, IV=+4%, V=+5% attribute implants and High-grade/Low-grade named sets (Slave, Snake, Halo, Amulet, Ascendancy, Genolution CA series). Explicitly name which slots are filled and which are empty. Relate the installed implants to the character's skill focus and SP total. Recommend one specific upgrade using the exact EVE item name and identify any prerequisite skill training."
+        )
+        let response = try await session.respond(to: prompt, generating: CloneInsight.self)
         return response.content
     }
 

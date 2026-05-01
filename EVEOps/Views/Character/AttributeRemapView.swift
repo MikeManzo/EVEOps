@@ -93,34 +93,49 @@ struct AttributeRemapView: View {
     // MARK:  Remap Status
 
     private func remapStatusCard(_ data: CharacterRemapData) -> some View {
-        HStack(spacing: 12) {
-            // Bonus remaps pill
-            Label("\(data.bonusRemaps) bonus remap\(data.bonusRemaps == 1 ? "" : "s")",
-                  systemImage: "arrow.triangle.2.circlepath")
-                .font(.caption.bold())
-                .foregroundStyle(data.bonusRemaps > 0 ? .green : .secondary)
-
-            Divider().frame(height: 14)
-
-            // Annual remap status
-            if let cooldown = data.nextAnnualRemap, cooldown > now {
-                Label("Annual: \(timeUntil(cooldown))", systemImage: "clock")
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 12) {
+                Label("\(data.bonusRemaps) bonus remap\(data.bonusRemaps == 1 ? "" : "s")",
+                      systemImage: "arrow.triangle.2.circlepath")
                     .font(.caption.bold())
-                    .foregroundStyle(.orange)
-            } else {
-                Label("Annual available", systemImage: "checkmark.circle")
-                    .font(.caption.bold())
-                    .foregroundStyle(.green)
-            }
+                    .foregroundStyle(data.bonusRemaps > 0 ? .green : .secondary)
 
-            if let lastRemap = data.lastRemapDate {
                 Divider().frame(height: 14)
-                Label(EVEFormatters.dateFormatter.string(from: lastRemap), systemImage: "calendar")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+
+                if let cooldown = data.nextAnnualRemap, cooldown > now {
+                    Label("Annual: \(timeUntil(cooldown))", systemImage: "clock")
+                        .font(.caption.bold())
+                        .foregroundStyle(.orange)
+                } else {
+                    Label("Annual available", systemImage: "checkmark.circle")
+                        .font(.caption.bold())
+                        .foregroundStyle(.green)
+                }
+
+                if let lastRemap = data.lastRemapDate {
+                    Divider().frame(height: 14)
+                    Label(EVEFormatters.dateFormatter.string(from: lastRemap), systemImage: "calendar")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
             }
 
-            Spacer()
+            // Date subtitle — shown whenever a relevant date is known
+            if let cooldown = data.nextAnnualRemap, cooldown > now {
+                Text("Available \(EVEFormatters.dateFormatter.string(from: cooldown))")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            } else if let since = data.availableSinceDate {
+                Text("Available since \(EVEFormatters.dateFormatter.string(from: since))")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            } else if data.lastRemapDate == nil {
+                Label("This character has never used a neural remap.", systemImage: "exclamationmark.triangle")
+                    .font(.caption2)
+                    .foregroundStyle(.yellow)
+            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -651,12 +666,22 @@ struct AttributeRemapView: View {
                     }
                 }
 
-                // Annual remap cooldown: 1 year after lastRemapDate (if no bonusRemaps)
+                // Annual remap cooldown: prefer ESI-provided date, fall back to +1 year from lastRemapDate
                 var nextAnnual: Date? = nil
-                if let lastRemap = attrs.lastRemapDate {
-                    let candidate = Calendar.current.date(byAdding: .year, value: 1, to: lastRemap)
-                    if let candidate, candidate > Date() {
+                var availableSince: Date? = nil
+                let now = Date()
+                if let apiCooldown = attrs.accruedRemapCooldownDate {
+                    if apiCooldown > now {
+                        nextAnnual = apiCooldown
+                    } else {
+                        availableSince = apiCooldown
+                    }
+                } else if let lastRemap = attrs.lastRemapDate,
+                          let candidate = Calendar.current.date(byAdding: .year, value: 1, to: lastRemap) {
+                    if candidate > now {
                         nextAnnual = candidate
+                    } else {
+                        availableSince = candidate
                     }
                 }
 
@@ -666,6 +691,7 @@ struct AttributeRemapView: View {
                     attributes: attrs,
                     bonusRemaps: attrs.bonusRemaps ?? 0,
                     nextAnnualRemap: nextAnnual,
+                    availableSinceDate: availableSince,
                     lastRemapDate: attrs.lastRemapDate,
                     queuePairs: pairSP,
                     implantBonuses: implantBonuses
@@ -731,7 +757,8 @@ private struct CharacterRemapData {
     let characterName: String
     let attributes: ESICharacterAttributes
     let bonusRemaps: Int
-    let nextAnnualRemap: Date?
+    let nextAnnualRemap: Date?      // set when remap is on cooldown (future date)
+    let availableSinceDate: Date?   // set when remap is available (date it became available)
     let lastRemapDate: Date?
     let queuePairs: [String: Int]       // "Intelligence/Memory" → total SP needed
     let implantBonuses: [String: Int]   // "intelligence" → implant bonus (0 if none)

@@ -11,6 +11,9 @@ struct CharacterContactsView: View {
     @State private var showingAddContact = false
     @AppStorage("contacts.typeFilter") private var typeFilter = "all"
     @State private var contactToEdit: ESIContact?
+    @State private var selectedContactID: Int?
+    @State private var selectedDetail: ContactDetail?
+    @State private var isLoadingDetail = false
 
     private var filteredContacts: [ESIContact] {
         var result = contacts
@@ -50,52 +53,12 @@ struct CharacterContactsView: View {
 
     var body: some View {
         LoadingStateView(isLoading: isLoading, error: error, isEmpty: contacts.isEmpty, emptyMessage: "No contacts found") {
-            VStack(spacing: 0) {
-                filterBar
-                List {
-                    ForEach(groupedContacts, id: \.0) { type, group in
-                        Section(typeLabel(type)) {
-                            ForEach(group) { contact in
-                                ContactRow(
-                                    contact: contact,
-                                    name: contactNames[contact.contactId],
-                                    presence: contact.isPlayerCharacter
-                                        ? presenceTracker.score(for: contact.contactId)
-                                        : nil
-                                )
-                                .swipeActions(edge: .leading) {
-                                    Button {
-                                        contactToEdit = contact
-                                    } label: {
-                                        Label("Edit Standing", systemImage: "pencil")
-                                    }
-                                    .tint(.blue)
-                                }
-                                .swipeActions(edge: .trailing) {
-                                    Button(role: .destructive) {
-                                        Task { await deleteContact(contact) }
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
-                                    }
-                                }
-                                .contextMenu {
-                                    Button {
-                                        contactToEdit = contact
-                                    } label: {
-                                        Label("Edit Standing", systemImage: "pencil")
-                                    }
-                                    Divider()
-                                    Button(role: .destructive) {
-                                        Task { await deleteContact(contact) }
-                                    } label: {
-                                        Label("Remove Contact", systemImage: "person.badge.minus")
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                .searchable(text: $searchFilter, prompt: "Filter contacts")
+            HStack(spacing: 0) {
+                contactList
+                    .frame(minWidth: 300, maxWidth: 400)
+                Divider()
+                detailPane
+                    .frame(maxWidth: .infinity)
             }
         }
         .navigationTitle("Contacts")
@@ -122,7 +85,280 @@ struct CharacterContactsView: View {
             }
         }
         .task(id: accountManager.selectedCharacterID) {
+            selectedContactID = nil
+            selectedDetail = nil
             await load()
+        }
+    }
+
+    // MARK: Contact List
+
+    private var contactList: some View {
+        VStack(spacing: 0) {
+            filterBar
+            List(selection: $selectedContactID) {
+                ForEach(groupedContacts, id: \.0) { type, group in
+                    Section(typeLabel(type)) {
+                        ForEach(group) { contact in
+                            ContactRow(
+                                contact: contact,
+                                name: contactNames[contact.contactId],
+                                presence: contact.isPlayerCharacter
+                                    ? presenceTracker.score(for: contact.contactId)
+                                    : nil
+                            )
+                            .tag(contact.contactId)
+                            .swipeActions(edge: .leading) {
+                                Button {
+                                    contactToEdit = contact
+                                } label: {
+                                    Label("Edit Standing", systemImage: "pencil")
+                                }
+                                .tint(.blue)
+                            }
+                            .swipeActions(edge: .trailing) {
+                                Button(role: .destructive) {
+                                    Task { await deleteContact(contact) }
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+                            .contextMenu {
+                                Button {
+                                    contactToEdit = contact
+                                } label: {
+                                    Label("Edit Standing", systemImage: "pencil")
+                                }
+                                Divider()
+                                Button(role: .destructive) {
+                                    Task { await deleteContact(contact) }
+                                } label: {
+                                    Label("Remove Contact", systemImage: "person.badge.minus")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .searchable(text: $searchFilter, prompt: "Filter contacts")
+            .onChange(of: selectedContactID) { _, newID in
+                if let id = newID {
+                    Task { await loadDetail(for: id) }
+                } else {
+                    selectedDetail = nil
+                }
+            }
+        }
+    }
+
+    // MARK: Detail Pane
+
+    @ViewBuilder
+    private var detailPane: some View {
+        if isLoadingDetail {
+            VStack(spacing: 12) {
+                ProgressView()
+                Text("Loading contact details...")
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if let detail = selectedDetail {
+            ScrollView {
+                VStack(spacing: 20) {
+                    contactHeader(detail)
+                    standingCard(detail)
+                    if detail.contact.contactType == "character", let info = detail.charInfo {
+                        characterInfoCard(info, corpName: detail.corpName, allianceName: detail.allianceName)
+                    }
+                    if !detail.corporationHistory.isEmpty {
+                        historySection(detail.corporationHistory)
+                    }
+                }
+                .padding()
+            }
+        } else {
+            VStack(spacing: 12) {
+                Image(systemName: "person.crop.circle")
+                    .font(.system(size: 48))
+                    .foregroundStyle(.tertiary)
+                Text("Select a contact to view details")
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+
+    private func contactHeader(_ detail: ContactDetail) -> some View {
+        HStack(spacing: 16) {
+            let imageURL: URL? = {
+                switch detail.contact.contactType {
+                case "character":   return EVEImageURL.characterPortrait(detail.contact.contactId, size: 512)
+                case "corporation": return EVEImageURL.corporationLogo(detail.contact.contactId, size: 256)
+                case "alliance":    return EVEImageURL.allianceLogo(detail.contact.contactId, size: 256)
+                default:            return EVEImageURL.corporationLogo(detail.contact.contactId, size: 256)
+                }
+            }()
+            let isCharacter = detail.contact.contactType == "character"
+
+            AsyncImage(url: imageURL) { image in
+                image.resizable().aspectRatio(contentMode: .fill)
+            } placeholder: {
+                RoundedRectangle(cornerRadius: isCharacter ? 48 : 12).fill(.quaternary)
+            }
+            .frame(width: 96, height: 96)
+            .clipShape(isCharacter ? AnyShape(Circle()) : AnyShape(RoundedRectangle(cornerRadius: 12)))
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(detail.name)
+                    .font(.title2.bold())
+
+                Text(detail.contact.displayTypeLabel)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
+                if let info = detail.charInfo, let sec = info.securityStatus {
+                    Label(String(format: "%.2f", sec), systemImage: "shield.fill")
+                        .font(.caption)
+                        .foregroundStyle(securityColor(sec))
+                }
+            }
+
+            Spacer()
+        }
+        .padding()
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func standingCard(_ detail: ContactDetail) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Standing")
+                .font(.headline)
+
+            HStack(spacing: 12) {
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 4).fill(.quaternary)
+                        let fraction = (detail.contact.standing + 10.0) / 20.0
+                        let color: Color = detail.contact.standing > 0 ? .green : detail.contact.standing < 0 ? .red : .secondary
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(color)
+                            .frame(width: geo.size.width * max(0, min(1, fraction)))
+                    }
+                }
+                .frame(height: 12)
+
+                Text(String(format: "%+.1f", detail.contact.standing))
+                    .font(.title3.bold().monospacedDigit())
+                    .foregroundStyle(detail.contact.standing > 0 ? .green : detail.contact.standing < 0 ? .red : .secondary)
+                    .frame(width: 50, alignment: .trailing)
+            }
+
+            HStack(spacing: 16) {
+                if detail.contact.isWatched == true {
+                    Label("Watched", systemImage: "eye.fill")
+                        .font(.caption)
+                        .foregroundStyle(.blue)
+                }
+                if detail.contact.isBlocked == true {
+                    Label("Blocked", systemImage: "nosign")
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+                if detail.contact.isWatched != true && detail.contact.isBlocked != true {
+                    Text("No flags")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func characterInfoCard(_ info: ESICharacterPublic, corpName: String?, allianceName: String?) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Character Info")
+                .font(.headline)
+
+            infoRow("Birthday", value: EVEFormatters.dateFormatter.string(from: info.birthday))
+            infoRow("Race", value: raceName(info.raceId))
+            infoRow("Bloodline", value: bloodlineName(info.bloodlineId))
+            if let sec = info.securityStatus {
+                infoRow("Security Status", value: String(format: "%.4f", sec))
+            }
+            if let corp = corpName {
+                infoRow("Corporation", value: corp)
+            }
+            if let alliance = allianceName {
+                infoRow("Alliance", value: alliance)
+            }
+            if let desc = info.description, !desc.isEmpty {
+                Divider()
+                Text("Bio")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(stripHTML(desc))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(5)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func historySection(_ history: [ResolvedCorpHistory]) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Corporation History")
+                .font(.headline)
+            ForEach(history, id: \.recordId) { entry in
+                HStack(spacing: 10) {
+                    AsyncImage(url: EVEImageURL.corporationLogo(entry.corporationId, size: 64)) { image in
+                        image.resizable()
+                    } placeholder: {
+                        RoundedRectangle(cornerRadius: 4).fill(.quaternary)
+                    }
+                    .frame(width: 28, height: 28)
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(entry.corporationName)
+                            .font(.subheadline)
+                        Text("Joined \(EVEFormatters.dateFormatter.string(from: entry.startDate))")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
+
+                    if entry.isDeleted {
+                        Text("Closed")
+                            .font(.caption2)
+                            .foregroundStyle(.red)
+                    }
+                }
+                if entry.recordId != history.last?.recordId {
+                    Divider()
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    // MARK: Helpers
+
+    private func infoRow(_ label: String, value: String) -> some View {
+        HStack {
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Spacer()
+            Text(value)
+                .font(.caption.monospacedDigit())
         }
     }
 
@@ -154,6 +390,54 @@ struct CharacterContactsView: View {
         }
     }
 
+    private func securityColor(_ sec: Double) -> Color {
+        if sec >= 0.5 { return .green }
+        if sec > 0.0 { return .yellow }
+        return .red
+    }
+
+    private func raceName(_ id: Int) -> String {
+        switch id {
+        case 1: return "Caldari"
+        case 2: return "Minmatar"
+        case 4: return "Amarr"
+        case 8: return "Gallente"
+        default: return "Unknown"
+        }
+    }
+
+    private func bloodlineName(_ id: Int) -> String {
+        switch id {
+        case 1: return "Deteis"
+        case 2: return "Civire"
+        case 3: return "Sebiestor"
+        case 4: return "Brutor"
+        case 5: return "Amarr"
+        case 6: return "Ni-Kunni"
+        case 7: return "Gallente"
+        case 8: return "Intaki"
+        case 9: return "Static"
+        case 10: return "Modifier"
+        case 11: return "Achura"
+        case 12: return "Jin-Mei"
+        case 13: return "Khanid"
+        case 14: return "Vherokior"
+        default: return "Unknown"
+        }
+    }
+
+    private func stripHTML(_ html: String) -> String {
+        html.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
+            .replacingOccurrences(of: "&amp;", with: "&")
+            .replacingOccurrences(of: "&lt;", with: "<")
+            .replacingOccurrences(of: "&gt;", with: ">")
+            .replacingOccurrences(of: "&#39;", with: "'")
+            .replacingOccurrences(of: "&quot;", with: "\"")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    // MARK: Data Loading
+
     private func load() async {
         guard let account = accountManager.selectedAccount else { return }
         isLoading = true
@@ -176,6 +460,61 @@ struct CharacterContactsView: View {
         isLoading = false
     }
 
+    private func loadDetail(for contactId: Int) async {
+        guard let contact = contacts.first(where: { $0.contactId == contactId }) else { return }
+        isLoadingDetail = true
+        selectedDetail = nil
+
+        let name = contactNames[contactId] ?? "ID #\(contactId)"
+        var charInfo: ESICharacterPublic? = nil
+        var resolvedHistory: [ResolvedCorpHistory] = []
+        var corpName: String? = nil
+        var allianceName: String? = nil
+
+        if contact.contactType == "character" {
+            do { charInfo = try await ESIClient.shared.fetch("/characters/\(contactId)/") } catch {}
+
+            if contact.isPlayerCharacter {
+                var corpHistory: [ESICorporationHistory] = []
+                do { corpHistory = try await ESIClient.shared.fetch("/characters/\(contactId)/corporationhistory/") } catch {}
+
+                var idsToResolve: [Int] = []
+                if let corpId = charInfo?.corporationId { idsToResolve.append(corpId) }
+                if let allianceId = charInfo?.allianceId { idsToResolve.append(allianceId) }
+                idsToResolve.append(contentsOf: corpHistory.map(\.corporationId))
+
+                let resolved = await NameResolver.shared.resolve(ids: idsToResolve)
+                if let corpId = charInfo?.corporationId { corpName = resolved[corpId] }
+                if let allianceId = charInfo?.allianceId { allianceName = resolved[allianceId] }
+
+                resolvedHistory = corpHistory
+                    .sorted { $0.startDate > $1.startDate }
+                    .map { entry in
+                        ResolvedCorpHistory(
+                            recordId: entry.recordId,
+                            corporationId: entry.corporationId,
+                            corporationName: resolved[entry.corporationId] ?? "#\(entry.corporationId)",
+                            startDate: entry.startDate,
+                            isDeleted: entry.isDeleted ?? false
+                        )
+                    }
+            } else if let corpId = charInfo?.corporationId {
+                let resolved = await NameResolver.shared.resolve(ids: [corpId])
+                corpName = resolved[corpId]
+            }
+        }
+
+        selectedDetail = ContactDetail(
+            contact: contact,
+            name: name,
+            charInfo: charInfo,
+            corporationHistory: resolvedHistory,
+            corpName: corpName,
+            allianceName: allianceName
+        )
+        isLoadingDetail = false
+    }
+
     private func deleteContact(_ contact: ESIContact) async {
         guard let account = accountManager.selectedAccount else { return }
         do {
@@ -186,6 +525,10 @@ struct CharacterContactsView: View {
                 queryItems: [URLQueryItem(name: "contact_ids", value: "\(contact.contactId)")]
             )
             contacts.removeAll { $0.contactId == contact.contactId }
+            if selectedContactID == contact.contactId {
+                selectedContactID = nil
+                selectedDetail = nil
+            }
         } catch {
             self.error = error.localizedDescription
         }
@@ -211,6 +554,9 @@ struct CharacterContactsView: View {
                     standing: standing
                 )
             }
+            if selectedContactID == contact.contactId {
+                Task { await loadDetail(for: contact.contactId) }
+            }
         } catch {
             self.error = error.localizedDescription
         }
@@ -231,6 +577,17 @@ struct CharacterContactsView: View {
             self.error = error.localizedDescription
         }
     }
+}
+
+// MARK: Contact Detail Model
+
+struct ContactDetail {
+    let contact: ESIContact
+    let name: String
+    var charInfo: ESICharacterPublic?
+    var corporationHistory: [ResolvedCorpHistory]
+    var corpName: String?
+    var allianceName: String?
 }
 
 // Mark:  Contact Row
