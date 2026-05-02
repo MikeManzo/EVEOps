@@ -269,6 +269,7 @@ struct GalaxyMarketSearchView: View {
             .font(.subheadline)
         }
         .padding(16)
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     private var orderCountSummary: some View {
@@ -374,26 +375,28 @@ struct GalaxyMarketSearchView: View {
                         .frame(width: 40, alignment: .center)
                 }
                 columnHeader("Price", column: .price, alignment: .trailing)
-                    .frame(width: 112)
+                    .frame(width: 108)
                 columnHeader("Qty", column: .qty, alignment: .trailing)
-                    .frame(width: 68)
+                    .frame(width: 60)
                     .padding(.leading, 10)
                 columnHeader("Station / System", column: .location, alignment: .leading)
                     .frame(maxWidth: .infinity)
                     .padding(.leading, 10)
                 columnHeader("Region", column: .region, alignment: .leading)
-                    .frame(width: 112)
+                    .frame(width: 96)
                     .padding(.leading, 8)
                 columnHeader("Sec", column: .sec, alignment: .center)
-                    .frame(width: 32)
+                    .frame(width: 36)
                 if hasLocation {
                     columnHeader("Jumps", column: .jumps, alignment: .center)
-                        .frame(width: 44)
+                        .frame(width: 60)
+                        .padding(.trailing, 4)
                 }
             }
             .font(.subheadline.bold())
             .foregroundStyle(.secondary)
-            .padding(.horizontal, 16)
+            .padding(.leading, 19)  // 16 base + 3 to align with data rows (which have a 3pt accent bar before their 16pt inner padding)
+            .padding(.trailing, 16)
             .padding(.vertical, 6)
             .background(Color(NSColor.separatorColor).opacity(0.15))
 
@@ -429,6 +432,7 @@ struct GalaxyMarketSearchView: View {
             HStack(spacing: 3) {
                 if alignment == .trailing { Spacer() }
                 Text(title)
+                    .lineLimit(1)
                     .foregroundStyle(sortColumn == column ? .primary : .secondary)
                 if sortColumn == column {
                     Image(systemName: sortAscending ? "chevron.up" : "chevron.down")
@@ -467,11 +471,11 @@ struct GalaxyMarketSearchView: View {
                 Text(EVEFormatters.formatISK(order.price))
                     .font(.subheadline.monospacedDigit().bold())
                     .foregroundStyle(accentColor)
-                    .frame(width: 112, alignment: .trailing)
+                    .frame(width: 108, alignment: .trailing)
 
                 Text(formatCount(order.volumeRemain))
                     .font(.callout.monospacedDigit())
-                    .frame(width: 68, alignment: .trailing)
+                    .frame(width: 60, alignment: .trailing)
                     .padding(.leading, 10)
 
                 VStack(alignment: .leading, spacing: 2) {
@@ -495,7 +499,7 @@ struct GalaxyMarketSearchView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
-                    .frame(width: 112, alignment: .leading)
+                    .frame(width: 96, alignment: .leading)
                     .padding(.leading, 8)
 
                 Text(String(format: "%.1f", max(0, sec)))
@@ -504,11 +508,12 @@ struct GalaxyMarketSearchView: View {
                     .padding(.horizontal, 5)
                     .padding(.vertical, 2)
                     .background(securityColor(sec), in: Capsule())
-                    .frame(width: 32, alignment: .center)
+                    .frame(width: 36, alignment: .center)
 
                 if hasLocation {
                     jumpBadge(jumps: resolved.jumps)
-                        .frame(width: 44, alignment: .center)
+                        .frame(width: 52, alignment: .center)
+                        .padding(.trailing, 4)
                 }
             }
             .padding(.horizontal, 16)
