@@ -1,5 +1,55 @@
 import SwiftUI
 
+// MARK:  Type Image (render → icon fallback)
+
+private struct TypeImage: View {
+    let typeId: Int
+    let size: CGFloat
+    let cornerRadius: CGFloat
+
+    @State private var image: NSImage?
+    @State private var loading = true
+
+    var body: some View {
+        Group {
+            if let image {
+                Image(nsImage: image).resizable().scaledToFit()
+            } else {
+                RoundedRectangle(cornerRadius: cornerRadius).fill(.quaternary)
+            }
+        }
+        .frame(width: size, height: size)
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+        .task(id: typeId) {
+            loading = true
+            image = nil
+            image = await loadBestImage()
+            loading = false
+        }
+    }
+
+    private func loadBestImage() async -> NSImage? {
+        if let url = EVEImageURL.typeRender(typeId, size: 256),
+           let img = await fetch(url) { return img }
+        if let url = EVEImageURL.typeIcon(typeId, size: 64),
+           let img = await fetch(url) { return img }
+        return nil
+    }
+
+    private func fetch(_ url: URL) async -> NSImage? {
+        guard let (data, response) = try? await URLSession.shared.data(from: url),
+              (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
+        return NSImage(data: data)
+    }
+}
+
+// MARK:  Window Input
+
+struct GalaxyMarketSearchInput: Codable, Hashable {
+    var typeId: Int?
+    var typeName: String
+}
+
 // MARK:  Private Types
 
 private struct GalaxyTypeResult: Identifiable {
@@ -159,13 +209,7 @@ struct GalaxyMarketSearchView: View {
             // Item search + order type + search button
             HStack(spacing: 10) {
                 if let typeId = selectedTypeId {
-                    AsyncImage(url: EVEImageURL.typeIcon(typeId, size: 128)) { img in
-                        img.resizable().scaledToFit()
-                    } placeholder: {
-                        RoundedRectangle(cornerRadius: 4).fill(.quaternary)
-                    }
-                    .frame(width: 28, height: 28)
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                    TypeImage(typeId: typeId, size: 28, cornerRadius: 4)
                 }
 
                 HStack(spacing: 6) {
@@ -239,7 +283,8 @@ struct GalaxyMarketSearchView: View {
                 } else {
                     Text("Log in a character to enable jump-distance filtering")
                         .font(.caption)
-                        .foregroundStyle(.tertiary)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.orange)
                 }
 
                 Spacer()
@@ -318,13 +363,7 @@ struct GalaxyMarketSearchView: View {
                 itemSearchResults = []
             } label: {
                 HStack(spacing: 14) {
-                    AsyncImage(url: EVEImageURL.typeIcon(result.typeId, size: 128)) { img in
-                        img.resizable().scaledToFit()
-                    } placeholder: {
-                        RoundedRectangle(cornerRadius: 6).fill(.quaternary)
-                    }
-                    .frame(width: 48, height: 48)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    TypeImage(typeId: result.typeId, size: 48, cornerRadius: 6)
                     Text(result.name).font(.title3)
                     Spacer()
                 }
@@ -375,7 +414,7 @@ struct GalaxyMarketSearchView: View {
                         .frame(width: 40, alignment: .center)
                 }
                 columnHeader("Price", column: .price, alignment: .trailing)
-                    .frame(width: 108)
+                    .frame(width: 130)
                 columnHeader("Qty", column: .qty, alignment: .trailing)
                     .frame(width: 60)
                     .padding(.leading, 10)
@@ -471,7 +510,7 @@ struct GalaxyMarketSearchView: View {
                 Text(EVEFormatters.formatISK(order.price))
                     .font(.subheadline.monospacedDigit().bold())
                     .foregroundStyle(accentColor)
-                    .frame(width: 108, alignment: .trailing)
+                    .frame(width: 130, alignment: .trailing)
 
                 Text(formatCount(order.volumeRemain))
                     .font(.callout.monospacedDigit())

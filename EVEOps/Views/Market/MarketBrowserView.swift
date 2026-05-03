@@ -191,7 +191,7 @@ struct MarketBrowserView: View {
     @State private var historyDays = 90
     @State private var openInEVEMessage: String?
     @State private var insightResetKey = ""
-    @State private var showGalaxySearch = false
+    @Environment(\.openWindow) private var openWindow
 
     // Persisted pane sizes — written only on drag end to avoid UserDefaults
     // writes at 60 Hz, which would cause re-render jitter during dragging.
@@ -240,14 +240,7 @@ struct MarketBrowserView: View {
         .navigationTitle("Market Browser")
         .toolbar { toolbarContent }
         .task { await loadInitialData() }
-        .sheet(isPresented: $showGalaxySearch) {
-            GalaxyMarketSearchView(
-                initialTypeId: selectedTypeId,
-                initialTypeName: selectedTypeName
-            )
-            .environment(accountManager)
-            .environment(prefetcher)
-        }
+
     }
 
     // MARK:  Toolbar
@@ -256,7 +249,7 @@ struct MarketBrowserView: View {
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .automatic) {
             Button {
-                showGalaxySearch = true
+                openWindow(value: GalaxyMarketSearchInput(typeId: selectedTypeId, typeName: selectedTypeName))
             } label: {
                 Label("Galaxy Search", systemImage: "globe.europe.africa.fill")
             }

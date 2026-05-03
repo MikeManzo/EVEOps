@@ -77,6 +77,17 @@ struct EVEOpsApp: App {
         .defaultSize(width: 1100, height: 700)
         .defaultLaunchBehavior(.suppressed)
 
+        WindowGroup(for: GalaxyMarketSearchInput.self) { $input in
+            GalaxyMarketSearchView(
+                initialTypeId: input?.typeId,
+                initialTypeName: input?.typeName ?? ""
+            )
+            .environment(accountManager)
+            .environment(prefetcher)
+            .preferredColorScheme(resolvedColorScheme)
+        }
+        .defaultSize(width: 1100, height: 680)
+
         Settings {
             SettingsView()
                 .environment(accountManager)
