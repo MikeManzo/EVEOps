@@ -182,10 +182,16 @@ struct GalaxyMarketSearchView: View {
                 selectedTypeName = initialTypeName
                 itemSearchText = initialTypeName
             }
-            if let account = accountManager.selectedAccount,
-               let data = prefetcher.data(for: account.characterID) {
-                characterSystemId = data.location.solarSystemId
+            loadCharacterLocation()
+        }
+        .task {
+            // Fallback: if prefetcher had stale/missing data, fetch location directly
+            if characterSystemId == nil {
+                await fetchLocationFallback()
             }
+        }
+        .onChange(of: prefetcher.lastRefresh) { _, _ in
+            loadCharacterLocation()
         }
         .onChange(of: orderTypeFilter) { _, newType in
             // Auto-flip price sort direction to the natural default for each type
@@ -833,6 +839,27 @@ struct GalaxyMarketSearchView: View {
         }
         orders = withJumps
         isComputingJumps = false
+    }
+
+    // MARK:  Location Helpers
+
+    private func loadCharacterLocation() {
+        if let account = accountManager.selectedAccount,
+           let data = prefetcher.data(for: account.characterID) {
+            characterSystemId = data.location.solarSystemId
+        }
+    }
+
+    private func fetchLocationFallback() async {
+        guard characterSystemId == nil,
+              let account = accountManager.selectedAccount,
+              let token = try? await accountManager.validToken(for: account) else { return }
+        let loc: ESICharacterLocation? = try? await ESIClient.shared.fetch(
+            "/characters/\(account.characterID)/location/", token: token
+        )
+        if let sysId = loc?.solarSystemId {
+            characterSystemId = sysId
+        }
     }
 
     // MARK:  Autopilot
