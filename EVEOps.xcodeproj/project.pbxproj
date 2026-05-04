@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		27B388B92FA8AE570068C335 /* MijickCalendarView in Frameworks */ = {isa = PBXBuildFile; productRef = 27B388B82FA8AE570068C335 /* MijickCalendarView */; };
 		27C539C12FA0EF4C001D7F9A /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 27C539C02FA0EF4C001D7F9A /* Sparkle */; };
 /* End PBXBuildFile section */
 
@@ -74,6 +75,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				27B388B92FA8AE570068C335 /* MijickCalendarView in Frameworks */,
 				27C539C12FA0EF4C001D7F9A /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -147,6 +149,7 @@
 			name = EVEOps;
 			packageProductDependencies = (
 				27C539C02FA0EF4C001D7F9A /* Sparkle */,
+				27B388B82FA8AE570068C335 /* MijickCalendarView */,
 			);
 			productName = EVEOps;
 			productReference = 278124332F83D04D009A0B10 /* EVEOps.app */;
@@ -232,6 +235,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				27C539BE2FA0EF08001D7F9A /* XCRemoteSwiftPackageReference "Sparkle" */,
+				27B388B72FA8ACCF0068C335 /* XCRemoteSwiftPackageReference "CalendarView" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 278124342F83D04D009A0B10 /* Products */;
@@ -668,6 +672,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		27B388B72FA8ACCF0068C335 /* XCRemoteSwiftPackageReference "CalendarView" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Mijick/CalendarView";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.1.1;
+			};
+		};
 		27C539BE2FA0EF08001D7F9A /* XCRemoteSwiftPackageReference "Sparkle" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/sparkle-project/Sparkle";
@@ -679,6 +691,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		27B388B82FA8AE570068C335 /* MijickCalendarView */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 27B388B72FA8ACCF0068C335 /* XCRemoteSwiftPackageReference "CalendarView" */;
+			productName = MijickCalendarView;
+		};
 		27C539C02FA0EF4C001D7F9A /* Sparkle */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 27C539BE2FA0EF08001D7F9A /* XCRemoteSwiftPackageReference "Sparkle" */;

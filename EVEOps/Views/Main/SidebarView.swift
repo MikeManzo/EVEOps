@@ -9,6 +9,7 @@ struct SidebarView: View {
     @AppStorage("sidebar.combatExpanded") private var combatExpanded = true
     @AppStorage("sidebar.socialExpanded") private var socialExpanded = true
     @AppStorage("sidebar.corpExpanded") private var corpExpanded = true
+    @State private var todayEventCount = 0
 
     var body: some View {
         VStack(spacing: 0) {
@@ -49,6 +50,14 @@ struct SidebarView: View {
                         ForEach(NavigationSection.socialSections) { section in
                             Label(section.rawValue, systemImage: section.iconName)
                                 .tag(section)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .overlay(alignment: .trailing) {
+                                    if section == .calendar && todayEventCount > 0 {
+                                        Circle()
+                                            .fill(Color.blue)
+                                            .frame(width: 7, height: 7)
+                                    }
+                                }
                         }
                     }
 
@@ -67,6 +76,21 @@ struct SidebarView: View {
             addAccountButton
         }
         .frame(minWidth: 200)
+        .task(id: accountManager.selectedCharacterID) {
+            todayEventCount = 0
+            guard let account = accountManager.selectedAccount else { return }
+            do {
+                let token = try await accountManager.validToken(for: account)
+                let events: [ESICalendarEvent] = try await ESIClient.shared.fetch(
+                    "/characters/\(account.characterID)/calendar/", token: token
+                )
+                let today = Calendar.current.startOfDay(for: Date())
+                todayEventCount = events.filter { event in
+                    guard let d = event.eventDate else { return false }
+                    return Calendar.current.startOfDay(for: d) == today
+                }.count
+            } catch {}
+        }
     }
 
     @ViewBuilder
