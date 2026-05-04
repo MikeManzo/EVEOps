@@ -48,7 +48,7 @@ struct CharacterClonesView: View {
         .task { await loadClones() }
     }
 
-    // MARK: - Sections
+    // MARK:  Sections
 
     private var jumpCooldownSection: some View {
         Section("Jump Clone Cooldown") {
@@ -128,7 +128,7 @@ struct CharacterClonesView: View {
         }
     }
 
-    // MARK: - Prefetcher Helpers
+    // MARK:  Prefetcher Helpers
 
     private var prefetchedSP: Int {
         guard let account = accountManager.selectedAccount,
@@ -157,7 +157,7 @@ struct CharacterClonesView: View {
             }
     }
 
-    // MARK: - Data Loading
+    // MARK:  Data Loading
 
     private func loadClones() async {
         guard let account = accountManager.selectedAccount else { return }
@@ -206,7 +206,7 @@ struct CharacterClonesView: View {
     }
 }
 
-// MARK: - Supporting Types
+// MARK:  Supporting Types
 
 struct ResolvedImplant: Identifiable, Hashable {
     let typeId: Int
@@ -223,7 +223,7 @@ struct ResolvedJumpClone {
     let implantNames: [String]
 }
 
-// MARK: - Clone AI Insight Card
+// MARK:  Clone AI Insight Card
 
 @available(macOS 26.0, *)
 struct CloneAIInsightCard: View {
