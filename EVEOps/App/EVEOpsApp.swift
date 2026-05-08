@@ -96,13 +96,39 @@ struct EVEOpsApp: App {
                 .preferredColorScheme(resolvedColorScheme)
         }
 
-        MenuBarExtra("EVEOps", image: "EveOpsTemplate" /*systemImage: "aqi.medium"*/) {
+        MenuBarExtra {
             MenuBarView()
                 .environment(accountManager)
                 .environment(prefetcher)
                 .environment(apiStatusMonitor)
+                .environment(appUpdater)
                 .preferredColorScheme(resolvedColorScheme)
+        } label: {
+            MenuBarIconLabel(updateAvailable: appUpdater.updateAvailable)
         }
         .menuBarExtraStyle(.window)
+    }
+}
+
+private struct MenuBarIconLabel: View {
+    let updateAvailable: Bool
+    @State private var pulsing = false
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            Image("EveOpsTemplate")
+            if updateAvailable {
+                Circle()
+                    .fill(Color.orange)
+                    .frame(width: 5, height: 5)
+                    .opacity(pulsing ? 0.2 : 1.0)
+                    .offset(x: 3, y: -3)
+                    .onAppear {
+                        withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
+                            pulsing = true
+                        }
+                    }
+            }
+        }
     }
 }

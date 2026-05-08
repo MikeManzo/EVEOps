@@ -4,6 +4,7 @@ struct MenuBarView: View {
     @Environment(AccountManager.self) private var accountManager
     @Environment(DashboardPrefetcher.self) private var prefetcher
     @Environment(APIStatusMonitor.self) private var apiStatus
+    @Environment(AppUpdater.self) private var appUpdater
     @Environment(\.openWindow) private var openWindow
     @Environment(\.openSettings) private var openSettings
     @AppStorage("backgroundPollInterval") private var pollInterval: Double = 300
@@ -17,6 +18,35 @@ struct MenuBarView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            if appUpdater.updateAvailable {
+                Button {
+                    appUpdater.checkForUpdates()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.down.circle.fill")
+                            .foregroundStyle(.blue)
+                            .font(.caption)
+                        if let version = appUpdater.availableVersion {
+                            Text("Update available — v\(version)")
+                                .font(.caption)
+                        } else {
+                            Text("Update available")
+                                .font(.caption)
+                        }
+                        Spacer()
+                        Text("Install")
+                            .font(.caption2)
+                            .foregroundStyle(.blue)
+                    }
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(.blue.opacity(0.1))
+
+                Divider()
+            }
+
             if !apiStatus.isReachable {
                 HStack(spacing: 6) {
                     Image(systemName: "wifi.exclamationmark")

@@ -123,10 +123,10 @@ struct CorporationWarsView: View {
             // Resolve all entity names
             var entityIDs: Set<Int> = []
             for war in fetched {
-                war.aggressor.corporationId.map { entityIDs.insert($0) }
-                war.aggressor.allianceId.map { entityIDs.insert($0) }
-                war.defender.corporationId.map { entityIDs.insert($0) }
-                war.defender.allianceId.map { entityIDs.insert($0) }
+                if let id = war.aggressor.corporationId { entityIDs.insert(id) }
+                if let id = war.aggressor.allianceId { entityIDs.insert(id) }
+                if let id = war.defender.corporationId { entityIDs.insert(id) }
+                if let id = war.defender.allianceId { entityIDs.insert(id) }
             }
             names = await withTaskGroup(of: (Int, String).self) { group in
                 for id in entityIDs {
