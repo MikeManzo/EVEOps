@@ -1,6 +1,10 @@
 import SwiftUI
 
-// MARK:  Type Image (render → icon fallback)
+// MARK:  Type Image (render → icon fallback, with caching)
+
+private enum TypeImageCache {
+    static let shared = NSCache<NSNumber, NSImage>()
+}
 
 private struct TypeImage: View {
     let typeId: Int
@@ -8,12 +12,17 @@ private struct TypeImage: View {
     let cornerRadius: CGFloat
 
     @State private var image: NSImage?
-    @State private var loading = true
+    @State private var failed = false
 
     var body: some View {
         Group {
             if let image {
                 Image(nsImage: image).resizable().scaledToFit()
+            } else if failed {
+                Image(systemName: "cube.transparent")
+                    .font(.system(size: size * 0.5))
+                    .foregroundStyle(.tertiary)
+                    .frame(width: size, height: size)
             } else {
                 RoundedRectangle(cornerRadius: cornerRadius).fill(.quaternary)
             }
@@ -21,10 +30,18 @@ private struct TypeImage: View {
         .frame(width: size, height: size)
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
         .task(id: typeId) {
-            loading = true
+            if let cached = TypeImageCache.shared.object(forKey: NSNumber(value: typeId)) {
+                image = cached
+                return
+            }
             image = nil
-            image = await loadBestImage()
-            loading = false
+            failed = false
+            if let loaded = await loadBestImage() {
+                TypeImageCache.shared.setObject(loaded, forKey: NSNumber(value: typeId))
+                image = loaded
+            } else {
+                failed = true
+            }
         }
     }
 
@@ -660,13 +677,51 @@ struct GalaxyMarketSearchView: View {
     }
 
     private func searchItems(_ query: String) async {
-        struct Resp: Decodable { let inventoryTypes: [ESIIDName]? }
-        let result: Resp? = try? await ESIClient.shared.post("/universe/ids/", body: [query])
-        let found = (result?.inventoryTypes ?? [])
-            .map { GalaxyTypeResult(typeId: $0.id, name: $0.name) }
-            .sorted { $0.name < $1.name }
-        isSearchingItems = false
-        itemSearchResults = found
+        struct SearchResp: Decodable { let inventoryType: [Int]? }
+        struct NameEntry: Decodable { let id: Int; let name: String }
+
+        if let account = accountManager.selectedAccount,
+           let token = try? await accountManager.validToken(for: account) {
+            // Authenticated prefix search — works with 3+ chars
+            let resp: SearchResp? = try? await ESIClient.shared.fetch(
+                "/characters/\(account.characterID)/search/",
+                token: token,
+                queryItems: [
+                    URLQueryItem(name: "categories", value: "inventory_type"),
+                    URLQueryItem(name: "search",     value: query),
+                    URLQueryItem(name: "strict",     value: "false")
+                ]
+            )
+            // Take up to 100 IDs so relevant items (e.g. the base ship) aren't
+            // truncated before names are resolved — ESI returns them in arbitrary order.
+            let ids = Array((resp?.inventoryType ?? []).prefix(100))
+            guard !ids.isEmpty else {
+                isSearchingItems = false
+                itemSearchResults = []
+                return
+            }
+            let names: [NameEntry] = (try? await ESIClient.shared.post("/universe/names/", body: ids)) ?? []
+            isSearchingItems = false
+            let lower = query.lowercased()
+            itemSearchResults = names
+                .map { GalaxyTypeResult(typeId: $0.id, name: $0.name) }
+                .sorted { a, b in
+                    let aL = a.name.lowercased(), bL = b.name.lowercased()
+                    let aExact = aL == lower,  bExact = bL == lower
+                    if aExact != bExact { return aExact }
+                    let aPrefix = aL.hasPrefix(lower), bPrefix = bL.hasPrefix(lower)
+                    if aPrefix != bPrefix { return aPrefix }
+                    return aL < bL
+                }
+        } else {
+            // Fallback for unauthenticated: exact name match only
+            struct IDResp: Decodable { let inventoryTypes: [ESIIDName]? }
+            let resp: IDResp? = try? await ESIClient.shared.post("/universe/ids/", body: [query])
+            isSearchingItems = false
+            itemSearchResults = (resp?.inventoryTypes ?? [])
+                .map { GalaxyTypeResult(typeId: $0.id, name: $0.name) }
+                .sorted { $0.name < $1.name }
+        }
     }
 
     // MARK:  Galaxy Search Logic

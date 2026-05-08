@@ -137,6 +137,66 @@ private struct SplitDivider: View {
     }
 }
 
+// MARK:  Type Image (render → icon fallback, with caching)
+
+private enum MarketTypeImageCache {
+    static let shared = NSCache<NSNumber, NSImage>()
+}
+
+private struct MarketTypeImage: View {
+    let typeId: Int
+    let size: CGFloat
+    let cornerRadius: CGFloat
+
+    @State private var image: NSImage?
+    @State private var failed = false
+
+    var body: some View {
+        Group {
+            if let image {
+                Image(nsImage: image).resizable().scaledToFit()
+            } else if failed {
+                Image(systemName: "cube.transparent")
+                    .font(.system(size: size * 0.5))
+                    .foregroundStyle(.tertiary)
+                    .frame(width: size, height: size)
+            } else {
+                RoundedRectangle(cornerRadius: cornerRadius).fill(.quaternary)
+            }
+        }
+        .frame(width: size, height: size)
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+        .task(id: typeId) {
+            if let cached = MarketTypeImageCache.shared.object(forKey: NSNumber(value: typeId)) {
+                image = cached
+                return
+            }
+            image = nil
+            failed = false
+            if let loaded = await loadBestImage() {
+                MarketTypeImageCache.shared.setObject(loaded, forKey: NSNumber(value: typeId))
+                image = loaded
+            } else {
+                failed = true
+            }
+        }
+    }
+
+    private func loadBestImage() async -> NSImage? {
+        if let url = EVEImageURL.typeRender(typeId, size: 256),
+           let img = await fetch(url) { return img }
+        if let url = EVEImageURL.typeIcon(typeId, size: 64),
+           let img = await fetch(url) { return img }
+        return nil
+    }
+
+    private func fetch(_ url: URL) async -> NSImage? {
+        guard let (data, response) = try? await URLSession.shared.data(from: url),
+              (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
+        return NSImage(data: data)
+    }
+}
+
 // MARK:  MarketBrowserView
 
 struct MarketBrowserView: View {
@@ -332,6 +392,19 @@ struct MarketBrowserView: View {
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
         .onChange(of: searchText) { _, newValue in
             searchTask?.cancel()
+            // Clear any previously selected item so the detail pane doesn't show stale data
+            if !newValue.isEmpty {
+                selectedTypeId = nil
+                selectedTypeName = ""
+                selectedTypeInfo = nil
+                sellOrders = []
+                buyOrders = []
+                priceHistory = []
+                adjustedPrice = nil
+                averagePrice = nil
+                ordersError = nil
+                insightResetKey = ""
+            }
             guard newValue.count >= 3 else {
                 searchResults = []
                 isSearching = false
@@ -452,13 +525,7 @@ struct MarketBrowserView: View {
 
     private func typeRow(typeId: Int, name: String) -> some View {
         HStack(spacing: 8) {
-            AsyncImage(url: EVEImageURL.typeIcon(typeId, size: 256)) { image in
-                image.resizable()
-            } placeholder: {
-                RoundedRectangle(cornerRadius: 3).fill(.quaternary)
-            }
-            .frame(width: 22, height: 22)
-            .clipShape(RoundedRectangle(cornerRadius: 3))
+            MarketTypeImage(typeId: typeId, size: 22, cornerRadius: 3)
             Text(name)
                 .font(.headline)
                 .lineLimit(1)
@@ -1048,17 +1115,45 @@ struct MarketBrowserView: View {
     }
 
     private func performSearch(_ query: String) async {
-        struct SearchBody: Encodable { let names: [String] }
-        struct SearchResponse: Decodable { let inventoryTypes: [ESIIDName]? }
+        struct SearchResp: Decodable { let inventoryType: [Int]? }
+        struct NameEntry: Decodable { let id: Int; let name: String }
 
-        let result: SearchResponse? = try? await ESIClient.shared.post(
-            "/universe/ids/",
-            body: SearchBody(names: [query])
-        )
-
-        searchResults = (result?.inventoryTypes ?? [])
-            .map { MarketTypeResult(typeId: $0.id, name: $0.name) }
-            .sorted { $0.name < $1.name }
+        if let account = accountManager.selectedAccount,
+           let token = try? await accountManager.validToken(for: account) {
+            let resp: SearchResp? = try? await ESIClient.shared.fetch(
+                "/characters/\(account.characterID)/search/",
+                token: token,
+                queryItems: [
+                    URLQueryItem(name: "categories", value: "inventory_type"),
+                    URLQueryItem(name: "search",     value: query),
+                    URLQueryItem(name: "strict",     value: "false")
+                ]
+            )
+            let ids = Array((resp?.inventoryType ?? []).prefix(100))
+            guard !ids.isEmpty else {
+                isSearching = false
+                searchResults = []
+                return
+            }
+            let names: [NameEntry] = (try? await ESIClient.shared.post("/universe/names/", body: ids)) ?? []
+            let lower = query.lowercased()
+            searchResults = names
+                .map { MarketTypeResult(typeId: $0.id, name: $0.name) }
+                .sorted { a, b in
+                    let aL = a.name.lowercased(), bL = b.name.lowercased()
+                    let aExact = aL == lower,  bExact = bL == lower
+                    if aExact != bExact { return aExact }
+                    let aPrefix = aL.hasPrefix(lower), bPrefix = bL.hasPrefix(lower)
+                    if aPrefix != bPrefix { return aPrefix }
+                    return aL < bL
+                }
+        } else {
+            struct IDResp: Decodable { let inventoryTypes: [ESIIDName]? }
+            let resp: IDResp? = try? await ESIClient.shared.post("/universe/ids/", body: [query])
+            searchResults = (resp?.inventoryTypes ?? [])
+                .map { MarketTypeResult(typeId: $0.id, name: $0.name) }
+                .sorted { $0.name < $1.name }
+        }
         isSearching = false
     }
 

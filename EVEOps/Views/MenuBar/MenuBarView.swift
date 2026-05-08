@@ -163,7 +163,7 @@ struct MenuBarView: View {
     // MARK:  Data Loading
 
     private func loadAllSummaries() async {
-        // Build summaries for all characters from prefetched data first
+        // Show available prefetcher data immediately (within 2-min freshness window)
         for account in accountManager.accounts {
             if let prefetched = prefetcher.data(for: account.characterID) {
                 let summary = await buildSummary(from: prefetched, for: account)
@@ -171,17 +171,13 @@ struct MenuBarView: View {
             }
         }
 
-        // If we got any prefetched data, stop showing loading immediately
         if !summaries.isEmpty {
             isLoading = false
         }
 
-        // Then fetch fresh data for any characters missing from prefetch
-        for account in accountManager.accounts {
-            if summaries[account.characterID] == nil {
-                let summary = await loadSummary(for: account)
-                summaries[account.characterID] = summary
-            }
+        // Fetch fresh ESI data for accounts whose prefetcher entry is stale or absent
+        for account in accountManager.accounts where prefetcher.data(for: account.characterID) == nil {
+            summaries[account.characterID] = await loadSummary(for: account)
         }
 
         isLoading = false
