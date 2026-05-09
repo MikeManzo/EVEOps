@@ -1,6 +1,16 @@
+//
+// This file is part of EVEOps.
+//
+// EVEOps is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, version 3 or later.
+//
+// Copyright (c) 2026 CitizenCoder
+//
+
 import SwiftUI
 
-// MARK: - Models
+// MARK:  Models
 
 struct CommunityFitModule: Identifiable {
     let typeId: Int
@@ -31,7 +41,7 @@ struct RecentlyDestroyedEntry: Identifiable {
     var id: Int { typeId }
 }
 
-// MARK: - Main View
+// MARK:  Main View
 
 struct CommunityFittingsView: View {
     @Environment(AccountManager.self) private var accountManager
@@ -71,7 +81,7 @@ struct CommunityFittingsView: View {
         }
     }
 
-    // MARK: - Left Panel
+    // MARK:  Left Panel
 
     private var shipSearchPanel: some View {
         VStack(spacing: 0) {
@@ -175,7 +185,7 @@ struct CommunityFittingsView: View {
         .frame(maxWidth: .infinity)
     }
 
-    // MARK: - Right Panel
+    // MARK:  Right Panel
 
     @ViewBuilder
     private var detailPanel: some View {
@@ -216,7 +226,7 @@ struct CommunityFittingsView: View {
         }
     }
 
-    // MARK: - Search
+    // MARK:  Search
 
     private func performSearch(_ query: String) async {
         let trimmed = query.trimmingCharacters(in: .whitespaces)
@@ -256,7 +266,7 @@ struct CommunityFittingsView: View {
         isSearching = false
     }
 
-    // MARK: - Recently Destroyed
+    // MARK:  Recently Destroyed
 
     private func loadRecentlyDestroyed() async {
         isLoadingRecent = true
@@ -310,7 +320,7 @@ struct CommunityFittingsView: View {
         isLoadingRecent = false
     }
 
-    // MARK: - Meta Fit Loading
+    // MARK:  Meta Fit Loading
 
     private func loadMetaFit(for shipTypeId: Int) async {
         isLoadingFit = true
@@ -372,7 +382,7 @@ struct CommunityFittingsView: View {
         isLoadingFit = false
     }
 
-    // MARK: - Aggregation
+    // MARK:  Aggregation
 
     private func buildMetaModules(from killmails: [ESIKillmail]) -> [CommunityFitModule] {
         let validKills = killmails.filter { !($0.victim.items?.isEmpty ?? true) }
@@ -441,7 +451,7 @@ struct CommunityFittingsView: View {
     }
 }
 
-// MARK: - Ship Search Row
+// MARK:  Ship Search Row
 
 struct CommunityShipRow: View {
     let type: ESIType
@@ -466,7 +476,7 @@ struct CommunityShipRow: View {
     }
 }
 
-// MARK: - Recently Destroyed Row
+// MARK:  Recently Destroyed Row
 
 struct RecentlyDestroyedRow: View {
     let entry: RecentlyDestroyedEntry
@@ -495,7 +505,7 @@ struct RecentlyDestroyedRow: View {
     }
 }
 
-// MARK: - Detail Pane
+// MARK:  Detail Pane
 
 struct CommunityFitDetailPane: View {
     let fit: CommunityMetaFit
@@ -653,7 +663,7 @@ struct CommunityFitDetailPane: View {
     }
 }
 
-// MARK: - Module Row
+// MARK:  Module Row
 
 struct CommunityModuleRow: View {
     let module: CommunityFitModule
@@ -701,7 +711,7 @@ struct CommunityModuleRow: View {
     }
 }
 
-// MARK: - Attacker Ship Row
+// MARK:  Attacker Ship Row
 
 struct AttackerShipRow: View {
     let typeId: Int

@@ -1,6 +1,6 @@
 import SwiftUI
 
-// MARK: - Item Source
+// MARK:  Item Source
 
 enum CalendarItemSource: String, CaseIterable, Hashable {
     case eveEvent       = "Events"
@@ -39,7 +39,7 @@ enum CalendarItemSource: String, CaseIterable, Hashable {
     }
 }
 
-// MARK: - Calendar Item
+// MARK:  Calendar Item
 
 enum CalendarItem: Identifiable {
     case eveEvent(ESICalendarEvent)
@@ -120,7 +120,7 @@ private func skillRoman(_ level: Int) -> String {
     ["I", "II", "III", "IV", "V"][max(0, min(4, level - 1))]
 }
 
-// MARK: - Main View
+// MARK:  Main View
 
 struct CharacterCalendarView: View {
     @Environment(AccountManager.self) private var accountManager
@@ -428,7 +428,7 @@ struct CharacterCalendarView: View {
     }
 }
 
-// MARK: - Source Filter Pill
+// MARK:  Source Filter Pill
 
 private struct SourceFilterPill: View {
     let source: CalendarItemSource
@@ -452,7 +452,7 @@ private struct SourceFilterPill: View {
     }
 }
 
-// MARK: - Calendar Grid
+// MARK:  Calendar Grid
 
 private struct CalendarGridView: View {
     @Binding var displayedMonth: Date
@@ -583,7 +583,7 @@ private struct CalendarGridView: View {
     }
 }
 
-// MARK: - Day Cell
+// MARK:  Day Cell
 
 private struct CalendarDayCell: View {
     let date: Date
@@ -639,7 +639,7 @@ private struct CalendarDayCell: View {
     }
 }
 
-// MARK: - Item Row
+// MARK:  Item Row
 
 private struct CalendarItemRow: View {
     let item: CalendarItem
@@ -672,7 +672,7 @@ private struct CalendarItemRow: View {
     }
 }
 
-// MARK: - Detail Dispatcher
+// MARK:  Detail Dispatcher
 
 struct CalendarItemDetailView: View {
     let item: CalendarItem
@@ -700,7 +700,7 @@ struct CalendarItemDetailView: View {
     }
 }
 
-// MARK: - Shared Detail Header
+// MARK:  Shared Detail Header
 
 private struct DeadlineHeader: View {
     let title: String
@@ -737,7 +737,7 @@ private struct DeadlineHeader: View {
     }
 }
 
-// MARK: - Skill Deadline
+// MARK:  Skill Deadline
 
 private struct SkillDeadlineView: View {
     let queue: ESISkillQueue
@@ -798,7 +798,7 @@ private struct SkillDeadlineView: View {
     }
 }
 
-// MARK: - Industry Job Deadline
+// MARK:  Industry Job Deadline
 
 private struct IndustryJobDeadlineView: View {
     let job: ESIIndustryJob
@@ -871,7 +871,7 @@ private struct IndustryJobDeadlineView: View {
     }
 }
 
-// MARK: - PI Expiry Detail
+// MARK:  PI Expiry Detail
 
 private struct PIExpiryDetailView: View {
     let colony: ESIColony
@@ -949,7 +949,7 @@ private struct PIExpiryDetailView: View {
     }
 }
 
-// MARK: - Moon Extraction Detail
+// MARK:  Moon Extraction Detail
 
 private struct MoonExtractionDetailView: View {
     let extraction: ESIMoonExtraction
@@ -1011,7 +1011,7 @@ private struct MoonExtractionDetailView: View {
     }
 }
 
-// MARK: - Contract Deadline
+// MARK:  Contract Deadline
 
 private struct ContractDeadlineView: View {
     let contract: ESIContract
@@ -1088,7 +1088,7 @@ private struct ContractDeadlineView: View {
     }
 }
 
-// MARK: - Market Order Deadline
+// MARK:  Market Order Deadline
 
 private struct MarketOrderDeadlineView: View {
     let order: ESIMarketOrder
@@ -1153,7 +1153,7 @@ private struct MarketOrderDeadlineView: View {
     }
 }
 
-// MARK: - Attribute Remap Detail
+// MARK:  Attribute Remap Detail
 
 private struct AttributeRemapDetailView: View {
     let remapDate: Date
@@ -1197,7 +1197,7 @@ private struct AttributeRemapDetailView: View {
     }
 }
 
-// MARK: - EVE Calendar Event Detail
+// MARK:  EVE Calendar Event Detail
 
 struct CalendarEventDetailPanel: View {
     let event: ESICalendarEvent
@@ -1367,7 +1367,7 @@ struct CalendarEventDetailPanel: View {
     }
 }
 
-// MARK: - RSVP Button
+// MARK:  RSVP Button
 
 struct RSVPButton: View {
     let label: String
