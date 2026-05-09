@@ -784,6 +784,10 @@ private struct AboutTab: View {
                     eveBuddyCard
                         .padding(.top, 14)
 
+                    // zKillboard attribution card
+                    zkillboardCard
+                        .padding(.top, 8)
+
                     // Collapsible legal
                     DisclosureGroup(isExpanded: $legalExpanded) {
                         VStack(alignment: .leading, spacing: 6) {
@@ -937,6 +941,57 @@ private struct AboutTab: View {
                         colors: [
                             Color(hue: 0.12, saturation: 0.85, brightness: 1.0).opacity(0.35),
                             Color(hue: 0.12, saturation: 0.85, brightness: 1.0).opacity(0.10)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        )
+        .padding(.horizontal, 44)
+    }
+
+    // Mark:  zKillboard attribution card
+
+    private var zkillboardCard: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(Color.red.opacity(0.12))
+                    .frame(width: 38, height: 38)
+                Image(systemName: "heart.badge.bolt.slash")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.red)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("zKillboard")
+                    .font(.system(size: 13, weight: .semibold))
+                Text("COMMUNITY FIT DATA SOURCE")
+                    .font(.system(size: 9, weight: .bold))
+                    .tracking(1.2)
+                    .foregroundStyle(.tertiary)
+            }
+
+            Spacer()
+
+            Button("zkillboard.com") {
+                if let url = URL(string: "https://zkillboard.com") {
+                    NSWorkspace.shared.open(url)
+                }
+            }
+            .buttonStyle(.link)
+            .font(.system(size: 11, weight: .medium))
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 11)
+        .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [
+                            Color.red.opacity(0.30),
+                            Color.red.opacity(0.08)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing

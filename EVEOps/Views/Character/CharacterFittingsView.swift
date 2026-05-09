@@ -4,7 +4,7 @@ import FoundationModels
 // MARK:  Tab
 
 private enum FittingsTab {
-    case ships, savedFittings
+    case ships, savedFittings, community
 }
 
 // MARK:  Ship Data Models
@@ -86,6 +86,7 @@ struct CharacterFittingsView: View {
             Picker("Tab", selection: $activeTab) {
                 Text("Ships").tag(FittingsTab.ships)
                 Text("Saved Fittings").tag(FittingsTab.savedFittings)
+                Text("Community").tag(FittingsTab.community)
             }
             .pickerStyle(.segmented)
             .padding(.horizontal, 16)
@@ -97,7 +98,7 @@ struct CharacterFittingsView: View {
                 LoadingStateView(isLoading: isLoading, error: error, isEmpty: shipsEmpty, emptyMessage: "No ships found") {
                     shipsContent
                 }
-            } else {
+            } else if activeTab == .savedFittings {
                 LoadingStateView(
                     isLoading: isSavingsLoading || !savedFittingsLoaded,
                     error: savingsError,
@@ -106,6 +107,8 @@ struct CharacterFittingsView: View {
                 ) {
                     savedFittingsContent
                 }
+            } else {
+                CommunityFittingsView()
             }
         }
         .navigationTitle("Ships & Fittings")
@@ -231,7 +234,7 @@ struct CharacterFittingsView: View {
 
     // MARK:  EVE Ship Group Table (Static SDE data — immune to API cache corruption)
 
-    private static let eveShipGroups: [Int: String] = [
+    static let eveShipGroups: [Int: String] = [
         29: "Capsule", 31: "Shuttle", 237: "Corvette",
         25: "Frigate", 358: "Assault Frigate", 541: "Interceptor",
         543: "Covert Ops", 831: "Electronic Attack Ship", 1022: "Expedition Frigate",
@@ -246,7 +249,7 @@ struct CharacterFittingsView: View {
         441: "Freighter", 898: "Jump Freighter",
         463: "Mining Barge", 900: "Exhumer", 1305: "Mining Frigate",
     ]
-    private static let eveShipGroupIds: Set<Int> = Set(eveShipGroups.keys)
+    static let eveShipGroupIds: Set<Int> = Set(eveShipGroups.keys)
 
     // MARK:  Load Ships
 
