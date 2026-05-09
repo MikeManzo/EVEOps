@@ -37,6 +37,7 @@ struct CommunityMetaFit {
 struct RecentlyDestroyedEntry: Identifiable {
     let typeId: Int
     let name: String
+    let className: String
     let killCount: Int
     var id: Int { typeId }
 }
@@ -44,6 +45,30 @@ struct RecentlyDestroyedEntry: Identifiable {
 // MARK:  Main View
 
 struct CommunityFittingsView: View {
+
+    static let knownRegions: [(name: String, id: Int)] = [
+        ("Black Rise",    10000069),
+        ("Branch",        10000055),
+        ("Catch",         10000014),
+        ("Delve",         10000060),
+        ("Derelik",       10000001),
+        ("Domain",        10000043),
+        ("Essence",       10000064),
+        ("Fountain",      10000058),
+        ("Genesis",       10000067),
+        ("Heimatar",      10000030),
+        ("Lonetrek",      10000016),
+        ("Metropolis",    10000042),
+        ("Molden Heath",  10000028),
+        ("Providence",    10000047),
+        ("Pure Blind",    10000023),
+        ("Querious",      10000050),
+        ("Sinq Laison",   10000032),
+        ("The Citadel",   10000033),
+        ("The Forge",     10000002),
+        ("Tribute",       10000010),
+    ]
+
     @Environment(AccountManager.self) private var accountManager
     @State private var searchText = ""
     @State private var searchResults: [ESIType] = []
@@ -58,6 +83,13 @@ struct CommunityFittingsView: View {
     @State private var recentlyDestroyed: [RecentlyDestroyedEntry] = []
     @State private var isLoadingRecent = false
     @State private var recentError: String?
+    @State private var selectedRegionId: Int = 10000002
+    @State private var isDetectingRegion = false
+    @State private var regionInitialized = false
+
+    private var currentRegionName: String {
+        CommunityFittingsView.knownRegions.first(where: { $0.id == selectedRegionId })?.name ?? "Region #\(selectedRegionId)"
+    }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -67,8 +99,20 @@ struct CommunityFittingsView: View {
                 .frame(width: 360)
         }
         .task {
-            guard recentlyDestroyed.isEmpty && !isLoadingRecent else { return }
-            await loadRecentlyDestroyed()
+            guard !regionInitialized else { return }
+            isDetectingRegion = true
+            await detectCharacterRegion()
+            isDetectingRegion = false
+            regionInitialized = true
+            await loadRecentlyDestroyed(regionId: selectedRegionId)
+        }
+        .onChange(of: selectedRegionId) { _, newId in
+            guard regionInitialized else { return }
+            Task {
+                recentlyDestroyed = []
+                recentError = nil
+                await loadRecentlyDestroyed(regionId: newId)
+            }
         }
         .task(id: selectedTypeId) {
             guard let id = selectedTypeId else { return }
@@ -148,9 +192,26 @@ struct CommunityFittingsView: View {
                                 .font(.caption.bold())
                                 .foregroundStyle(.orange)
                             Spacer()
-                            Text("Forge \u{00B7} Domain")
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
+                            if isDetectingRegion {
+                                ProgressView().controlSize(.mini)
+                            } else {
+                                Menu {
+                                    ForEach(CommunityFittingsView.knownRegions, id: \.id) { region in
+                                        Button(region.name) { selectedRegionId = region.id }
+                                    }
+                                } label: {
+                                    HStack(spacing: 3) {
+                                        Text(currentRegionName)
+                                            .font(.caption2)
+                                            .foregroundStyle(.secondary)
+                                        Image(systemName: "chevron.up.chevron.down")
+                                            .font(.system(size: 8))
+                                            .foregroundStyle(.tertiary)
+                                    }
+                                }
+                                .menuStyle(.borderlessButton)
+                                .fixedSize()
+                            }
                         }
                         .padding(.horizontal, 10)
                         .padding(.vertical, 6)
@@ -266,13 +327,25 @@ struct CommunityFittingsView: View {
         isSearching = false
     }
 
-    // MARK:  Recently Destroyed
+    // Mark:  Region Detection
 
-    private func loadRecentlyDestroyed() async {
+    private func detectCharacterRegion() async {
+        guard let account = accountManager.selectedAccount,
+              let token = try? await accountManager.validToken(for: account) else { return }
+        guard let location: ESICharacterLocation = try? await ESIClient.shared.fetch(
+            "/characters/\(account.characterID)/location/", token: token) else { return }
+        guard let system = await UniverseCache.shared.solarSystem(id: location.solarSystemId) else { return }
+        guard let constellation = await UniverseCache.shared.constellation(id: system.constellationId) else { return }
+        selectedRegionId = constellation.regionId
+    }
+
+    // Mark:  Recently Destroyed
+
+    private func loadRecentlyDestroyed(regionId: Int) async {
         isLoadingRecent = true
         recentError = nil
         do {
-            let refs = try await ZKillboardClient.shared.fetchRecentKillRefs()
+            let refs = try await ZKillboardClient.shared.fetchRecentKillRefs(regionId: regionId)
             guard !refs.isEmpty else {
                 recentError = "zKillboard returned no recent kills."
                 isLoadingRecent = false
@@ -307,7 +380,8 @@ struct CommunityFittingsView: View {
             recentlyDestroyed = counts.compactMap { typeId, count -> RecentlyDestroyedEntry? in
                 guard let t = types[typeId],
                       CharacterFittingsView.eveShipGroupIds.contains(t.groupId) else { return nil }
-                return RecentlyDestroyedEntry(typeId: typeId, name: t.name, killCount: count)
+                let className = CharacterFittingsView.eveShipGroups[t.groupId] ?? "Unknown"
+                return RecentlyDestroyedEntry(typeId: typeId, name: t.name, className: className, killCount: count)
             }
             .sorted { $0.killCount > $1.killCount }
 
@@ -492,8 +566,13 @@ struct RecentlyDestroyedRow: View {
             .clipShape(RoundedRectangle(cornerRadius: 10))
             .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.white.opacity(0.08), lineWidth: 0.5))
 
-            Text(entry.name)
-                .font(.title3)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(entry.name)
+                    .font(.title3)
+                Text(entry.className)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
 
             Spacer()
 
@@ -512,6 +591,9 @@ struct CommunityFitDetailPane: View {
     let typeNames: [Int: String]
 
     private let slotOrder = ["High Slots", "Med Slots", "Low Slots", "Rig Slots", "Subsystems", "Drone Bay", "Fighter Bay"]
+    @AppStorage("aiInsightCommunityFittings") private var aiInsightCommunityFittings = true
+    @State private var showFrequencyInfo = false
+    @State private var showAttackerInfo = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -583,7 +665,8 @@ struct CommunityFitDetailPane: View {
                             FittingAIInsightCard(
                                 shipName: fit.shipTypeName,
                                 shipClass: fit.shipClassName,
-                                slotModules: communitySlotSummary()
+                                slotModules: communitySlotSummary(),
+                                featureEnabled: aiInsightCommunityFittings
                             )
                         }
 
@@ -599,13 +682,26 @@ struct CommunityFitDetailPane: View {
                                     }
                                 }
                             } label: {
-                                Label("Common Attackers", systemImage: "scope")
-                                    .font(.caption.bold())
-                                    .foregroundStyle(.red)
+                                HStack {
+                                    Label("Common Attackers", systemImage: "scope")
+                                        .font(.caption.bold())
+                                        .foregroundStyle(.red)
+                                    Spacer()
+                                    Button { showAttackerInfo = true } label: {
+                                        Image(systemName: "info.circle")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .popover(isPresented: $showAttackerInfo, arrowEdge: .trailing) {
+                                        attackerLegend
+                                    }
+                                }
                             }
                         }
 
                         let grouped = Dictionary(grouping: fit.modules, by: \.slotCategory)
+                        let firstSlot = slotOrder.first(where: { grouped[$0] != nil })
                         ForEach(slotOrder.filter { grouped[$0] != nil }, id: \.self) { slot in
                             GroupBox {
                                 VStack(spacing: 4) {
@@ -614,16 +710,73 @@ struct CommunityFitDetailPane: View {
                                     }
                                 }
                             } label: {
-                                Label(slot, systemImage: slotIcon(slot))
-                                    .font(.caption.bold())
-                                    .foregroundStyle(slotColor(slot))
+                                HStack {
+                                    Label(slot, systemImage: slotIcon(slot))
+                                        .font(.caption.bold())
+                                        .foregroundStyle(slotColor(slot))
+                                    if slot == firstSlot {
+                                        Spacer()
+                                        Button { showFrequencyInfo = true } label: {
+                                            Image(systemName: "info.circle")
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                        .buttonStyle(.plain)
+                                        .popover(isPresented: $showFrequencyInfo, arrowEdge: .trailing) {
+                                            frequencyLegend
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
                     .padding(12)
+                    .padding(.trailing, 8)
                 }
             }
         }
+    }
+
+    private var attackerLegend: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Attacker Frequency")
+                .font(.caption.bold())
+            Text("% = this hull appeared as an attacker\nin that share of the sampled kills.")
+                .font(.caption)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("Only hulls appearing in ≥10% of kills are shown.\nTop 10 displayed.")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(12)
+        .frame(maxWidth: 220)
+    }
+
+    private var frequencyLegend: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Frequency Key")
+                .font(.caption.bold())
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(spacing: 6) {
+                    Circle().fill(Color.green).frame(width: 8, height: 8)
+                    Text("≥75% — Core to the role")
+                }
+                HStack(spacing: 6) {
+                    Circle().fill(Color.yellow).frame(width: 8, height: 8)
+                    Text("50–74% — Common")
+                }
+                HStack(spacing: 6) {
+                    Circle().fill(Color.orange).frame(width: 8, height: 8)
+                    Text("20–49% — Situational")
+                }
+            }
+            .font(.caption)
+            Text("Modules below 20% are excluded.")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .padding(12)
     }
 
     private func communitySlotSummary() -> [(category: String, names: [String])] {

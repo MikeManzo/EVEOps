@@ -50,28 +50,14 @@ actor ZKillboardClient {
         session = URLSession(configuration: config)
     }
 
-    /// Fetches recent kills from active PvP regions (The Forge + Domain) concurrently.
-    /// zKillboard requires an entity filter — bare /api/kills/ is not permitted.
-    func fetchRecentKillRefs() async throws -> [ZKBRef] {
-        // 10000002 = The Forge (Jita), 10000043 = Domain (Amarr) — both confirmed active
-        let regionIds = [10000002, 10000043]
-        return try await withThrowingTaskGroup(of: [ZKBRef].self) { group in
-            for regionId in regionIds {
-                group.addTask {
-                    let decoder = JSONDecoder()
-                    decoder.keyDecodingStrategy = .convertFromSnakeCase
-                    let url = URL(string: "https://zkillboard.com/api/kills/regionID/\(regionId)/page/1/")!
-                    let (data, response) = try await self.session.data(for: URLRequest(url: url))
-                    guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { return [] }
-                    return (try? decoder.decode([ZKBRef].self, from: data)) ?? []
-                }
-            }
-            var all: [ZKBRef] = []
-            for try await refs in group { all.append(contentsOf: refs) }
-            // Deduplicate in case the same kill appears in both regions
-            var seen = Set<Int>()
-            return all.filter { seen.insert($0.killmailId).inserted }
-        }
+    /// Fetches the first page of recent kills for a given region from zKillboard.
+    func fetchRecentKillRefs(regionId: Int) async throws -> [ZKBRef] {
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let url = URL(string: "https://zkillboard.com/api/kills/regionID/\(regionId)/page/1/")!
+        let (data, response) = try await session.data(for: URLRequest(url: url))
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { return [] }
+        return (try? decoder.decode([ZKBRef].self, from: data)) ?? []
     }
 
     /// Fetches the first page of loss refs for a ship type from zKillboard (community losses).

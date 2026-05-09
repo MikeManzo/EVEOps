@@ -1078,14 +1078,15 @@ private struct IntelligenceTabContent: View {
     @Binding var aiInsightsEnabled: Bool
     private var model: SystemLanguageModel { .default }
 
-    @AppStorage("aiInsightFinances")  private var aiInsightFinances  = true
-    @AppStorage("aiInsightSkills")    private var aiInsightSkills    = true
-    @AppStorage("aiInsightKillmails") private var aiInsightKillmails = true
-    @AppStorage("aiInsightIndustry")  private var aiInsightIndustry  = true
-    @AppStorage("aiInsightAssets")    private var aiInsightAssets    = true
-    @AppStorage("aiInsightFittings")  private var aiInsightFittings  = true
-    @AppStorage("aiInsightMarket")    private var aiInsightMarket    = true
-    @AppStorage("aiInsightClones")    private var aiInsightClones    = true
+    @AppStorage("aiInsightFinances")          private var aiInsightFinances          = true
+    @AppStorage("aiInsightSkills")            private var aiInsightSkills            = true
+    @AppStorage("aiInsightKillmails")         private var aiInsightKillmails         = true
+    @AppStorage("aiInsightIndustry")          private var aiInsightIndustry          = true
+    @AppStorage("aiInsightAssets")            private var aiInsightAssets            = true
+    @AppStorage("aiInsightFittings")          private var aiInsightFittings          = true
+    @AppStorage("aiInsightCommunityFittings") private var aiInsightCommunityFittings = true
+    @AppStorage("aiInsightMarket")            private var aiInsightMarket            = true
+    @AppStorage("aiInsightClones")            private var aiInsightClones            = true
 
     var body: some View {
         Form {
@@ -1170,6 +1171,9 @@ private struct IntelligenceTabContent: View {
                     }
                     Toggle(isOn: $aiInsightFittings) {
                         Label("Fittings", systemImage: "cpu")
+                    }
+                    Toggle(isOn: $aiInsightCommunityFittings) {
+                        Label("Community Fittings", systemImage: "person.2.wave.2")
                     }
                     Toggle(isOn: $aiInsightMarket) {
                         Label("Market Browser", systemImage: "chart.xyaxis.line")

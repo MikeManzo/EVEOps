@@ -900,6 +900,7 @@ struct SavedFittingSlotPane: View {
     let shipName: String
     let shipClass: String
 
+    @AppStorage("aiInsightFittings") private var aiInsightFittings = true
     private let slotOrder = ["High Slots", "Med Slots", "Low Slots", "Rig Slots", "Subsystems", "Drone Bay", "Fighter Bay", "Cargo"]
 
     var body: some View {
@@ -909,7 +910,8 @@ struct SavedFittingSlotPane: View {
                     FittingAIInsightCard(
                         shipName: shipName,
                         shipClass: shipClass,
-                        slotModules: slotSummary()
+                        slotModules: slotSummary(),
+                        featureEnabled: aiInsightFittings
                     )
                 }
                 let grouped = Dictionary(grouping: items) { slotCategory($0.flag) }
@@ -1034,6 +1036,7 @@ struct CurrentFittingPane: View {
     let shipName: String
     let shipClass: String
 
+    @AppStorage("aiInsightFittings") private var aiInsightFittings = true
     private let slotOrder = ["High Slots", "Med Slots", "Low Slots", "Rig Slots", "Subsystems", "Drone Bay", "Fighter Bay", "Cargo"]
 
     var body: some View {
@@ -1043,7 +1046,8 @@ struct CurrentFittingPane: View {
                     FittingAIInsightCard(
                         shipName: shipName,
                         shipClass: shipClass,
-                        slotModules: slotSummary()
+                        slotModules: slotSummary(),
+                        featureEnabled: aiInsightFittings
                     )
                 }
                 let grouped = Dictionary(grouping: modules) { slotCategory($0.locationFlag) }
@@ -1167,9 +1171,9 @@ struct FittingAIInsightCard: View {
     let shipName: String
     let shipClass: String
     let slotModules: [(category: String, names: [String])]
+    var featureEnabled: Bool = true
 
     @AppStorage("aiInsightsEnabled") private var aiInsightsEnabled = false
-    @AppStorage("aiInsightFittings") private var aiInsightFittings = true
     @State private var insight: FittingInsight?
     @State private var isGenerating = false
     @State private var generationError: String?
@@ -1178,7 +1182,7 @@ struct FittingAIInsightCard: View {
     private var model: SystemLanguageModel { .default }
 
     var body: some View {
-        if aiInsightsEnabled && aiInsightFittings, case .available = model.availability {
+        if aiInsightsEnabled && featureEnabled, case .available = model.availability {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
                     Label("AI Insight", systemImage: "sparkles")
