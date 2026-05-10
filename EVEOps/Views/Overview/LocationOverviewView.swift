@@ -445,7 +445,7 @@ struct LocationOverviewView: View {
     }
 
     private func starStat(label: String, value: String) -> some View {
-        HStack(spacing: 4) {
+        VStack(alignment: .center, spacing: 2) {
             Text(label)
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
@@ -524,19 +524,22 @@ struct LocationOverviewView: View {
                                         .foregroundStyle(.secondary)
                                 }
                             }
-                            VStack(alignment: .leading, spacing: 2) {
-                                if let temp = info.starTemperature {
-                                    starStat(label: "Temp", value: "\(temp.formatted()) K")
-                                }
-                                if let radius = info.starRadius {
-                                    starStat(label: "Radius", value: formatLarge(Double(radius)) + " km")
-                                }
-                                if let lum = info.starLuminosity {
-                                    starStat(label: "Luminosity", value: String(format: "%.4f L☉", lum))
-                                }
-                                if let age = info.starAge {
-                                    starStat(label: "Age", value: formatLarge(Double(age)) + " yrs")
-                                }
+                        }
+
+                        Spacer()
+
+                        HStack(spacing: 16) {
+                            if let temp = info.starTemperature {
+                                starStat(label: "Temp", value: "\(temp.formatted()) K")
+                            }
+                            if let radius = info.starRadius {
+                                starStat(label: "Radius", value: formatLarge(Double(radius)) + " km")
+                            }
+                            if let lum = info.starLuminosity {
+                                starStat(label: "Luminosity", value: String(format: "%.4f L☉", lum))
+                            }
+                            if let age = info.starAge {
+                                starStat(label: "Age", value: formatLarge(Double(age)) + " yrs")
                             }
                         }
                     }

@@ -254,10 +254,12 @@ struct DashboardView: View {
                 "/characters/\(account.characterID)/planets/", token: token
             )
 
-            let (wallet, queue, skills, loc, ship, online, contracts, industry, colonies) = try await (
-                fetchWallet, fetchQueue, fetchSkills, fetchLocation, fetchShip, fetchOnline,
-                fetchContracts, fetchIndustry, fetchColonies
+            let (wallet, queue, skills, loc, ship, online) = try await (
+                fetchWallet, fetchQueue, fetchSkills, fetchLocation, fetchShip, fetchOnline
             )
+            let contracts = (try? await fetchContracts) ?? []
+            let industry  = (try? await fetchIndustry) ?? []
+            let colonies  = (try? await fetchColonies) ?? []
 
             summary.wallet = wallet
             summary.totalSP = skills.totalSp

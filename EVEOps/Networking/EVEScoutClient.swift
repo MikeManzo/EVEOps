@@ -37,7 +37,7 @@ struct EVEScoutConnection: Identifiable, Sendable {
 enum EVEScoutShipSize: String, Sendable {
     case small, medium, large, xl, unknown
 
-    init(raw: String?) {
+    nonisolated init(raw: String?) {
         switch raw?.lowercased() {
         case "small":  self = .small
         case "medium": self = .medium
@@ -142,7 +142,7 @@ actor EVEScoutClient {
             let inSignature: String?
         }
 
-        var decoder = JSONDecoder()
+        let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         guard let entries = try? decoder.decode([Entry].self, from: data) else { return [] }
 

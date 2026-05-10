@@ -25,7 +25,7 @@ struct AssetDetailView: View {
     @State private var averagePrice: Double?
     @State private var orderSystemNames: [Int: String] = [:]
     @State private var showMarketPopover = false
-    @State private var janiceAppraisal: JaniceAppraisal?
+    @State private var fuzzworkPrice: FuzzworkPrice?
     @State private var isAppraising = false
 
     var body: some View {
@@ -64,7 +64,7 @@ struct AssetDetailView: View {
         }
         .frame(minWidth: 280, idealWidth: 320)
         .task(id: asset.typeId) { await loadTypeInfo() }
-        .task(id: asset.typeId) { await loadJaniceAppraisal() }
+        .task(id: asset.typeId) { await loadMarketPrice() }
     }
 
     // MARK:  Header
@@ -327,7 +327,7 @@ struct AssetDetailView: View {
         return String(format: "%.0f", value)
     }
 
-    // MARK:  Janice Appraisal
+    // MARK:  Market Appraisal
 
     private var janiceSection: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -341,13 +341,14 @@ struct AssetDetailView: View {
                     Text("Fetching appraisal…")
                         .font(.caption).foregroundStyle(.secondary)
                 }
-            } else if let item = janiceAppraisal?.items.first {
-                infoRow(label: "Sell (immediate)", value: EVEFormatters.formatISK(item.buyTotal))
-                infoRow(label: "Sell (listing)", value: EVEFormatters.formatISK(item.sellTotal))
+            } else if let price = fuzzworkPrice {
+                let qty = Double(asset.quantity)
+                infoRow(label: "Sell (immediate)", value: EVEFormatters.formatISK(price.buyMax * qty))
+                infoRow(label: "Sell (listing)", value: EVEFormatters.formatISK(price.sellMin * qty))
                 if asset.quantity > 1 {
-                    infoRow(label: "Per unit", value: EVEFormatters.formatISK(item.buyPerUnit))
+                    infoRow(label: "Per unit", value: EVEFormatters.formatISK(price.buyMax))
                 }
-                Text("via Janice · Jita buy orders")
+                Text("via Fuzzwork · Jita buy orders")
                     .font(.caption2).foregroundStyle(.tertiary)
             } else {
                 Text("No appraisal available")
@@ -356,11 +357,10 @@ struct AssetDetailView: View {
         }
     }
 
-    private func loadJaniceAppraisal() async {
-        janiceAppraisal = nil
+    private func loadMarketPrice() async {
+        fuzzworkPrice = nil
         isAppraising = true
-        let pasteText = "\(asset.quantity) \(asset.typeName)"
-        janiceAppraisal = try? await JaniceClient.shared.appraise(pasteText)
+        fuzzworkPrice = try? await FuzzworkClient.shared.prices(typeIds: [asset.typeId])[asset.typeId]
         isAppraising = false
     }
 

@@ -17,6 +17,7 @@ import UserNotifications
 final class AppUpdater: NSObject {
     @ObservationIgnored private var controller: SPUStandardUpdaterController!
     @ObservationIgnored private var kvoToken: NSKeyValueObservation?
+    @ObservationIgnored private var hasCheckedOnLaunch = false
 
     var updater: SPUUpdater { controller.updater }
     var canCheckForUpdates = false
@@ -42,7 +43,15 @@ final class AppUpdater: NSObject {
 
         kvoToken = controller.updater.observe(\.canCheckForUpdates, options: [.initial, .new]) { [weak self] updater, _ in
             Task { @MainActor [weak self] in
-                self?.canCheckForUpdates = updater.canCheckForUpdates
+                guard let self else { return }
+                let canCheck = updater.canCheckForUpdates
+                self.canCheckForUpdates = canCheck
+                if canCheck && !self.hasCheckedOnLaunch {
+                    self.hasCheckedOnLaunch = true
+                    if updater.automaticallyChecksForUpdates {
+                        updater.checkForUpdatesInBackground()
+                    }
+                }
             }
         }
     }
