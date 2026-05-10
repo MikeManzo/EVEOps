@@ -30,6 +30,12 @@ struct RoutePlannerView: View {
     @State private var errorMessage: String?
     @State private var autopilotMessage: String?
     @State private var isSettingAutopilot = false
+    @State private var theraConnections: [EVEScoutConnection] = []
+    @State private var isLoadingThera = false
+    @State private var theraError: String?
+    @State private var showTheraInfo = false
+    @State private var theraExpanded = true
+    @State private var selectedTheraId: String?
 
     private var canPlot: Bool {
         originSystem != nil && destinationSystem != nil && !isCalculating
@@ -41,10 +47,12 @@ struct RoutePlannerView: View {
                 inputPanel
                 if isCalculating { calculatingView }
                 if !route.isEmpty { routePanel }
+                theraConnectionsPanel
             }
             .padding()
         }
         .navigationTitle("Route Planner")
+        .task { await loadTheraConnections() }
     }
 
     // MARK:  Input Panel
@@ -283,6 +291,154 @@ struct RoutePlannerView: View {
             autopilotMessage = error.localizedDescription
         }
         isSettingAutopilot = false
+    }
+
+    // MARK:  Thera / EVE Scout
+
+    private var theraConnectionsPanel: some View {
+        let routeIds = Set(route.map(\.id))
+        return GroupBox {
+            if theraExpanded {
+                VStack(alignment: .leading, spacing: 6) {
+                    if isLoadingThera {
+                        HStack(spacing: 8) {
+                            ProgressView().controlSize(.small)
+                            Text("Loading connections…")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    } else if let err = theraError {
+                        HStack(spacing: 6) {
+                            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                            Text(err).font(.caption).foregroundStyle(.secondary)
+                        }
+                    } else if theraConnections.isEmpty {
+                        Text("No active Thera or Pochven connections found.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    } else {
+                        let sorted = theraConnections.sorted { a, b in
+                            let aOnRoute = routeIds.contains(a.destinationSystemId)
+                            let bOnRoute = routeIds.contains(b.destinationSystemId)
+                            if aOnRoute != bOnRoute { return aOnRoute }
+                            return a.destinationSecurity < b.destinationSecurity
+                        }
+                        LazyVStack(spacing: 2) {
+                            ForEach(sorted) { conn in
+                                TheraConnectionRow(
+                                    connection: conn,
+                                    isOnRoute: routeIds.contains(conn.destinationSystemId),
+                                    isSelected: selectedTheraId == conn.id,
+                                    onTap: {
+                                        withAnimation(.easeInOut(duration: 0.15)) {
+                                            selectedTheraId = selectedTheraId == conn.id ? nil : conn.id
+                                        }
+                                    },
+                                    onSetAsOrigin: {
+                                        originSystem = theraSelectedSystem(conn)
+                                        selectedTheraId = nil
+                                    },
+                                    onSetAsDestination: {
+                                        destinationSystem = theraSelectedSystem(conn)
+                                        selectedTheraId = nil
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        } label: {
+            HStack {
+                Label("Thera & Pochven Connections", systemImage: "waveform.path.ecg.rectangle")
+                Button {
+                    showTheraInfo.toggle()
+                } label: {
+                    Image(systemName: "info.circle")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .popover(isPresented: $showTheraInfo, arrowEdge: .top) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Thera & Pochven Connections")
+                            .font(.headline)
+                        Text("Thera is a wormhole system with dozens of daily connections to K-space. Pochven is Triglavian-controlled space with its own wormhole network. Both offer shortcuts across the galaxy — but wormholes are unstable and expire.")
+                            .font(.callout)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Divider()
+                        VStack(alignment: .leading, spacing: 6) {
+                            infoRow(icon: "circle.fill", color: eveSecurityColor(0.9), text: "Highsec destination")
+                            infoRow(icon: "circle.fill", color: eveSecurityColor(0.3), text: "Lowsec destination")
+                            infoRow(icon: "circle.fill", color: eveSecurityColor(-0.1), text: "Nullsec destination")
+                            infoRow(icon: "circle.fill", color: .purple, text: "Pochven destination")
+                            infoRow(icon: "checkmark.seal.fill", color: .green, text: "ON ROUTE — K-space end is on your plotted route")
+                            infoRow(icon: "exclamationmark.circle.fill", color: .red, text: "Near end of life (< 2 hours remaining)")
+                        }
+                        .font(.caption)
+                        Divider()
+                        HStack(spacing: 4) {
+                            Image(systemName: "antenna.radiowaves.left.and.right")
+                                .foregroundStyle(.secondary)
+                            Text("Connection data provided by [EVE Scout](https://www.eve-scout.com)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(16)
+                    .frame(width: 320)
+                }
+                Spacer()
+                if !theraConnections.isEmpty {
+                    Text("\(theraConnections.count) active")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Button {
+                    Task { await loadTheraConnections(forceRefresh: true) }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.caption2).foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Refresh connections")
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) { theraExpanded.toggle() }
+                } label: {
+                    Image(systemName: theraExpanded ? "chevron.down" : "chevron.right")
+                        .font(.caption2).foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help(theraExpanded ? "Collapse" : "Expand")
+            }
+        }
+    }
+
+    private func loadTheraConnections(forceRefresh: Bool = false) async {
+        guard !isLoadingThera else { return }
+        isLoadingThera = true
+        theraError = nil
+        do {
+            theraConnections = try await EVEScoutClient.shared.fetchConnections(forceRefresh: forceRefresh)
+        } catch {
+            theraError = "Could not load: \(error.localizedDescription)"
+        }
+        isLoadingThera = false
+    }
+
+    private func infoRow(icon: String, color: Color, text: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .foregroundStyle(color)
+                .frame(width: 14)
+            Text(text).foregroundStyle(.primary)
+        }
+    }
+
+    private func theraSelectedSystem(_ conn: EVEScoutConnection) -> SelectedSystem {
+        let sec: Double
+        switch conn.destinationSecurity.lowercased() {
+        case "highsec": sec = 0.9
+        case "lowsec":  sec = 0.3
+        default:        sec = -0.1
+        }
+        return SelectedSystem(id: conn.destinationSystemId, name: conn.destinationSystemName, securityStatus: sec)
     }
 
     // MARK:  Route Calculation
@@ -671,6 +827,120 @@ struct RouteSystemRow: View {
         }
         .frame(minHeight: 36)
         .background(isFirst ? Color.blue.opacity(0.05) : isLast ? Color.green.opacity(0.05) : Color.clear)
+    }
+}
+
+// MARK:  Thera Connection Row
+
+private struct TheraConnectionRow: View {
+    let connection: EVEScoutConnection
+    let isOnRoute: Bool
+    let isSelected: Bool
+    let onTap: () -> Void
+    let onSetAsOrigin: () -> Void
+    let onSetAsDestination: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 10) {
+                Circle()
+                    .fill(destinationColor)
+                    .frame(width: 8, height: 8)
+
+                VStack(alignment: .leading, spacing: 1) {
+                    HStack(spacing: 6) {
+                        Text(connection.destinationSystemName)
+                            .font(.caption.bold())
+                        if isOnRoute {
+                            Text("ON ROUTE")
+                                .font(.system(size: 9).bold())
+                                .foregroundStyle(.green)
+                                .padding(.horizontal, 5).padding(.vertical, 2)
+                                .background(.green.opacity(0.15), in: Capsule())
+                        }
+                        if connection.isNearEOL {
+                            Image(systemName: "exclamationmark.circle.fill")
+                                .foregroundStyle(.red).font(.system(size: 10))
+                                .help("Near end of life")
+                        }
+                    }
+                    Text(connection.destinationRegionName)
+                        .font(.system(size: 10)).foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                HStack(spacing: 6) {
+                    if let eol = connection.estimatedEol {
+                        Text(eol)
+                            .font(.system(size: 10, design: .monospaced))
+                            .foregroundStyle(connection.isNearEOL ? Color.red : Color.secondary)
+                    }
+
+                    Text(connection.maxShipSize.label)
+                        .font(.system(size: 10).bold())
+                        .padding(.horizontal, 5).padding(.vertical, 2)
+                        .background(.quaternary, in: RoundedRectangle(cornerRadius: 4))
+                        .help(connection.maxShipSize.tooltip)
+
+                    Circle()
+                        .fill(massColor)
+                        .frame(width: 7, height: 7)
+                        .help(connection.massStatus.tooltip)
+
+                    Text(connection.signatureId)
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+
+            if isSelected {
+                HStack(spacing: 8) {
+                    Spacer()
+                    Button("Set as Origin") { onSetAsOrigin() }
+                        .buttonStyle(.bordered).controlSize(.small)
+                    Button("Set as Destination") { onSetAsDestination() }
+                        .buttonStyle(.borderedProminent).controlSize(.small)
+                }
+                .padding(.horizontal, 8)
+                .padding(.bottom, 6)
+            }
+        }
+        .background(
+            isSelected ? Color.accentColor.opacity(0.1) : isOnRoute ? Color.green.opacity(0.06) : Color.clear,
+            in: RoundedRectangle(cornerRadius: 6)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 6)
+                .strokeBorder(isSelected ? Color.accentColor.opacity(0.3) : Color.clear, lineWidth: 1)
+        )
+        .contentShape(Rectangle())
+        .onTapGesture { onTap() }
+        .contextMenu {
+            Button("Set as Route Origin") { onSetAsOrigin() }
+            Button("Set as Destination") { onSetAsDestination() }
+        }
+    }
+
+    private var destinationColor: Color {
+        switch connection.destinationSecurity.lowercased() {
+        case "highsec": return eveSecurityColor(0.9)
+        case "lowsec":  return eveSecurityColor(0.3)
+        case "nullsec": return eveSecurityColor(-0.1)
+        case "pochven": return .purple
+        default:        return .gray
+        }
+    }
+
+    private var massColor: Color {
+        switch connection.massStatus {
+        case .stable:       return .green
+        case .destabilized: return .yellow
+        case .critical:     return .red
+        case .unknown:      return .gray
+        }
     }
 }
 

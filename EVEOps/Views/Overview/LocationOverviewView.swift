@@ -20,6 +20,7 @@ struct LocationOverviewView: View {
     @State private var lastRefresh: Date?
     @State private var refreshTick = 0
     @State private var stationsExpanded: [Int: Bool] = [:]
+    @State private var systemActivity: [Int: SystemActivityData] = [:]
 
     var body: some View {
         LoadingStateView(isLoading: isLoading, error: error, isEmpty: locations.isEmpty, emptyMessage: "No location data") {
@@ -43,15 +44,22 @@ struct LocationOverviewView: View {
             }
         }
         .task {
-            if buildFromPrefetcher() { return }
+            if buildFromPrefetcher() {
+                Task { await loadSystemActivity() }
+                return
+            }
             isLoading = true
-            await loadLocations()
+            async let loc: Void = loadLocations()
+            async let act: Void = loadSystemActivity()
+            _ = await (loc, act)
         }
         .task(id: pollInterval) {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(pollInterval))
                 refreshTick += 1
-                await loadLocations()
+                async let loc: Void = loadLocations()
+                async let act: Void = loadSystemActivity()
+                _ = await (loc, act)
             }
         }
     }
@@ -280,17 +288,15 @@ struct LocationOverviewView: View {
                     systemStationsSection(info.systemStations, characterID: info.characterID)
                 }
 
-                // Star info
-                if info.starName != nil {
+                // Star + Connected Systems (combined row)
+                if info.starName != nil || !info.nearbySystems.isEmpty {
                     Divider()
-                    starInfoSection(info)
+                    starAndConnectionsSection(info)
                 }
 
-                // Nearby systems
-                if !info.nearbySystems.isEmpty {
-                    Divider()
-                    nearbySystemsSection(info)
-                }
+                // System activity (last hour, from ESI)
+                Divider()
+                systemActivityRow(systemId: info.systemId)
 
                 // Constellation star map
                 Divider()
@@ -438,68 +444,6 @@ struct LocationOverviewView: View {
         }
     }
 
-    // MARK:  Star Info
-
-    private func starInfoSection(_ info: CharacterLocationInfo) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: "sun.max.fill")
-                    .foregroundStyle(starColor(info.starSpectralClass))
-                Text("Star")
-                    .font(.subheadline.bold())
-            }
-
-            HStack(spacing: 16) {
-                // Star icon glow
-                ZStack {
-                    Circle()
-                        .fill(starColor(info.starSpectralClass).opacity(0.2))
-                        .frame(width: 48, height: 48)
-                    Circle()
-                        .fill(starColor(info.starSpectralClass))
-                        .frame(width: 28, height: 28)
-                }
-
-                VStack(alignment: .leading, spacing: 4) {
-                    if let name = info.starName {
-                        Text(name)
-                            .font(.body.bold())
-                    }
-                    if let spectral = info.starSpectralClass {
-                        HStack(spacing: 6) {
-                            Text("Class \(spectral)")
-                                .font(.caption.bold())
-                                .foregroundStyle(starColor(spectral))
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(starColor(spectral).opacity(0.15), in: Capsule())
-                            Text(spectralDescription(spectral))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-
-                Spacer()
-
-                VStack(alignment: .trailing, spacing: 4) {
-                    if let temp = info.starTemperature {
-                        starStat(label: "Temperature", value: "\(temp.formatted()) K")
-                    }
-                    if let radius = info.starRadius {
-                        starStat(label: "Radius", value: formatLarge(Double(radius)) + " km")
-                    }
-                    if let lum = info.starLuminosity {
-                        starStat(label: "Luminosity", value: String(format: "%.4f L☉", lum))
-                    }
-                    if let age = info.starAge {
-                        starStat(label: "Age", value: formatLarge(Double(age)) + " yrs")
-                    }
-                }
-            }
-        }
-    }
-
     private func starStat(label: String, value: String) -> some View {
         HStack(spacing: 4) {
             Text(label)
@@ -538,49 +482,176 @@ struct LocationOverviewView: View {
         }
     }
 
-    // MARK:  Nearby Systems
+    // MARK:  Star + Connected Systems (combined)
 
-    private func nearbySystemsSection(_ info: CharacterLocationInfo) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: "arrow.triangle.branch")
-                    .foregroundStyle(.purple)
-                Text("Connected Systems")
-                    .font(.subheadline.bold())
-                Text("(\(info.nearbySystems.count) gate\(info.nearbySystems.count == 1 ? "" : "s"))")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            let columns = [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())]
-            LazyVGrid(columns: columns, alignment: .leading, spacing: 6) {
-                ForEach(info.nearbySystems, id: \.systemId) { sys in
+    private func starAndConnectionsSection(_ info: CharacterLocationInfo) -> some View {
+        HStack(alignment: .top, spacing: 16) {
+            // Left: Star info
+            if info.starName != nil {
+                VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 6) {
-                        Circle()
-                            .fill(securityColor(sys.securityStatus))
-                            .frame(width: 8, height: 8)
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(sys.name)
-                                .font(.caption.bold())
-                                .lineLimit(1)
-                            HStack(spacing: 4) {
-                                Text(String(format: "%.1f", sys.securityStatus))
-                                    .font(.caption2.monospacedDigit())
-                                    .foregroundStyle(securityColor(sys.securityStatus))
-                                if sys.isExternal {
-                                    Text("ext")
-                                        .font(.system(size: 8))
-                                        .foregroundStyle(.orange)
-                                        .padding(.horizontal, 3)
-                                        .padding(.vertical, 1)
-                                        .background(.orange.opacity(0.15), in: Capsule())
+                        Image(systemName: "sun.max.fill")
+                            .foregroundStyle(starColor(info.starSpectralClass))
+                        Text("Star")
+                            .font(.subheadline.bold())
+                    }
+
+                    HStack(spacing: 12) {
+                        ZStack {
+                            Circle()
+                                .fill(starColor(info.starSpectralClass).opacity(0.2))
+                                .frame(width: 44, height: 44)
+                            Circle()
+                                .fill(starColor(info.starSpectralClass))
+                                .frame(width: 24, height: 24)
+                        }
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            if let name = info.starName {
+                                Text(name)
+                                    .font(.body.bold())
+                            }
+                            if let spectral = info.starSpectralClass {
+                                HStack(spacing: 6) {
+                                    Text("Class \(spectral)")
+                                        .font(.caption.bold())
+                                        .foregroundStyle(starColor(spectral))
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(starColor(spectral).opacity(0.15), in: Capsule())
+                                    Text(spectralDescription(spectral))
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            VStack(alignment: .leading, spacing: 2) {
+                                if let temp = info.starTemperature {
+                                    starStat(label: "Temp", value: "\(temp.formatted()) K")
+                                }
+                                if let radius = info.starRadius {
+                                    starStat(label: "Radius", value: formatLarge(Double(radius)) + " km")
+                                }
+                                if let lum = info.starLuminosity {
+                                    starStat(label: "Luminosity", value: String(format: "%.4f L☉", lum))
+                                }
+                                if let age = info.starAge {
+                                    starStat(label: "Age", value: formatLarge(Double(age)) + " yrs")
                                 }
                             }
                         }
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            if info.starName != nil && !info.nearbySystems.isEmpty {
+                Divider()
+            }
+
+            // Right: Connected systems
+            if !info.nearbySystems.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.triangle.branch")
+                            .foregroundStyle(.purple)
+                        Text("Connected Systems")
+                            .font(.subheadline.bold())
+                        Text("(\(info.nearbySystems.count) gate\(info.nearbySystems.count == 1 ? "" : "s"))")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    let columns = [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())]
+                    LazyVGrid(columns: columns, alignment: .leading, spacing: 6) {
+                        ForEach(info.nearbySystems, id: \.systemId) { sys in
+                            HStack(spacing: 6) {
+                                Circle()
+                                    .fill(securityColor(sys.securityStatus))
+                                    .frame(width: 8, height: 8)
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(sys.name)
+                                        .font(.caption.bold())
+                                        .lineLimit(1)
+                                    HStack(spacing: 4) {
+                                        Text(String(format: "%.1f", sys.securityStatus))
+                                            .font(.caption2.monospacedDigit())
+                                            .foregroundStyle(securityColor(sys.securityStatus))
+                                        if sys.isExternal {
+                                            Text("ext")
+                                                .font(.system(size: 8))
+                                                .foregroundStyle(.orange)
+                                                .padding(.horizontal, 3)
+                                                .padding(.vertical, 1)
+                                                .background(.orange.opacity(0.15), in: Capsule())
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
+    }
+
+    // MARK:  System Activity
+
+    private func systemActivityRow(systemId: Int) -> some View {
+        HStack(spacing: 12) {
+            HStack(spacing: 4) {
+                Image(systemName: "chart.bar.fill")
+                    .font(.caption2)
+                    .foregroundStyle(.cyan)
+                Text("Last Hour")
+                    .font(.caption.bold())
+                    .foregroundStyle(.secondary)
+            }
+
+            if let activity = systemActivity[systemId] {
+                let hasPlayerKills = activity.shipKills > 0 || activity.podKills > 0
+                if !hasPlayerKills && activity.npcKills == 0 {
+                    Text("Quiet")
+                        .font(.caption)
+                        .foregroundStyle(.green)
+                        .italic()
+                    if activity.jumps > 0 {
+                        activityPill(activity.jumps, "jumps", color: .blue)
+                    }
+                } else {
+                    if activity.shipKills > 0 {
+                        activityPill(activity.shipKills, activity.shipKills == 1 ? "ship kill" : "ship kills", color: .red)
+                    }
+                    if activity.podKills > 0 {
+                        activityPill(activity.podKills, activity.podKills == 1 ? "pod" : "pods", color: .orange)
+                    }
+                    if activity.npcKills > 0 {
+                        activityPill(activity.npcKills, "NPC", color: .secondary)
+                    }
+                    if activity.jumps > 0 {
+                        activityPill(activity.jumps, "jumps", color: .blue)
+                    }
+                }
+            } else {
+                ProgressView().controlSize(.mini)
+            }
+
+            Spacer()
+        }
+    }
+
+    private func activityPill(_ value: Int, _ label: String, color: Color) -> some View {
+        HStack(spacing: 3) {
+            Text("\(value)")
+                .font(.caption.bold().monospacedDigit())
+                .foregroundStyle(color)
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 2)
+        .background(color.opacity(0.12), in: Capsule())
     }
 
     // MARK:  Helpers
@@ -867,6 +938,30 @@ struct LocationOverviewView: View {
         lastRefresh = Date()
         isLoading = false
     }
+
+    // MARK:  System Activity Loading
+
+    private func loadSystemActivity() async {
+        async let fetchKills: [ESISystemKills] = (try? await ESIClient.shared.fetch("/universe/system_kills/")) ?? []
+        async let fetchJumps: [ESISystemJumps] = (try? await ESIClient.shared.fetch("/universe/system_jumps/")) ?? []
+        let (kills, jumps) = await (fetchKills, fetchJumps)
+
+        let killsMap = Dictionary(kills.map { ($0.systemId, $0) }, uniquingKeysWith: { a, _ in a })
+        let jumpsMap = Dictionary(jumps.map { ($0.systemId, $0.shipJumps) }, uniquingKeysWith: { a, _ in a })
+
+        var map: [Int: SystemActivityData] = [:]
+        let allIds = Set(kills.map(\.systemId)).union(Set(jumps.map(\.systemId)))
+        for id in allIds {
+            let k = killsMap[id]
+            map[id] = SystemActivityData(
+                shipKills: k?.shipKills ?? 0,
+                podKills:  k?.podKills  ?? 0,
+                npcKills:  k?.npcKills  ?? 0,
+                jumps:     jumpsMap[id] ?? 0
+            )
+        }
+        systemActivity = map
+    }
 }
 
 // MARK:  Data Model
@@ -912,4 +1007,11 @@ struct NearbySystem {
     let name: String
     let securityStatus: Double
     let isExternal: Bool // outside current constellation
+}
+
+struct SystemActivityData {
+    let shipKills: Int
+    let podKills: Int
+    let npcKills: Int
+    let jumps: Int
 }

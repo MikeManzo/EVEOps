@@ -25,6 +25,8 @@ struct AssetDetailView: View {
     @State private var averagePrice: Double?
     @State private var orderSystemNames: [Int: String] = [:]
     @State private var showMarketPopover = false
+    @State private var janiceAppraisal: JaniceAppraisal?
+    @State private var isAppraising = false
 
     var body: some View {
         ScrollView {
@@ -37,6 +39,9 @@ struct AssetDetailView: View {
                     assetInfoSection
 
                     Divider()
+
+                    // Janice appraisal
+                    janiceSection
 
                     // Market value
                     if jitaSellPrice != nil || jitaBuyPrice != nil {
@@ -59,6 +64,7 @@ struct AssetDetailView: View {
         }
         .frame(minWidth: 280, idealWidth: 320)
         .task(id: asset.typeId) { await loadTypeInfo() }
+        .task(id: asset.typeId) { await loadJaniceAppraisal() }
     }
 
     // MARK:  Header
@@ -319,6 +325,43 @@ struct AssetDetailView: View {
             return String(format: "%.1fK", value / 1_000)
         }
         return String(format: "%.0f", value)
+    }
+
+    // MARK:  Janice Appraisal
+
+    private var janiceSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label("Appraisal (Jita)", systemImage: "tag.fill")
+                .font(.subheadline.bold())
+                .foregroundStyle(.secondary)
+
+            if isAppraising {
+                HStack(spacing: 6) {
+                    ProgressView().controlSize(.small)
+                    Text("Fetching appraisal…")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            } else if let item = janiceAppraisal?.items.first {
+                infoRow(label: "Sell (immediate)", value: EVEFormatters.formatISK(item.buyTotal))
+                infoRow(label: "Sell (listing)", value: EVEFormatters.formatISK(item.sellTotal))
+                if asset.quantity > 1 {
+                    infoRow(label: "Per unit", value: EVEFormatters.formatISK(item.buyPerUnit))
+                }
+                Text("via Janice · Jita buy orders")
+                    .font(.caption2).foregroundStyle(.tertiary)
+            } else {
+                Text("No appraisal available")
+                    .font(.caption).foregroundStyle(.tertiary)
+            }
+        }
+    }
+
+    private func loadJaniceAppraisal() async {
+        janiceAppraisal = nil
+        isAppraising = true
+        let pasteText = "\(asset.quantity) \(asset.typeName)"
+        janiceAppraisal = try? await JaniceClient.shared.appraise(pasteText)
+        isAppraising = false
     }
 
     // MARK:  Market Orders Popover

@@ -124,6 +124,7 @@ struct CharacterIndustryGroup {
 struct IndustryJobRow: View {
     let job: ESIIndustryJob
     @State private var blueprintName: String = ""
+    @State private var estimatedValue: Double? = nil
 
     var body: some View {
         HStack {
@@ -156,11 +157,24 @@ struct IndustryJobRow: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+                if let value = estimatedValue {
+                    Text("≈ \(EVEFormatters.formatISKShort(value))")
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(.mint)
+                        .help("Estimated Jita buy-order value · \(job.runs) run\(job.runs == 1 ? "" : "s") · via Fuzzwork")
+                }
             }
         }
         .task {
             if let typeInfo = await UniverseCache.shared.type(id: job.blueprintTypeId) {
                 blueprintName = typeInfo.name
+            }
+        }
+        .task {
+            guard job.activityId == 1, let productTypeId = job.productTypeId else { return }
+            if let prices = try? await FuzzworkClient.shared.prices(typeIds: [productTypeId]),
+               let price = prices[productTypeId] {
+                estimatedValue = price.buyPercentile * Double(job.runs)
             }
         }
     }

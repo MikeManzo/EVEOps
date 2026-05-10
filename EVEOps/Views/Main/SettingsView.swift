@@ -18,20 +18,20 @@ struct SettingsView: View {
         TabView {
             AccountsTab()
                 .tabItem { Label("Accounts", systemImage: "person.2") }
-            NotificationsTab()
-                .tabItem { Label("Notifications", systemImage: "bell") }
             GeneralTab()
                 .tabItem { Label("General", systemImage: "gearshape") }
             AppearanceTab()
                 .tabItem { Label("Appearance", systemImage: "paintbrush") }
+            NotificationsTab()
+                .tabItem { Label("Notifications", systemImage: "bell") }
             CacheTab()
                 .tabItem { Label("Cache & Data", systemImage: "internaldrive") }
             AdvancedTab()
                 .tabItem { Label("Advanced", systemImage: "terminal") }
-            AboutTab()
-                .tabItem { Label("About", systemImage: "info.circle") }
             IntelligenceTab()
                 .tabItem { Label("Intelligence", systemImage: "brain") }
+            AboutTab()
+                .tabItem { Label("About", systemImage: "info.circle") }
         }
         .frame(width: 580, height: 460)
     }
