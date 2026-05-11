@@ -1262,6 +1262,7 @@ struct ModuleDetailPopover: View {
     let name: String?
     let quantity: Int
 
+    @Environment(\.openWindow) private var openWindow
     @State private var esiType: ESIType?
     @State private var groupName: String?
 
@@ -1351,6 +1352,19 @@ struct ModuleDetailPopover: View {
                 .padding(16)
             }
         }
+
+        Divider()
+
+        Button {
+            openWindow(value: GalaxyMarketSearchInput(typeId: typeId, typeName: name ?? "Type #\(typeId)"))
+        } label: {
+            Label("Find in Galaxy", systemImage: "globe.europe.africa.fill")
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.borderless)
+        .foregroundStyle(.blue)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
         .frame(width: 300)
         .task { await fetchDetails() }
     }

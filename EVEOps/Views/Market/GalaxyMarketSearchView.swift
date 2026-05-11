@@ -208,6 +208,7 @@ struct GalaxyMarketSearchView: View {
                 selectedTypeId = id
                 selectedTypeName = initialTypeName
                 itemSearchText = initialTypeName
+                Task { await performGalaxySearch() }
             }
             loadCharacterLocation()
         }
