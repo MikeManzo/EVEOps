@@ -452,10 +452,39 @@ nonisolated struct ESIDogmaAttribute: Codable, Sendable {
     let value: Double
 }
 
+nonisolated struct ESIDogmaEffect: Codable, Sendable {
+    let effectId: Int
+    let isDefault: Bool
+}
+
+// Full modifier record returned by /dogma/effects/{id}/
+// `func` and `operator` are Swift keywords, so they use custom CodingKeys.
+nonisolated struct ESIDogmaModifier: Codable, Sendable {
+    let domain: String?
+    let function: String?
+    let modifiedAttributeId: Int?
+    let modifyingAttributeId: Int?
+    let operatorId: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case domain
+        case function = "func"
+        case modifiedAttributeId
+        case modifyingAttributeId
+        case operatorId = "operator"
+    }
+}
+
+nonisolated struct ESIDogmaEffectDetail: Codable, Sendable {
+    let effectId: Int
+    let modifiers: [ESIDogmaModifier]
+}
+
 nonisolated struct ESIType: Codable, Sendable {
     let capacity: Double?
     let description: String?
     let dogmaAttributes: [ESIDogmaAttribute]?
+    let dogmaEffects: [ESIDogmaEffect]?
     let groupId: Int
     let iconId: Int?
     let marketGroupId: Int?

@@ -14,7 +14,7 @@ import FoundationModels
 // MARK:  Tab
 
 private enum FittingsTab {
-    case ships, savedFittings, community
+    case ships, savedFittings, community, simulate
 }
 
 // MARK:  Ship Data Models
@@ -97,6 +97,7 @@ struct CharacterFittingsView: View {
                 Text("Ships").tag(FittingsTab.ships)
                 Text("Saved Fittings").tag(FittingsTab.savedFittings)
                 Text("Community").tag(FittingsTab.community)
+                Text("Simulate").tag(FittingsTab.simulate)
             }
             .pickerStyle(.segmented)
             .padding(.horizontal, 16)
@@ -117,8 +118,10 @@ struct CharacterFittingsView: View {
                 ) {
                     savedFittingsContent
                 }
-            } else {
+            } else if activeTab == .community {
                 CommunityFittingsView()
+            } else {
+                SimulateFittingView()
             }
         }
         .navigationTitle("Ships & Fittings")
@@ -173,7 +176,7 @@ struct CharacterFittingsView: View {
                         }
                     } header: {
                         HStack(spacing: 8) {
-                            Image(systemName: shipClassIcon(section.className)).font(.body)
+                            Image(systemName: Self.shipClassIcon(section.className)).font(.body)
                             Text(section.className).font(.title2.bold())
                             Spacer()
                             Text("\(section.ships.count)")
@@ -221,7 +224,7 @@ struct CharacterFittingsView: View {
                         }
                     } header: {
                         HStack(spacing: 8) {
-                            Image(systemName: shipClassIcon(section.className)).font(.body)
+                            Image(systemName: Self.shipClassIcon(section.className)).font(.body)
                             Text(section.className).font(.title2.bold())
                             Spacer()
                             Text("\(section.fittings.count)")
@@ -447,7 +450,7 @@ struct CharacterFittingsView: View {
         flag == "DroneBay" || flag == "FighterBay" || flag == "Cargo"
     }
 
-    private func shipClassIcon(_ name: String) -> String {
+    static func shipClassIcon(_ name: String) -> String {
         switch name {
         case "Capsule":                         return "dot.circle.fill"
         case "Shuttle":                         return "paperplane.fill"

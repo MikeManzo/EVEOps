@@ -16,16 +16,18 @@ actor UniverseCache {
     static let shared = UniverseCache()
 
     private static let ttl: TimeInterval = 7 * 24 * 3600 // 7 days
-    private static let schemaVersion = 5
+    private static let schemaVersion = 7
 
     private var types: [Int: ESIType] = [:]
     private var groups: [Int: ESIGroup] = [:]
+    private var categories: [Int: ESICategory] = [:]
     private var systems: [Int: ESISolarSystem] = [:]
     private var constellations: [Int: ESIConstellation] = [:]
     private var regions: [Int: ESIRegion] = [:]
     private var stations: [Int: ESIStation] = [:]
     private var stars: [Int: ESIStar] = [:]
     private var marketGroups: [Int: ESIMarketGroup] = [:]
+    private var effectDetails: [Int: ESIDogmaEffectDetail] = [:]
 
     // In-memory cache of all k-space regions (loaded once per app session)
     private var cachedKnownSpaceRegions: [(id: Int, name: String, factionId: Int?)]? = nil
@@ -52,12 +54,14 @@ actor UniverseCache {
         } else {
             types = Self.loadCache("types.json") ?? [:]
             groups = Self.loadCache("groups.json") ?? [:]
+            categories = Self.loadCache("categories.json") ?? [:]
             systems = Self.loadCache("systems.json") ?? [:]
             constellations = Self.loadCache("constellations.json") ?? [:]
             regions = Self.loadCache("regions.json") ?? [:]
             stations = Self.loadCache("stations.json") ?? [:]
             stars = Self.loadCache("stars.json") ?? [:]
             marketGroups = Self.loadCache("marketGroups.json") ?? [:]
+            effectDetails = Self.loadCache("effectDetails.json") ?? [:]
         }
     }
 
@@ -76,6 +80,15 @@ actor UniverseCache {
         if let cached = groups[id] { return cached }
         guard let fetched: ESIGroup = try? await ESIClient.shared.fetch("/universe/groups/\(id)/", bypassCache: true) else { return nil }
         groups[id] = fetched
+        dirty = true
+        scheduleSave()
+        return fetched
+    }
+
+    func category(id: Int) async -> ESICategory? {
+        if let cached = categories[id] { return cached }
+        guard let fetched: ESICategory = try? await ESIClient.shared.fetch("/universe/categories/\(id)/", bypassCache: true) else { return nil }
+        categories[id] = fetched
         dirty = true
         scheduleSave()
         return fetched
@@ -221,6 +234,31 @@ actor UniverseCache {
         return result
     }
 
+    /// Batch-fetch dogma effect details — used by the full fitting simulator.
+    func effectDetails(ids: Set<Int>) async -> [Int: ESIDogmaEffectDetail] {
+        let uncached = ids.filter { effectDetails[$0] == nil }
+
+        if !uncached.isEmpty {
+            await withTaskGroup(of: (Int, ESIDogmaEffectDetail?).self) { group in
+                for id in uncached {
+                    group.addTask {
+                        let d: ESIDogmaEffectDetail? = try? await ESIClient.shared.fetch("/dogma/effects/\(id)/", bypassCache: true)
+                        return (id, d)
+                    }
+                }
+                for await (id, d) in group {
+                    if let d { effectDetails[id] = d }
+                }
+            }
+            dirty = true
+            scheduleSave()
+        }
+
+        var result: [Int: ESIDogmaEffectDetail] = [:]
+        for id in ids { if let d = effectDetails[id] { result[id] = d } }
+        return result
+    }
+
     /// Fetches and caches the complete market group tree (~2,000 entries).
     /// After the first load the data is served from the 7-day disk cache, making
     /// subsequent opens instant without any network requests.
@@ -268,12 +306,14 @@ actor UniverseCache {
         guard dirty else { return }
         Self.saveCache(types, to: "types.json")
         Self.saveCache(groups, to: "groups.json")
+        Self.saveCache(categories, to: "categories.json")
         Self.saveCache(systems, to: "systems.json")
         Self.saveCache(constellations, to: "constellations.json")
         Self.saveCache(regions, to: "regions.json")
         Self.saveCache(stations, to: "stations.json")
         Self.saveCache(stars, to: "stars.json")
         Self.saveCache(marketGroups, to: "marketGroups.json")
+        Self.saveCache(effectDetails, to: "effectDetails.json")
         Self.saveMeta()
         dirty = false
     }
@@ -325,12 +365,14 @@ actor UniverseCache {
     func clearDiskCache() {
         types.removeAll()
         groups.removeAll()
+        categories.removeAll()
         systems.removeAll()
         constellations.removeAll()
         regions.removeAll()
         stations.removeAll()
         stars.removeAll()
         marketGroups.removeAll()
+        effectDetails.removeAll()
         Self.clearDiskCacheFiles()
     }
 }
