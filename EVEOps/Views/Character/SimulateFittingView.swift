@@ -1651,8 +1651,21 @@ private struct SimSectionHeader: View {
     var summary: String? = nil
     var summaryColor: Color = .primary
     var summaryTip: String = ""
+    var isExpanded: Binding<Bool>? = nil
 
     var body: some View {
+        Group {
+            if let expanded = isExpanded {
+                Button { withAnimation(.easeInOut(duration: 0.15)) { expanded.wrappedValue.toggle() } } label: { headerContent }
+                    .buttonStyle(.plain)
+                    .contentShape(Rectangle())
+            } else {
+                headerContent
+            }
+        }
+    }
+
+    private var headerContent: some View {
         HStack {
             Text(title)
                 .font(.system(size: 11, weight: .semibold))
@@ -1663,6 +1676,12 @@ private struct SimSectionHeader: View {
                     .font(.system(size: 11, weight: .semibold).monospacedDigit())
                     .foregroundStyle(summaryColor)
                     .help(summaryTip)
+            }
+            if let expanded = isExpanded {
+                Image(systemName: expanded.wrappedValue ? "chevron.down" : "chevron.right")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(.tertiary)
+                    .frame(width: 14)
             }
         }
         .padding(.horizontal, 10)
@@ -1676,28 +1695,32 @@ private struct SimSectionHeader: View {
 struct SimFittingSection: View {
     let stats: SimStats
 
+    @AppStorage("sim.section.fitting.expanded") private var isExpanded = true
+
     var body: some View {
         VStack(spacing: 0) {
-            SimSectionHeader(title: "Fitting")
-            VStack(alignment: .leading, spacing: 5) {
-                if stats.cpuTotal > 0 {
-                    SimResourceBar(label: "CPU", used: stats.cpuUsed, total: stats.cpuTotal,
-                                   unit: "tf", color: .teal,
-                                   tip: "CPU — processing power consumed by fitted modules (tf)")
+            SimSectionHeader(title: "Fitting", isExpanded: $isExpanded)
+            if isExpanded {
+                VStack(alignment: .leading, spacing: 5) {
+                    if stats.cpuTotal > 0 {
+                        SimResourceBar(label: "CPU", used: stats.cpuUsed, total: stats.cpuTotal,
+                                       unit: "tf", color: .teal,
+                                       tip: "CPU — processing power consumed by fitted modules (tf)")
+                    }
+                    if stats.powerTotal > 0 {
+                        SimResourceBar(label: "PG", used: stats.powerUsed, total: stats.powerTotal,
+                                       unit: "MW", color: .orange,
+                                       tip: "Power Grid — power consumed by fitted modules (MW)")
+                    }
+                    if stats.calibrationTotal > 0 {
+                        SimResourceBar(label: "Cal", used: stats.calibrationUsed, total: stats.calibrationTotal,
+                                       unit: "", color: .purple,
+                                       tip: "Calibration — rig calibration points consumed by fitted rigs")
+                    }
                 }
-                if stats.powerTotal > 0 {
-                    SimResourceBar(label: "PG", used: stats.powerUsed, total: stats.powerTotal,
-                                   unit: "MW", color: .orange,
-                                   tip: "Power Grid — power consumed by fitted modules (MW)")
-                }
-                if stats.calibrationTotal > 0 {
-                    SimResourceBar(label: "Cal", used: stats.calibrationUsed, total: stats.calibrationTotal,
-                                   unit: "", color: .purple,
-                                   tip: "Calibration — rig calibration points consumed by fitted rigs")
-                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
         }
     }
 }
@@ -1754,6 +1777,8 @@ private struct SimResourceBar: View {
 struct SimCapBlock: View {
     let stats: SimStats
 
+    @AppStorage("sim.section.capacitor.expanded") private var isExpanded = true
+
     private var peakRecharge: Double {
         guard stats.rechargeRateSec > 0 else { return 0 }
         return 2.5 * stats.capacitorCapacity / stats.rechargeRateSec
@@ -1761,33 +1786,35 @@ struct SimCapBlock: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            SimSectionHeader(title: "Capacitor", summary: "Stable", summaryColor: .green)
-            VStack(alignment: .leading, spacing: 3) {
-                if stats.capacitorCapacity > 0 {
-                    HStack(spacing: 6) {
-                        Text(String(format: "%.1f GJ", stats.capacitorCapacity))
-                            .font(.system(size: 11).monospacedDigit())
-                            .help("Capacitor capacity — total energy the capacitor can hold")
-                        if stats.rechargeRateSec > 0 {
-                            Text("/")
-                                .font(.system(size: 11))
-                                .foregroundStyle(.secondary)
-                            Text(fmtTime(stats.rechargeRateSec))
+            SimSectionHeader(title: "Capacitor", summary: "Stable", summaryColor: .green, isExpanded: $isExpanded)
+            if isExpanded {
+                VStack(alignment: .leading, spacing: 3) {
+                    if stats.capacitorCapacity > 0 {
+                        HStack(spacing: 6) {
+                            Text(String(format: "%.1f GJ", stats.capacitorCapacity))
                                 .font(.system(size: 11).monospacedDigit())
-                                .help("Capacitor recharge time — time to fully recharge from empty")
+                                .help("Capacitor capacity — total energy the capacitor can hold")
+                            if stats.rechargeRateSec > 0 {
+                                Text("/")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(.secondary)
+                                Text(fmtTime(stats.rechargeRateSec))
+                                    .font(.system(size: 11).monospacedDigit())
+                                    .help("Capacitor recharge time — time to fully recharge from empty")
+                            }
+                            Spacer()
                         }
-                        Spacer()
+                    }
+                    if peakRecharge > 0 {
+                        Text(String(format: "Δ %.1f GJ/s (100.0%%)", peakRecharge))
+                            .font(.system(size: 11).monospacedDigit())
+                            .foregroundStyle(.secondary)
+                            .help("Peak capacitor recharge rate at 25% charge level")
                     }
                 }
-                if peakRecharge > 0 {
-                    Text(String(format: "Δ %.1f GJ/s (100.0%%)", peakRecharge))
-                        .font(.system(size: 11).monospacedDigit())
-                        .foregroundStyle(.secondary)
-                        .help("Peak capacitor recharge rate at 25% charge level")
-                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
         }
     }
 
@@ -1801,17 +1828,21 @@ struct SimCapBlock: View {
 struct SimOffenseBlock: View {
     let stats: SimStats
 
+    @AppStorage("sim.section.offense.expanded") private var isExpanded = true
+
     var body: some View {
         VStack(spacing: 0) {
-            SimSectionHeader(title: "Offense", summary: "0.0 dps")
-            HStack(spacing: 16) {
-                Label("0.0 dps (0.0 dps)", systemImage: "scope")
-                    .font(.caption2).foregroundStyle(.secondary)
-                Spacer()
-                Label("0 HP", systemImage: "shield.fill")
-                    .font(.caption2).foregroundStyle(.secondary)
+            SimSectionHeader(title: "Offense", summary: "0.0 dps", isExpanded: $isExpanded)
+            if isExpanded {
+                HStack(spacing: 16) {
+                    Label("0.0 dps (0.0 dps)", systemImage: "scope")
+                        .font(.caption2).foregroundStyle(.secondary)
+                    Spacer()
+                    Label("0 HP", systemImage: "shield.fill")
+                        .font(.caption2).foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 10).padding(.vertical, 6)
             }
-            .padding(.horizontal, 10).padding(.vertical, 6)
         }
     }
 }
@@ -1821,6 +1852,8 @@ struct SimOffenseBlock: View {
 struct SimDefenseBlock: View {
     let stats: SimStats
 
+    @AppStorage("sim.section.defense.expanded") private var isExpanded = true
+
     private var peakShieldRegen: Double {
         guard stats.shieldRechargeTimeSec > 0 else { return 0 }
         return 2.5 * stats.shieldHP / stats.shieldRechargeTimeSec
@@ -1829,23 +1862,26 @@ struct SimDefenseBlock: View {
     var body: some View {
         VStack(spacing: 0) {
             SimSectionHeader(title: "Defense", summary: fmtEHP(stats.ehp),
-                             summaryTip: "Effective Hit Points — total HP weighted by resistances against uniform incoming damage")
-            VStack(spacing: 2) {
-                if peakShieldRegen > 0 {
-                    SimShieldRechargeRow(peakHPS: peakShieldRegen)
+                             summaryTip: "Effective Hit Points — total HP weighted by resistances against uniform incoming damage",
+                             isExpanded: $isExpanded)
+            if isExpanded {
+                VStack(spacing: 2) {
+                    if peakShieldRegen > 0 {
+                        SimShieldRechargeRow(peakHPS: peakShieldRegen)
+                    }
+                    SimHPLayerRow(icon: "shield.lefthalf.filled",
+                                  hp: stats.shieldHP, color: .cyan,
+                                  resists: stats.shieldResists, layerName: "Shield")
+                    SimHPLayerRow(icon: "shield.fill",
+                                  hp: stats.armorHP, color: .yellow,
+                                  resists: stats.armorResists, layerName: "Armor")
+                    SimHPLayerRow(icon: "cube.fill",
+                                  hp: stats.hullHP,
+                                  color: Color(red: 0.85, green: 0.45, blue: 0.25),
+                                  resists: stats.hullResists, layerName: "Hull")
                 }
-                SimHPLayerRow(icon: "shield.lefthalf.filled",
-                              hp: stats.shieldHP, color: .cyan,
-                              resists: stats.shieldResists, layerName: "Shield")
-                SimHPLayerRow(icon: "shield.fill",
-                              hp: stats.armorHP, color: .yellow,
-                              resists: stats.armorResists, layerName: "Armor")
-                SimHPLayerRow(icon: "cube.fill",
-                              hp: stats.hullHP,
-                              color: Color(red: 0.85, green: 0.45, blue: 0.25),
-                              resists: stats.hullResists, layerName: "Hull")
+                .padding(.vertical, 4)
             }
-            .padding(.vertical, 4)
         }
     }
 
@@ -1947,14 +1983,24 @@ private struct SimResistBadge: View {
     let color: Color
     var tip: String = ""
 
+    private let blockWidth: CGFloat = 36
+
     var body: some View {
-        Text(String(format: "%.0f %%", value))
-            .font(.system(size: 9, weight: .semibold).monospacedDigit())
-            .foregroundStyle(.white)
-            .frame(width: 36)
-            .padding(.vertical, 2)
-            .background(RoundedRectangle(cornerRadius: 3).fill(color.opacity(0.45)))
-            .help(tip)
+        let fraction = min(max(value / 100.0, 0), 1)
+        ZStack(alignment: .leading) {
+            RoundedRectangle(cornerRadius: 3)
+                .fill(color.opacity(0.15))
+            RoundedRectangle(cornerRadius: 3)
+                .fill(color.opacity(0.6))
+                .frame(width: blockWidth * fraction)
+            Text(String(format: "%.0f %%", value))
+                .font(.system(size: 9, weight: .semibold).monospacedDigit())
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+        }
+        .frame(width: blockWidth)
+        .padding(.vertical, 2)
+        .help(tip)
     }
 }
 
@@ -1963,26 +2009,31 @@ private struct SimResistBadge: View {
 struct SimTargetingBlock: View {
     let stats: SimStats
 
+    @AppStorage("sim.section.targeting.expanded") private var isExpanded = true
+
     var body: some View {
         VStack(spacing: 0) {
             SimSectionHeader(title: "Targeting",
                              summary: stats.maxTargetRange > 0 ? fmtRange(stats.maxTargetRange) : "—",
-                             summaryTip: "Maximum targeting range")
-            VStack(spacing: 3) {
-                simTwoColRow(
-                    left:    stats.sensorStrength > 0 ? String(format: "%.2f points", stats.sensorStrength) : "—",
-                    leftTip: "Sensor strength — resistance to electronic warfare jamming",
-                    right:    stats.scanResolution > 0 ? String(format: "%.0f mm", stats.scanResolution) : "—",
-                    rightTip: "Scan resolution — determines how quickly you can lock on to a target"
-                )
-                simTwoColRow(
-                    left:    stats.signatureRadius > 0  ? String(format: "%.0f m", stats.signatureRadius)  : "—",
-                    leftTip: "Signature radius — how easy this ship is to target and hit by others",
-                    right:    stats.maxLockedTargets > 0 ? String(format: "%.0fx", stats.maxLockedTargets) : "—",
-                    rightTip: "Maximum number of simultaneously locked targets"
-                )
+                             summaryTip: "Maximum targeting range",
+                             isExpanded: $isExpanded)
+            if isExpanded {
+                VStack(spacing: 3) {
+                    simTwoColRow(
+                        left:    stats.sensorStrength > 0 ? String(format: "%.2f points", stats.sensorStrength) : "—",
+                        leftTip: "Sensor strength — resistance to electronic warfare jamming",
+                        right:    stats.scanResolution > 0 ? String(format: "%.0f mm", stats.scanResolution) : "—",
+                        rightTip: "Scan resolution — determines how quickly you can lock on to a target"
+                    )
+                    simTwoColRow(
+                        left:    stats.signatureRadius > 0  ? String(format: "%.0f m", stats.signatureRadius)  : "—",
+                        leftTip: "Signature radius — how easy this ship is to target and hit by others",
+                        right:    stats.maxLockedTargets > 0 ? String(format: "%.0fx", stats.maxLockedTargets) : "—",
+                        rightTip: "Maximum number of simultaneously locked targets"
+                    )
+                }
+                .padding(.horizontal, 10).padding(.vertical, 6)
             }
-            .padding(.horizontal, 10).padding(.vertical, 6)
         }
     }
 
@@ -1998,26 +2049,31 @@ struct SimTargetingBlock: View {
 struct SimNavBlock: View {
     let stats: SimStats
 
+    @AppStorage("sim.section.navigation.expanded") private var isExpanded = true
+
     var body: some View {
         VStack(spacing: 0) {
             SimSectionHeader(title: "Navigation",
                              summary: stats.maxVelocity > 0 ? String(format: "%.1f m/s", stats.maxVelocity) : "—",
-                             summaryTip: "Maximum subwarp velocity")
-            VStack(spacing: 3) {
-                simTwoColRow(
-                    left:    stats.mass > 0       ? String(format: "%.2f t", stats.mass / 1_000) : "—",
-                    leftTip: "Ship mass — affects inertia and agility",
-                    right:    stats.inertiaMod > 0 ? String(format: "%.4fx", stats.inertiaMod)   : "—",
-                    rightTip: "Inertia modifier — lower values mean more agile"
-                )
-                simTwoColRow(
-                    left:    stats.warpSpeed > 0 ? String(format: "%.2f AU/s", stats.warpSpeed) : "—",
-                    leftTip: "Maximum warp speed",
-                    right:    stats.alignTime > 0 ? String(format: "%.2f s", stats.alignTime)   : "—",
-                    rightTip: "Time to align and enter warp"
-                )
+                             summaryTip: "Maximum subwarp velocity",
+                             isExpanded: $isExpanded)
+            if isExpanded {
+                VStack(spacing: 3) {
+                    simTwoColRow(
+                        left:    stats.mass > 0       ? String(format: "%.2f t", stats.mass / 1_000) : "—",
+                        leftTip: "Ship mass — affects inertia and agility",
+                        right:    stats.inertiaMod > 0 ? String(format: "%.4fx", stats.inertiaMod)   : "—",
+                        rightTip: "Inertia modifier — lower values mean more agile"
+                    )
+                    simTwoColRow(
+                        left:    stats.warpSpeed > 0 ? String(format: "%.2f AU/s", stats.warpSpeed) : "—",
+                        leftTip: "Maximum warp speed",
+                        right:    stats.alignTime > 0 ? String(format: "%.2f s", stats.alignTime)   : "—",
+                        rightTip: "Time to align and enter warp"
+                    )
+                }
+                .padding(.horizontal, 10).padding(.vertical, 6)
             }
-            .padding(.horizontal, 10).padding(.vertical, 6)
         }
     }
 }
@@ -2027,16 +2083,20 @@ struct SimNavBlock: View {
 struct SimDronesBlock: View {
     let stats: SimStats
 
+    @AppStorage("sim.section.drones.expanded") private var isExpanded = true
+
     var body: some View {
         VStack(spacing: 0) {
-            SimSectionHeader(title: "Drones", summary: "0.0 dps")
-            VStack(alignment: .leading, spacing: 3) {
-                simTwoColRow(left: "0/0 Mbit/sec", right: "—")
-                Text("0 Active")
-                    .font(.system(size: 11).monospacedDigit())
-                    .foregroundStyle(.secondary)
+            SimSectionHeader(title: "Drones", summary: "0.0 dps", isExpanded: $isExpanded)
+            if isExpanded {
+                VStack(alignment: .leading, spacing: 3) {
+                    simTwoColRow(left: "0/0 Mbit/sec", right: "—")
+                    Text("0 Active")
+                        .font(.system(size: 11).monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 10).padding(.vertical, 6)
             }
-            .padding(.horizontal, 10).padding(.vertical, 6)
         }
     }
 }
@@ -2045,19 +2105,22 @@ struct SimDronesBlock: View {
 
 private struct SimImplantsBlock: View {
     @Environment(SimulatorState.self) private var simState
+    @AppStorage("sim.section.implants.expanded") private var isExpanded = true
 
     var body: some View {
         if !simState.implantTypes.isEmpty {
             VStack(spacing: 0) {
                 implantHeader
-                if simState.includeImplants {
-                    implantContent
-                } else {
-                    Text("Excluded from simulation")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
+                if isExpanded {
+                    if simState.includeImplants {
+                        implantContent
+                    } else {
+                        Text("Excluded from simulation")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                    }
                 }
             }
         }
@@ -2075,6 +2138,15 @@ private struct SimImplantsBlock: View {
             )) { EmptyView() }
             .toggleStyle(.switch)
             .controlSize(.mini)
+            Button {
+                withAnimation(.easeInOut(duration: 0.15)) { isExpanded.toggle() }
+            } label: {
+                Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(.tertiary)
+                    .frame(width: 14)
+            }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
