@@ -112,6 +112,15 @@ struct SimResists {
     var average: Double { (em + explosive + kinetic + thermal) / 4 }
 }
 
+// MARK:  Implant Contribution
+
+struct ImplantContribution: Identifiable {
+    let typeId: Int
+    let name: String
+    let bonuses: [String]
+    var id: Int { typeId }
+}
+
 // MARK:  Sim Stats
 
 struct SimStats {
@@ -127,6 +136,7 @@ struct SimStats {
     var signatureRadius: Double = 0
     var capacitorCapacity: Double = 0
     var rechargeRateSec: Double = 0
+    var shieldRechargeTimeSec: Double = 0
     var maxTargetRange: Double = 0
     var scanResolution: Double = 0
     var mass: Double = 0
@@ -142,6 +152,7 @@ struct SimStats {
     var calibrationUsed: Double = 0
     var calibrationTotal: Double = 0
     var hasData: Bool { shieldHP > 0 || armorHP > 0 || hullHP > 0 }
+    var implantContributions: [ImplantContribution] = []
 }
 
 // MARK:  Dogma Attribute IDs
@@ -154,24 +165,25 @@ private enum DogmaAttr {
     static let rigSlots          = 1137
     static let subsystemSlots    = 1367
     static let mass              = 4
-    static let hullHP            = 265  // attr 265 = Structure HP
+    static let shieldCapacity    = 263  // Shield HP
+    static let armorHP           = 265  // Armor HP
+    static let hullHP            = 9    // Hull/Structure HP
     static let agility           = 70   // attr 70 = Inertia Modifier
     static let maxVelocity       = 37   // attr 37 = Maximum Velocity
-    static let shieldCapacity    = 9    // attr 9 = Shield HP
-    static let armorHP           = 263  // attr 263 = Armor HP
-    static let capacitorCapacity    = 55    // attr 55 = Capacitor Capacity (GJ)
-    static let capacitorRechargeTime = 482  // attr 482 = Capacitor Recharge Time (seconds)
+    static let capacitorCapacity    = 482   // Capacitor Capacity (GJ)
+    static let capacitorRechargeTime = 55   // Capacitor Recharge Time (ms)
+    static let shieldRechargeRate   = 479   // Shield Recharge Time (ms)
     static let maxTargetRange    = 76
     static let signatureRadius   = 552  // attr 552 = Signature Radius (m)
-    static let scanResolution    = 79   // attr 79 = Scan Resolution (mm)
-    static let shieldEmRes       = 267  // attr 267 = Shield EM damage resonance
-    static let shieldExpRes      = 268  // attr 268 = Shield Explosive damage resonance
-    static let shieldKinRes      = 269  // attr 269 = Shield Kinetic damage resonance
-    static let shieldThermRes    = 270  // attr 270 = Shield Thermal damage resonance
-    static let armorEmRes        = 271
-    static let armorExpRes       = 272
-    static let armorKinRes       = 273
-    static let armorThermRes     = 274
+    static let scanResolution    = 564  // Scan Resolution (mm)
+    static let shieldEmRes       = 271  // Shield EM damage resonance
+    static let shieldExpRes      = 272  // Shield Explosive damage resonance
+    static let shieldKinRes      = 273  // Shield Kinetic damage resonance
+    static let shieldThermRes    = 274  // Shield Thermal damage resonance
+    static let armorEmRes        = 267  // Armor EM damage resonance
+    static let armorExpRes       = 268  // Armor Explosive damage resonance
+    static let armorKinRes       = 269  // Armor Kinetic damage resonance
+    static let armorThermRes     = 270  // Armor Thermal damage resonance
     static let hullEmRes         = 113  // attr 113 = Hull EM damage resonance
     static let hullExpRes        = 109  // attr 109 = Hull Explosive damage resonance
     static let hullKinRes        = 110  // attr 110 = Hull Kinetic damage resonance
@@ -183,7 +195,7 @@ private enum DogmaAttr {
     static let cpu               = 50   // module CPU cost (tf)
     static let upgradeCapacity       = 1130 // ship calibration total
     static let upgradeCost           = 1132 // rig calibration cost
-    static let warpSpeed             = 217  // attr 217 = Warp Speed (AU/s)
+    static let warpSpeed             = 192  // Warp Speed (AU/s)
     static let maxLockedTargets      = 600  // attr 600 = Max Locked Targets
     static let radarStrength         = 208
     static let ladarStrength         = 209
@@ -228,6 +240,7 @@ struct SimStatsCalculator {
     static func compute(
         shipType: ESIType,
         fittedModules: [ESIType] = [],
+        implants: [ESIType] = [],
         effectCache: [Int: ESIDogmaEffectDetail] = [:]
     ) -> SimStats {
         // 1 ── Build mutable attribute map from ship base values.
@@ -244,7 +257,7 @@ struct SimStatsCalculator {
         var pending: [Int: [Int: [Double]]] = [:]
         var fallbackModules: [ESIType] = []
 
-        for mod in fittedModules {
+        for mod in fittedModules + implants {
             let modAttrMap = Dictionary(
                 uniqueKeysWithValues: (mod.dogmaAttributes ?? []).map { ($0.attributeId, $0.value) }
             )
@@ -364,7 +377,8 @@ struct SimStatsCalculator {
         s.maxVelocity       = a(DogmaAttr.maxVelocity)
         s.signatureRadius   = a(DogmaAttr.signatureRadius)
         s.capacitorCapacity = a(DogmaAttr.capacitorCapacity)
-        s.rechargeRateSec   = a(DogmaAttr.capacitorRechargeTime)
+        s.rechargeRateSec        = a(DogmaAttr.capacitorRechargeTime) / 1000  // ESI returns ms, convert to s
+        s.shieldRechargeTimeSec  = a(DogmaAttr.shieldRechargeRate) / 1000
         s.maxTargetRange    = a(DogmaAttr.maxTargetRange)
         s.scanResolution    = a(DogmaAttr.scanResolution)
         s.inertiaMod        = a(DogmaAttr.agility)
@@ -382,7 +396,7 @@ struct SimStatsCalculator {
 
         let agility = a(DogmaAttr.agility)
         if s.mass > 0 && agility > 0 {
-            s.alignTime = -s.mass * agility / 500_000 / log(0.25)
+            s.alignTime = -log(0.25) * s.mass * agility / 1_000_000
         }
 
         s.shieldResists = SimResists(
@@ -413,6 +427,12 @@ struct SimStatsCalculator {
             print("[Sim] Computed HP — ship=\(shipType.name)[\(shipType.typeId)] shield=\(s.shieldHP) armor=\(s.armorHP) hull=\(s.hullHP) mass=\(attrs[4] ?? -1) agility=\(attrs[70] ?? -1) modules=[\(fittedModules.map(\.name).joined(separator: ", "))]")
         }
 #endif
+
+        s.implantContributions = implants.compactMap { implant in
+            let bonuses = describeImplantBonuses(implant: implant, effectCache: effectCache)
+            return bonuses.isEmpty ? nil : ImplantContribution(typeId: implant.typeId, name: implant.name, bonuses: bonuses)
+        }
+
         return s
     }
 
@@ -420,6 +440,94 @@ struct SimStatsCalculator {
         let avg = resists.average / 100
         guard avg < 1 else { return hp }
         return hp / (1 - avg)
+    }
+
+    // Human-readable names for ship attributes we surface in the implant list.
+    private static let trackedAttrDisplay: [Int: String] = [
+        11:  "Power Grid",
+        48:  "CPU Output",
+        263: "Shield HP",
+        265: "Armor HP",
+        9:   "Hull HP",
+        37:  "Max Velocity",
+        70:  "Agility",
+        192: "Warp Speed",
+        482: "Capacitor",
+        55:  "Cap Recharge",
+        76:  "Target Range",
+        564: "Scan Resolution",
+        552: "Signature Radius",
+        271: "Shield EM Resist",
+        272: "Shield Explosive Resist",
+        273: "Shield Kinetic Resist",
+        274: "Shield Thermal Resist",
+        267: "Armor EM Resist",
+        268: "Armor Explosive Resist",
+        269: "Armor Kinetic Resist",
+        270: "Armor Thermal Resist",
+        113: "Hull EM Resist",
+        109: "Hull Explosive Resist",
+        110: "Hull Kinetic Resist",
+        111: "Hull Thermal Resist",
+    ]
+
+    static func describeImplantBonuses(
+        implant: ESIType,
+        effectCache: [Int: ESIDogmaEffectDetail]
+    ) -> [String] {
+        let modAttrMap = Dictionary(
+            uniqueKeysWithValues: (implant.dogmaAttributes ?? []).map { ($0.attributeId, $0.value) }
+        )
+        var seen = Set<String>()
+        var result: [String] = []
+        for effect in implant.dogmaEffects ?? [] {
+            guard let detail = effectCache[effect.effectId] else { continue }
+            for m in detail.modifiers {
+                let knownFunc = m.function == "LocationModifier"
+                             || m.function == "LocationRequiredSkillModifier"
+                             || m.function == "ItemModifier"
+                guard knownFunc,
+                      m.domain == "shipID",
+                      let tgt   = m.modifiedAttributeId,
+                      let src   = m.modifyingAttributeId,
+                      let op    = m.operatorId,
+                      let label = trackedAttrDisplay[tgt],
+                      let val   = modAttrMap[src] else { continue }
+                if let desc = formatImplantBonus(label: label, attrId: tgt, op: op, value: val),
+                   seen.insert(desc).inserted {
+                    result.append(desc)
+                }
+            }
+        }
+        return result
+    }
+
+    private static func formatImplantBonus(label: String, attrId: Int, op: Int, value: Double) -> String? {
+        let isResist = DogmaAttr.allResistances.contains(attrId)
+        switch op {
+        case Op.postPercent:
+            // Resist attrs store a negative percentage (reduce resonance = improve resist).
+            let pct = isResist ? -value : value
+            guard abs(pct) >= 0.01 else { return nil }
+            return String(format: "%+.1f%% \(label)", pct)
+        case Op.preMul, Op.postMul:
+            let pct = isResist ? (1.0 - value) * 100 : (value - 1.0) * 100
+            guard abs(pct) >= 0.01 else { return nil }
+            return String(format: "%+.1f%% \(label)", pct)
+        case Op.preDiv, Op.postDiv:
+            guard value != 0 else { return nil }
+            let pct = isResist ? (1.0 - 1.0 / value) * 100 : (1.0 / value - 1.0) * 100
+            guard abs(pct) >= 0.01 else { return nil }
+            return String(format: "%+.1f%% \(label)", pct)
+        case Op.modAdd:
+            guard abs(value) >= 0.001 else { return nil }
+            return String(format: "%+.1f \(label)", value)
+        case Op.modSub:
+            guard abs(value) >= 0.001 else { return nil }
+            return String(format: "%.1f \(label)", -value)
+        default:
+            return nil
+        }
     }
 }
 
@@ -441,6 +549,8 @@ final class SimulatorState {
     var pendingDropPayload: SimModuleDrag? = nil
     var effectDetailsCache: [Int: ESIDogmaEffectDetail] = [:]
     var isComputingEffects = false
+    var implantTypes: [ESIType] = []
+    var includeImplants: Bool = true
 
     var activeSlot: SimSlot? {
         guard let id = activeSlotId else { return nil }
@@ -574,15 +684,33 @@ final class SimulatorState {
     func recomputeStats() {
         guard let shipType else { stats = SimStats(); return }
         let fitted = slots.compactMap { $0.moduleTypeId }.compactMap { moduleTypes[$0] }
-        stats = SimStatsCalculator.compute(shipType: shipType, fittedModules: fitted, effectCache: effectDetailsCache)
+        let activeImplants = includeImplants ? implantTypes : []
+        stats = SimStatsCalculator.compute(shipType: shipType, fittedModules: fitted, implants: activeImplants, effectCache: effectDetailsCache)
     }
 
+
+    /// Fetch the character's active implants, resolve their ESI types, and recompute.
+    func loadImplants(accountManager: AccountManager) async {
+        guard let account = accountManager.selectedAccount,
+              let token = try? await accountManager.validToken(for: account),
+              let ids: [Int] = try? await ESIClient.shared.fetch(
+                  "/characters/\(account.characterID)/implants/", token: token
+              ) else {
+            implantTypes = []
+            recomputeStats()
+            return
+        }
+        let types = await UniverseCache.shared.types(ids: ids)
+        implantTypes = ids.compactMap { types[$0] }
+        recomputeStats()
+        prefetchFittedEffects()
+    }
 
     /// Pre-fetch dogma effect details for all currently fitted modules, then recompute.
     /// Called after placing modules so full dogma replaces the base-only stats.
     func prefetchFittedEffects() {
         let fittedTypes = slots.compactMap { $0.moduleTypeId }.compactMap { moduleTypes[$0] }
-        let effectIds = Set(fittedTypes.flatMap { $0.dogmaEffects?.map(\.effectId) ?? [] })
+        let effectIds = Set((fittedTypes + implantTypes).flatMap { $0.dogmaEffects?.map(\.effectId) ?? [] })
         guard !effectIds.isEmpty else { return }
 
         isComputingEffects = true
@@ -627,6 +755,7 @@ private struct SplitViewAutosave: NSViewRepresentable {
 
 struct SimulateFittingView: View {
     @State private var simState = SimulatorState()
+    @Environment(AccountManager.self) private var accountManager
 
     var body: some View {
         HSplitView {
@@ -643,6 +772,10 @@ struct SimulateFittingView: View {
                 .environment(simState)
         }
         .background(SplitViewAutosave(name: "SimulateFittingView.split"))
+        .task { await simState.loadImplants(accountManager: accountManager) }
+        .onChange(of: accountManager.selectedAccount?.characterID) { _, _ in
+            Task { await simState.loadImplants(accountManager: accountManager) }
+        }
     }
 }
 
@@ -1484,6 +1617,7 @@ struct SimStatsPanel: View {
                         SimTargetingBlock(stats: simState.stats)
                         SimNavBlock(stats: simState.stats)
                         SimDronesBlock(stats: simState.stats)
+                        SimImplantsBlock()
 
                         if simState.isComputingEffects {
                             HStack(spacing: 6) {
@@ -1677,10 +1811,18 @@ struct SimOffenseBlock: View {
 struct SimDefenseBlock: View {
     let stats: SimStats
 
+    private var peakShieldRegen: Double {
+        guard stats.shieldRechargeTimeSec > 0 else { return 0 }
+        return 2.5 * stats.shieldHP / stats.shieldRechargeTimeSec
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             SimSectionHeader(title: "Defense", summary: fmtEHP(stats.ehp))
             VStack(spacing: 2) {
+                if peakShieldRegen > 0 {
+                    SimShieldRechargeRow(peakHPS: peakShieldRegen)
+                }
                 SimHPLayerRow(icon: "shield.lefthalf.filled",
                               hp: stats.shieldHP, color: .cyan,
                               resists: stats.shieldResists)
@@ -1700,6 +1842,43 @@ struct SimDefenseBlock: View {
         v >= 1_000_000 ? String(format: "%.2fM ehp", v / 1_000_000) :
         v >= 1_000     ? String(format: "%.0f ehp", v) :
                          String(format: "%.0f ehp", v)
+    }
+}
+
+private struct SimShieldRechargeRow: View {
+    let peakHPS: Double
+
+    private static let emColor        = Color(red: 0.45, green: 0.60, blue: 1.00)
+    private static let thermalColor   = Color(red: 1.00, green: 0.40, blue: 0.10)
+    private static let kineticColor   = Color(white: 0.65)
+    private static let explosiveColor = Color(red: 1.00, green: 0.82, blue: 0.15)
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "arrow.clockwise")
+                .font(.system(size: 10))
+                .foregroundStyle(.cyan)
+                .frame(width: 14)
+            Text(String(format: "%.1f hp/s", peakHPS))
+                .font(.system(size: 11).monospacedDigit())
+                .frame(minWidth: 44, alignment: .leading)
+            Spacer()
+            HStack(spacing: 3) {
+                damageIcon("bolt.fill",  Self.emColor)
+                damageIcon("flame.fill", Self.thermalColor)
+                damageIcon("scope",      Self.kineticColor)
+                damageIcon("burst.fill", Self.explosiveColor)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 3)
+    }
+
+    private func damageIcon(_ name: String, _ color: Color) -> some View {
+        Image(systemName: name)
+            .font(.system(size: 9))
+            .foregroundStyle(color)
+            .frame(width: 36)
     }
 }
 
@@ -1825,6 +2004,92 @@ struct SimDronesBlock: View {
                     .foregroundStyle(.secondary)
             }
             .padding(.horizontal, 10).padding(.vertical, 6)
+        }
+    }
+}
+
+// MARK:  Implants
+
+private struct SimImplantsBlock: View {
+    @Environment(SimulatorState.self) private var simState
+
+    var body: some View {
+        if !simState.implantTypes.isEmpty {
+            VStack(spacing: 0) {
+                implantHeader
+                if simState.includeImplants {
+                    implantContent
+                } else {
+                    Text("Excluded from simulation")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                }
+            }
+        }
+    }
+
+    private var implantHeader: some View {
+        HStack {
+            Text("Implants")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.secondary)
+            Spacer()
+            Toggle(isOn: Binding(
+                get: { simState.includeImplants },
+                set: { v in simState.includeImplants = v; simState.recomputeStats() }
+            )) { EmptyView() }
+            .toggleStyle(.switch)
+            .controlSize(.mini)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(Color.primary.opacity(0.06))
+    }
+
+    @ViewBuilder
+    private var implantContent: some View {
+        let contributions = simState.stats.implantContributions
+        if contributions.isEmpty {
+            Text("No active implants modify this ship's stats")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+        } else {
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(contributions) { c in
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 6) {
+                            AsyncImage(url: EVEImageURL.typeIcon(c.typeId, size: 64)) { img in
+                                img.resizable().aspectRatio(contentMode: .fit)
+                            } placeholder: {
+                                RoundedRectangle(cornerRadius: 3).fill(.quaternary)
+                            }
+                            .frame(width: 20, height: 20)
+                            .clipShape(RoundedRectangle(cornerRadius: 3))
+
+                            Text(c.name)
+                                .font(.system(size: 10, weight: .semibold))
+                                .lineLimit(1)
+                        }
+                        ForEach(c.bonuses, id: \.self) { bonus in
+                            HStack(spacing: 4) {
+                                Circle()
+                                    .fill(.purple.opacity(0.5))
+                                    .frame(width: 4, height: 4)
+                                Text(bonus)
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(.leading, 26)
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
         }
     }
 }
