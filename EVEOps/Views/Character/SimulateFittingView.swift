@@ -1650,6 +1650,7 @@ private struct SimSectionHeader: View {
     let title: String
     var summary: String? = nil
     var summaryColor: Color = .primary
+    var summaryTip: String = ""
 
     var body: some View {
         HStack {
@@ -1661,6 +1662,7 @@ private struct SimSectionHeader: View {
                 Text(s)
                     .font(.system(size: 11, weight: .semibold).monospacedDigit())
                     .foregroundStyle(summaryColor)
+                    .help(summaryTip)
             }
         }
         .padding(.horizontal, 10)
@@ -1680,15 +1682,18 @@ struct SimFittingSection: View {
             VStack(alignment: .leading, spacing: 5) {
                 if stats.cpuTotal > 0 {
                     SimResourceBar(label: "CPU", used: stats.cpuUsed, total: stats.cpuTotal,
-                                   unit: "tf", color: .teal)
+                                   unit: "tf", color: .teal,
+                                   tip: "CPU — processing power consumed by fitted modules (tf)")
                 }
                 if stats.powerTotal > 0 {
                     SimResourceBar(label: "PG", used: stats.powerUsed, total: stats.powerTotal,
-                                   unit: "MW", color: .orange)
+                                   unit: "MW", color: .orange,
+                                   tip: "Power Grid — power consumed by fitted modules (MW)")
                 }
                 if stats.calibrationTotal > 0 {
                     SimResourceBar(label: "Cal", used: stats.calibrationUsed, total: stats.calibrationTotal,
-                                   unit: "", color: .purple)
+                                   unit: "", color: .purple,
+                                   tip: "Calibration — rig calibration points consumed by fitted rigs")
                 }
             }
             .padding(.horizontal, 10)
@@ -1703,6 +1708,7 @@ private struct SimResourceBar: View {
     let total: Double
     let unit: String
     let color: Color
+    var tip: String = ""
 
     private var fraction: Double { total > 0 ? min(1.0, used / total) : 0 }
     private var isOver: Bool { used > total }
@@ -1714,6 +1720,7 @@ private struct SimResourceBar: View {
                 .font(.system(size: 10, weight: .medium))
                 .foregroundStyle(.secondary)
                 .frame(width: 24, alignment: .leading)
+                .help(tip)
 
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
@@ -1760,12 +1767,14 @@ struct SimCapBlock: View {
                     HStack(spacing: 6) {
                         Text(String(format: "%.1f GJ", stats.capacitorCapacity))
                             .font(.system(size: 11).monospacedDigit())
+                            .help("Capacitor capacity — total energy the capacitor can hold")
                         if stats.rechargeRateSec > 0 {
                             Text("/")
                                 .font(.system(size: 11))
                                 .foregroundStyle(.secondary)
                             Text(fmtTime(stats.rechargeRateSec))
                                 .font(.system(size: 11).monospacedDigit())
+                                .help("Capacitor recharge time — time to fully recharge from empty")
                         }
                         Spacer()
                     }
@@ -1774,6 +1783,7 @@ struct SimCapBlock: View {
                     Text(String(format: "Δ %.1f GJ/s (100.0%%)", peakRecharge))
                         .font(.system(size: 11).monospacedDigit())
                         .foregroundStyle(.secondary)
+                        .help("Peak capacitor recharge rate at 25% charge level")
                 }
             }
             .padding(.horizontal, 10)
@@ -1818,21 +1828,22 @@ struct SimDefenseBlock: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            SimSectionHeader(title: "Defense", summary: fmtEHP(stats.ehp))
+            SimSectionHeader(title: "Defense", summary: fmtEHP(stats.ehp),
+                             summaryTip: "Effective Hit Points — total HP weighted by resistances against uniform incoming damage")
             VStack(spacing: 2) {
                 if peakShieldRegen > 0 {
                     SimShieldRechargeRow(peakHPS: peakShieldRegen)
                 }
                 SimHPLayerRow(icon: "shield.lefthalf.filled",
                               hp: stats.shieldHP, color: .cyan,
-                              resists: stats.shieldResists)
+                              resists: stats.shieldResists, layerName: "Shield")
                 SimHPLayerRow(icon: "shield.fill",
                               hp: stats.armorHP, color: .yellow,
-                              resists: stats.armorResists)
+                              resists: stats.armorResists, layerName: "Armor")
                 SimHPLayerRow(icon: "cube.fill",
                               hp: stats.hullHP,
                               color: Color(red: 0.85, green: 0.45, blue: 0.25),
-                              resists: stats.hullResists)
+                              resists: stats.hullResists, layerName: "Hull")
             }
             .padding(.vertical, 4)
         }
@@ -1859,26 +1870,29 @@ private struct SimShieldRechargeRow: View {
                 .font(.system(size: 10))
                 .foregroundStyle(.cyan)
                 .frame(width: 14)
+                .help("Passive shield recharge")
             Text(String(format: "%.1f hp/s", peakHPS))
                 .font(.system(size: 11).monospacedDigit())
                 .frame(minWidth: 44, alignment: .leading)
+                .help("Peak passive shield recharge rate at 25% shield level")
             Spacer()
             HStack(spacing: 3) {
-                damageIcon("bolt.fill",  Self.emColor)
-                damageIcon("flame.fill", Self.thermalColor)
-                damageIcon("scope",      Self.kineticColor)
-                damageIcon("burst.fill", Self.explosiveColor)
+                damageIcon("bolt.fill",  Self.emColor,        tip: "EM damage type")
+                damageIcon("flame.fill", Self.thermalColor,   tip: "Thermal damage type")
+                damageIcon("scope",      Self.kineticColor,   tip: "Kinetic damage type")
+                damageIcon("burst.fill", Self.explosiveColor, tip: "Explosive damage type")
             }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 3)
     }
 
-    private func damageIcon(_ name: String, _ color: Color) -> some View {
+    private func damageIcon(_ name: String, _ color: Color, tip: String = "") -> some View {
         Image(systemName: name)
             .font(.system(size: 9))
             .foregroundStyle(color)
             .frame(width: 36)
+            .help(tip)
     }
 }
 
@@ -1887,6 +1901,7 @@ private struct SimHPLayerRow: View {
     let hp: Double
     let color: Color
     let resists: SimResists
+    var layerName: String = ""
 
     private static let emColor        = Color(red: 0.45, green: 0.60, blue: 1.00)
     private static let thermalColor   = Color(red: 1.00, green: 0.40, blue: 0.10)
@@ -1899,15 +1914,21 @@ private struct SimHPLayerRow: View {
                 .font(.system(size: 10))
                 .foregroundStyle(color)
                 .frame(width: 14)
+                .help(layerName.isEmpty ? "" : "\(layerName) layer")
             Text(fmtHP(hp))
                 .font(.system(size: 11).monospacedDigit())
                 .frame(minWidth: 44, alignment: .leading)
+                .help(layerName.isEmpty ? "" : "\(layerName) hit points")
             Spacer()
             HStack(spacing: 3) {
-                SimResistBadge(value: resists.em,        color: Self.emColor)
-                SimResistBadge(value: resists.thermal,   color: Self.thermalColor)
-                SimResistBadge(value: resists.kinetic,   color: Self.kineticColor)
-                SimResistBadge(value: resists.explosive, color: Self.explosiveColor)
+                SimResistBadge(value: resists.em,        color: Self.emColor,
+                               tip: layerName.isEmpty ? "" : "\(layerName) EM resistance")
+                SimResistBadge(value: resists.thermal,   color: Self.thermalColor,
+                               tip: layerName.isEmpty ? "" : "\(layerName) Thermal resistance")
+                SimResistBadge(value: resists.kinetic,   color: Self.kineticColor,
+                               tip: layerName.isEmpty ? "" : "\(layerName) Kinetic resistance")
+                SimResistBadge(value: resists.explosive, color: Self.explosiveColor,
+                               tip: layerName.isEmpty ? "" : "\(layerName) Explosive resistance")
             }
         }
         .padding(.horizontal, 10)
@@ -1924,6 +1945,7 @@ private struct SimHPLayerRow: View {
 private struct SimResistBadge: View {
     let value: Double
     let color: Color
+    var tip: String = ""
 
     var body: some View {
         Text(String(format: "%.0f %%", value))
@@ -1932,6 +1954,7 @@ private struct SimResistBadge: View {
             .frame(width: 36)
             .padding(.vertical, 2)
             .background(RoundedRectangle(cornerRadius: 3).fill(color.opacity(0.45)))
+            .help(tip)
     }
 }
 
@@ -1943,15 +1966,20 @@ struct SimTargetingBlock: View {
     var body: some View {
         VStack(spacing: 0) {
             SimSectionHeader(title: "Targeting",
-                             summary: stats.maxTargetRange > 0 ? fmtRange(stats.maxTargetRange) : "—")
+                             summary: stats.maxTargetRange > 0 ? fmtRange(stats.maxTargetRange) : "—",
+                             summaryTip: "Maximum targeting range")
             VStack(spacing: 3) {
                 simTwoColRow(
-                    left:  stats.sensorStrength > 0 ? String(format: "%.2f points", stats.sensorStrength) : "—",
-                    right: stats.scanResolution > 0  ? String(format: "%.0f mm", stats.scanResolution)    : "—"
+                    left:    stats.sensorStrength > 0 ? String(format: "%.2f points", stats.sensorStrength) : "—",
+                    leftTip: "Sensor strength — resistance to electronic warfare jamming",
+                    right:    stats.scanResolution > 0 ? String(format: "%.0f mm", stats.scanResolution) : "—",
+                    rightTip: "Scan resolution — determines how quickly you can lock on to a target"
                 )
                 simTwoColRow(
-                    left:  stats.signatureRadius > 0  ? String(format: "%.0f m", stats.signatureRadius)   : "—",
-                    right: stats.maxLockedTargets > 0 ? String(format: "%.0fx", stats.maxLockedTargets)   : "—"
+                    left:    stats.signatureRadius > 0  ? String(format: "%.0f m", stats.signatureRadius)  : "—",
+                    leftTip: "Signature radius — how easy this ship is to target and hit by others",
+                    right:    stats.maxLockedTargets > 0 ? String(format: "%.0fx", stats.maxLockedTargets) : "—",
+                    rightTip: "Maximum number of simultaneously locked targets"
                 )
             }
             .padding(.horizontal, 10).padding(.vertical, 6)
@@ -1973,15 +2001,20 @@ struct SimNavBlock: View {
     var body: some View {
         VStack(spacing: 0) {
             SimSectionHeader(title: "Navigation",
-                             summary: stats.maxVelocity > 0 ? String(format: "%.1f m/s", stats.maxVelocity) : "—")
+                             summary: stats.maxVelocity > 0 ? String(format: "%.1f m/s", stats.maxVelocity) : "—",
+                             summaryTip: "Maximum subwarp velocity")
             VStack(spacing: 3) {
                 simTwoColRow(
-                    left:  stats.mass > 0       ? String(format: "%.2f t", stats.mass / 1_000) : "—",
-                    right: stats.inertiaMod > 0 ? String(format: "%.4fx", stats.inertiaMod)    : "—"
+                    left:    stats.mass > 0       ? String(format: "%.2f t", stats.mass / 1_000) : "—",
+                    leftTip: "Ship mass — affects inertia and agility",
+                    right:    stats.inertiaMod > 0 ? String(format: "%.4fx", stats.inertiaMod)   : "—",
+                    rightTip: "Inertia modifier — lower values mean more agile"
                 )
                 simTwoColRow(
-                    left:  stats.warpSpeed > 0 ? String(format: "%.2f AU/s", stats.warpSpeed) : "—",
-                    right: stats.alignTime > 0 ? String(format: "%.2f s", stats.alignTime)    : "—"
+                    left:    stats.warpSpeed > 0 ? String(format: "%.2f AU/s", stats.warpSpeed) : "—",
+                    leftTip: "Maximum warp speed",
+                    right:    stats.alignTime > 0 ? String(format: "%.2f s", stats.alignTime)   : "—",
+                    rightTip: "Time to align and enter warp"
                 )
             }
             .padding(.horizontal, 10).padding(.vertical, 6)
@@ -2097,14 +2130,16 @@ private struct SimImplantsBlock: View {
 // MARK:  Stat row helpers
 
 @ViewBuilder
-private func simTwoColRow(left: String, right: String) -> some View {
+private func simTwoColRow(left: String, leftTip: String = "", right: String, rightTip: String = "") -> some View {
     HStack(spacing: 0) {
         Text(left)
             .font(.system(size: 11).monospacedDigit())
             .frame(maxWidth: .infinity, alignment: .leading)
+            .help(leftTip)
         Text(right)
             .font(.system(size: 11).monospacedDigit())
             .frame(maxWidth: .infinity, alignment: .leading)
+            .help(rightTip)
     }
 }
 
