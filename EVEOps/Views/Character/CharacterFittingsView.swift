@@ -103,6 +103,7 @@ struct CharacterFittingsView: View {
             .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
+            .zIndex(1)
 
             Divider()
 
@@ -447,18 +448,16 @@ struct CharacterFittingsView: View {
 
     @ViewBuilder
     private func fittingsTabButton(_ title: String, icon: String, tab: FittingsTab) -> some View {
-        Button { activeTab = tab } label: {
-            Label(title, systemImage: icon)
-                .font(.subheadline)
-                .frame(maxWidth: .infinity)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(activeTab == tab ? Color.accentColor : Color.clear,
-                            in: RoundedRectangle(cornerRadius: 6))
-                .foregroundStyle(activeTab == tab ? .white : .primary)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
+        Label(title, systemImage: icon)
+            .font(.subheadline)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(activeTab == tab ? Color.accentColor : Color.clear,
+                        in: RoundedRectangle(cornerRadius: 6))
+            .foregroundStyle(activeTab == tab ? .white : .primary)
+            .contentShape(Rectangle())
+            .onTapGesture { activeTab = tab }
     }
 
     private func isSlotModule(_ flag: String) -> Bool {

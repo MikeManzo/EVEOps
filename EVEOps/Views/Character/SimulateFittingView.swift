@@ -121,6 +121,16 @@ struct ImplantContribution: Identifiable {
     var id: Int { typeId }
 }
 
+// MARK:  Training Contribution
+
+struct TrainingContribution: Identifiable {
+    let typeId: Int
+    let name: String
+    let level: Int
+    let bonuses: [String]
+    var id: Int { typeId }
+}
+
 // MARK:  Sim Stats
 
 struct SimStats {
@@ -153,6 +163,7 @@ struct SimStats {
     var calibrationTotal: Double = 0
     var hasData: Bool { shieldHP > 0 || armorHP > 0 || hullHP > 0 }
     var implantContributions: [ImplantContribution] = []
+    var trainingContributions: [TrainingContribution] = []
 }
 
 // MARK:  Dogma Attribute IDs
@@ -464,6 +475,12 @@ struct SimStatsCalculator {
             return bonuses.isEmpty ? nil : ImplantContribution(typeId: implant.typeId, name: implant.name, bonuses: bonuses)
         }
 
+        s.trainingContributions = characterSkills.compactMap { (skillTypeId, skillLevel) -> TrainingContribution? in
+            guard skillLevel > 0, let skillType = skillTypes[skillTypeId] else { return nil }
+            let bonuses = describeSkillBonuses(skill: skillType, level: skillLevel, effectCache: effectCache)
+            return bonuses.isEmpty ? nil : TrainingContribution(typeId: skillTypeId, name: skillType.name, level: skillLevel, bonuses: bonuses)
+        }.sorted { $0.name < $1.name }
+
         return s
     }
 
@@ -556,6 +573,58 @@ struct SimStatsCalculator {
         case Op.modSub:
             guard abs(value) >= 0.001 else { return nil }
             return String(format: "%.1f \(label)", -value)
+        default:
+            return nil
+        }
+    }
+
+    static func describeSkillBonuses(
+        skill: ESIType,
+        level: Int,
+        effectCache: [Int: ESIDogmaEffectDetail]
+    ) -> [String] {
+        let skillAttrMap = Dictionary(
+            uniqueKeysWithValues: (skill.dogmaAttributes ?? []).map { ($0.attributeId, $0.value) }
+        )
+        var seen = Set<String>()
+        var result: [String] = []
+        for effect in skill.dogmaEffects ?? [] {
+            guard let detail = effectCache[effect.effectId] else { continue }
+            for m in detail.modifiers {
+                let knownFunc = m.function == "LocationModifier"
+                             || m.function == "LocationRequiredSkillModifier"
+                             || m.function == "ItemModifier"
+                guard knownFunc,
+                      m.domain == "shipID",
+                      let tgt      = m.modifiedAttributeId,
+                      let src      = m.modifyingAttributeId,
+                      let op       = m.operatorId,
+                      let label    = trackedAttrDisplay[tgt],
+                      let baseVal  = skillAttrMap[src] else { continue }
+                if let desc = formatSkillBonus(label: label, attrId: tgt, op: op, baseVal: baseVal, level: level),
+                   seen.insert(desc).inserted {
+                    result.append(desc)
+                }
+            }
+        }
+        return result
+    }
+
+    private static func formatSkillBonus(label: String, attrId: Int, op: Int, baseVal: Double, level: Int) -> String? {
+        let scaledVal = baseVal * Double(level)
+        let isResist = DogmaAttr.allResistances.contains(attrId)
+        switch op {
+        case Op.postPercent:
+            let pctTotal    = isResist ? -scaledVal : scaledVal
+            let pctPerLevel = isResist ? -baseVal   : baseVal
+            guard abs(pctTotal) >= 0.01 else { return nil }
+            return String(format: "%+.1f%% \(label) (%+.1f%%/lvl)", pctTotal, pctPerLevel)
+        case Op.modAdd:
+            guard abs(scaledVal) >= 0.001 else { return nil }
+            return String(format: "%+.1f \(label) (%+.1f/lvl)", scaledVal, baseVal)
+        case Op.modSub:
+            guard abs(scaledVal) >= 0.001 else { return nil }
+            return String(format: "%.1f \(label) (%.1f/lvl)", -scaledVal, -baseVal)
         default:
             return nil
         }
@@ -935,7 +1004,7 @@ struct SimLeftPanel: View {
             searchBar(text: $shipSearchText, placeholder: "Filter ships…") { _ in }
 
             Button { showLoadSheet = true } label: {
-                Label("Load from Saved Fitting or Ship…", systemImage: "square.and.arrow.down")
+                Label("Load Saved Fitting or Ship", systemImage: "square.and.arrow.down")
                     .font(.caption).frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderless)
@@ -1682,6 +1751,7 @@ struct SimStatsPanel: View {
                         SimNavBlock(stats: simState.stats)
                         SimDronesBlock(stats: simState.stats)
                         SimImplantsBlock()
+                        SimTrainingBlock()
 
                         if simState.isComputingEffects {
                             HStack(spacing: 6) {
@@ -2260,6 +2330,84 @@ private struct SimImplantsBlock: View {
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
         }
+    }
+}
+
+// MARK:  Training
+
+private struct SimTrainingBlock: View {
+    @Environment(SimulatorState.self) private var simState
+    @AppStorage("sim.section.training.expanded") private var isExpanded = true
+
+    var body: some View {
+        let contributions = simState.stats.trainingContributions
+        if !contributions.isEmpty {
+            VStack(spacing: 0) {
+                trainingHeader
+                if isExpanded {
+                    trainingContent
+                }
+            }
+        }
+    }
+
+    private var trainingHeader: some View {
+        HStack {
+            Text("Training")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.secondary)
+            Spacer()
+            Text("\(simState.stats.trainingContributions.count) skills")
+                .font(.system(size: 10))
+                .foregroundStyle(.tertiary)
+            Button {
+                withAnimation(.easeInOut(duration: 0.15)) { isExpanded.toggle() }
+            } label: {
+                Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(.tertiary)
+                    .frame(width: 14)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(Color.primary.opacity(0.06))
+    }
+
+    private var trainingContent: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ForEach(simState.stats.trainingContributions) { c in
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        AsyncImage(url: EVEImageURL.typeIcon(c.typeId, size: 64)) { img in
+                            img.resizable().aspectRatio(contentMode: .fit)
+                        } placeholder: {
+                            RoundedRectangle(cornerRadius: 3).fill(.quaternary)
+                        }
+                        .frame(width: 20, height: 20)
+                        .clipShape(RoundedRectangle(cornerRadius: 3))
+
+                        Text("\(c.name) (L\(c.level))")
+                            .font(.system(size: 10, weight: .semibold))
+                            .lineLimit(1)
+                    }
+                    ForEach(c.bonuses, id: \.self) { bonus in
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(.blue.opacity(0.5))
+                                .frame(width: 4, height: 4)
+                            Text(bonus)
+                                .font(.system(size: 10))
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.leading, 26)
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
     }
 }
 
