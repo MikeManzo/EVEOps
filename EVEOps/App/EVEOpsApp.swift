@@ -10,9 +10,28 @@
 
 import SwiftUI
 import SwiftData
+import UserNotifications
+
+// Sets itself as the UNUserNotificationCenter delegate so banners are shown
+// even while the app is active. Without this, macOS silently routes all
+// notifications straight to Notification Center with no banner.
+class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        UNUserNotificationCenter.current().delegate = self
+    }
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        completionHandler([.banner, .sound, .list])
+    }
+}
 
 @main
 struct EVEOpsApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             StoredAccount.self,

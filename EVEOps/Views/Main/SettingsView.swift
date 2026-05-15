@@ -802,6 +802,10 @@ private struct AboutTab: View {
                     fuzzworkCard
                         .padding(.top, 8)
 
+                    // Claude Code attribution card
+                    claudeCodeCard
+                        .padding(.top, 8)
+
                     // Collapsible legal
                     DisclosureGroup(isExpanded: $legalExpanded) {
                         VStack(alignment: .leading, spacing: 6) {
@@ -1057,6 +1061,57 @@ private struct AboutTab: View {
                         colors: [
                             Color.green.opacity(0.30),
                             Color.green.opacity(0.08)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        )
+        .padding(.horizontal, 44)
+    }
+
+    // Mark:  Claude Code attribution card
+
+    private var claudeCodeCard: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(Color.purple.opacity(0.12))
+                    .frame(width: 38, height: 38)
+                Image(systemName: "wand.and.stars")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.purple)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Claude Code")
+                    .font(.system(size: 13, weight: .semibold))
+                Text("AI DEVELOPMENT ASSISTANT")
+                    .font(.system(size: 9, weight: .bold))
+                    .tracking(1.2)
+                    .foregroundStyle(.tertiary)
+            }
+
+            Spacer()
+
+            Button("claude.ai/code") {
+                if let url = URL(string: "https://claude.ai/code") {
+                    NSWorkspace.shared.open(url)
+                }
+            }
+            .buttonStyle(.link)
+            .font(.system(size: 11, weight: .medium))
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 11)
+        .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [
+                            Color.purple.opacity(0.30),
+                            Color.purple.opacity(0.08)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing

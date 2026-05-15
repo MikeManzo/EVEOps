@@ -94,10 +94,10 @@ struct CharacterFittingsView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 2) {
-                fittingsTabButton("Ships", icon: "ferry.fill", tab: .ships)
-                fittingsTabButton("Saved Fittings", icon: "bookmark.fill", tab: .savedFittings)
-                fittingsTabButton("Community", icon: "globe", tab: .community)
-                fittingsTabButton("Simulate", icon: "slider.horizontal.3", tab: .simulate)
+                fittingsTabButton("My Ships", icon: "ferry.fill", tab: .ships)
+                fittingsTabButton("Saved Ships", icon: "bookmark.fill", tab: .savedFittings)
+                fittingsTabButton("Community Ships", icon: "globe", tab: .community)
+                fittingsTabButton("Simulate Ships", icon: "slider.horizontal.3", tab: .simulate)
             }
             .padding(3)
             .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
