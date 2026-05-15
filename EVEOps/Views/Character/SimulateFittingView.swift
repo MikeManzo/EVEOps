@@ -671,7 +671,7 @@ final class SimulatorState {
         guard let t = types[typeId] else { isLoadingShip = false; return }
         shipType = t
         shipName = t.name
-        shipClassName = CharacterFittingsView.eveShipGroups[t.groupId] ?? ""
+        shipClassName = await UniverseCache.shared.group(id: t.groupId)?.name ?? ""
         slots = buildSlots(from: t)
         recomputeStats()
         isLoadingShip = false
@@ -942,6 +942,7 @@ struct SimLeftPanel: View {
     // Ship browser
     @State private var allShipSections: [(className: String, ships: [ESIType])] = []
     @State private var isLoadingShips = false
+    @State private var shipLoadIncomplete = false
     @State private var shipSearchText = ""
     @AppStorage("simulateCollapsedShipSections") private var collapsedSectionsRaw: String = ""
 
@@ -1034,7 +1035,7 @@ struct SimLeftPanel: View {
                             }
                         )) {
                             ForEach(section.ships, id: \.typeId) { type in
-                                SimShipRow(type: type)
+                                SimShipRow(type: type, className: section.className)
                                     .contentShape(Rectangle())
                                     .onTapGesture {
                                         Task { await simState.selectShip(typeId: type.typeId) }
@@ -1053,6 +1054,21 @@ struct SimLeftPanel: View {
                     }
                 }
                 .listStyle(.sidebar)
+            }
+
+            if shipLoadIncomplete {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                    Text("Some ships failed to load")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Retry") { Task { await retryLoadShips() } }
+                        .font(.caption).buttonStyle(.borderless)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(.background.secondary)
             }
         }
     }
@@ -1211,20 +1227,30 @@ struct SimLeftPanel: View {
     private func loadAllShips() async {
         guard allShipSections.isEmpty else { return }
         isLoadingShips = true
-        let groupIds = Set(CharacterFittingsView.eveShipGroups.keys)
-        let groups = await UniverseCache.shared.groups(ids: groupIds)
-        let allTypeIds = Array(Set(groups.values.flatMap(\.types)))
-        let types = await UniverseCache.shared.types(ids: allTypeIds)
-        let shipTypes = types.values.filter {
-            CharacterFittingsView.eveShipGroupIds.contains($0.groupId) && $0.published
+        shipLoadIncomplete = false
+        guard let shipCategory = await UniverseCache.shared.category(id: 6) else {
+            isLoadingShips = false; return
         }
-        let byClass = Dictionary(grouping: Array(shipTypes)) {
-            CharacterFittingsView.eveShipGroups[$0.groupId] ?? "Unknown"
+        let groups = await UniverseCache.shared.groups(ids: Set(shipCategory.groups))
+        let publishedGroups = groups.values.filter(\.published)
+        let publishedGroupIds = Set(publishedGroups.map(\.groupId))
+        let allTypeIds = Array(Set(publishedGroups.flatMap(\.types)))
+        let types = await UniverseCache.shared.types(ids: allTypeIds)
+        let missingCount = allTypeIds.filter { types[$0] == nil }.count
+        let shipTypes = types.values.filter { publishedGroupIds.contains($0.groupId) && $0.published }
+        let byClass = Dictionary(grouping: Array(shipTypes)) { type -> String in
+            groups[type.groupId]?.name ?? "Unknown"
         }
         allShipSections = byClass.keys.sorted().map { cls in
             (className: cls, ships: byClass[cls]!.sorted { $0.name < $1.name })
         }
+        if missingCount > 0 { shipLoadIncomplete = true }
         isLoadingShips = false
+    }
+
+    private func retryLoadShips() async {
+        allShipSections = []
+        await loadAllShips()
     }
 
     private func loadAllModules() async {
@@ -2580,6 +2606,8 @@ struct SimLoadFittingSheet: View {
             ) {
                 let tids = Array(Set(raw.map(\.shipTypeId)))
                 let types = await UniverseCache.shared.types(ids: tids)
+                let fittingGroupIds = Set(types.values.map(\.groupId))
+                let fittingGroups = await UniverseCache.shared.groups(ids: fittingGroupIds)
                 for f in raw {
                     let gid = types[f.shipTypeId]?.groupId ?? 0
                     fittings.append(SavedFittingEntry(
@@ -2590,7 +2618,7 @@ struct SimLoadFittingSheet: View {
                         fittingDescription: f.description,
                         shipTypeId: f.shipTypeId,
                         shipTypeName: types[f.shipTypeId]?.name ?? "Unknown",
-                        shipClassName: CharacterFittingsView.eveShipGroups[gid] ?? "Unknown",
+                        shipClassName: fittingGroups[gid]?.name ?? "Unknown",
                         items: f.items
                     ))
                 }
@@ -2603,7 +2631,10 @@ struct SimLoadFittingSheet: View {
                 let assets = rawAssets.filter { seen.insert($0.itemId).inserted }
                 let tids = Array(Set(assets.map(\.typeId)))
                 let types = await UniverseCache.shared.types(ids: tids)
-                let shipTids = Set(types.filter { CharacterFittingsView.eveShipGroupIds.contains($0.value.groupId) }.keys)
+                let assetGroupIds = Set(types.values.map(\.groupId))
+                let assetGroups = await UniverseCache.shared.groups(ids: assetGroupIds)
+                let shipGroupIds = Set(assetGroups.values.filter { $0.categoryId == 6 }.map(\.groupId))
+                let shipTids = Set(types.filter { shipGroupIds.contains($0.value.groupId) }.keys)
                 let byLoc = Dictionary(grouping: assets, by: \.locationId)
 
                 for a in assets where shipTids.contains(a.typeId) && a.isSingleton {
@@ -2617,7 +2648,7 @@ struct SimLoadFittingSheet: View {
                         customName: nil,
                         locationName: "Unknown Location",
                         isSingleton: true,
-                        shipClassName: CharacterFittingsView.eveShipGroups[gid] ?? "Unknown"
+                        shipClassName: assetGroups[gid]?.name ?? "Unknown"
                     ))
                     let mods = (byLoc[a.itemId] ?? []).filter { f in
                         f.locationFlag.hasPrefix("HiSlot") || f.locationFlag.hasPrefix("MedSlot") ||
@@ -2640,6 +2671,7 @@ struct SimLoadFittingSheet: View {
 
 struct SimShipRow: View {
     let type: ESIType
+    var className: String = ""
 
     var body: some View {
         HStack(spacing: 10) {
@@ -2654,7 +2686,7 @@ struct SimShipRow: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(type.name).font(.subheadline.bold())
-                Text(CharacterFittingsView.eveShipGroups[type.groupId] ?? "Ship")
+                Text(className.isEmpty ? "Ship" : className)
                     .font(.caption).foregroundStyle(.secondary)
             }
             Spacer()
