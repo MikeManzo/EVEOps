@@ -93,13 +93,14 @@ struct CharacterFittingsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Picker("Tab", selection: $activeTab) {
-                Text("Ships").tag(FittingsTab.ships)
-                Text("Saved Fittings").tag(FittingsTab.savedFittings)
-                Text("Community").tag(FittingsTab.community)
-                Text("Simulate").tag(FittingsTab.simulate)
+            HStack(spacing: 2) {
+                fittingsTabButton("Ships", icon: "ferry.fill", tab: .ships)
+                fittingsTabButton("Saved Fittings", icon: "bookmark.fill", tab: .savedFittings)
+                fittingsTabButton("Community", icon: "globe", tab: .community)
+                fittingsTabButton("Simulate", icon: "slider.horizontal.3", tab: .simulate)
             }
-            .pickerStyle(.segmented)
+            .padding(3)
+            .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
 
@@ -443,6 +444,22 @@ struct CharacterFittingsView: View {
     }
 
     // MARK:  Helpers
+
+    @ViewBuilder
+    private func fittingsTabButton(_ title: String, icon: String, tab: FittingsTab) -> some View {
+        Button { activeTab = tab } label: {
+            Label(title, systemImage: icon)
+                .font(.subheadline)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(activeTab == tab ? Color.accentColor : Color.clear,
+                            in: RoundedRectangle(cornerRadius: 6))
+                .foregroundStyle(activeTab == tab ? .white : .primary)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
 
     private func isSlotModule(_ flag: String) -> Bool {
         flag.hasPrefix("HiSlot") || flag.hasPrefix("MedSlot") || flag.hasPrefix("LoSlot") ||

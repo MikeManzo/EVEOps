@@ -241,6 +241,8 @@ struct SimStatsCalculator {
         shipType: ESIType,
         fittedModules: [ESIType] = [],
         implants: [ESIType] = [],
+        characterSkills: [Int: Int] = [:],
+        skillTypes: [Int: ESIType] = [:],
         effectCache: [Int: ESIDogmaEffectDetail] = [:]
     ) -> SimStats {
         // 1 ── Build mutable attribute map from ship base values.
@@ -300,6 +302,34 @@ struct SimStatsCalculator {
             if !resolvedAny { fallbackModules.append(mod) }
         }
 
+        // 2b ── Collect modifier records from character skills.
+        //       Each skill contributes its per-level bonus × active skill level.
+        //       Most ship-relevant skill bonuses use postPercent (op 8) or modAdd (op 6),
+        //       where the attribute value is the per-level amount (e.g., 5 for 5%/level).
+        for (skillTypeId, skillLevel) in characterSkills where skillLevel > 0 {
+            guard let skillType = skillTypes[skillTypeId] else { continue }
+            let skillAttrMap = Dictionary(
+                uniqueKeysWithValues: (skillType.dogmaAttributes ?? []).map { ($0.attributeId, $0.value) }
+            )
+            for effect in skillType.dogmaEffects ?? [] {
+                guard let detail = effectCache[effect.effectId] else { continue }
+                for m in detail.modifiers {
+                    let knownFunc = m.function == "LocationModifier"
+                                 || m.function == "LocationRequiredSkillModifier"
+                                 || m.function == "ItemModifier"
+                    guard knownFunc,
+                          m.domain == "shipID",
+                          let tgt = m.modifiedAttributeId,
+                          let src = m.modifyingAttributeId,
+                          let op  = m.operatorId,
+                          let baseVal = skillAttrMap[src] else { continue }
+                    // Scale per-level attribute value by the character's active skill level.
+                    let scaledVal = baseVal * Double(skillLevel)
+                    pending[tgt, default: [:]][op, default: []].append(scaledVal)
+                }
+            }
+        }
+
         // 3 ── Apply dogma modifiers in the standard evaluation order.
         for (attrId, opGroups) in pending {
             let isResist = DogmaAttr.allResistances.contains(attrId)
@@ -352,8 +382,9 @@ struct SimStatsCalculator {
         }
 
         // 4 ── Fitting resource usage — read directly from each module's own attributes.
-        //      These don't go through dogma modifier chains (skills are ignored in the sim),
-        //      so they are available immediately even before effect details are cached.
+        //      Individual module CPU/power costs are not yet reduced by skills (e.g. Advanced
+        //      Weapon Upgrades), so these values are the raw base costs from the module type.
+        //      Ship-level totals (cpuTotal, powerTotal) are already skill-adjusted via step 2b.
         var cpuUsed = 0.0
         var powerUsed = 0.0
         var calibrationUsed = 0.0
@@ -551,6 +582,8 @@ final class SimulatorState {
     var isComputingEffects = false
     var implantTypes: [ESIType] = []
     var includeImplants: Bool = true
+    var characterSkills: [Int: Int] = [:]   // skillTypeId → activeSkillLevel
+    var skillTypes: [Int: ESIType] = [:]    // skillTypeId → type data with dogma attrs/effects
 
     var activeSlot: SimSlot? {
         guard let id = activeSlotId else { return nil }
@@ -685,7 +718,14 @@ final class SimulatorState {
         guard let shipType else { stats = SimStats(); return }
         let fitted = slots.compactMap { $0.moduleTypeId }.compactMap { moduleTypes[$0] }
         let activeImplants = includeImplants ? implantTypes : []
-        stats = SimStatsCalculator.compute(shipType: shipType, fittedModules: fitted, implants: activeImplants, effectCache: effectDetailsCache)
+        stats = SimStatsCalculator.compute(
+            shipType: shipType,
+            fittedModules: fitted,
+            implants: activeImplants,
+            characterSkills: characterSkills,
+            skillTypes: skillTypes,
+            effectCache: effectDetailsCache
+        )
     }
 
 
@@ -706,11 +746,33 @@ final class SimulatorState {
         prefetchFittedEffects()
     }
 
-    /// Pre-fetch dogma effect details for all currently fitted modules, then recompute.
-    /// Called after placing modules so full dogma replaces the base-only stats.
+    /// Fetch the character's active skills, resolve their ESI types, and recompute.
+    func loadSkills(accountManager: AccountManager) async {
+        guard let account = accountManager.selectedAccount,
+              let token = try? await accountManager.validToken(for: account),
+              let response: ESISkillsResponse = try? await ESIClient.shared.fetch(
+                  "/characters/\(account.characterID)/skills/", token: token
+              ) else {
+            characterSkills = [:]
+            skillTypes = [:]
+            recomputeStats()
+            return
+        }
+        characterSkills = Dictionary(
+            uniqueKeysWithValues: response.skills.map { ($0.skillId, $0.activeSkillLevel) }
+        )
+        let types = await UniverseCache.shared.types(ids: Array(characterSkills.keys))
+        skillTypes = types
+        recomputeStats()
+        prefetchFittedEffects()
+    }
+
+    /// Pre-fetch dogma effect details for all currently fitted modules, implants,
+    /// and character skills, then recompute.
     func prefetchFittedEffects() {
         let fittedTypes = slots.compactMap { $0.moduleTypeId }.compactMap { moduleTypes[$0] }
-        let effectIds = Set((fittedTypes + implantTypes).flatMap { $0.dogmaEffects?.map(\.effectId) ?? [] })
+        let allTypes = fittedTypes + implantTypes + Array(skillTypes.values)
+        let effectIds = Set(allTypes.flatMap { $0.dogmaEffects?.map(\.effectId) ?? [] })
         guard !effectIds.isEmpty else { return }
 
         isComputingEffects = true
@@ -773,8 +835,10 @@ struct SimulateFittingView: View {
         }
         .background(SplitViewAutosave(name: "SimulateFittingView.split"))
         .task { await simState.loadImplants(accountManager: accountManager) }
+        .task { await simState.loadSkills(accountManager: accountManager) }
         .onChange(of: accountManager.selectedAccount?.characterID) { _, _ in
             Task { await simState.loadImplants(accountManager: accountManager) }
+            Task { await simState.loadSkills(accountManager: accountManager) }
         }
     }
 }
@@ -785,8 +849,8 @@ private enum LeftPanelMode { case ships, modules }
 
 // Dogma effect IDs that identify which slot a module occupies
 private enum SlotEffect {
-    static let high: Int       = 11
-    static let low: Int        = 12
+    static let high: Int       = 12
+    static let low: Int        = 11
     static let medium: Int     = 13
     static let rig: Int        = 2663
     static let subsystem: Int  = 3772
