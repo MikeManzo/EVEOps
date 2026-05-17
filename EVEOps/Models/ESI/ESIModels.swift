@@ -477,6 +477,8 @@ nonisolated struct ESIDogmaModifier: Codable, Sendable {
 
 nonisolated struct ESIDogmaEffectDetail: Codable, Sendable {
     let effectId: Int
+    // 0=passive, 1=active, 2=target, 3=area, 4=online, 5=overload
+    let effectCategory: Int?
     let modifiers: [ESIDogmaModifier]
 }
 

@@ -16,7 +16,7 @@ actor UniverseCache {
     static let shared = UniverseCache()
 
     private static let ttl: TimeInterval = 7 * 24 * 3600 // 7 days
-    private static let schemaVersion = 7
+    private static let schemaVersion = 8
 
     private var types: [Int: ESIType] = [:]
     private var groups: [Int: ESIGroup] = [:]
