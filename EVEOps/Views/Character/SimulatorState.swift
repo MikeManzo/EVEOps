@@ -55,6 +55,9 @@ final class SimulatorState {
         shipName = t.name
         shipClassName = await UniverseCache.shared.group(id: t.groupId)?.name ?? ""
         slots = buildSlots(from: t)
+        // Fetch the ship's own effect details inline so role bonuses (LocationModifier
+        // applied to fitted modules) are available on the very first recompute.
+        await cacheEffects(for: [t])
         recomputeStats()
         isLoadingShip = false
     }
@@ -131,6 +134,7 @@ final class SimulatorState {
                 }
             }
         }
+        await cacheEffects(for: Array(moduleTypes.values))
         recomputeStats()
         prefetchFittedEffects()
     }
@@ -149,6 +153,7 @@ final class SimulatorState {
                 }
             }
         }
+        await cacheEffects(for: Array(moduleTypes.values))
         recomputeStats()
         prefetchFittedEffects()
     }
@@ -179,7 +184,6 @@ final class SimulatorState {
         )
     }
 
-
     /// Fetch the character's active implants, resolve their ESI types, and recompute.
     func loadImplants(accountManager: AccountManager) async {
         guard let account = accountManager.selectedAccount,
@@ -193,6 +197,7 @@ final class SimulatorState {
         }
         let types = await UniverseCache.shared.types(ids: ids)
         implantTypes = ids.compactMap { types[$0] }
+        await cacheEffects(for: implantTypes)
         recomputeStats()
         prefetchFittedEffects()
     }
@@ -214,17 +219,34 @@ final class SimulatorState {
         )
         let types = await UniverseCache.shared.types(ids: Array(characterSkills.keys))
         skillTypes = types
+        // Fetch all skill effect details inline — Caldari Battleship and other racial
+        // ship skills use LocationGroupModifier which requires the effect detail to be
+        // cached before recomputeStats() runs, otherwise those bonuses are silently skipped.
+        await cacheEffects(for: Array(skillTypes.values))
         recomputeStats()
         prefetchFittedEffects()
     }
 
+    /// Inline-fetch dogma effect details for the given types, populating effectDetailsCache.
+    /// Unlike prefetchFittedEffects(), this awaits completion so callers can recompute
+    /// immediately after with full effect data available.
+    private func cacheEffects(for types: [ESIType]) async {
+        let needed = Set(types.flatMap { $0.dogmaEffects?.map(\.effectId) ?? [] })
+            .subtracting(effectDetailsCache.keys)
+        guard !needed.isEmpty else { return }
+        let details = await UniverseCache.shared.effectDetails(ids: needed)
+        for (id, d) in details { effectDetailsCache[id] = d }
+    }
+
     /// Pre-fetch dogma effect details for all currently fitted modules, implants,
-    /// and character skills, then recompute.
+    /// and character skills, then recompute. Used as a background safety net after
+    /// drag-and-drop module placement or for any effects not yet in cache.
     func prefetchFittedEffects() {
         let fittedTypes = slots.compactMap { $0.moduleTypeId }.compactMap { moduleTypes[$0] }
         let shipTypes = shipType.map { [$0] } ?? []
         let allTypes = fittedTypes + implantTypes + Array(skillTypes.values) + shipTypes
         let effectIds = Set(allTypes.flatMap { $0.dogmaEffects?.map(\.effectId) ?? [] })
+            .subtracting(effectDetailsCache.keys)
         guard !effectIds.isEmpty else { return }
 
         isComputingEffects = true

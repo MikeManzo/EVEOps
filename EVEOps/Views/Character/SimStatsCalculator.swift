@@ -154,28 +154,61 @@ struct SimStatsCalculator {
 #endif
 
         // 1b ── Two-pass dogma prep: build the ship's own attribute map and collect
-        //       any LocationModifier effects the ship has that boost MODULE attributes.
-        //       (e.g. a role bonus like "100% bonus to shield extender HP" lives here.)
+        //       LocationModifier and LocationGroupModifier effects the ship has that boost
+        //       MODULE attributes (e.g. role bonuses to shield extenders, shield boosters).
+        //       LocationModifier applies to ALL fitted modules; LocationGroupModifier applies
+        //       only to modules belonging to a specific group (e.g. Large Shield Extenders).
         //       These are applied to each module's source-attribute value in step 2,
         //       before the module pushes its effect onto the ship's pending map.
         let shipSelfAttrMap = Dictionary(
             uniqueKeysWithValues: (shipType.dogmaAttributes ?? []).map { ($0.attributeId, $0.value) }
         )
-        // [moduleAttrId: [op: [values]]] — ship→module overrides built from LocationModifier effects
+
+        // Skills that this specific ship type requires as prerequisites (attrs 182/183/184/1285/1289/1290).
+        // Used in step 2b to determine whether a skill's LocationGroupModifier effect applies here:
+        // racial ship skills (e.g. "Caldari Battleship") are required by the ships they buff,
+        // so checking the prerequisite list is a reliable proxy for the missing ESI groupId.
+        let shipPrereqSkillAttrIds: Set<Int> = [182, 183, 184, 1285, 1289, 1290]
+        let shipRequiredSkillIds = Set(
+            (shipType.dogmaAttributes ?? [])
+                .filter { shipPrereqSkillAttrIds.contains($0.attributeId) }
+                .map    { Int($0.value) }
+        )
+
+        // all-module overrides: LocationModifier effects (apply to every fitted module)
         var shipToModuleAttrs: [Int: [Int: [Double]]] = [:]
+        // group-targeted overrides: LocationGroupModifier effects keyed by module groupId
+        // (populated only when ESI provides a groupId; currently always empty at runtime)
+        var shipToGroupModuleAttrs: [Int: [Int: [Int: [Double]]]] = [:]
         for effect in shipType.dogmaEffects ?? [] {
             guard let detail = effectCache[effect.effectId] else { continue }
             if let cat = detail.effectCategory, cat == 1 || cat == 2 || cat == 3 || cat == 5 { continue }
             for m in detail.modifiers {
-                guard m.function == "LocationModifier",
-                      let tgt = m.modifiedAttributeId,
+                guard let tgt = m.modifiedAttributeId,
                       let src = m.modifyingAttributeId,
                       let op  = m.operatorId,
                       let val = shipSelfAttrMap[src] else { continue }
 #if DEBUG
-                print("[Sim] SHIP→MOD eff=\(effect.effectId) modAttr=\(tgt) shipAttr=\(src) op=\(op) val=\(val)")
+                let shipTrackedAttrs: Set<Int> = [9, 72, 263, 265, 267, 268, 269, 270, 271, 272, 273, 274, 109, 110, 111, 113]
+                if shipTrackedAttrs.contains(tgt) {
+                    print("[Sim] SHIP-EFF eff=\(effect.effectId) func=\(m.function ?? "?") domain=\(m.domain ?? "?") tgt=\(tgt) src=\(src) groupId=\(m.groupId.map(String.init) ?? "nil") op=\(op) val=\(val)")
+                }
 #endif
-                shipToModuleAttrs[tgt, default: [:]][op, default: []].append(val)
+                if m.function == "LocationModifier" {
+                    shipToModuleAttrs[tgt, default: [:]][op, default: []].append(val)
+                } else if m.function == "LocationGroupModifier" {
+                    if let groupId = m.groupId {
+                        shipToGroupModuleAttrs[groupId, default: [:]][tgt, default: [:]][op, default: []].append(val)
+                    } else if !DogmaAttr.allResistances.contains(tgt) {
+                        // ESI omits groupId, so fall back to applying to all modules.
+                        // Resistance attribute IDs are excluded: shield/armor hardeners use those
+                        // same IDs as their effect source attributes, so applying a ship role bonus
+                        // (e.g. missile damage) unconditionally to them doubles their resist output.
+                        // Non-resist attributes are safe: modules outside the intended group have
+                        // value 0 for the target attribute and are mathematically unaffected.
+                        shipToModuleAttrs[tgt, default: [:]][op, default: []].append(val)
+                    }
+                }
             }
         }
 
@@ -193,26 +226,33 @@ struct SimStatsCalculator {
             )
             var resolvedAny = false
 
+            // Combine all-module overrides with any group-specific ones for this module's groupId.
+            // This applies both LocationModifier (all modules) and LocationGroupModifier (e.g.,
+            // a Raven role bonus that targets only Large Shield Extenders by their groupId).
+            var modShipOverrides = shipToModuleAttrs
+            if let groupMods = shipToGroupModuleAttrs[mod.groupId] {
+                for (attrId, opMap) in groupMods {
+                    for (op, vals) in opMap {
+                        modShipOverrides[attrId, default: [:]][op, default: []].append(contentsOf: vals)
+                    }
+                }
+            }
+
             for effect in mod.dogmaEffects ?? [] {
                 guard let detail = effectCache[effect.effectId] else { continue }
                 resolvedAny = true
-                // Active effects (effectCategory 1): apply only those targeting resistance
-                // resonance attributes. This mirrors EVE's fitting panel which shows resists
-                // with hardeners running, but ignores active penalties on non-resist stats
-                // (e.g. the Prototype Cloaking Device's -90 % velocity hit).
-                // Passive (0) and online (4) effects always apply.
-                if let cat = detail.effectCategory, cat == 1 {
-                    let hasResistTarget = detail.modifiers.contains {
-                        guard let tgt = $0.modifiedAttributeId else { return false }
-                        return DogmaAttr.allResistances.contains(tgt)
-                    }
-                    if !hasResistTarget { continue }
-                }
+                // Apply passive (0), active (1), and online (4) effects — matches EVE's fitting
+                // panel, which shows all fitted-module effects including MWD velocity/sig bloom,
+                // afterburner speed, and hardener resists.
+                // Skip target (2), area (3), and overload (5): those don't affect the fitting panel.
+                if let cat = detail.effectCategory, cat == 2 || cat == 3 || cat == 5 { continue }
                 for m in detail.modifiers {
                     // LocationRequiredSkillModifier from modules targets sub-items (missiles/launchers),
                     // not the ship itself — exclude it from ship-level attribute computation.
+                    // LocationGroupModifier is only applied when the ship's group matches.
                     let knownFunc = m.function == "LocationModifier"
                                  || m.function == "ItemModifier"
+                                 || (m.function == "LocationGroupModifier" && m.groupId == shipType.groupId)
                     guard knownFunc,
                           m.domain == "shipID",
                           let tgt  = m.modifiedAttributeId,
@@ -232,7 +272,7 @@ struct SimStatsCalculator {
                         continue
                     }
                     // Apply ship→module modifiers (e.g. role bonus to shield extender HP).
-                    let val = Self.applyShipToModAttr(rawVal, attrId: src, shipMods: shipToModuleAttrs)
+                    let val = Self.applyShipToModAttr(rawVal, attrId: src, shipMods: modShipOverrides)
 #if DEBUG
                     let hpResistAttrs: Set<Int> = [9, 37, 70, 192, 263, 265, 267, 268, 269, 270, 271, 272, 273, 274, 109, 110, 111, 113, 479, 480, 481, 482]
                     if hpResistAttrs.contains(tgt) {
@@ -281,9 +321,16 @@ struct SimStatsCalculator {
             for effect in skillType.dogmaEffects ?? [] {
                 guard let detail = effectCache[effect.effectId] else { continue }
                 for m in detail.modifiers {
+                    // LocationRequiredSkillModifier targets attributes of items that require
+                    // this skill (e.g. AWU reducing weapon PG cost). It does NOT modify the
+                    // ship's own attributes and is handled separately in step 4a below.
+                    // LocationGroupModifier is the primary mechanism for racial ship-skill bonuses
+                    // (e.g. "Caldari Battleship V → bonus to Caldari Battleships"). ESI does not
+                    // return the target groupId, so we use the ship's prerequisite skill list as
+                    // a proxy: if this ship requires the skill, its LocationGroupModifier applies.
                     let knownFunc = m.function == "LocationModifier"
-                                 || m.function == "LocationRequiredSkillModifier"
                                  || m.function == "ItemModifier"
+                                 || (m.function == "LocationGroupModifier" && shipRequiredSkillIds.contains(skillTypeId))
                     guard knownFunc,
                           m.domain == "shipID",
                           let tgt = m.modifiedAttributeId,
@@ -394,10 +441,43 @@ struct SimStatsCalculator {
         }
 #endif
 
-        // 4 ── Fitting resource usage — read directly from each module's own attributes.
-        //      Individual module CPU/power costs are not yet reduced by skills (e.g. Advanced
-        //      Weapon Upgrades), so these values are the raw base costs from the module type.
-        //      Ship-level totals (cpuTotal, powerTotal) are already skill-adjusted via step 2b.
+        // 4a ── Build LocationRequiredSkillModifier (LRSM) map from character skills.
+        //       LRSM effects modify attributes of fitted modules that require a specific skill
+        //       as a prerequisite (e.g. "Advanced Weapon Upgrades" reduces turret PG cost).
+        //       Key = prerequisite skill typeId → list of (modifiedAttrId, op, scaledVal).
+        //       The required skill is implicit: it is the skill whose effect contains the LRSM.
+        let modSkillReqAttrIds: Set<Int> = [182, 183, 184, 1285, 1289, 1290]
+        var lrsmBySkill: [Int: [(modAttrId: Int, op: Int, val: Double)]] = [:]
+        for (skillTypeId, skillLevel) in characterSkills where skillLevel > 0 {
+            guard let skillType = skillTypes[skillTypeId] else { continue }
+            let skillAttrMap2 = Dictionary(
+                uniqueKeysWithValues: (skillType.dogmaAttributes ?? []).map { ($0.attributeId, $0.value) }
+            )
+            for effect in skillType.dogmaEffects ?? [] {
+                guard let detail = effectCache[effect.effectId] else { continue }
+                for m in detail.modifiers {
+                    guard m.function == "LocationRequiredSkillModifier",
+                          m.domain == "shipID",
+                          let tgt     = m.modifiedAttributeId,
+                          let src     = m.modifyingAttributeId,
+                          let op      = m.operatorId,
+                          let baseVal = skillAttrMap2[src] else { continue }
+                    let scaledVal: Double
+                    switch op {
+                    case Op.preMul, Op.postMul, Op.postDiv:
+                        scaledVal = pow(baseVal, Double(skillLevel))
+                    default:
+                        scaledVal = baseVal * Double(skillLevel)
+                    }
+                    lrsmBySkill[skillTypeId, default: []].append((modAttrId: tgt, op: op, val: scaledVal))
+                }
+            }
+        }
+
+        // 4 ── Fitting resource usage — skill-adjusted via LRSM effects.
+        //      For each module, collect LRSM modifiers from all skills it requires as
+        //      prerequisites, then apply them to CPU, PG, and activation energy costs
+        //      before summing. Calibration (rigs) has no skill reducer in EVE.
         var cpuUsed = 0.0
         var powerUsed = 0.0
         var calibrationUsed = 0.0
@@ -405,10 +485,26 @@ struct SimStatsCalculator {
         for mod in fittedModules {
             let mAttrs = mod.dogmaAttributes ?? []
             func mv(_ id: Int) -> Double { mAttrs.first { $0.attributeId == id }?.value ?? 0 }
-            cpuUsed         += mv(DogmaAttr.cpu)
-            powerUsed       += mv(DogmaAttr.power)
+
+            // Prerequisite skills declared on this module (attrs 182/183/184/1285/1289/1290).
+            let reqSkillIds = mAttrs
+                .filter { modSkillReqAttrIds.contains($0.attributeId) }
+                .map    { Int($0.value) }
+
+            // Aggregate LRSM modifiers for the cost attributes of interest.
+            var modPending: [Int: [Int: [Double]]] = [:]
+            for skillId in reqSkillIds {
+                for entry in lrsmBySkill[skillId] ?? [] {
+                    modPending[entry.modAttrId, default: [:]][entry.op, default: []].append(entry.val)
+                }
+            }
+
+            // Apply LRSM modifiers (reuses the same evaluation function as ship modifiers).
+            cpuUsed   += Self.applyShipToModAttr(mv(DogmaAttr.cpu),            attrId: DogmaAttr.cpu,            shipMods: modPending)
+            powerUsed += Self.applyShipToModAttr(mv(DogmaAttr.power),          attrId: DogmaAttr.power,          shipMods: modPending)
             calibrationUsed += mv(DogmaAttr.upgradeCost)
-            let capNeed = mv(DogmaAttr.capacitorNeed)
+
+            let capNeed = Self.applyShipToModAttr(mv(DogmaAttr.capacitorNeed), attrId: DogmaAttr.capacitorNeed,  shipMods: modPending)
             let actTime = mv(DogmaAttr.activationTime)
             if capNeed > 0, actTime > 0 {
                 capDrainPerSec += capNeed / (actTime / 1000.0)
@@ -471,9 +567,17 @@ struct SimStatsCalculator {
             thermal:   (1 - r(DogmaAttr.hullThermRes)) * 100
         )
 
-        s.ehp = ehpFor(hp: s.shieldHP, resists: s.shieldResists)
-              + ehpFor(hp: s.armorHP,  resists: s.armorResists)
-              + ehpFor(hp: s.hullHP,   resists: s.hullResists)
+        // EHP per damage type: sum of each layer's HP divided by that layer's real
+        // resonance for that type.  resonance = 1 − resist%.
+        // Using per-type resonances instead of an average gives values that match
+        // what EVE's fitting tools report for each incoming damage profile.
+        func ehpLayer(_ hp: Double, _ pct: Double) -> Double { hp / max(1e-6, 1.0 - pct / 100.0) }
+        s.ehp = SimEHPProfile(
+            em:        ehpLayer(s.shieldHP, s.shieldResists.em)       + ehpLayer(s.armorHP, s.armorResists.em)       + ehpLayer(s.hullHP, s.hullResists.em),
+            explosive: ehpLayer(s.shieldHP, s.shieldResists.explosive) + ehpLayer(s.armorHP, s.armorResists.explosive) + ehpLayer(s.hullHP, s.hullResists.explosive),
+            kinetic:   ehpLayer(s.shieldHP, s.shieldResists.kinetic)   + ehpLayer(s.armorHP, s.armorResists.kinetic)   + ehpLayer(s.hullHP, s.hullResists.kinetic),
+            thermal:   ehpLayer(s.shieldHP, s.shieldResists.thermal)   + ehpLayer(s.armorHP, s.armorResists.thermal)   + ehpLayer(s.hullHP, s.hullResists.thermal)
+        )
 
 #if DEBUG
         if !fittedModules.isEmpty {
@@ -493,12 +597,6 @@ struct SimStatsCalculator {
         }.sorted { $0.name < $1.name }
 
         return s
-    }
-
-    private static func ehpFor(hp: Double, resists: SimResists) -> Double {
-        let avg = resists.average / 100
-        guard avg < 1 else { return hp }
-        return hp / (1 - avg)
     }
 
     // Human-readable names for ship attributes we surface in the implant list.

@@ -465,13 +465,52 @@ nonisolated struct ESIDogmaModifier: Codable, Sendable {
     let modifiedAttributeId: Int?
     let modifyingAttributeId: Int?
     let operatorId: Int?
+    let groupId: Int?
 
+    // Primary CodingKeys. `groupId` uses the camelCase raw value "groupID" because the live
+    // ESI endpoint returns "groupID" (capital D), not the snake_case "group_id" documented
+    // in the Swagger spec. The custom init below also tries a fallback lookup for the
+    // snake_case-converted form ("groupId") in case ESI behaviour changes.
     enum CodingKeys: String, CodingKey {
         case domain
         case function = "func"
         case modifiedAttributeId
         case modifyingAttributeId
         case operatorId = "operator"
+        case groupId = "groupID"
+    }
+
+    init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        domain               = try c.decodeIfPresent(String.self, forKey: .domain)
+        function             = try c.decodeIfPresent(String.self, forKey: .function)
+        modifiedAttributeId  = try c.decodeIfPresent(Int.self,    forKey: .modifiedAttributeId)
+        modifyingAttributeId = try c.decodeIfPresent(Int.self,    forKey: .modifyingAttributeId)
+        operatorId           = try c.decodeIfPresent(Int.self,    forKey: .operatorId)
+
+        // Try the primary typed key ("groupID") first.  If the decoder's convertFromSnakeCase
+        // strategy transformed the JSON key "group_id" → "groupId" (lowercase d) rather than
+        // leaving the camelCase "groupID" alone, the primary lookup will miss; the fallback
+        // AnyKey container catches both spellings regardless of the active key strategy.
+        if let gid = try c.decodeIfPresent(Int.self, forKey: .groupId) {
+            groupId = gid
+        } else {
+            struct AnyKey: CodingKey {
+                let stringValue: String
+                var intValue: Int? { nil }
+                init(stringValue s: String) { stringValue = s }
+                init?(intValue: Int) { nil }
+            }
+            let ac = (try? decoder.container(keyedBy: AnyKey.self))
+            groupId = (try? ac?.decodeIfPresent(Int.self, forKey: AnyKey(stringValue: "groupId")))
+                   ?? (try? ac?.decodeIfPresent(Int.self, forKey: AnyKey(stringValue: "group_id")))
+#if DEBUG
+            if let fn = function, fn.contains("Group"), groupId == nil {
+                let keys = ac?.allKeys.map(\.stringValue) ?? []
+                print("[ESIDogmaModifier] func=\(fn): groupId still nil after all fallbacks — JSON keys visible: \(keys)")
+            }
+#endif
+        }
     }
 }
 

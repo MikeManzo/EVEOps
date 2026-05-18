@@ -109,7 +109,21 @@ struct SimResists {
     var explosive: Double = 0
     var kinetic: Double = 0
     var thermal: Double = 0
-    var average: Double { (em + explosive + kinetic + thermal) / 4 }
+}
+
+// MARK:  Sim EHP Profile
+
+/// Per-damage-type effective HP summed across all three defence layers.
+/// Each value is computed from the layer's actual resonance, not an average.
+struct SimEHPProfile {
+    var em: Double = 0
+    var explosive: Double = 0
+    var kinetic: Double = 0
+    var thermal: Double = 0
+
+    /// Worst-case EHP — the damage type this ship is most vulnerable to.
+    var minimum: Double { min(em, min(explosive, min(kinetic, thermal))) }
+    var hasData: Bool { em > 0 }
 }
 
 // MARK:  Implant Contribution
@@ -140,7 +154,7 @@ struct SimStats {
     var shieldResists = SimResists()
     var armorResists = SimResists()
     var hullResists = SimResists()
-    var ehp: Double = 0
+    var ehp = SimEHPProfile()
     var maxVelocity: Double = 0
     var alignTime: Double = 0
     var signatureRadius: Double = 0
@@ -168,8 +182,12 @@ struct SimStats {
     var droneBayCapacity: Double = 0
 
     var passiveCapRechargePerSec: Double {
+        // EVE cap curve: rate(C) = 2.5·C_max/T·(√(C/C_max) − C/C_max).
+        // Peak occurs at C = 0.25·C_max → peak = 0.625·C_max/T.
+        // Using the raw 2.5 coefficient makes the threshold 4× too large, marking
+        // ships as cap-stable when they actually drain to zero.
         guard rechargeRateSec > 0 else { return 0 }
-        return 2.5 * capacitorCapacity / rechargeRateSec
+        return 2.5 * 0.25 * capacitorCapacity / rechargeRateSec
     }
     var netCapGJps: Double { passiveCapRechargePerSec - capDrainPerSec }
     var isCapStable: Bool { netCapGJps >= 0 }

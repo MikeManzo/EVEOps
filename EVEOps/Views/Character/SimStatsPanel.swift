@@ -206,7 +206,7 @@ struct SimCapBlock: View {
 
     private var peakRecharge: Double {
         guard stats.rechargeRateSec > 0 else { return 0 }
-        return 2.5 * stats.capacitorCapacity / stats.rechargeRateSec
+        return 2.5 * 0.25 * stats.capacitorCapacity / stats.rechargeRateSec
     }
 
     private var capSummary: String {
@@ -294,13 +294,13 @@ struct SimDefenseBlock: View {
 
     private var peakShieldRegen: Double {
         guard stats.shieldRechargeTimeSec > 0 else { return 0 }
-        return 2.5 * stats.shieldHP / stats.shieldRechargeTimeSec
+        return 2.5 * 0.25 * stats.shieldHP / stats.shieldRechargeTimeSec
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            SimSectionHeader(title: "Defense", summary: fmtEHP(stats.ehp),
-                             summaryTip: "Effective Hit Points — total HP weighted by resistances against uniform incoming damage",
+            SimSectionHeader(title: "Defense", summary: fmtEHP(stats.ehp.minimum),
+                             summaryTip: "Worst-case EHP — minimum across EM / Thermal / Kinetic / Explosive",
                              isExpanded: $isExpanded)
             if isExpanded {
                 VStack(spacing: 2) {
@@ -317,6 +317,9 @@ struct SimDefenseBlock: View {
                                   hp: stats.hullHP,
                                   color: Color(red: 0.85, green: 0.45, blue: 0.25),
                                   resists: stats.hullResists, layerName: "Hull")
+                    if stats.ehp.hasData {
+                        SimEHPRow(ehp: stats.ehp)
+                    }
                 }
                 .padding(.vertical, 4)
             }
@@ -325,7 +328,7 @@ struct SimDefenseBlock: View {
 
     private func fmtEHP(_ v: Double) -> String {
         v >= 1_000_000 ? String(format: "%.2fM ehp", v / 1_000_000) :
-        v >= 1_000     ? String(format: "%.0f ehp", v) :
+        v >= 1_000     ? String(format: "%.0fk ehp", v / 1_000) :
                          String(format: "%.0f ehp", v)
     }
 }
@@ -410,6 +413,60 @@ private struct SimHPLayerRow: View {
     }
 
     private func fmtHP(_ v: Double) -> String {
+        "\(Int(v.rounded()).formatted(.number)) hp"
+    }
+}
+
+// MARK:  Per-type EHP row
+
+private struct SimEHPRow: View {
+    let ehp: SimEHPProfile
+
+    private static let emColor        = Color(red: 0.45, green: 0.60, blue: 1.00)
+    private static let thermalColor   = Color(red: 1.00, green: 0.40, blue: 0.10)
+    private static let kineticColor   = Color(white: 0.65)
+    private static let explosiveColor = Color(red: 1.00, green: 0.82, blue: 0.15)
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "chart.bar.fill")
+                .font(.system(size: 10))
+                .foregroundStyle(.secondary)
+                .frame(width: 14)
+                .help("Effective hit points by damage type (all layers combined)")
+            Text("ehp")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .frame(minWidth: 44, alignment: .leading)
+            Spacer()
+            HStack(spacing: 3) {
+                SimEHPBadge(value: ehp.em,        color: Self.emColor,        tip: "EM EHP — total HP / EM resonance across all layers")
+                SimEHPBadge(value: ehp.thermal,   color: Self.thermalColor,   tip: "Thermal EHP")
+                SimEHPBadge(value: ehp.kinetic,   color: Self.kineticColor,   tip: "Kinetic EHP")
+                SimEHPBadge(value: ehp.explosive, color: Self.explosiveColor, tip: "Explosive EHP")
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 3)
+    }
+}
+
+private struct SimEHPBadge: View {
+    let value: Double
+    let color: Color
+    var tip: String = ""
+
+    var body: some View {
+        Text(fmt(value))
+            .font(.system(size: 9, weight: .semibold).monospacedDigit())
+            .foregroundStyle(color)
+            .frame(width: 36)
+            .padding(.vertical, 2)
+            .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 3))
+            .help(tip)
+    }
+
+    private func fmt(_ v: Double) -> String {
         v >= 1_000_000 ? String(format: "%.1fM", v / 1_000_000) :
         v >= 1_000     ? String(format: "%.0fk", v / 1_000) :
                          String(format: "%.0f", v)
@@ -431,7 +488,7 @@ private struct SimResistBadge: View {
             RoundedRectangle(cornerRadius: 3)
                 .fill(color.opacity(0.6))
                 .frame(width: blockWidth * fraction)
-            Text(String(format: "%.0f %%", value))
+            Text(String(format: "%.1f%%", value))
                 .font(.system(size: 9, weight: .semibold).monospacedDigit())
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
