@@ -74,7 +74,7 @@ private enum DogmaAttr {
 struct SimStatsCalculator {
 
     // EVE ESI dogma modifier operator IDs — verified empirically from live ESI response data.
-    // op=0 (preAssign):  Damage Control resistance floors — take min for resists.
+    // op=0 (preAssign):  Damage Control resistance multipliers — re-classified to postMul at collection time.
     // op=2 (modAdd):     flat addition, never stacking-penalised.
     // op=4 (postMul):    multiply by factor, stacking-penalised.
     // op=6 (postPercent): multiply by (1+val/100), stacking-penalised.
@@ -292,8 +292,7 @@ struct SimStatsCalculator {
                               DogmaAttr.allResistances.contains(tgt),
                               let src = m.modifyingAttributeId,
                               let rawVal = modAttrMap[src] else { continue }
-                        let effectiveOp = (src == tgt) ? Op.postMul : Op.preAssign
-                        pending[tgt, default: [:]][effectiveOp, default: []].append(rawVal)
+                        pending[tgt, default: [:]][Op.postMul, default: []].append(rawVal)
                     }
                     continue
                 }
@@ -347,11 +346,10 @@ struct SimStatsCalculator {
                         print("[Sim] MOD '\(mod.name)' eff=\(effect.effectId) func=\(m.function ?? "?") tgt=\(tgt) src=\(src) op=\(op) val=\(val)\(adjusted)")
                     }
 #endif
-                    // preAssign (op=0) on a resist attr where src==tgt is a fractional multiplier
-                    // (e.g. DC uniform resist bonus: 0.9 means ×0.9 applied to base).
-                    // When src!=tgt the source attr is an absolute floor value — keep as preAssign
-                    // so step 3 applies min() semantics (hull floor attrs 974-977).
-                    let effectiveOp = (op == Op.preAssign && src == tgt && DogmaAttr.allResistances.contains(tgt))
+                    // preAssign (op=0) on a resistance attr is always a fractional multiplier —
+                    // hull uses different src attrs (974-977) but the value is still ×factor, not a floor.
+                    // Re-classify as postMul so step 3 multiplies base × factor correctly.
+                    let effectiveOp = (op == Op.preAssign && DogmaAttr.allResistances.contains(tgt))
                         ? Op.postMul : op
                     pending[tgt, default: [:]][effectiveOp, default: []].append(val)
                 }
