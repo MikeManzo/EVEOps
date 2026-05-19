@@ -148,6 +148,7 @@ struct SimStatsCalculator {
         for a in shipType.dogmaAttributes ?? [] { attrs[a.attributeId] = a.value }
 
 #if DEBUG
+        print("[Sim] SUMMARY ship='\(shipType.name)' modules=\(fittedModules.count) implants=\(implants.count) skills=\(characterSkills.filter { $0.value > 0 }.count) skillTypesLoaded=\(skillTypes.count)")
         let debugKeyAttrs: Set<Int> = [9, 37, 70, 192, 263, 265, 267, 268, 269, 270, 271, 272, 273, 274, 109, 110, 111, 113]
         print("[Sim] Ship '\(shipType.name)' base attrs: " +
               debugKeyAttrs.sorted().map { "\($0)=\(attrs[$0].map { String(format: "%.4f", $0) } ?? "MISSING")" }.joined(separator: " "))
@@ -174,6 +175,16 @@ struct SimStatsCalculator {
                 .filter { shipPrereqSkillAttrIds.contains($0.attributeId) }
                 .map    { Int($0.value) }
         )
+#if DEBUG
+        print("[Sim] shipRequiredSkillIds=\(shipRequiredSkillIds.sorted())")
+        for reqId in shipRequiredSkillIds.sorted() {
+            let lvl = characterSkills[reqId]
+            let st = skillTypes[reqId]
+            let effectIds = st?.dogmaEffects?.map(\.effectId) ?? []
+            let cachedCount = effectIds.filter { effectCache[$0] != nil }.count
+            print("[Sim] REQ-SKILL id=\(reqId) level=\(lvl.map(String.init) ?? "ABSENT") inSkillTypes=\(st != nil) effects=\(effectIds.count) cached=\(cachedCount) uncachedIds=\(effectIds.filter { effectCache[$0] == nil })")
+        }
+#endif
 
         // all-module overrides: LocationModifier effects (apply to every fitted module)
         var shipToModuleAttrs: [Int: [Int: [Double]]] = [:]
@@ -238,15 +249,66 @@ struct SimStatsCalculator {
                 }
             }
 
+#if DEBUG
+            if mod.name.contains("Damage Control") {
+                let effIds = (mod.dogmaEffects ?? []).map(\.effectId)
+                print("[Sim] DC-ALL '\(mod.name)' effectIds=\(effIds)")
+                for eid in effIds {
+                    if let d = effectCache[eid] {
+                        let ms = d.modifiers.map { "tgt=\($0.modifiedAttributeId ?? -1) src=\($0.modifyingAttributeId ?? -1) op=\($0.operatorId ?? -1) fn=\($0.function ?? "?")" }
+                        print("[Sim] DC-EFF eid=\(eid) cat=\(d.effectCategory ?? -1) mods=\(ms)")
+                    } else {
+                        print("[Sim] DC-EFF eid=\(eid) UNCACHED")
+                    }
+                }
+            }
+#endif
             for effect in mod.dogmaEffects ?? [] {
-                guard let detail = effectCache[effect.effectId] else { continue }
+                guard let detail = effectCache[effect.effectId] else { continue
+                }
                 resolvedAny = true
-                // Apply passive (0), active (1), and online (4) effects — matches EVE's fitting
-                // panel, which shows all fitted-module effects including MWD velocity/sig bloom,
-                // afterburner speed, and hardener resists.
-                // Skip target (2), area (3), and overload (5): those don't affect the fitting panel.
+                // Apply passive (0) and online (4) effects only — mirrors EVE's fitting panel
+                // inactive-modules view. Active effects (1) only fire when the player activates
+                // the module (hardeners, MWDs, etc.) and must not be applied by default.
+                // Skip target (2), area (3), and overload (5).
+                // Exception: cat=1 preAssign (op=0) resistance modifiers are DC floor values
+                // (min-based, can only improve resists). Extract those before skipping the rest.
                 if let cat = detail.effectCategory, cat == 2 || cat == 3 || cat == 5 { continue }
+                if let cat = detail.effectCategory, cat == 1 {
+#if DEBUG
+                    let hasResistPA = detail.modifiers.contains {
+                        $0.operatorId == Op.preAssign &&
+                        ($0.modifiedAttributeId.map { DogmaAttr.allResistances.contains($0) } ?? false)
+                    }
+                    if hasResistPA {
+                        print("[Sim] CAT1-PA '\(mod.name)' eff=\(effect.effectId) allMods=\(detail.modifiers.map { "tgt=\($0.modifiedAttributeId ?? -1) src=\($0.modifyingAttributeId ?? -1) op=\($0.operatorId ?? -1) func=\($0.function ?? "?") dom=\($0.domain ?? "?")" })")
+                        print("[Sim] CAT1-PA modAttrMap keys=\(modAttrMap.keys.sorted())")
+                    }
+#endif
+                    for m in detail.modifiers where m.operatorId == Op.preAssign {
+                        guard m.function == "ItemModifier",
+                              m.domain == "shipID",
+                              let tgt = m.modifiedAttributeId,
+                              DogmaAttr.allResistances.contains(tgt),
+                              let src = m.modifyingAttributeId,
+                              let rawVal = modAttrMap[src] else { continue }
+                        let effectiveOp = (src == tgt) ? Op.postMul : Op.preAssign
+                        pending[tgt, default: [:]][effectiveOp, default: []].append(rawVal)
+                    }
+                    continue
+                }
                 for m in detail.modifiers {
+#if DEBUG
+                    // Trace every modifier that targets a resist/HP attr so we can see
+                    // whether it passes or fails the domain/function/src guards below.
+                    if let tgt = m.modifiedAttributeId, DogmaAttr.allResistances.contains(tgt) {
+                        let kf = m.function == "LocationModifier" || m.function == "ItemModifier"
+                              || (m.function == "LocationGroupModifier" && m.groupId == shipType.groupId)
+                        let dm = m.domain == "shipID"
+                        let sk = modAttrMap[m.modifyingAttributeId ?? -1] != nil
+                        print("[Sim] IMPL-RESIST '\(mod.name)' eff=\(effect.effectId) func=\(m.function ?? "nil") domain=\(m.domain ?? "nil") tgt=\(tgt) src=\(m.modifyingAttributeId ?? -1) op=\(m.operatorId ?? -1) → funcOK=\(kf) domOK=\(dm) srcOK=\(sk)")
+                    }
+#endif
                     // LocationRequiredSkillModifier from modules targets sub-items (missiles/launchers),
                     // not the ship itself — exclude it from ship-level attribute computation.
                     // LocationGroupModifier is only applied when the ship's group matches.
@@ -272,7 +334,12 @@ struct SimStatsCalculator {
                         continue
                     }
                     // Apply ship→module modifiers (e.g. role bonus to shield extender HP).
-                    let val = Self.applyShipToModAttr(rawVal, attrId: src, shipMods: modShipOverrides)
+                    // Skip overrides when this effect targets a resistance attribute: hardeners
+                    // share source attr IDs with the ship's LocationGroupModifier tgt attrs,
+                    // so applying an override here would over-amplify resist bonuses.
+                    let val = DogmaAttr.allResistances.contains(tgt)
+                        ? rawVal
+                        : Self.applyShipToModAttr(rawVal, attrId: src, shipMods: modShipOverrides)
 #if DEBUG
                     let hpResistAttrs: Set<Int> = [9, 37, 70, 192, 263, 265, 267, 268, 269, 270, 271, 272, 273, 274, 109, 110, 111, 113, 479, 480, 481, 482]
                     if hpResistAttrs.contains(tgt) {
@@ -280,7 +347,13 @@ struct SimStatsCalculator {
                         print("[Sim] MOD '\(mod.name)' eff=\(effect.effectId) func=\(m.function ?? "?") tgt=\(tgt) src=\(src) op=\(op) val=\(val)\(adjusted)")
                     }
 #endif
-                    pending[tgt, default: [:]][op, default: []].append(val)
+                    // preAssign (op=0) on a resist attr where src==tgt is a fractional multiplier
+                    // (e.g. DC uniform resist bonus: 0.9 means ×0.9 applied to base).
+                    // When src!=tgt the source attr is an absolute floor value — keep as preAssign
+                    // so step 3 applies min() semantics (hull floor attrs 974-977).
+                    let effectiveOp = (op == Op.preAssign && src == tgt && DogmaAttr.allResistances.contains(tgt))
+                        ? Op.postMul : op
+                    pending[tgt, default: [:]][effectiveOp, default: []].append(val)
                 }
             }
             if !resolvedAny { fallbackModules.append(mod) }
@@ -314,7 +387,30 @@ struct SimStatsCalculator {
         //         preMul/postMul/preDiv/postDiv: value is a compounding per-level multiplier → raise to power of level
         //         preAssign/postAssign: use as-is (level scaling not meaningful for assignment)
         for (skillTypeId, skillLevel) in characterSkills where skillLevel > 0 {
-            guard let skillType = skillTypes[skillTypeId] else { continue }
+            guard let skillType = skillTypes[skillTypeId] else {
+#if DEBUG
+                print("[Sim] SKILL-MISS id=\(skillTypeId) lv=\(skillLevel) — not in skillTypes")
+#endif
+                continue
+            }
+#if DEBUG
+            // Show any skill effects whose details aren't in the cache yet.
+            let uncachedEffs = (skillType.dogmaEffects ?? []).filter { effectCache[$0.effectId] == nil }.map(\.effectId)
+            if !uncachedEffs.isEmpty {
+                print("[Sim] SKILL-UNCACHED '\(skillType.name)' id=\(skillTypeId) lv=\(skillLevel) uncachedEffIds=\(uncachedEffs)")
+            }
+#endif
+#if DEBUG
+            // Dump all raw modifiers for required ship skills so we can see their function names.
+            if shipRequiredSkillIds.contains(skillTypeId) {
+                for effect in skillType.dogmaEffects ?? [] {
+                    guard let detail = effectCache[effect.effectId] else { continue }
+                    for m in detail.modifiers {
+                        print("[Sim] CBS-RAW '\(skillType.name)' eff=\(effect.effectId) func=\(m.function ?? "nil") domain=\(m.domain ?? "nil") tgt=\(m.modifiedAttributeId ?? -1) src=\(m.modifyingAttributeId ?? -1) op=\(m.operatorId ?? -1)")
+                    }
+                }
+            }
+#endif
             let skillAttrMap = Dictionary(
                 uniqueKeysWithValues: (skillType.dogmaAttributes ?? []).map { ($0.attributeId, $0.value) }
             )
@@ -328,9 +424,25 @@ struct SimStatsCalculator {
                     // (e.g. "Caldari Battleship V → bonus to Caldari Battleships"). ESI does not
                     // return the target groupId, so we use the ship's prerequisite skill list as
                     // a proxy: if this ship requires the skill, its LocationGroupModifier applies.
+                    let inReqList = shipRequiredSkillIds.contains(skillTypeId)
+#if DEBUG
+                    if m.function == "LocationGroupModifier" {
+                        let tgt = m.modifiedAttributeId ?? -1
+                        print("[Sim] SKILL-LGM '\(skillType.name)' id=\(skillTypeId) lv=\(skillLevel) inReqList=\(inReqList) domain=\(m.domain ?? "?") tgt=\(tgt) src=\(m.modifyingAttributeId ?? -1)")
+                    }
+                    // Trace every skill modifier targeting a resistance attr so we can
+                    // see if it passes the domain/function/src guards.
+                    if let tgt = m.modifiedAttributeId, DogmaAttr.allResistances.contains(tgt) {
+                        let kf = m.function == "LocationModifier" || m.function == "ItemModifier"
+                              || (m.function == "LocationGroupModifier" && inReqList)
+                        let dm = m.domain == "shipID"
+                        let sk = skillAttrMap[m.modifyingAttributeId ?? -1] != nil
+                        print("[Sim] SKILL-RESIST '\(skillType.name)' id=\(skillTypeId) lv=\(skillLevel) eff=\(effect.effectId) func=\(m.function ?? "nil") domain=\(m.domain ?? "nil") tgt=\(tgt) src=\(m.modifyingAttributeId ?? -1) op=\(m.operatorId ?? -1) → funcOK=\(kf) domOK=\(dm) srcOK=\(sk)")
+                    }
+#endif
                     let knownFunc = m.function == "LocationModifier"
                                  || m.function == "ItemModifier"
-                                 || (m.function == "LocationGroupModifier" && shipRequiredSkillIds.contains(skillTypeId))
+                                 || (m.function == "LocationGroupModifier" && inReqList)
                     guard knownFunc,
                           m.domain == "shipID",
                           let tgt = m.modifiedAttributeId,
@@ -358,6 +470,39 @@ struct SimStatsCalculator {
                     pending[tgt, default: [:]][op, default: []].append(scaledVal)
                 }
             }
+        }
+
+        // 2c ── Apply hardcoded shield/armor compensation skill bonuses.
+        //       ESI's dogmaEffects for these skills omit the resistance modifiers entirely,
+        //       so they must be applied directly from the known EVE SDE values.
+        //       Each skill gives −5 %/level to the corresponding damage-type resonance
+        //       via postPercent (op=6), applied only when not already covered by ESI data.
+        let compensationSkillBonuses: [Int: (attrId: Int, pctPerLevel: Double)] = [
+            3849:  (271, -5.0),  // EM Shield Compensation
+            12365: (274, -5.0),  // Thermal Shield Compensation
+            12366: (273, -5.0),  // Kinetic Shield Compensation
+            12367: (272, -5.0),  // Explosive Shield Compensation
+            22806: (267, -5.0),  // EM Armor Compensation
+            22807: (270, -5.0),  // Thermic Armor Compensation
+            22808: (269, -5.0),  // Kinetic Armor Compensation
+            22809: (268, -5.0),  // Explosive Armor Compensation
+        ]
+        for (skillTypeId, bonus) in compensationSkillBonuses {
+            guard let level = characterSkills[skillTypeId], level > 0 else { continue }
+            // Skip if ESI already returned a modifier for this attr (future-proofing).
+            let alreadyCovered = skillTypes[skillTypeId].map { st in
+                (st.dogmaEffects ?? []).contains { eff in
+                    (effectCache[eff.effectId]?.modifiers ?? [])
+                        .contains { $0.modifiedAttributeId == bonus.attrId }
+                }
+            } ?? false
+            guard !alreadyCovered else { continue }
+            let scaledVal = bonus.pctPerLevel * Double(level)
+            pending[bonus.attrId, default: [:]][Op.postPercent, default: []].append(scaledVal)
+#if DEBUG
+            let name = skillTypes[skillTypeId]?.name ?? "skill\(skillTypeId)"
+            print("[Sim] COMP '\(name)' lv=\(level) tgt=\(bonus.attrId) scaledVal=\(scaledVal)")
+#endif
         }
 
         // 3 ── Apply dogma modifiers in the standard evaluation order.

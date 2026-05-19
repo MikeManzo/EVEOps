@@ -122,6 +122,8 @@ final class SimulatorState {
 
     func loadFromSavedFitting(_ fitting: SavedFittingEntry) async {
         await selectShip(typeId: fitting.shipTypeId)
+        // selectShip clears isLoadingShip; keep the spinner up while we fetch module types.
+        isLoadingShip = true
         let typeIds = Array(Set(fitting.items.map(\.typeId)))
         let types = await UniverseCache.shared.types(ids: typeIds)
         moduleTypes.merge(types) { _, new in new }
@@ -136,11 +138,14 @@ final class SimulatorState {
         }
         await cacheEffects(for: Array(moduleTypes.values))
         recomputeStats()
+        isLoadingShip = false
         prefetchFittedEffects()
     }
 
     func loadFromShipModules(_ ship: ShipEntry, modules: [ESIAsset]) async {
         await selectShip(typeId: ship.typeId)
+        // selectShip clears isLoadingShip; keep the spinner up while we fetch module types.
+        isLoadingShip = true
         let typeIds = Array(Set(modules.map(\.typeId)))
         let types = await UniverseCache.shared.types(ids: typeIds)
         moduleTypes.merge(types) { _, new in new }
@@ -155,6 +160,7 @@ final class SimulatorState {
         }
         await cacheEffects(for: Array(moduleTypes.values))
         recomputeStats()
+        isLoadingShip = false
         prefetchFittedEffects()
     }
 
@@ -172,7 +178,23 @@ final class SimulatorState {
 
     func recomputeStats() {
         guard let shipType else { stats = SimStats(); return }
-        let fitted = slots.compactMap { $0.moduleTypeId }.compactMap { moduleTypes[$0] }
+        let allSlotTypeIds = slots.compactMap { $0.moduleTypeId }
+        let fitted = allSlotTypeIds.compactMap { moduleTypes[$0] }
+
+        // If any slot's ESIType data hasn't been fetched yet, kick off a background
+        // fetch and recompute. This recovers from the placeModule drag-and-drop race
+        // where the slot typeId is set synchronously but the ESI fetch is async.
+        let missingIds = Set(allSlotTypeIds.filter { moduleTypes[$0] == nil })
+        if !missingIds.isEmpty {
+            Task {
+                let types = await UniverseCache.shared.types(ids: Array(missingIds))
+                guard !types.isEmpty else { return }
+                for (id, t) in types { moduleTypes[id] = t }
+                await cacheEffects(for: Array(moduleTypes.values))
+                recomputeStats()
+            }
+        }
+
         let activeImplants = includeImplants ? implantTypes : []
         stats = SimStatsCalculator.compute(
             shipType: shipType,
@@ -215,7 +237,7 @@ final class SimulatorState {
             return
         }
         characterSkills = Dictionary(
-            uniqueKeysWithValues: response.skills.map { ($0.skillId, $0.activeSkillLevel) }
+            uniqueKeysWithValues: response.skills.map { ($0.skillId, $0.trainedSkillLevel) }
         )
         let types = await UniverseCache.shared.types(ids: Array(characterSkills.keys))
         skillTypes = types
