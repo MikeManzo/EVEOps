@@ -31,8 +31,15 @@ struct SimStatsPanel: View {
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    if simState.isLoadingShip {
-                        HStack { Spacer(); ProgressView(); Spacer() }.padding()
+                    if simState.isLoadingShip || simState.isLoadingSDE {
+                        VStack(spacing: 8) {
+                            ProgressView()
+                            if simState.isLoadingSDE {
+                                Text("Syncing EVE SDE data…")
+                                    .font(.caption2).foregroundStyle(.secondary)
+                            }
+                        }
+                        .frame(maxWidth: .infinity).padding()
                     } else if simState.stats.hasData {
                         SimFittingSection(stats: simState.stats)
                         SimCapBlock(stats: simState.stats)

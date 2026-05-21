@@ -465,7 +465,7 @@ nonisolated struct ESIDogmaModifier: Codable, Sendable {
     let modifiedAttributeId: Int?
     let modifyingAttributeId: Int?
     let operatorId: Int?
-    let groupId: Int?
+    var groupId: Int?
 
     // Primary CodingKeys. `groupId` uses the camelCase raw value "groupID" because the live
     // ESI endpoint returns "groupID" (capital D), not the snake_case "group_id" documented
@@ -518,7 +518,7 @@ nonisolated struct ESIDogmaEffectDetail: Codable, Sendable {
     let effectId: Int
     // 0=passive, 1=active, 2=target, 3=area, 4=online, 5=overload
     let effectCategory: Int?
-    let modifiers: [ESIDogmaModifier]
+    var modifiers: [ESIDogmaModifier]
 }
 
 nonisolated struct ESIType: Codable, Sendable {

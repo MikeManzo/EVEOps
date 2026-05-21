@@ -584,13 +584,27 @@ struct SimStatsCalculator {
         }
 #endif
 
-        // 4a ── Build LocationRequiredSkillModifier (LRSM) map from character skills.
-        //       LRSM effects modify attributes of fitted modules that require a specific skill
-        //       as a prerequisite (e.g. "Advanced Weapon Upgrades" reduces turret PG cost).
-        //       Key = prerequisite skill typeId → list of (modifiedAttrId, op, scaledVal).
-        //       The required skill is implicit: it is the skill whose effect contains the LRSM.
+        // 4a ── Build LRSM and LGM maps from character skills for fitting resource calculation.
+        //
+        //  • LRSM (LocationRequiredSkillModifier): keyed by prerequisite skill typeId.
+        //    Applied to a module when that module lists the skill as a prerequisite.
+        //    e.g. Advanced Weapon Upgrades reduces PG cost of modules requiring it.
+        //
+        //  • LGM (LocationGroupModifier from skills, domain=shipID): keyed by module groupId.
+        //    Applied to a module when the module belongs to the target group.
+        //    e.g. Weapon Upgrades reduces CPU cost of cruise launchers (group 506).
+        //    groupId == nil in the modifier → applies to ALL fitted modules (key -1).
         let modSkillReqAttrIds: Set<Int> = [182, 183, 184, 1285, 1289, 1290]
         var lrsmBySkill: [Int: [(modAttrId: Int, op: Int, val: Double)]] = [:]
+        // LGM entries carry their source skillTypeId so step 4 can deduplicate per
+        // (skill, attrId, op): ESI returns nil groupId for all LGM modifiers from fitting
+        // skills (Weapon Upgrades, etc.), so without the groupId we can't scope them to the
+        // correct weapon/shield groups. The deduplication ensures a given skill only ever
+        // reduces a module's attribute ONCE, regardless of how many duplicate modifier
+        // records ESI returns for the same effect.
+        var lgmByGroup:  [Int: [(skillTypeId: Int, modAttrId: Int, op: Int, val: Double)]] = [:]
+        let lgmAllKey = -1
+
         for (skillTypeId, skillLevel) in characterSkills where skillLevel > 0 {
             guard let skillType = skillTypes[skillTypeId] else { continue }
             let skillAttrMap2 = Dictionary(
@@ -599,12 +613,12 @@ struct SimStatsCalculator {
             for effect in skillType.dogmaEffects ?? [] {
                 guard let detail = effectCache[effect.effectId] else { continue }
                 for m in detail.modifiers {
-                    guard m.function == "LocationRequiredSkillModifier",
-                          m.domain == "shipID",
+                    guard m.domain == "shipID",
                           let tgt     = m.modifiedAttributeId,
                           let src     = m.modifyingAttributeId,
                           let op      = m.operatorId,
                           let baseVal = skillAttrMap2[src] else { continue }
+
                     let scaledVal: Double
                     switch op {
                     case Op.preMul, Op.postMul, Op.postDiv:
@@ -612,7 +626,13 @@ struct SimStatsCalculator {
                     default:
                         scaledVal = baseVal * Double(skillLevel)
                     }
-                    lrsmBySkill[skillTypeId, default: []].append((modAttrId: tgt, op: op, val: scaledVal))
+
+                    if m.function == "LocationRequiredSkillModifier" {
+                        lrsmBySkill[skillTypeId, default: []].append((modAttrId: tgt, op: op, val: scaledVal))
+                    } else if m.function == "LocationGroupModifier" {
+                        let key = m.groupId ?? lgmAllKey
+                        lgmByGroup[key, default: []].append((skillTypeId: skillTypeId, modAttrId: tgt, op: op, val: scaledVal))
+                    }
                 }
             }
         }
@@ -621,6 +641,32 @@ struct SimStatsCalculator {
         //      For each module, collect LRSM modifiers from all skills it requires as
         //      prerequisites, then apply them to CPU, PG, and activation energy costs
         //      before summing. Calibration (rigs) has no skill reducer in EVE.
+#if DEBUG
+        // 1. Report any skill effects missing from the cache — these can silently hide CPU/PG modifiers.
+        for (skillTypeId, skillLevel) in characterSkills.sorted(by: { $0.key < $1.key }) where skillLevel > 0 {
+            guard let skillType = skillTypes[skillTypeId] else { continue }
+            let uncached = (skillType.dogmaEffects ?? []).filter { effectCache[$0.effectId] == nil }.map(\.effectId)
+            if !uncached.isEmpty {
+                print("[Sim] SKILL-NOCACHE skill=\(skillTypeId)('\(skillType.name)') lv=\(skillLevel) uncachedEffIds=\(uncached)")
+            }
+        }
+        // 2. Print ship-level LocationModifier/LocationGroupModifier effects targeting module CPU or PG.
+        //    These live in shipToModuleAttrs / shipToGroupModuleAttrs and aren't applied in step 4.
+        if let cpu50 = shipToModuleAttrs[DogmaAttr.cpu] {
+            print("[Sim] SHIP-MOD-CPU shipToModuleAttrs[cpu=50]=\(cpu50)")
+        }
+        if let pg30 = shipToModuleAttrs[DogmaAttr.power] {
+            print("[Sim] SHIP-MOD-PG  shipToModuleAttrs[pwr=30]=\(pg30)")
+        }
+        for (grpId, attrMap) in shipToGroupModuleAttrs.sorted(by: { $0.key < $1.key }) {
+            if let cpu50 = attrMap[DogmaAttr.cpu] {
+                print("[Sim] SHIP-GRP-CPU shipToGroupModuleAttrs[\(grpId)][cpu=50]=\(cpu50)")
+            }
+            if let pg30 = attrMap[DogmaAttr.power] {
+                print("[Sim] SHIP-GRP-PG  shipToGroupModuleAttrs[\(grpId)][pwr=30]=\(pg30)")
+            }
+        }
+#endif
         var cpuUsed = 0.0
         var powerUsed = 0.0
         var calibrationUsed = 0.0
@@ -634,16 +680,72 @@ struct SimStatsCalculator {
                 .filter { modSkillReqAttrIds.contains($0.attributeId) }
                 .map    { Int($0.value) }
 
-            // Aggregate LRSM modifiers for the cost attributes of interest.
+            // Aggregate fitting-resource modifiers for this module.
+            // Start with ship LocationModifier (applies to every module) and
+            // ship LocationGroupModifier (applies only to this module's group).
+            // These capture ship role bonuses such as "-25% missile CPU" that were
+            // previously invisible to the fitting cost calculation in this step.
             var modPending: [Int: [Int: [Double]]] = [:]
+
+            for (attrId, opMap) in shipToModuleAttrs {
+                for (op, vals) in opMap {
+                    modPending[attrId, default: [:]][op, default: []].append(contentsOf: vals)
+                }
+            }
+            if let groupMods = shipToGroupModuleAttrs[mod.groupId] {
+                for (attrId, opMap) in groupMods {
+                    for (op, vals) in opMap {
+                        modPending[attrId, default: [:]][op, default: []].append(contentsOf: vals)
+                    }
+                }
+            }
+
+            // Deduplication key: (skillTypeId, attrId, op) — ESI returns multiple identical
+            // modifier records for Weapon Upgrades (one per weapon group, all with nil groupId),
+            // and also has both an LRSM and an LGM entry from the same skill. Without ESI
+            // returning the target groupId we can't scope them correctly, so we accept at most
+            // ONE reduction per (skill, attribute, operator) per module to prevent stacking the
+            // same bonus multiple times.
+            var seenMods = Set<Int64>()   // packed: skillTypeId<<20 | attrId<<8 | op
+
+            func dedupeKey(_ skill: Int, _ attr: Int, _ op: Int) -> Int64 {
+                Int64(skill) << 20 | Int64(attr) << 8 | Int64(op)
+            }
+
             for skillId in reqSkillIds {
                 for entry in lrsmBySkill[skillId] ?? [] {
+                    let dk = dedupeKey(skillId, entry.modAttrId, entry.op)
+                    guard seenMods.insert(dk).inserted else { continue }
                     modPending[entry.modAttrId, default: [:]][entry.op, default: []].append(entry.val)
                 }
             }
 
-            // Apply LRSM modifiers (reuses the same evaluation function as ship modifiers).
-            cpuUsed   += Self.applyShipToModAttr(mv(DogmaAttr.cpu),            attrId: DogmaAttr.cpu,            shipMods: modPending)
+            // LGM keyed by this module's exact groupId (specific weapon/shield group matches).
+            for entry in lgmByGroup[mod.groupId] ?? [] {
+                let dk = dedupeKey(entry.skillTypeId, entry.modAttrId, entry.op)
+                guard seenMods.insert(dk).inserted else { continue }
+                modPending[entry.modAttrId, default: [:]][entry.op, default: []].append(entry.val)
+            }
+            // LGM with nil groupId (sentinel -1): ESI omits the target group, so these are
+            // treated as LRSM-fallback — apply only if the same skill hasn't already reduced
+            // this attribute via LRSM or a specific-group LGM above.
+            for entry in lgmByGroup[lgmAllKey] ?? [] {
+                let dk = dedupeKey(entry.skillTypeId, entry.modAttrId, entry.op)
+                guard seenMods.insert(dk).inserted else { continue }
+                modPending[entry.modAttrId, default: [:]][entry.op, default: []].append(entry.val)
+            }
+
+            let baseCPU  = mv(DogmaAttr.cpu)
+            let finalCPU = Self.applyShipToModAttr(baseCPU, attrId: DogmaAttr.cpu, shipMods: modPending)
+#if DEBUG
+            let lgmHit  = lgmByGroup[mod.groupId] != nil
+            let lgmAllH = !(lgmByGroup[lgmAllKey] ?? []).isEmpty
+            let lrsmHit = reqSkillIds.contains { lrsmBySkill[$0] != nil }
+            print("[Sim] MOD-CPU '\(mod.name)' grp=\(mod.groupId) reqSkills=\(reqSkillIds) baseCPU=\(baseCPU) finalCPU=\(String(format: "%.2f", finalCPU)) lgmHit=\(lgmHit) lgmAll=\(lgmAllH) lrsmHit=\(lrsmHit)")
+#endif
+
+            // Apply LRSM+LGM modifiers (reuses the same evaluation function as ship modifiers).
+            cpuUsed   += finalCPU
             powerUsed += Self.applyShipToModAttr(mv(DogmaAttr.power),          attrId: DogmaAttr.power,          shipMods: modPending)
             calibrationUsed += mv(DogmaAttr.upgradeCost)
 

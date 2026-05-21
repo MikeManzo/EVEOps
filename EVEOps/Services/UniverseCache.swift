@@ -16,7 +16,7 @@ actor UniverseCache {
     static let shared = UniverseCache()
 
     private static let ttl: TimeInterval = 7 * 24 * 3600 // 7 days
-    private static let schemaVersion = 10
+    private static let schemaVersion = 12
 
     private var types: [Int: ESIType] = [:]
     private var groups: [Int: ESIGroup] = [:]
@@ -239,17 +239,58 @@ actor UniverseCache {
         let uncached = ids.filter { effectDetails[$0] == nil }
 
         if !uncached.isEmpty {
-            await withTaskGroup(of: (Int, ESIDogmaEffectDetail?).self) { group in
+            // Start the SDE download in parallel with ESI fetches so both happen concurrently.
+            // This cuts total wait time when neither is cached yet.
+            async let sdeLoad: Void = SDEClient.shared.ensureLoaded()
+
+            let fetched = await withTaskGroup(of: (Int, ESIDogmaEffectDetail?).self) { group in
                 for id in uncached {
                     group.addTask {
                         let d: ESIDogmaEffectDetail? = try? await ESIClient.shared.fetch("/dogma/effects/\(id)/", bypassCache: true)
                         return (id, d)
                     }
                 }
-                for await (id, d) in group {
-                    if let d { effectDetails[id] = d }
+                var out: [(Int, ESIDogmaEffectDetail?)] = []
+                for await result in group { out.append(result) }
+                return out
+            }
+            for (id, d) in fetched { if let d { effectDetails[id] = d } }
+
+            _ = await sdeLoad   // ensure SDE is ready before patching
+        } else {
+            // All effects are already cached. Still ensure SDE has loaded so that
+            // previously-cached effects with nil groupIds can be patched below.
+            await SDEClient.shared.ensureLoaded()
+        }
+
+        // Apply SDE groupId patches to ALL requested ids — not just freshly-fetched ones.
+        // ESI always returns groupId=nil for LocationGroupModifier records; the SDE has
+        // the correct values. Patching is idempotent: already-patched modifiers are skipped
+        // by the `m.groupId == nil` guard, so repeated calls are cheap.
+        let sdePatches = await SDEClient.shared.allPatches()
+        var anyPatched = false
+        for id in ids {
+            guard var detail = effectDetails[id],
+                  let patches = sdePatches[id] else { continue }
+            var changed = false
+            var remainingPatches = patches
+            for i in detail.modifiers.indices {
+                let m = detail.modifiers[i]
+                guard m.groupId == nil, m.function == "LocationGroupModifier" else { continue }
+                if let patchIdx = remainingPatches.firstIndex(where: {
+                    $0.modifiedAttrId  == m.modifiedAttributeId &&
+                    $0.modifyingAttrId == m.modifyingAttributeId &&
+                    $0.operatorId      == m.operatorId
+                }) {
+                    detail.modifiers[i].groupId = remainingPatches[patchIdx].groupId
+                    remainingPatches.remove(at: patchIdx)
+                    changed = true
+                    anyPatched = true
                 }
             }
+            if changed { effectDetails[id] = detail }
+        }
+        if anyPatched {
             dirty = true
             scheduleSave()
         }

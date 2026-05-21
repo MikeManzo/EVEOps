@@ -36,6 +36,15 @@ final class SimulatorState {
     var characterSkills: [Int: Int] = [:]   // skillTypeId → activeSkillLevel
     var skillTypes: [Int: ESIType] = [:]    // skillTypeId → type data with dogma attrs/effects
 
+    /// True while the SDE data file is downloading or being parsed on first use.
+    /// `recomputeStats` skips computation while this is set so stale unpatched
+    /// stats are never shown — the UI surfaces a loading indicator instead.
+    var isLoadingSDE = false
+
+    /// Set to true once SDE patches have been applied to `effectDetailsCache`.
+    /// Prevents re-running the patch pass on every subsequent `cacheEffects` call.
+    private var sdePatched = false
+
     var activeSlot: SimSlot? {
         guard let id = activeSlotId else { return nil }
         return slots.first { $0.id == id }
@@ -177,6 +186,7 @@ final class SimulatorState {
     }
 
     func recomputeStats() {
+        guard !isLoadingSDE else { return }   // don't publish unpatched stats
         guard let shipType else { stats = SimStats(); return }
         let allSlotTypeIds = slots.compactMap { $0.moduleTypeId }
         let fitted = allSlotTypeIds.compactMap { moduleTypes[$0] }
@@ -252,7 +262,25 @@ final class SimulatorState {
     /// Inline-fetch dogma effect details for the given types, populating effectDetailsCache.
     /// Unlike prefetchFittedEffects(), this awaits completion so callers can recompute
     /// immediately after with full effect data available.
+    ///
+    /// On first call this also waits for the SDE download to complete, then re-fetches any
+    /// already-cached effects to overwrite them with SDE-patched groupIds. This ensures that
+    /// effects fetched in a previous session (before SDE was ready) are corrected before any
+    /// CPU/PG calculation runs. `isLoadingSDE` is true throughout so the UI shows a spinner.
     private func cacheEffects(for types: [ESIType]) async {
+        if !sdePatched {
+            isLoadingSDE = true
+            await SDEClient.shared.ensureLoaded()
+            // Re-fetch previously-cached effects so their LGM groupIds are patched.
+            if !effectDetailsCache.isEmpty {
+                let staleIds = Set(effectDetailsCache.keys)
+                let refreshed = await UniverseCache.shared.effectDetails(ids: staleIds)
+                for (id, d) in refreshed { effectDetailsCache[id] = d }
+            }
+            sdePatched = true
+            isLoadingSDE = false
+        }
+
         let needed = Set(types.flatMap { $0.dogmaEffects?.map(\.effectId) ?? [] })
             .subtracting(effectDetailsCache.keys)
         guard !needed.isEmpty else { return }
