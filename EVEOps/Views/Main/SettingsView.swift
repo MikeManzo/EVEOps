@@ -772,6 +772,7 @@ private struct AboutTab: View {
                         chip("lock.shield", "PKCE Auth")
                         chip("internaldrive", "Smart Cache")
                         chip("bell", "Notifications")
+                        chip("apple.intelligence", "Intelligence")
                     }
                     .padding(.top, 16)
 
@@ -1063,8 +1064,8 @@ private struct AboutTab: View {
                 .strokeBorder(
                     LinearGradient(
                         colors: [
-                            Color.red.opacity(0.30),
-                            Color.red.opacity(0.08)
+                            Color.orange.opacity(0.30),
+                            Color.orange.opacity(0.08)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -1259,7 +1260,7 @@ private struct IntelligenceTabContent: View {
                 switch model.availability {
                 case .available:
                     Toggle("Enable AI Insights", isOn: $aiInsightsEnabled)
-                    Text("Uses the on-device Apple Intelligence model to analyze your financial and skill training data. All processing is local — no data leaves your Mac.")
+                    Text("Uses the on-device Apple Intelligence to analyze your financial and skill training data. All processing is local — no data leaves your Mac.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
 

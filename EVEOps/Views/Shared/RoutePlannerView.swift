@@ -9,6 +9,7 @@
 //
 
 import SwiftUI
+import OSLog
 
 // MARK:  Selected System
 
@@ -665,7 +666,7 @@ struct SystemSearchField: View {
                 )
                 guard !Task.isCancelled else { isSearching = false; return }
                 let ids = Array((response.solarSystem ?? []).prefix(15))
-                print("[SystemSearch] '\(trimmed)' → \(ids.count) IDs: \(ids)")
+                Logger.systemSearch.info("[SystemSearch] '\(trimmed)' → \(ids.count) IDs: \(ids)")
 
                 // Resolve names concurrently via UniverseCache (persists between searches)
                 let resolved = await withTaskGroup(of: SystemSearchResult?.self) { group -> [SystemSearchResult] in
@@ -681,11 +682,11 @@ struct SystemSearchField: View {
                 }
                 guard !Task.isCancelled else { isSearching = false; return }
                 results = resolved.sorted { $0.name < $1.name }
-                print("[SystemSearch] resolved \(results.count) systems")
+                Logger.systemSearch.info("[SystemSearch] resolved \(results.count) systems")
             } catch {
                 if !Task.isCancelled {
                     searchError = error.localizedDescription
-                    print("[SystemSearch] ERROR: \(error)")
+                    Logger.systemSearch.error("[SystemSearch] ERROR: \(error)")
                 }
             }
             isSearching = false

@@ -52,6 +52,11 @@
 			path = Screenshots;
 			sourceTree = "<group>";
 		};
+		275BB5812FC3AD3800496909 /* Extensions */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Extensions;
+			sourceTree = "<group>";
+		};
 		278124352F83D04D009A0B10 /* EVEOps */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -102,6 +107,7 @@
 		2781242A2F83D04D009A0B10 = {
 			isa = PBXGroup;
 			children = (
+				275BB5812FC3AD3800496909 /* Extensions */,
 				27B727642FC066E600AD4A8B /* EVEOps-Bridging-Header.h */,
 				275AE3BE2F8AD01D0072D078 /* Screenshots */,
 				278124352F83D04D009A0B10 /* EVEOps */,
@@ -148,6 +154,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				275AE3BE2F8AD01D0072D078 /* Screenshots */,
+				275BB5812FC3AD3800496909 /* Extensions */,
 				278124352F83D04D009A0B10 /* EVEOps */,
 			);
 			name = EVEOps;

@@ -98,7 +98,7 @@ private struct SimCalcInfoBanner: View {
                             "Every module in a fitted slot is treated as online and active, even if it's manually offlined in-game to stay within limits. CPU/PG shown is the theoretical maximum if everything were running simultaneously — the same baseline used by pyfa and EFT.")
 
                     infoRow("shield.lefthalf.filled",
-                            "Resistance values reflect active hardeners cycling. In-game readings will be lower when hardeners are offline or not yet activated.")
+                            "Resistance values reflect active hardeners cycling. In-game readings will be lower when hardeners are offline or not activated.")
 
                     infoRow("person.fill",
                             "Character skills are applied at the current active skill level. Omega skills above your active clone level are excluded.")

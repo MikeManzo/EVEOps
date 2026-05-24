@@ -12,6 +12,7 @@
 //
 
 import Foundation
+import OSLog
 
 // MARK:  Input models (must match Rust EsfFit serde layout exactly)
 
@@ -114,9 +115,9 @@ final class DogmaEngine {
         handle = dogma_engine_create(pbDirPath)
         isReady = handle != nil
         if isReady {
-            print("[DogmaEngine] Loaded SDE data from \(pbDirPath)")
+            Logger.dogmaEngine.info("[DogmaEngine] Loaded SDE data from \(pbDirPath)")
         } else {
-            print("[DogmaEngine] Failed to load SDE data — check .pb2 files at \(pbDirPath)")
+            Logger.dogmaEngine.info("[DogmaEngine] Failed to load SDE data — check .pb2 files at \(pbDirPath)")
         }
     }
 
@@ -160,12 +161,12 @@ final class DogmaEngine {
               let fitStr     = String(data: fitData,    encoding: .utf8),
               let skillStr   = String(data: skillsData, encoding: .utf8)
         else {
-            print("[DogmaEngine] JSON encoding failed")
+            Logger.dogmaEngine.info("[DogmaEngine] JSON encoding failed")
             return SimStats()
         }
 
         guard let resultPtr = dogma_engine_calculate(handle, fitStr, skillStr) else {
-            print("[DogmaEngine] calculate() returned null — check fit/skills JSON and .pb2 data")
+            Logger.dogmaEngine.info("[DogmaEngine] calculate() returned null — check fit/skills JSON and .pb2 data")
             return SimStats()
         }
         defer { dogma_engine_free_string(resultPtr) }
@@ -174,7 +175,7 @@ final class DogmaEngine {
         guard let resultData = resultStr.data(using: .utf8),
               let raw = try? JSONDecoder().decode(FfiSimStats.self, from: resultData)
         else {
-            print("[DogmaEngine] Failed to decode result JSON: \(resultStr)")
+            Logger.dogmaEngine.info("[DogmaEngine] Failed to decode result JSON: \(resultStr)")
             return SimStats()
         }
 

@@ -12,6 +12,7 @@
 //
 
 import Foundation
+import OSLog
 
 // MARK:  SDE Data Manager
 
@@ -53,14 +54,14 @@ actor SDEDataManager {
     func ensureLoaded() async {
         if isFresh() {
             pbDirPath = Self.cacheDir.path
-            print("[SDEDataManager] Cache is fresh — using cached SDE data")
+            await Logger.sdeData.info("[SDEDataManager] Cache is fresh — using cached SDE data")
             return
         }
         await download()
         if allFilesPresent() {
             pbDirPath = Self.cacheDir.path
         } else {
-            print("[SDEDataManager] SDE data unavailable — dogma engine will not load")
+            await Logger.dogmaEngine.error("[SDEDataManager] SDE data unavailable — dogma engine will not load")
         }
     }
 
@@ -86,13 +87,13 @@ actor SDEDataManager {
 
     private func download() async {
         guard let tag = await fetchLatestTag() else {
-            print("[SDEDataManager] Could not determine latest EVEShipFit/data release tag")
+            await Logger.sdeData.error("[SDEDataManager] Could not determine latest EVEShipFit/data release tag")
             return
         }
 
         // URL pattern: https://data.eveship.fit/{tag}/sde/{file}.pb2
         let baseURLString = "https://data.eveship.fit/\(tag)/sde/"
-        print("[SDEDataManager] Downloading SDE protobuf data (tag: \(tag))…")
+        await Logger.sdeData.info("[SDEDataManager] Downloading SDE protobuf data (tag: \(tag))…")
 
         let session = makeSession()
         var allSucceeded = true
@@ -108,15 +109,15 @@ actor SDEDataManager {
                         let (data, response) = try await session.data(for: req)
                         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
                             let code = (response as? HTTPURLResponse)?.statusCode ?? -1
-                            print("[SDEDataManager] HTTP \(code) for \(file)")
+                            await Logger.sdeData.info("[SDEDataManager] HTTP \(code) for \(file)")
                             return false
                         }
                         let dest = Self.cacheDir.appendingPathComponent(file)
                         try data.write(to: dest, options: .atomic)
-                        print("[SDEDataManager] ✓ \(file) (\(data.count / 1024) KB)")
+                        await Logger.sdeData.info("[SDEDataManager] ✓ \(file) (\(data.count / 1024) KB)")
                         return true
                     } catch {
-                        print("[SDEDataManager] Download failed for \(file): \(error.localizedDescription)")
+                        await Logger.sdeData.error("[SDEDataManager] Download failed for \(file): \(error.localizedDescription)")
                         return false
                     }
                 }
@@ -131,9 +132,9 @@ actor SDEDataManager {
             if let meta = try? JSONEncoder().encode(Date()) {
                 try? meta.write(to: Self.metaURL, options: .atomic)
             }
-            print("[SDEDataManager] All SDE files downloaded successfully")
+            await Logger.sdeData.info("[SDEDataManager] All SDE files downloaded successfully")
         } else {
-            print("[SDEDataManager] One or more SDE files failed to download")
+            await Logger.sdeData.error("[SDEDataManager] One or more SDE files failed to download")
         }
     }
 
@@ -151,7 +152,7 @@ actor SDEDataManager {
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let tag  = json["tag_name"] as? String
         else {
-            print("[SDEDataManager] GitHub releases API fetch failed")
+            await Logger.sdeData.error("[SDEDataManager] GitHub releases API fetch failed")
             return nil
         }
         return tag
