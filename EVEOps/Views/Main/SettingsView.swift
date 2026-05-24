@@ -813,10 +813,10 @@ private struct AboutTab: View {
                     // Collapsible legal
                     DisclosureGroup(isExpanded: $legalExpanded) {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("EVE Online and the EVE logo are registered trademarks of CCP hf. All rights reserved worldwide.")
-                            Text("EVEOps is an independent third-party application not affiliated with, endorsed by, or sponsored by CCP hf.")
+                            Text("EVE Online and the EVE logo are registered trademarks of Fenris Creations. All rights reserved worldwide.")
+                            Text("EVEOps is an independent third-party application not affiliated with, endorsed by, or sponsored by Fenris Creations.")
                             Text("All EVE Online related materials are used in accordance with the EVE Online Third-Party Developer License Agreement.")
-                            Text("\"EVE\", \"EVE Online\", \"CCP\", and all related logos are trademarks of CCP hf.")
+                            Text("\"EVE\", \"EVE Online\", \"Fenris\", and all related logos are trademarks of Fenris Creations.")
                         }
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -831,7 +831,7 @@ private struct AboutTab: View {
                     .padding(.horizontal, 44)
                     .padding(.top, 14)
 
-                    Text("\u{00A9} \(currentYear) CitizenCoder  ·  Not affiliated with CCP hf.")
+                    Text("\u{00A9} \(currentYear) CitizenCoder  ·  Not affiliated with Fenris Creations.")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                         .padding(.top, 20)
