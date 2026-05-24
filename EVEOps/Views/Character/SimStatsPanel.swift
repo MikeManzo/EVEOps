@@ -41,6 +41,7 @@ struct SimStatsPanel: View {
                         }
                         .frame(maxWidth: .infinity).padding()
                     } else if simState.stats.hasData {
+                        SimCalcInfoBanner()
                         SimFittingSection(stats: simState.stats)
                         SimCapBlock(stats: simState.stats)
                         SimOffenseBlock(stats: simState.stats)
@@ -50,16 +51,6 @@ struct SimStatsPanel: View {
                         SimDronesBlock(stats: simState.stats)
                         SimImplantsBlock()
                         SimTrainingBlock()
-
-                        if simState.isComputingEffects {
-                            HStack(spacing: 6) {
-                                ProgressView().scaleEffect(0.65)
-                                Text("Computing module bonuses…")
-                                    .font(.caption2).foregroundStyle(.secondary)
-                            }
-                            .padding(.horizontal, 10)
-                            .padding(.top, 8)
-                        }
                     } else {
                         VStack(spacing: 8) {
                             Image(systemName: "exclamationmark.triangle").foregroundStyle(.orange)
@@ -72,6 +63,68 @@ struct SimStatsPanel: View {
                 }
                 .padding(.bottom, 14)
             }
+        }
+    }
+}
+
+// MARK:  Calculation info banner
+
+private struct SimCalcInfoBanner: View {
+    @State private var showingInfo = false
+
+    var body: some View {
+        Button { showingInfo = true } label: {
+            HStack(spacing: 4) {
+                Spacer()
+                Image(systemName: "info.circle")
+                    .font(.system(size: 10))
+                Text("All active modules simulated")
+                    .font(.system(size: 10))
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+        }
+        .buttonStyle(.plain)
+        .help("How stats are calculated")
+        .popover(isPresented: $showingInfo) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("How Stats Are Calculated")
+                    .font(.headline)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    infoRow("bolt.fill",
+                            "Every module in a fitted slot is treated as online and active, even if it's manually offlined in-game to stay within limits. CPU/PG shown is the theoretical maximum if everything were running simultaneously — the same baseline used by pyfa and EFT.")
+
+                    infoRow("shield.lefthalf.filled",
+                            "Resistance values reflect active hardeners cycling. In-game readings will be lower when hardeners are offline or not yet activated.")
+
+                    infoRow("person.fill",
+                            "Character skills are applied at the current active skill level. Omega skills above your active clone level are excluded.")
+
+                    infoRow("capsule.fill",
+                            "Implants are included by default if loaded. Toggle them off in the Implants section to see base stats.")
+                }
+
+                Text("Powered by EVEShipFit dogma-engine")
+                    .font(.caption2)
+                    .foregroundStyle(.quaternary)
+            }
+            .padding()
+            .frame(width: 300)
+        }
+    }
+
+    private func infoRow(_ icon: String, _ text: String) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 11))
+                .foregroundStyle(.blue)
+                .frame(width: 16)
+            Text(text)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }
@@ -618,7 +671,7 @@ private struct SimImplantsBlock: View {
     @AppStorage("sim.section.implants.expanded") private var isExpanded = true
 
     var body: some View {
-        if !simState.implantTypes.isEmpty {
+        if !simState.implantTypeIds.isEmpty {
             VStack(spacing: 0) {
                 implantHeader
                 if isExpanded {
@@ -665,47 +718,11 @@ private struct SimImplantsBlock: View {
 
     @ViewBuilder
     private var implantContent: some View {
-        let contributions = simState.stats.implantContributions
-        if contributions.isEmpty {
-            Text("No active implants modify this ship's stats")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-        } else {
-            VStack(alignment: .leading, spacing: 6) {
-                ForEach(contributions) { c in
-                    VStack(alignment: .leading, spacing: 2) {
-                        HStack(spacing: 6) {
-                            AsyncImage(url: EVEImageURL.typeIcon(c.typeId, size: 64)) { img in
-                                img.resizable().aspectRatio(contentMode: .fit)
-                            } placeholder: {
-                                RoundedRectangle(cornerRadius: 3).fill(.quaternary)
-                            }
-                            .frame(width: 20, height: 20)
-                            .clipShape(RoundedRectangle(cornerRadius: 3))
-
-                            Text(c.name)
-                                .font(.system(size: 10, weight: .semibold))
-                                .lineLimit(1)
-                        }
-                        ForEach(c.bonuses, id: \.self) { bonus in
-                            HStack(spacing: 4) {
-                                Circle()
-                                    .fill(.purple.opacity(0.5))
-                                    .frame(width: 4, height: 4)
-                                Text(bonus)
-                                    .font(.system(size: 10))
-                                    .foregroundStyle(.secondary)
-                            }
-                            .padding(.leading, 26)
-                        }
-                    }
-                }
-            }
+        Text("\(simState.implantTypeIds.count) implant\(simState.implantTypeIds.count == 1 ? "" : "s") active — included in simulation")
+            .font(.caption2)
+            .foregroundStyle(.secondary)
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
-        }
     }
 }
 

@@ -195,4 +195,18 @@ struct SimStats {
     var hasData: Bool { shieldHP > 0 || armorHP > 0 || hullHP > 0 }
     var implantContributions: [ImplantContribution] = []
     var trainingContributions: [TrainingContribution] = []
+
+    /// Populates `ehp` from the current HP and resistance values.
+    /// Resistance values are percentages (0 = no resist, 100 = immune).
+    mutating func computeEHP() {
+        func layerEHP(_ hp: Double, _ pct: Double) -> Double {
+            let resonance = 1.0 - pct / 100.0
+            guard resonance > 1e-6 else { return hp > 0 ? 1e12 : 0 }
+            return hp / resonance
+        }
+        ehp.em        = layerEHP(shieldHP, shieldResists.em)        + layerEHP(armorHP, armorResists.em)        + layerEHP(hullHP, hullResists.em)
+        ehp.explosive = layerEHP(shieldHP, shieldResists.explosive)  + layerEHP(armorHP, armorResists.explosive)  + layerEHP(hullHP, hullResists.explosive)
+        ehp.kinetic   = layerEHP(shieldHP, shieldResists.kinetic)    + layerEHP(armorHP, armorResists.kinetic)    + layerEHP(hullHP, hullResists.kinetic)
+        ehp.thermal   = layerEHP(shieldHP, shieldResists.thermal)    + layerEHP(armorHP, armorResists.thermal)    + layerEHP(hullHP, hullResists.thermal)
+    }
 }

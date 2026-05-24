@@ -234,15 +234,10 @@ actor UniverseCache {
         return result
     }
 
-    /// Batch-fetch dogma effect details — used by the full fitting simulator.
+    /// Batch-fetch dogma effect details from ESI.
     func effectDetails(ids: Set<Int>) async -> [Int: ESIDogmaEffectDetail] {
         let uncached = ids.filter { effectDetails[$0] == nil }
-
         if !uncached.isEmpty {
-            // Start the SDE download in parallel with ESI fetches so both happen concurrently.
-            // This cuts total wait time when neither is cached yet.
-            async let sdeLoad: Void = SDEClient.shared.ensureLoaded()
-
             let fetched = await withTaskGroup(of: (Int, ESIDogmaEffectDetail?).self) { group in
                 for id in uncached {
                     group.addTask {
@@ -255,46 +250,7 @@ actor UniverseCache {
                 return out
             }
             for (id, d) in fetched { if let d { effectDetails[id] = d } }
-
-            _ = await sdeLoad   // ensure SDE is ready before patching
-        } else {
-            // All effects are already cached. Still ensure SDE has loaded so that
-            // previously-cached effects with nil groupIds can be patched below.
-            await SDEClient.shared.ensureLoaded()
         }
-
-        // Apply SDE groupId patches to ALL requested ids — not just freshly-fetched ones.
-        // ESI always returns groupId=nil for LocationGroupModifier records; the SDE has
-        // the correct values. Patching is idempotent: already-patched modifiers are skipped
-        // by the `m.groupId == nil` guard, so repeated calls are cheap.
-        let sdePatches = await SDEClient.shared.allPatches()
-        var anyPatched = false
-        for id in ids {
-            guard var detail = effectDetails[id],
-                  let patches = sdePatches[id] else { continue }
-            var changed = false
-            var remainingPatches = patches
-            for i in detail.modifiers.indices {
-                let m = detail.modifiers[i]
-                guard m.groupId == nil, m.function == "LocationGroupModifier" else { continue }
-                if let patchIdx = remainingPatches.firstIndex(where: {
-                    $0.modifiedAttrId  == m.modifiedAttributeId &&
-                    $0.modifyingAttrId == m.modifyingAttributeId &&
-                    $0.operatorId      == m.operatorId
-                }) {
-                    detail.modifiers[i].groupId = remainingPatches[patchIdx].groupId
-                    remainingPatches.remove(at: patchIdx)
-                    changed = true
-                    anyPatched = true
-                }
-            }
-            if changed { effectDetails[id] = detail }
-        }
-        if anyPatched {
-            dirty = true
-            scheduleSave()
-        }
-
         var result: [Int: ESIDogmaEffectDetail] = [:]
         for id in ids { if let d = effectDetails[id] { result[id] = d } }
         return result

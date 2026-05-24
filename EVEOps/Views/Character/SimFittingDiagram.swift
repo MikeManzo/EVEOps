@@ -323,8 +323,6 @@ struct SimSlotSocketView: View {
                                 }
                             }
                         }
-                        // Now pre-fetch effect details so full dogma replaces the heuristic.
-                        await MainActor.run { simState.prefetchFittedEffects() }
                     }
                 }
             )

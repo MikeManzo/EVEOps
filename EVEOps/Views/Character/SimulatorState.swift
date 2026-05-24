@@ -20,7 +20,7 @@ final class SimulatorState {
     var shipTypeId: Int?
     var shipType: ESIType?
     var slots: [SimSlot] = []
-    var moduleTypes: [Int: ESIType] = [:]
+    var moduleTypes: [Int: ESIType] = [:]   // used by UI for names/icons only
     var stats: SimStats = SimStats()
     var activeSlotId: UUID?
     var isLoadingShip = false
@@ -29,26 +29,19 @@ final class SimulatorState {
 
     var draggingCategory: SimSlotCategory? = nil
     var pendingDropPayload: SimModuleDrag? = nil
-    var effectDetailsCache: [Int: ESIDogmaEffectDetail] = [:]
-    var isComputingEffects = false
-    var implantTypes: [ESIType] = []
+    var implantTypeIds: [Int] = []
     var includeImplants: Bool = true
-    var characterSkills: [Int: Int] = [:]   // skillTypeId → activeSkillLevel
-    var skillTypes: [Int: ESIType] = [:]    // skillTypeId → type data with dogma attrs/effects
+    var characterSkills: [Int: Int] = [:]   // skillTypeId → trainedSkillLevel
 
-    /// True while the SDE data file is downloading or being parsed on first use.
-    /// `recomputeStats` skips computation while this is set so stale unpatched
-    /// stats are never shown — the UI surfaces a loading indicator instead.
+    /// True while SDE protobuf data is downloading on first launch.
     var isLoadingSDE = false
-
-    /// Set to true once SDE patches have been applied to `effectDetailsCache`.
-    /// Prevents re-running the patch pass on every subsequent `cacheEffects` call.
-    private var sdePatched = false
 
     var activeSlot: SimSlot? {
         guard let id = activeSlotId else { return nil }
         return slots.first { $0.id == id }
     }
+
+    // MARK: Ship Selection
 
     func selectShip(typeId: Int) async {
         isLoadingShip = true
@@ -64,12 +57,11 @@ final class SimulatorState {
         shipName = t.name
         shipClassName = await UniverseCache.shared.group(id: t.groupId)?.name ?? ""
         slots = buildSlots(from: t)
-        // Fetch the ship's own effect details inline so role bonuses (LocationModifier
-        // applied to fitted modules) are available on the very first recompute.
-        await cacheEffects(for: [t])
         recomputeStats()
         isLoadingShip = false
     }
+
+    // MARK: Slot Management
 
     @discardableResult
     func fillNextAvailableSlot(category: SimSlotCategory, typeId: Int) async -> Bool {
@@ -87,29 +79,23 @@ final class SimulatorState {
         }
         recomputeStats()
         activeSlotId = nil
-        prefetchFittedEffects()
     }
 
     /// Synchronous slot placement for drag-and-drop — mutates state immediately on the
-    /// calling thread (must be main), then fetches the module type in the background.
+    /// calling thread (must be main), then fetches the module ESIType in the background
+    /// for display purposes only (names, icons).
     @MainActor
     func placeModule(slotId: UUID, typeId: Int) {
         guard let idx = slots.firstIndex(where: { $0.id == slotId }) else { return }
         slots[idx].moduleTypeId = typeId
         activeSlotId = nil
-        recomputeStats()
         draggingCategory = nil
+        recomputeStats()
         if moduleTypes[typeId] == nil {
             Task {
                 let types = await UniverseCache.shared.types(ids: [typeId])
-                if let t = types[typeId] {
-                    moduleTypes[typeId] = t
-                    recomputeStats()
-                }
-                prefetchFittedEffects()
+                if let t = types[typeId] { moduleTypes[typeId] = t }
             }
-        } else {
-            prefetchFittedEffects()
         }
     }
 
@@ -129,9 +115,10 @@ final class SimulatorState {
         recomputeStats()
     }
 
+    // MARK: Load from Saved Fitting / Assets
+
     func loadFromSavedFitting(_ fitting: SavedFittingEntry) async {
         await selectShip(typeId: fitting.shipTypeId)
-        // selectShip clears isLoadingShip; keep the spinner up while we fetch module types.
         isLoadingShip = true
         let typeIds = Array(Set(fitting.items.map(\.typeId)))
         let types = await UniverseCache.shared.types(ids: typeIds)
@@ -145,15 +132,12 @@ final class SimulatorState {
                 }
             }
         }
-        await cacheEffects(for: Array(moduleTypes.values))
         recomputeStats()
         isLoadingShip = false
-        prefetchFittedEffects()
     }
 
     func loadFromShipModules(_ ship: ShipEntry, modules: [ESIAsset]) async {
         await selectShip(typeId: ship.typeId)
-        // selectShip clears isLoadingShip; keep the spinner up while we fetch module types.
         isLoadingShip = true
         let typeIds = Array(Set(modules.map(\.typeId)))
         let types = await UniverseCache.shared.types(ids: typeIds)
@@ -167,11 +151,11 @@ final class SimulatorState {
                 }
             }
         }
-        await cacheEffects(for: Array(moduleTypes.values))
         recomputeStats()
         isLoadingShip = false
-        prefetchFittedEffects()
     }
+
+    // MARK: Slot Building
 
     private func buildSlots(from type: ESIType) -> [SimSlot] {
         let attrs = type.dogmaAttributes ?? []
@@ -185,56 +169,37 @@ final class SimulatorState {
         return result
     }
 
+    // MARK: Stats Calculation
+
     func recomputeStats() {
-        guard !isLoadingSDE else { return }   // don't publish unpatched stats
+        guard !isLoadingSDE else { return }
         guard let shipType else { stats = SimStats(); return }
-        let allSlotTypeIds = slots.compactMap { $0.moduleTypeId }
-        let fitted = allSlotTypeIds.compactMap { moduleTypes[$0] }
-
-        // If any slot's ESIType data hasn't been fetched yet, kick off a background
-        // fetch and recompute. This recovers from the placeModule drag-and-drop race
-        // where the slot typeId is set synchronously but the ESI fetch is async.
-        let missingIds = Set(allSlotTypeIds.filter { moduleTypes[$0] == nil })
-        if !missingIds.isEmpty {
-            Task {
-                let types = await UniverseCache.shared.types(ids: Array(missingIds))
-                guard !types.isEmpty else { return }
-                for (id, t) in types { moduleTypes[id] = t }
-                await cacheEffects(for: Array(moduleTypes.values))
-                recomputeStats()
-            }
-        }
-
-        let activeImplants = includeImplants ? implantTypes : []
-        stats = SimStatsCalculator.compute(
-            shipType: shipType,
-            fittedModules: fitted,
-            implants: activeImplants,
-            characterSkills: characterSkills,
-            skillTypes: skillTypes,
-            effectCache: effectDetailsCache
+        stats = DogmaEngine.shared.calculate(
+            shipTypeId: shipType.typeId,
+            slots: slots,
+            skills: characterSkills,
+            implantTypeIds: includeImplants ? implantTypeIds : []
         )
     }
 
-    /// Fetch the character's active implants, resolve their ESI types, and recompute.
+    // MARK: Character Data Loading
+
+    /// Fetches the character's active implants and recomputes.
     func loadImplants(accountManager: AccountManager) async {
         guard let account = accountManager.selectedAccount,
               let token = try? await accountManager.validToken(for: account),
               let ids: [Int] = try? await ESIClient.shared.fetch(
                   "/characters/\(account.characterID)/implants/", token: token
               ) else {
-            implantTypes = []
+            implantTypeIds = []
             recomputeStats()
             return
         }
-        let types = await UniverseCache.shared.types(ids: ids)
-        implantTypes = ids.compactMap { types[$0] }
-        await cacheEffects(for: implantTypes)
+        implantTypeIds = ids
         recomputeStats()
-        prefetchFittedEffects()
     }
 
-    /// Fetch the character's active skills, resolve their ESI types, and recompute.
+    /// Fetches the character's trained skill levels and recomputes.
     func loadSkills(accountManager: AccountManager) async {
         guard let account = accountManager.selectedAccount,
               let token = try? await accountManager.validToken(for: account),
@@ -242,75 +207,12 @@ final class SimulatorState {
                   "/characters/\(account.characterID)/skills/", token: token
               ) else {
             characterSkills = [:]
-            skillTypes = [:]
             recomputeStats()
             return
         }
         characterSkills = Dictionary(
-            uniqueKeysWithValues: response.skills.map { ($0.skillId, $0.trainedSkillLevel) }
+            uniqueKeysWithValues: response.skills.map { ($0.skillId, $0.activeSkillLevel) }
         )
-        let types = await UniverseCache.shared.types(ids: Array(characterSkills.keys))
-        skillTypes = types
-        // Fetch all skill effect details inline — Caldari Battleship and other racial
-        // ship skills use LocationGroupModifier which requires the effect detail to be
-        // cached before recomputeStats() runs, otherwise those bonuses are silently skipped.
-        await cacheEffects(for: Array(skillTypes.values))
         recomputeStats()
-        prefetchFittedEffects()
-    }
-
-    /// Inline-fetch dogma effect details for the given types, populating effectDetailsCache.
-    /// Unlike prefetchFittedEffects(), this awaits completion so callers can recompute
-    /// immediately after with full effect data available.
-    ///
-    /// On first call this also waits for the SDE download to complete, then re-fetches any
-    /// already-cached effects to overwrite them with SDE-patched groupIds. This ensures that
-    /// effects fetched in a previous session (before SDE was ready) are corrected before any
-    /// CPU/PG calculation runs. `isLoadingSDE` is true throughout so the UI shows a spinner.
-    private func cacheEffects(for types: [ESIType]) async {
-        if !sdePatched {
-            isLoadingSDE = true
-            await SDEClient.shared.ensureLoaded()
-            // Re-fetch previously-cached effects so their LGM groupIds are patched.
-            if !effectDetailsCache.isEmpty {
-                let staleIds = Set(effectDetailsCache.keys)
-                let refreshed = await UniverseCache.shared.effectDetails(ids: staleIds)
-                for (id, d) in refreshed { effectDetailsCache[id] = d }
-            }
-            sdePatched = true
-            isLoadingSDE = false
-        }
-
-        let needed = Set(types.flatMap { $0.dogmaEffects?.map(\.effectId) ?? [] })
-            .subtracting(effectDetailsCache.keys)
-        guard !needed.isEmpty else { return }
-        let details = await UniverseCache.shared.effectDetails(ids: needed)
-        for (id, d) in details { effectDetailsCache[id] = d }
-    }
-
-    /// Pre-fetch dogma effect details for all currently fitted modules, implants,
-    /// and character skills, then recompute. Used as a background safety net after
-    /// drag-and-drop module placement or for any effects not yet in cache.
-    func prefetchFittedEffects() {
-        let fittedTypes = slots.compactMap { $0.moduleTypeId }.compactMap { moduleTypes[$0] }
-        let shipTypes = shipType.map { [$0] } ?? []
-        let allTypes = fittedTypes + implantTypes + Array(skillTypes.values) + shipTypes
-        let effectIds = Set(allTypes.flatMap { $0.dogmaEffects?.map(\.effectId) ?? [] })
-            .subtracting(effectDetailsCache.keys)
-        guard !effectIds.isEmpty else { return }
-
-        isComputingEffects = true
-        Task {
-            let details = await UniverseCache.shared.effectDetails(ids: effectIds)
-            await MainActor.run {
-                var changed = false
-                for (id, d) in details where self.effectDetailsCache[id] == nil {
-                    self.effectDetailsCache[id] = d
-                    changed = true
-                }
-                if changed { self.recomputeStats() }
-                self.isComputingEffects = false
-            }
-        }
     }
 }

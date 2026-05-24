@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		27B727612FC066A900AD4A8B /* DogmaEngine.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 27B727602FC066A900AD4A8B /* DogmaEngine.xcframework */; };
 		27C539C12FA0EF4C001D7F9A /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 27C539C02FA0EF4C001D7F9A /* Sparkle */; };
 /* End PBXBuildFile section */
 
@@ -31,6 +32,8 @@
 		278124332F83D04D009A0B10 /* EVEOps.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = EVEOps.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		278124422F83D04E009A0B10 /* EVEOpsTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = EVEOpsTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		2781244C2F83D04E009A0B10 /* EVEOpsUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = EVEOpsUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		27B727602FC066A900AD4A8B /* DogmaEngine.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = DogmaEngine.xcframework; path = "../dogma-engine/DogmaEngine.xcframework"; sourceTree = "<group>"; };
+		27B727642FC066E600AD4A8B /* EVEOps-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "EVEOps-Bridging-Header.h"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -74,6 +77,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				27B727612FC066A900AD4A8B /* DogmaEngine.xcframework in Frameworks */,
 				27C539C12FA0EF4C001D7F9A /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -98,6 +102,7 @@
 		2781242A2F83D04D009A0B10 = {
 			isa = PBXGroup;
 			children = (
+				27B727642FC066E600AD4A8B /* EVEOps-Bridging-Header.h */,
 				275AE3BE2F8AD01D0072D078 /* Screenshots */,
 				278124352F83D04D009A0B10 /* EVEOps */,
 				278124452F83D04E009A0B10 /* EVEOpsTests */,
@@ -120,6 +125,7 @@
 		27C539BF2FA0EF4C001D7F9A /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				27B727602FC066A900AD4A8B /* DogmaEngine.xcframework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -492,6 +498,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "EVEOps-Bridging-Header.h";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 			};
@@ -541,6 +548,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "EVEOps-Bridging-Header.h";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 			};

@@ -56,6 +56,15 @@ struct SimulateFittingView: View {
                 .environment(simState)
         }
         .background(SplitViewAutosave(name: "SimulateFittingView.split"))
+        .task {
+            simState.isLoadingSDE = true
+            await SDEDataManager.shared.ensureLoaded()
+            if let path = await SDEDataManager.shared.pbDirPath {
+                DogmaEngine.shared.prepare(pbDirPath: path)
+            }
+            simState.isLoadingSDE = false
+            simState.recomputeStats()
+        }
         .task { await simState.loadImplants(accountManager: accountManager) }
         .task { await simState.loadSkills(accountManager: accountManager) }
         .onChange(of: accountManager.selectedAccount?.characterID) { _, _ in
