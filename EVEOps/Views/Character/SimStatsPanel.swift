@@ -80,6 +80,7 @@ private struct SimCalcInfoBanner: View {
                     .font(.system(size: 10))
                 Text("All active modules simulated")
                     .font(.system(size: 10))
+                Spacer()
             }
             .foregroundStyle(.white)
             .padding(.horizontal, 10)
@@ -108,7 +109,7 @@ private struct SimCalcInfoBanner: View {
 
                 Text("Powered by EVEShipFit dogma-engine")
                     .font(.caption2)
-                    .foregroundStyle(.quaternary)
+                    .foregroundStyle(.secondary)
             }
             .padding()
             .frame(width: 300)

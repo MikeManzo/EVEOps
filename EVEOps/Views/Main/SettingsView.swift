@@ -801,7 +801,11 @@ private struct AboutTab: View {
                     // Fuzzwork attribution card
                     fuzzworkCard
                         .padding(.top, 8)
-
+                    
+                    // EVEShipFit dogmaEngine card
+                    dogmaEngineCard
+                        .padding(.top, 8)
+                    
                     // Claude Code attribution card
                     claudeCodeCard
                         .padding(.top, 8)
@@ -1019,6 +1023,57 @@ private struct AboutTab: View {
         .padding(.horizontal, 44)
     }
 
+    // Mark:  dogmaEngine attribution card
+
+    private var dogmaEngineCard: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(Color.red.opacity(0.12))
+                    .frame(width: 38, height: 38)
+                Image(systemName: "esim")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.red)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("EVEShip.fit's Dogma Engine")
+                    .font(.system(size: 13, weight: .semibold))
+                Text("SHIP FIT SIM ENGINE")
+                    .font(.system(size: 9, weight: .bold))
+                    .tracking(1.2)
+                    .foregroundStyle(.tertiary)
+            }
+
+            Spacer()
+
+            Button("EVEShip.fit") {
+                if let url = URL(string: "https://eveship.fit") {
+                    NSWorkspace.shared.open(url)
+                }
+            }
+            .buttonStyle(.link)
+            .font(.system(size: 11, weight: .medium))
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 11)
+        .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [
+                            Color.red.opacity(0.30),
+                            Color.red.opacity(0.08)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        )
+        .padding(.horizontal, 44)
+    }
+    
     // Mark:  Fuzzwork attribution card
 
     private var fuzzworkCard: some View {

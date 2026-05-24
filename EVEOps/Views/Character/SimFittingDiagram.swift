@@ -391,7 +391,22 @@ struct SimModulePopover: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            if let t = moduleType, let typeId = slot.moduleTypeId {
+            if moduleType == nil, let typeId = slot.moduleTypeId {
+                // Type not yet cached — fetch it, show spinner meanwhile
+                HStack {
+                    Spacer()
+                    ProgressView().scaleEffect(0.7)
+                    Spacer()
+                }
+                .frame(height: 60)
+                .task {
+                    let fetched = await UniverseCache.shared.types(ids: [typeId])
+                    if let t = fetched[typeId] {
+                        simState.moduleTypes[typeId] = t
+                    }
+                }
+            } else if let t = moduleType, let typeId = slot.moduleTypeId {
+                // ── Header ────────────────────────────────────────────────
                 HStack(spacing: 12) {
                     AsyncImage(url: EVEImageURL.typeIcon(typeId, size: 128)) { img in
                         img.resizable().aspectRatio(contentMode: .fit)
@@ -412,8 +427,14 @@ struct SimModulePopover: View {
                 }
                 .padding(14)
 
-                Divider()
+                // ── Fitting & stats ───────────────────────────────────────
+                let attrs = t.dogmaAttributes ?? []
+                let attrVal: (Int) -> Double? = { id in attrs.first { $0.attributeId == id }?.value }
 
+                SimModuleStatsSections(attrVal: attrVal, category: slot.category)
+
+                // ── Footer actions ────────────────────────────────────────
+                Divider()
                 HStack(spacing: 0) {
                     Button {
                         openWindow(value: GalaxyMarketSearchInput(typeId: typeId, typeName: t.name))
@@ -437,5 +458,146 @@ struct SimModulePopover: View {
             }
         }
         .frame(width: 280)
+    }
+}
+
+// MARK:  Module Stats Sections
+
+private struct SimModuleStatsSections: View {
+    let attrVal: (Int) -> Double?
+    let category: SimSlotCategory
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            fittingSection
+            activationSection
+            statsSection
+        }
+    }
+
+    // ── Fitting requirements ───────────────────────────────────────────────
+    @ViewBuilder private var fittingSection: some View {
+        let cpu = attrVal(50)
+        let pg  = attrVal(30)
+        let cal = attrVal(1132)
+        let hasFitting = (cpu ?? 0) > 0 || (pg ?? 0) > 0 || (cal ?? 0) > 0
+        if hasFitting {
+            Divider()
+            VStack(alignment: .leading, spacing: 5) {
+                sectionHeader("FITTING")
+                if let v = cpu, v > 0 {
+                    statRow(icon: "cpu", label: "CPU", value: "\(fmtNum(v)) tf")
+                }
+                if let v = pg, v > 0 {
+                    statRow(icon: "bolt.fill", label: "Power Grid", value: "\(fmtNum(v)) MW")
+                }
+                if let v = cal, v > 0 {
+                    statRow(icon: "gearshape.2", label: "Calibration", value: "\(fmtNum(v)) pts")
+                }
+            }
+            .padding(.horizontal, 14).padding(.vertical, 8)
+        }
+    }
+
+    // ── Activation (capacitor + duration) ─────────────────────────────────
+    @ViewBuilder private var activationSection: some View {
+        let capNeed  = attrVal(6)
+        let duration = attrVal(73)
+        if let cn = capNeed, cn > 0, let dur = duration, dur > 0 {
+            Divider()
+            VStack(alignment: .leading, spacing: 5) {
+                sectionHeader("ACTIVATION")
+                statRow(icon: "battery.50", label: "Cap. per Cycle",
+                        value: "\(fmtNum(cn)) GJ")
+                statRow(icon: "timer",      label: "Duration",
+                        value: "\(fmtNum(dur / 1000)) s")
+            }
+            .padding(.horizontal, 14).padding(.vertical, 8)
+        }
+    }
+
+    // ── Key attribute stats ────────────────────────────────────────────────
+    @ViewBuilder private var statsSection: some View {
+        let rows = resolvedStats
+        if !rows.isEmpty {
+            Divider()
+            VStack(alignment: .leading, spacing: 5) {
+                sectionHeader("ATTRIBUTES")
+                ForEach(rows, id: \.label) { row in
+                    statRow(icon: row.icon, label: row.label, value: row.value)
+                }
+            }
+            .padding(.horizontal, 14).padding(.vertical, 8)
+        }
+    }
+
+    // Map of known attribute IDs → (icon, label, formatter)
+    private struct AttrSpec {
+        let id: Int; let icon: String; let label: String
+        let fmt: (Double) -> String?
+    }
+
+    private var specs: [AttrSpec] { [
+        AttrSpec(id: 64,   icon: "scope",              label: "Dmg. Multiplier") { v in v > 0 ? "×\(String(format: "%.2f", v))" : nil },
+        AttrSpec(id: 54,   icon: "arrow.right",        label: "Optimal Range")   { fmtRange($0) },
+        AttrSpec(id: 158,  icon: "arrow.right.to.line",label: "Falloff")         { fmtRange($0) },
+        AttrSpec(id: 160,  icon: "arrow.right.to.line",label: "Accuracy Falloff"){ fmtRange($0) },
+        AttrSpec(id: 68,   icon: "shield",             label: "Shield Boost")    { v in v > 0 ? "\(fmtNum(v)) HP" : nil },
+        AttrSpec(id: 84,   icon: "shield.lefthalf.filled", label: "Armor Repair"){ v in v > 0 ? "\(fmtNum(v)) HP" : nil },
+        AttrSpec(id: 85,   icon: "shield.slash",       label: "Hull Repair")     { v in v > 0 ? "\(fmtNum(v)) HP" : nil },
+        AttrSpec(id: 984,  icon: "shield.checkered",   label: "Resist Bonus")    { v in v != 0 ? "\(String(format: "%.1f", abs(v)))%" : nil },
+        AttrSpec(id: 20,   icon: "hare",               label: "Velocity Bonus")  { v in v != 0 ? "\(String(format: "%.0f", v))%" : nil },
+        AttrSpec(id: 554,  icon: "hare",               label: "Velocity Bonus")  { v in v != 0 ? "\(String(format: "%.0f", v))%" : nil },
+        AttrSpec(id: 633,  icon: "dot.radiowaves.left.and.right", label: "Scan Res. Bonus") { v in v != 0 ? "\(String(format: "%.0f", v))%" : nil },
+        AttrSpec(id: 182,  icon: "star",               label: "Dmg. Bonus")      { v in v != 0 ? "\(String(format: "%.0f", v))%" : nil },
+    ] }
+
+    private struct StatRow { let icon: String; let label: String; let value: String }
+
+    private var resolvedStats: [StatRow] {
+        var seen = Set<String>()
+        return specs.compactMap { spec in
+            guard let raw = attrVal(spec.id),
+                  let formatted = spec.fmt(raw),
+                  !seen.contains(spec.label)
+            else { return nil }
+            seen.insert(spec.label)
+            return StatRow(icon: spec.icon, label: spec.label, value: formatted)
+        }
+    }
+
+    // ── Shared sub-views ───────────────────────────────────────────────────
+    private func sectionHeader(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 9, weight: .semibold))
+            .foregroundStyle(.secondary)
+    }
+
+    private func statRow(icon: String, label: String, value: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 10))
+                .foregroundStyle(.secondary)
+                .frame(width: 14)
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Spacer()
+            Text(value)
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.primary)
+        }
+    }
+
+    // ── Formatters ─────────────────────────────────────────────────────────
+    private func fmtNum(_ v: Double) -> String {
+        v.truncatingRemainder(dividingBy: 1) == 0
+            ? String(format: "%.0f", v)
+            : String(format: "%.1f", v)
+    }
+
+    private func fmtRange(_ v: Double) -> String? {
+        guard v > 0 else { return nil }
+        return v >= 1000 ? "\(String(format: "%.1f", v / 1000)) km" : "\(fmtNum(v)) m"
     }
 }
