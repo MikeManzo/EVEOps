@@ -670,6 +670,7 @@ struct SimDronesBlock: View {
 private struct SimImplantsBlock: View {
     @Environment(SimulatorState.self) private var simState
     @AppStorage("sim.section.implants.expanded") private var isExpanded = true
+    @State private var implantTypes: [Int: ESIType] = [:]
 
     var body: some View {
         if !simState.implantTypeIds.isEmpty {
@@ -686,6 +687,10 @@ private struct SimImplantsBlock: View {
                             .padding(.vertical, 6)
                     }
                 }
+            }
+            .task(id: simState.implantTypeIds.sorted()) {
+                let fetched = await UniverseCache.shared.types(ids: simState.implantTypeIds)
+                implantTypes = fetched
             }
         }
     }
@@ -719,11 +724,93 @@ private struct SimImplantsBlock: View {
 
     @ViewBuilder
     private var implantContent: some View {
-        Text("\(simState.implantTypeIds.count) implant\(simState.implantTypeIds.count == 1 ? "" : "s") active — included in simulation")
-            .font(.caption2)
-            .foregroundStyle(.secondary)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
+        VStack(alignment: .leading, spacing: 4) {
+            ForEach(simState.implantTypeIds.sorted(), id: \.self) { typeId in
+                HStack(spacing: 8) {
+                    AsyncImage(url: EVEImageURL.typeIcon(typeId, size: 64)) { img in
+                        img.resizable().aspectRatio(contentMode: .fit)
+                    } placeholder: {
+                        RoundedRectangle(cornerRadius: 3).fill(.quaternary)
+                    }
+                    .frame(width: 44, height: 44)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(implantTypes[typeId]?.name ?? "Loading…")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(implantTypes[typeId] == nil ? .tertiary : .primary)
+                            .lineLimit(1)
+                        if let t = implantTypes[typeId], let bonus = primaryBonus(for: t) {
+                            Text(bonus)
+                                .font(.system(size: 9))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+    }
+
+    // Returns a human-readable description of the implant's primary bonus attribute.
+    private func primaryBonus(for esiType: ESIType) -> String? {
+        guard let attrs = esiType.dogmaAttributes else { return nil }
+
+        // Flat bonuses (integer values like +1 to +5)
+        let flatMap: [Int: String] = [
+            175: "Charisma",
+            176: "Intelligence",
+            177: "Memory",
+            178: "Perception",
+            179: "Willpower",
+        ]
+
+        // Percent bonuses (value is already the percent amount, e.g. 5.0 → "+5%")
+        let pctMap: [Int: String] = [
+            // Armor
+            1280: "Armor HP",
+            1281: "Armor HP",
+            314:  "Armor Repair Amount",
+            // Shield
+            1317: "Shield HP",
+            68:   "Shield HP",
+            271:  "Shield Recharge",
+            // Navigation
+            20:   "Max Velocity",
+            554:  "MWD Speed",
+            // Targeting
+            633:  "Scan Resolution",
+            // Warp
+            600:  "Warp Speed",
+            // Capacitor
+            55:   "Capacitor Capacity",
+            // Missile
+            422:  "Missile Damage",   // note: techLevel reuses some IDs; checked below
+            1227: "Missile Damage",
+            37:   "Missile Velocity",
+            // Turret
+            204:  "Turret Damage",
+            // Drone
+            1010: "Drone Damage",
+        ]
+
+        // Check flat attributes first
+        for attr in attrs {
+            if let label = flatMap[attr.attributeId], attr.value != 0 {
+                let v = Int(attr.value.rounded())
+                return "\(v >= 0 ? "+" : "")\(v) \(label)"
+            }
+        }
+
+        // Check percent attributes
+        for attr in attrs {
+            if let label = pctMap[attr.attributeId], attr.value != 0 {
+                return String(format: "+%.1f%% \(label)", attr.value)
+            }
+        }
+
+        return nil
     }
 }
 
