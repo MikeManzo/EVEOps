@@ -788,7 +788,12 @@ private struct AboutTab: View {
                                 NSWorkspace.shared.open(url)
                             }
                         }
-                        linkButton("server.rack", "Discord Server") {
+                        linkButton("qrcode", "Github") {
+                            if let url = URL(string: "https://github.com/MikeManzo/EVEOps") {
+                                NSWorkspace.shared.open(url)
+                            }
+                        }
+                        linkButton("server.rack", "KEC Discord") {
                             if let url = URL(string: "https://discord.gg/HjRK7yAH8") {
                                 NSWorkspace.shared.open(url)
                             }
@@ -811,11 +816,15 @@ private struct AboutTab: View {
                     // EVEShipFit dogmaEngine card
                     dogmaEngineCard
                         .padding(.top, 8)
+
+                    // Janice attribution card
+                    janiceCard
+                        .padding(.top, 8)
                     
                     // Claude Code attribution card
                     claudeCodeCard
                         .padding(.top, 8)
-
+                    
                     // Collapsible legal
                     DisclosureGroup(isExpanded: $legalExpanded) {
                         VStack(alignment: .leading, spacing: 6) {
@@ -1031,15 +1040,66 @@ private struct AboutTab: View {
 
     // Mark:  dogmaEngine attribution card
 
+    private var janiceCard: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(Color.green.opacity(0.12))
+                    .frame(width: 38, height: 38)
+                Image(systemName: "cart.circle")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.green)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Live EVE item Apprasial")
+                    .font(.system(size: 13, weight: .semibold))
+                Text("LIVE APPRAISAL DATA SOURCE")
+                    .font(.system(size: 9, weight: .bold))
+                    .tracking(1.2)
+                    .foregroundStyle(.tertiary)
+            }
+
+            Spacer()
+
+            Button("Janice Pricing") {
+                if let url = URL(string: "https://janice.e-351.com/") {
+                    NSWorkspace.shared.open(url)
+                }
+            }
+            .buttonStyle(.link)
+            .font(.system(size: 11, weight: .medium))
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 11)
+        .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [
+                            Color.green.opacity(0.30),
+                            Color.green.opacity(0.08)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        )
+        .padding(.horizontal, 44)
+    }
+    
+    // Mark:  dogmaEngine attribution card
+
     private var dogmaEngineCard: some View {
         HStack(spacing: 14) {
             ZStack {
                 Circle()
-                    .fill(Color.red.opacity(0.12))
+                    .fill(Color.orange.opacity(0.12))
                     .frame(width: 38, height: 38)
                 Image(systemName: "esim")
                     .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(.red)
+                    .foregroundStyle(.orange)
             }
 
             VStack(alignment: .leading, spacing: 2) {
