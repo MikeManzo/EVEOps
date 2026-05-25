@@ -187,8 +187,36 @@ struct SimLoadFittingSheet: View {
                 let shipGroupIds = Set(assetGroups.values.filter { $0.categoryId == 6 }.map(\.groupId))
                 let shipTids = Set(types.filter { shipGroupIds.contains($0.value.groupId) }.keys)
                 let byLoc = Dictionary(grouping: assets, by: \.locationId)
+                let shipAssets = assets.filter { shipTids.contains($0.typeId) && $0.isSingleton }
 
-                for a in assets where shipTids.contains(a.typeId) && a.isSingleton {
+                // Fetch custom names (pilot-assigned ship nicknames)
+                let shipItemIds = shipAssets.map(\.itemId)
+                var customNames: [Int: String] = [:]
+                if !shipItemIds.isEmpty,
+                   let nameResults: [ESIAssetName] = try? await ESIClient.shared.post(
+                       "/characters/\(account.characterID)/assets/names/",
+                       body: shipItemIds, token: token
+                   ) {
+                    for entry in nameResults where entry.name != "None" {
+                        customNames[entry.itemId] = entry.name
+                    }
+                }
+
+                // Resolve location names concurrently
+                let locationIds = Array(Set(shipAssets.map(\.locationId)))
+                var locationNames: [Int: String] = [:]
+                await withTaskGroup(of: (Int, String).self) { group in
+                    for locId in locationIds {
+                        group.addTask {
+                            (locId, await NameResolver.shared.resolveLocation(id: locId, token: token))
+                        }
+                    }
+                    for await (locId, name) in group {
+                        locationNames[locId] = name
+                    }
+                }
+
+                for a in shipAssets {
                     let gid = types[a.typeId]?.groupId ?? 0
                     loadedShips.append(ShipEntry(
                         characterID: account.characterID,
@@ -196,8 +224,8 @@ struct SimLoadFittingSheet: View {
                         itemId: a.itemId,
                         typeId: a.typeId,
                         typeName: types[a.typeId]?.name ?? "Unknown",
-                        customName: nil,
-                        locationName: "Unknown Location",
+                        customName: customNames[a.itemId],
+                        locationName: locationNames[a.locationId] ?? "#\(a.locationId)",
                         isSingleton: true,
                         shipClassName: assetGroups[gid]?.name ?? "Unknown"
                     ))
