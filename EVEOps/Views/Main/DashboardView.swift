@@ -20,6 +20,9 @@ struct DashboardView: View {
     @AppStorage("dashboard.contacts.playersExpanded") private var playersExpanded = true
     @AppStorage("dashboard.contacts.npcsExpanded")    private var npcsExpanded = true
     @AppStorage("dashboard.contacts.orgsExpanded")    private var orgsExpanded = true
+    @State private var newsItems: [EVENewsItem] = []
+    @State private var newsIsLoading = true
+    @AppStorage("dashboard.news.expanded") private var newsExpanded = true
 
     var body: some View {
         ScrollView {
@@ -45,6 +48,8 @@ struct DashboardView: View {
                     }
                 }
                 .padding(.horizontal)
+
+                EVENewsWidgetView(items: newsItems, isLoading: newsIsLoading, isExpanded: $newsExpanded)
 
                 // Contacts — split into Players, NPCs, Organizations
                 let playerContacts = contactSummaries.filter { $0.isPlayerCharacter }
@@ -102,6 +107,7 @@ struct DashboardView: View {
                 await loadAllSummaries()
             }
             await loadContacts()
+            await loadNews()
         }
     }
 
@@ -402,6 +408,12 @@ struct DashboardView: View {
         }
 
         contactSummaries = summaries
+    }
+
+    private func loadNews() async {
+        newsIsLoading = true
+        newsItems = (try? await EVENewsClient.shared.fetchNews()) ?? []
+        newsIsLoading = false
     }
 
     private nonisolated func buildSummary(from prefetched: DashboardPrefetcher.PrefetchedCharacterData, for account: StoredAccount) async -> CharacterSummary {
@@ -1314,5 +1326,183 @@ struct ContactCardView: View {
         if contact.standing == 0 { return "minus" }
         if contact.standing > -5 { return "hand.thumbsdown.fill" }
         return "xmark.circle.fill"
+    }
+}
+
+// MARK: - EVE News Widget
+
+struct EVENewsWidgetView: View {
+    let items: [EVENewsItem]
+    let isLoading: Bool
+    @Binding var isExpanded: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button {
+                isExpanded.toggle()
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "newspaper.fill")
+                        .foregroundStyle(.orange)
+                        .font(.callout)
+                    Text("EVE News")
+                        .font(.title3.bold())
+                    if isLoading {
+                        ProgressView().scaleEffect(0.6).padding(.leading, 2)
+                    } else if !items.isEmpty {
+                        Text("(\(items.count))")
+                            .font(.title3)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                        .font(.caption.bold())
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(Color.orange.opacity(0.07), in: RoundedRectangle(cornerRadius: 10))
+                .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.orange.opacity(0.15), lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+
+            if isExpanded {
+                if isLoading {
+                    HStack {
+                        Spacer()
+                        ProgressView("Loading news...")
+                        Spacer()
+                    }
+                    .padding(.vertical, 20)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
+                    .padding(.top, 8)
+                } else if items.isEmpty {
+                    HStack {
+                        Spacer()
+                        Text("Unable to load EVE news")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                    }
+                    .padding(.vertical, 20)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
+                    .padding(.top, 8)
+                } else {
+                    VStack(spacing: 0) {
+                        ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                            NewsRowView(item: item)
+                            if index < items.count - 1 {
+                                Divider().padding(.leading, 12)
+                            }
+                        }
+                    }
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
+                    .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.white.opacity(0.07), lineWidth: 1))
+                    .padding(.top, 8)
+                }
+            }
+        }
+        .padding(.horizontal)
+    }
+}
+
+struct NewsRowView: View {
+    let item: EVENewsItem
+    @Environment(\.openURL) private var openURL
+
+    var body: some View {
+        Button {
+            if let url = item.link { openURL(url) }
+        } label: {
+            HStack(alignment: .top, spacing: 10) {
+                // Author pill (CCP dev name) or category fallback
+                let pillText = item.author.isEmpty ? (item.category.isEmpty ? "CCP" : item.category) : item.author
+                Text(pillText)
+                    .font(.caption2.bold())
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(categoryColor.opacity(0.15), in: Capsule())
+                    .foregroundStyle(categoryColor)
+                    .lineLimit(1)
+                    .frame(width: 90, alignment: .leading)
+                    .padding(.top, 1)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(item.title)
+                        .font(.subheadline)
+                        .lineLimit(1)
+
+                    let snippet = plainSummary
+                    if !snippet.isEmpty {
+                        Text(snippet)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                VStack(alignment: .trailing, spacing: 2) {
+                    if let date = item.pubDate {
+                        Text(date, style: .relative)
+                            .font(.caption2.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                    Image(systemName: "arrow.up.right")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(.top, 1)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var categoryColor: Color {
+        let lower = item.category.lowercased()
+        if lower.contains("dev")    { return .purple }
+        if lower.contains("event")  { return .orange }
+        return .blue
+    }
+
+    // Strips HTML from the RSS description and returns up to ~2 sentences of plain text.
+    private var plainSummary: String {
+        var text = item.summary
+        // Remove Discourse lightbox image wrapper blocks
+        text = text.replacingOccurrences(
+            of: "<div[^>]*class=\"lightbox-wrapper\"[^>]*>[\\s\\S]*?</div>",
+            with: " ", options: [.regularExpression, .caseInsensitive]
+        )
+        // Treat paragraph/line breaks as spaces
+        text = text.replacingOccurrences(of: "<br[^>]*>", with: " ", options: [.regularExpression, .caseInsensitive])
+        text = text.replacingOccurrences(of: "</p>", with: " ", options: .caseInsensitive)
+        // Strip all remaining tags
+        text = text.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
+        // Decode common HTML entities
+        let entities: [(String, String)] = [
+            ("&amp;","&"), ("&lt;","<"), ("&gt;",">"),
+            ("&quot;","\""), ("&#39;","'"), ("&nbsp;"," "), ("&#32;"," ")
+        ]
+        for (entity, replacement) in entities {
+            text = text.replacingOccurrences(of: entity, with: replacement)
+        }
+        // Collapse whitespace
+        text = text.components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }.joined(separator: " ")
+        // Remove Discourse footer ("3 posts - 2 participants")
+        if let range = text.range(of: #"\d+ posts? - \d+ participants?"#, options: .regularExpression) {
+            text = String(text[..<range.lowerBound])
+        }
+        // Trim to ~260 chars at the nearest sentence boundary
+        if text.count > 260 {
+            text = String(text.prefix(260))
+            if let last = text.lastIndex(of: ".") {
+                text = String(text[...last])
+            }
+        }
+        return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
