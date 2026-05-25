@@ -97,15 +97,19 @@ enum NavigationSection: String, CaseIterable, Identifiable {
     }
 
     static var economySections: [NavigationSection] {
-        [.finances, .assets, .market, .stationBrowser, .contracts, .industry, .colonies]
+        [.finances, .assets, .market, .contracts, .industry, .colonies]
     }
 
     static var combatSections: [NavigationSection] {
-        [.fittings, .killmails]
+        [.fittings, .killmails, .fleetManager]
     }
 
     static var socialSections: [NavigationSection] {
-        [.mails, .communications, .calendar, .contacts, .standings, .routePlanner, .galaxyMap, .careerAgents, .fleetManager]
+        [.mails, .communications, .calendar, .contacts, .standings]
+    }
+
+    static var universeSections: [NavigationSection] {
+        [.routePlanner, .galaxyMap, .stationBrowser, .careerAgents]
     }
 
     static var corporationSections: [NavigationSection] {

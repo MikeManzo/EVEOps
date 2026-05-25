@@ -18,6 +18,7 @@ struct SidebarView: View {
     @AppStorage("sidebar.economyExpanded") private var economyExpanded = true
     @AppStorage("sidebar.combatExpanded") private var combatExpanded = true
     @AppStorage("sidebar.socialExpanded") private var socialExpanded = true
+    @AppStorage("sidebar.universeExpanded") private var universeExpanded = true
     @AppStorage("sidebar.corpExpanded") private var corpExpanded = true
     @State private var todayEventCount = 0
 
@@ -49,14 +50,14 @@ struct SidebarView: View {
                         }
                     }
 
-                    Section("Combat", isExpanded: $combatExpanded) {
+                    Section("Combat & Fleet", isExpanded: $combatExpanded) {
                         ForEach(NavigationSection.combatSections) { section in
                             Label(section.rawValue, systemImage: section.iconName)
                                 .tag(section)
                         }
                     }
 
-                    Section("Social", isExpanded: $socialExpanded) {
+                    Section("Social & Comms", isExpanded: $socialExpanded) {
                         ForEach(NavigationSection.socialSections) { section in
                             Label(section.rawValue, systemImage: section.iconName)
                                 .tag(section)
@@ -68,6 +69,13 @@ struct SidebarView: View {
                                             .frame(width: 7, height: 7)
                                     }
                                 }
+                        }
+                    }
+
+                    Section("Universe", isExpanded: $universeExpanded) {
+                        ForEach(NavigationSection.universeSections) { section in
+                            Label(section.rawValue, systemImage: section.iconName)
+                                .tag(section)
                         }
                     }
 
