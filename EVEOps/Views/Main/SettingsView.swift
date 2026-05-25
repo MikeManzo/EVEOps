@@ -564,6 +564,7 @@ private struct CacheTab: View {
     @State private var isClearingUniverse = false
     @State private var isClearingNames = false
     @State private var isRefreshing = false
+    @State private var sdeTag: String?
 
     var body: some View {
         Form {
@@ -616,9 +617,25 @@ private struct CacheTab: View {
                 }
                 .disabled(isRefreshing || prefetcher.isLoading)
             }
+
+            Section("Data Sources") {
+                LabeledContent("SDE (EVEShipFit/data)") {
+                    Text(sdeTag ?? "Not downloaded")
+                        .foregroundStyle(sdeTag != nil ? .primary : .secondary)
+                }
+                LabeledContent("ESI", value: "latest")
+                LabeledContent("EVE Scout", value: "v2")
+                LabeledContent("Janice Appraisal", value: "v2")
+                LabeledContent("Fuzzwork Market", value: "Live")
+                LabeledContent("zKillboard", value: "Live")
+                Text("SDE updates automatically when EVEShipFit releases a new dataset. Other APIs always serve current data.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
         .formStyle(.grouped)
         .task {
+            sdeTag = SDEDataManager.shared.cachedTag()
             await recalculateSizes()
         }
     }
@@ -825,6 +842,10 @@ private struct AboutTab: View {
                     claudeCodeCard
                         .padding(.top, 8)
                     
+                    // Sparkle attribution card
+                    sparkleCard
+                        .padding(.top, 8)
+                    
                     // Collapsible legal
                     DisclosureGroup(isExpanded: $legalExpanded) {
                         VStack(alignment: .leading, spacing: 6) {
@@ -832,6 +853,17 @@ private struct AboutTab: View {
                             Text("EVEOps is an independent third-party application not affiliated with, endorsed by, or sponsored by Fenris Creations.")
                             Text("All EVE Online related materials are used in accordance with the EVE Online Third-Party Developer License Agreement.")
                             Text("\"EVE\", \"EVE Online\", \"Fenris\", and all related logos are trademarks of Fenris Creations.")
+
+                            Divider()
+                                .padding(.vertical, 2)
+
+                            Text("Sparkle is copyright © Andy Matuschak and contributors. Used under the MIT License. \"Sparkle\" is a trademark of its respective authors.")
+                            Text("zKillboard is a service provided by zKillboard.com. Killmail data is consumed via the public zKillboard API.")
+                            Text("Fuzzwork Enterprises market data is provided courtesy of Steve Ronuken (fuzzwork.co.uk). Used with permission under the public API terms.")
+                            Text("Janice appraisal data is provided by e-351.com. Used in accordance with the Janice public API terms of service.")
+                            Text("EVEShip.fit and its Dogma Engine are copyright EVEShipFit contributors. Used under open-source license terms.")
+                            Text("Claude and Claude Code are trademarks of Anthropic, PBC. Used for AI-assisted development. No user data is transmitted to Anthropic by EVEOps.")
+                            Text("EVE Buddy is acknowledged as an inspiration for EVEOps and is not affiliated with or endorsed by this application.")
                         }
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -1088,6 +1120,58 @@ private struct AboutTab: View {
         )
         .padding(.horizontal, 44)
     }
+
+    // Mark:  sparkle attribution card
+
+    private var sparkleCard: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(Color.white.opacity(0.12))
+                    .frame(width: 38, height: 38)
+                Image(systemName: "arrowshape.up")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Sparkle")
+                    .font(.system(size: 13, weight: .semibold))
+                Text("SOFTWARE UPDATE FRAMEWORK")
+                    .font(.system(size: 9, weight: .bold))
+                    .tracking(1.2)
+                    .foregroundStyle(.tertiary)
+            }
+
+            Spacer()
+
+            Button("Sparkle") {
+                if let url = URL(string: "https://github.com/sparkle-project/Sparkle") {
+                    NSWorkspace.shared.open(url)
+                }
+            }
+            .buttonStyle(.link)
+            .font(.system(size: 11, weight: .medium))
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 11)
+        .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.30),
+                            Color.white.opacity(0.08)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        )
+        .padding(.horizontal, 44)
+    }
+
     
     // Mark:  dogmaEngine attribution card
 

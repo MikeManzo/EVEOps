@@ -14,17 +14,20 @@
 import Foundation
 import OSLog
 
-// MARK:  SDE Data Manager
+// MARK: SDE Data Manager
 
 /// Downloads and caches the four EVE SDE protobuf binary files required by the
 /// dogma engine. Files are sourced from data.eveship.fit (Cloudflare R2 bucket
-/// maintained by EVEShipFit) and cached locally with a 7-day TTL.
+/// maintained by EVEShipFit) and cached locally.
 ///
-/// The dogma engine handles all modifier/groupId resolution internally
+/// On every launch the manager checks the latest GitHub release tag for
+/// EVEShipFit/data. If the tag has changed since the last download the files
+/// are refreshed immediately. If the GitHub API is unreachable, a 7-day TTL
+/// is used as a fallback so the app still works offline.
 actor SDEDataManager {
     static let shared = SDEDataManager()
 
-    private static let ttl: TimeInterval = 7 * 24 * 3600
+    private static let fallbackTTL: TimeInterval = 7 * 24 * 3600
     private static let pb2Files = [
         "dogmaAttributes.pb2",
         "dogmaEffects.pb2",
@@ -46,17 +49,61 @@ actor SDEDataManager {
 
     private init() {}
 
-    // MARK: Public API
+    /// Returns the cached SDE release tag without network I/O. Nil if no download has completed yet.
+    nonisolated func cachedTag() -> String? {
+        guard let data = try? Data(contentsOf: Self.metaURL),
+              let meta = try? JSONDecoder().decode(SDEMeta.self, from: data)
+        else { return nil }
+        return meta.tag
+    }
 
-    /// Ensures the four .pb2 files are present and fresh, downloading if needed.
-    /// Safe to call from any actor. Sets `pbDirPath` on success.
-    func ensureLoaded() async {
-        if isFresh() {
-            pbDirPath = Self.cacheDir.path
-            await Logger.sdeData.info("\("SDEDataManager", privacy: .public) Cache is fresh — using cached SDE data")
-            return
+    // MARK: - Meta
+
+    private struct SDEMeta: Codable {
+        let tag: String
+        let downloadedAt: Date
+    }
+
+    private func loadMeta() -> SDEMeta? {
+        guard let data = try? Data(contentsOf: Self.metaURL) else { return nil }
+        return try? JSONDecoder().decode(SDEMeta.self, from: data)
+    }
+
+    private func saveMeta(tag: String) {
+        let meta = SDEMeta(tag: tag, downloadedAt: Date())
+        if let data = try? JSONEncoder().encode(meta) {
+            try? data.write(to: Self.metaURL, options: .atomic)
         }
-        await download()
+    }
+
+    // MARK: - Public API
+
+    /// Ensures the four .pb2 files are present and current, downloading if needed.
+    /// Always checks the latest GitHub release tag; falls back to a 7-day TTL
+    /// when the network is unavailable.
+    func ensureLoaded() async {
+        let latestTag = await fetchLatestTag()
+
+        if let latest = latestTag {
+            if let meta = loadMeta(), meta.tag == latest, allFilesPresent() {
+                pbDirPath = Self.cacheDir.path
+                await Logger.sdeData.info("\("SDEDataManager", privacy: .public) Cache is current (tag: \(latest, privacy: .public)) — skipping download")
+                return
+            }
+            await Logger.sdeData.info("\("SDEDataManager", privacy: .public) New SDE version detected: \(latest, privacy: .public) — downloading")
+            await download(tag: latest)
+        } else {
+            // GitHub API unreachable — use TTL-based fallback
+            if let meta = loadMeta(),
+               Date().timeIntervalSince(meta.downloadedAt) < Self.fallbackTTL,
+               allFilesPresent() {
+                pbDirPath = Self.cacheDir.path
+                await Logger.sdeData.info("\("SDEDataManager", privacy: .public) GitHub API unavailable — using cached SDE data (tag: \(meta.tag, privacy: .public))")
+                return
+            }
+            await Logger.sdeData.error("\("SDEDataManager", privacy: .public) GitHub API unavailable and cache is stale or missing — SDE data cannot be refreshed")
+        }
+
         if allFilesPresent() {
             pbDirPath = Self.cacheDir.path
         } else {
@@ -64,15 +111,7 @@ actor SDEDataManager {
         }
     }
 
-    // MARK: Freshness
-
-    private func isFresh() -> Bool {
-        guard let data = try? Data(contentsOf: Self.metaURL),
-              let date = try? JSONDecoder().decode(Date.self, from: data),
-              Date().timeIntervalSince(date) < Self.ttl
-        else { return false }
-        return allFilesPresent()
-    }
+    // MARK: - Helpers
 
     private func allFilesPresent() -> Bool {
         Self.pb2Files.allSatisfy {
@@ -82,17 +121,9 @@ actor SDEDataManager {
         }
     }
 
-    // MARK: Download
+    // MARK: - Download
 
-    private func download() async {
-        guard let tag = await fetchLatestTag() else {
-            // "\("SDEDataManager", privacy: .public)
-            //await Logger.sdeData.error("[SDEDataManager] Could not determine latest EVEShipFit/data release tag")
-            await Logger.sdeData.error("\("SDEDataManager", privacy: .public) Could not determine latest EVEShipFit/data release tag")
-            return
-        }
-
-        // URL pattern: https://data.eveship.fit/{tag}/sde/{file}.pb2
+    private func download(tag: String) async {
         let baseURLString = "https://data.eveship.fit/\(tag)/sde/"
         await Logger.sdeData.info("[SDEDataManager] Downloading SDE protobuf data (tag: \(tag, privacy: .public))…")
 
@@ -130,17 +161,14 @@ actor SDEDataManager {
         }
 
         if allSucceeded {
-            if let meta = try? JSONEncoder().encode(Date()) {
-                try? meta.write(to: Self.metaURL, options: .atomic)
-            }
-            // "\("SDEDataManager", privacy: .public)
-            await Logger.sdeData.info("\("SDEDataManager", privacy: .public) All SDE files downloaded successfully")
+            saveMeta(tag: tag)
+            await Logger.sdeData.info("\("SDEDataManager", privacy: .public) All SDE files downloaded successfully (tag: \(tag, privacy: .public))")
         } else {
             await Logger.sdeData.error("\("SDEDataManager", privacy: .public) One or more SDE files failed to download")
         }
     }
 
-    // MARK: Release Discovery
+    // MARK: - Release Discovery
 
     private func fetchLatestTag() async -> String? {
         guard let url = URL(string: "https://api.github.com/repos/EVEShipFit/data/releases/latest") else {
@@ -160,7 +188,7 @@ actor SDEDataManager {
         return tag
     }
 
-    // MARK: Session
+    // MARK: - Session
 
     private func makeSession() -> URLSession {
         let cfg = URLSessionConfiguration.default
