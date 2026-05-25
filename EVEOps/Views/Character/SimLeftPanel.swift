@@ -106,11 +106,39 @@ struct SimLeftPanel: View {
             searchBar(text: $shipSearchText, placeholder: "Filter ships…") { _ in }
 
             Button { showLoadSheet = true } label: {
-                Label("Load Saved Fitting or Ship", systemImage: "square.and.arrow.down")
-                    .font(.caption).frame(maxWidth: .infinity)
+                HStack(spacing: 12) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(.blue.opacity(0.18))
+                        Image(systemName: "square.and.arrow.down.fill")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(.blue)
+                    }
+                    .frame(width: 36, height: 36)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Load Fitting or Ship")
+                            .font(.subheadline.bold())
+                            .foregroundStyle(.primary)
+                        Text("Saved fits · live ships")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 9)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(.blue.opacity(0.07))
+                        .overlay(RoundedRectangle(cornerRadius: 10)
+                            .strokeBorder(.blue.opacity(0.28), lineWidth: 1))
+                )
             }
-            .buttonStyle(.borderless)
-            .foregroundStyle(.secondary)
+            .buttonStyle(.plain)
             .padding(.horizontal, 10)
             .padding(.bottom, 8)
 
