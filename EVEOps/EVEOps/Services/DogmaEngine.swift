@@ -115,9 +115,9 @@ final class DogmaEngine {
         handle = dogma_engine_create(pbDirPath)
         isReady = handle != nil
         if isReady {
-            Logger.dogmaEngine.info("[DogmaEngine] Loaded SDE data from \(pbDirPath)")
+            Logger.dogmaEngine.info("[DogmaEngine] Loaded SDE data from \(pbDirPath, privacy: .public)")
         } else {
-            Logger.dogmaEngine.info("[DogmaEngine] Failed to load SDE data — check .pb2 files at \(pbDirPath)")
+            Logger.dogmaEngine.info("[DogmaEngine] Failed to load SDE data — check .pb2 files at \(pbDirPath, privacy: .public)")
         }
     }
 
@@ -175,7 +175,7 @@ final class DogmaEngine {
         guard let resultData = resultStr.data(using: .utf8),
               let raw = try? JSONDecoder().decode(FfiSimStats.self, from: resultData)
         else {
-            Logger.dogmaEngine.info("[DogmaEngine] Failed to decode result JSON: \(resultStr)")
+            Logger.dogmaEngine.info("[DogmaEngine] Failed to decode result JSON: \(resultStr, privacy: .public)")
             return SimStats()
         }
 
@@ -187,48 +187,48 @@ final class DogmaEngine {
 
 private extension FfiSimStats {
     func toSimStats() -> SimStats {
-        var s = SimStats()
+        var stats = SimStats()
 
-        s.shieldHP = shield_hp
-        s.armorHP  = armor_hp
-        s.hullHP   = hull_hp
+        stats.shieldHP = shield_hp
+        stats.armorHP  = armor_hp
+        stats.hullHP   = hull_hp
 
         // Engine returns resonances (1.0 = no resist, 0.0 = immune).
         // SimResists stores resistance percentages (0 = no resist, 100 = immune)
         // to match what SimResistBadge and computeEHP() expect.
         func res(_ r: Double) -> Double { (1.0 - r) * 100.0 }
-        s.shieldResists = SimResists(em: res(shield_em_res),  explosive: res(shield_exp_res),
+        stats.shieldResists = SimResists(em: res(shield_em_res),  explosive: res(shield_exp_res),
                                      kinetic: res(shield_kin_res), thermal: res(shield_therm_res))
-        s.armorResists  = SimResists(em: res(armor_em_res),   explosive: res(armor_exp_res),
+        stats.armorResists  = SimResists(em: res(armor_em_res),   explosive: res(armor_exp_res),
                                      kinetic: res(armor_kin_res),  thermal: res(armor_therm_res))
-        s.hullResists   = SimResists(em: res(hull_em_res),    explosive: res(hull_exp_res),
+        stats.hullResists   = SimResists(em: res(hull_em_res),    explosive: res(hull_exp_res),
                                      kinetic: res(hull_kin_res),   thermal: res(hull_therm_res))
 
-        s.maxVelocity          = max_velocity
-        s.alignTime            = align_time_sec
-        s.mass                 = mass
-        s.inertiaMod           = inertia_mod
-        s.warpSpeed            = warp_speed
-        s.signatureRadius      = signature_radius
-        s.capacitorCapacity    = capacitor_capacity
-        s.rechargeRateSec      = capacitor_recharge_sec
-        s.shieldRechargeTimeSec = shield_recharge_sec
-        s.maxTargetRange       = max_target_range
-        s.scanResolution       = scan_resolution
-        s.maxLockedTargets     = max_locked_targets
-        s.sensorStrength       = sensor_strength
-        s.cpuTotal             = cpu_total
-        s.cpuUsed              = cpu_used
-        s.powerTotal           = power_total
-        s.powerUsed            = power_used
-        s.calibrationTotal     = calibration_total
-        s.calibrationUsed      = calibration_used
-        s.droneBandwidth       = drone_bandwidth
-        s.droneBayCapacity     = drone_bay_capacity
-        s.capDrainPerSec       = cap_drain_per_sec
+        stats.maxVelocity          = max_velocity
+        stats.alignTime            = align_time_sec
+        stats.mass                 = mass
+        stats.inertiaMod           = inertia_mod
+        stats.warpSpeed            = warp_speed
+        stats.signatureRadius      = signature_radius
+        stats.capacitorCapacity    = capacitor_capacity
+        stats.rechargeRateSec      = capacitor_recharge_sec
+        stats.shieldRechargeTimeSec = shield_recharge_sec
+        stats.maxTargetRange       = max_target_range
+        stats.scanResolution       = scan_resolution
+        stats.maxLockedTargets     = max_locked_targets
+        stats.sensorStrength       = sensor_strength
+        stats.cpuTotal             = cpu_total
+        stats.cpuUsed              = cpu_used
+        stats.powerTotal           = power_total
+        stats.powerUsed            = power_used
+        stats.calibrationTotal     = calibration_total
+        stats.calibrationUsed      = calibration_used
+        stats.droneBandwidth       = drone_bandwidth
+        stats.droneBayCapacity     = drone_bay_capacity
+        stats.capDrainPerSec       = cap_drain_per_sec
 
-        s.computeEHP()
-        return s
+        stats.computeEHP()
+        return stats
     }
 }
 

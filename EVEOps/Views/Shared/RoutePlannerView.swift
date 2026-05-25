@@ -666,7 +666,7 @@ struct SystemSearchField: View {
                 )
                 guard !Task.isCancelled else { isSearching = false; return }
                 let ids = Array((response.solarSystem ?? []).prefix(15))
-                Logger.systemSearch.info("[SystemSearch] '\(trimmed)' → \(ids.count) IDs: \(ids)")
+                Logger.systemSearch.info("[SystemSearch] '\(trimmed, privacy: .public)' → \(ids.count) IDs: \(ids, privacy: .public)")
 
                 // Resolve names concurrently via UniverseCache (persists between searches)
                 let resolved = await withTaskGroup(of: SystemSearchResult?.self) { group -> [SystemSearchResult] in
@@ -686,7 +686,7 @@ struct SystemSearchField: View {
             } catch {
                 if !Task.isCancelled {
                     searchError = error.localizedDescription
-                    Logger.systemSearch.error("[SystemSearch] ERROR: \(error)")
+                    Logger.systemSearch.error("[SystemSearch] ERROR: \(error, privacy: .public)")
                 }
             }
             isSearching = false

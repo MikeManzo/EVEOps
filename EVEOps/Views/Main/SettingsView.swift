@@ -788,6 +788,11 @@ private struct AboutTab: View {
                                 NSWorkspace.shared.open(url)
                             }
                         }
+                        linkButton("server.rack", "Discord Server") {
+                            if let url = URL(string: "https://discord.gg/HjRK7yAH8") {
+                                NSWorkspace.shared.open(url)
+                            }
+                        }
                     }
                     .padding(.top, 12)
 

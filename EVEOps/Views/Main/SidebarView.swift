@@ -169,7 +169,7 @@ struct SidebarView: View {
         Button {
             Task { await accountManager.addAccount() }
         } label: {
-            Label("Add Character", systemImage: "plus.circle")
+            Label("Character", systemImage: "plus.circle")
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .buttonStyle(.plain)

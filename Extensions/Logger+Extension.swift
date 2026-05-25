@@ -11,9 +11,7 @@
 import OSLog
 
 extension Logger {
-    private static let subsystem = Bundle.main.bundleIdentifier ?? "CitizenCoder.EVEops"
-    
-    static let sdeData = Logger(subsystem: subsystem, category: "sdeData")
-    static let dogmaEngine = Logger(subsystem: subsystem, category: "dogmaEngine")
-    static let systemSearch = Logger(subsystem: subsystem, category: "systemSearch")
+    static var sdeData: Logger { Logger(subsystem: "CitizenCoder.EVEOps", category: "sdeData") }
+    static var dogmaEngine: Logger { Logger(subsystem: "CitizenCoder.EVEOps", category: "dogmaEngine") }
+    static var systemSearch: Logger { Logger(subsystem: "CitizenCoder.EVEOps", category: "systemSearch") }
 }
