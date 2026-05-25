@@ -242,6 +242,10 @@ struct SimSlotSocketView: View {
         simState.slots.first { $0.id == slot.id }?.moduleTypeId
     }
 
+    private var liveIsOnline: Bool {
+        simState.slots.first { $0.id == slot.id }?.isOnline ?? true
+    }
+
     private var isActive: Bool { simState.activeSlotId == slot.id }
     private var isValidDropTarget: Bool {
         isDropTargeted && (simState.draggingCategory == nil || simState.draggingCategory == slot.category)
@@ -284,6 +288,16 @@ struct SimSlotSocketView: View {
                             RoundedRectangle(cornerRadius: 6).fill(.quaternary)
                         }
                         .padding(5)
+                        .opacity(liveIsOnline ? 1.0 : 0.35)
+                        .overlay(alignment: .bottomTrailing) {
+                            if !liveIsOnline {
+                                Image(systemName: "bolt.slash.fill")
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundStyle(.orange)
+                                    .shadow(color: .black.opacity(0.6), radius: 2, x: 0, y: 1)
+                                    .padding(4)
+                            }
+                        }
                     } else if isInvalidDropTarget {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 18))
@@ -390,8 +404,18 @@ struct SimModulePopover: View {
         simState.slots.first { $0.id == slot.id }?.moduleTypeId
     }
 
+    private var liveIsOnline: Bool {
+        simState.slots.first { $0.id == slot.id }?.isOnline ?? true
+    }
+
     private var moduleType: ESIType? {
         liveTypeId.flatMap { simState.moduleTypes[$0] }
+    }
+
+    private func toggleOnline() {
+        guard let idx = simState.slots.firstIndex(where: { $0.id == slot.id }) else { return }
+        simState.slots[idx].isOnline.toggle()
+        simState.recomputeStats()
     }
 
     var body: some View {
@@ -441,6 +465,16 @@ struct SimModulePopover: View {
                 // ── Footer actions ────────────────────────────────────────
                 Divider()
                 HStack(spacing: 0) {
+                    Button { toggleOnline() } label: {
+                        Label(liveIsOnline ? "Online" : "Offline",
+                              systemImage: liveIsOnline ? "bolt.fill" : "bolt.slash")
+                            .font(.caption).frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(liveIsOnline ? .green : .orange)
+
+                    Divider().frame(height: 30)
+
                     Button {
                         openWindow(value: GalaxyMarketSearchInput(typeId: typeId, typeName: t.name))
                     } label: {

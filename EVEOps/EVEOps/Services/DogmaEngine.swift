@@ -141,7 +141,7 @@ final class DogmaEngine {
             return EsfModule(
                 type_id: typeId,
                 slot: EsfSlot(index: slot.index, slotType: slot.category.esfSlotType),
-                state: "Active",   // active = hardeners/propulsion on; matches in-game fitting view
+                state: slot.isOnline ? "Active" : "Passive",
                 charge: nil
             )
         }

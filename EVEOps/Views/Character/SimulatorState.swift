@@ -73,6 +73,7 @@ final class SimulatorState {
     func fillSlot(id: UUID, with typeId: Int) async {
         guard let idx = slots.firstIndex(where: { $0.id == id }) else { return }
         slots[idx].moduleTypeId = typeId
+        slots[idx].isOnline = true
         if moduleTypes[typeId] == nil {
             let types = await UniverseCache.shared.types(ids: [typeId])
             if let t = types[typeId] { moduleTypes[typeId] = t }
@@ -88,6 +89,7 @@ final class SimulatorState {
     func placeModule(slotId: UUID, typeId: Int) {
         guard let idx = slots.firstIndex(where: { $0.id == slotId }) else { return }
         slots[idx].moduleTypeId = typeId
+        slots[idx].isOnline = true
         activeSlotId = nil
         draggingCategory = nil
         recomputeStats()
@@ -103,6 +105,7 @@ final class SimulatorState {
         guard let idx = slots.firstIndex(where: { $0.id == id }) else { return }
         let old = slots[idx].moduleTypeId
         slots[idx].moduleTypeId = nil
+        slots[idx].isOnline = true
         if let tid = old, !slots.contains(where: { $0.moduleTypeId == tid }) {
             moduleTypes.removeValue(forKey: tid)
         }
@@ -110,7 +113,7 @@ final class SimulatorState {
     }
 
     func clearAll() {
-        for i in slots.indices { slots[i].moduleTypeId = nil }
+        for i in slots.indices { slots[i].moduleTypeId = nil; slots[i].isOnline = true }
         moduleTypes = [:]
         recomputeStats()
     }

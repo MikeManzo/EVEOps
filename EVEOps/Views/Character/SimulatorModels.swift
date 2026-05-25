@@ -88,12 +88,14 @@ struct SimSlot: Identifiable, Equatable {
     let category: SimSlotCategory
     let index: Int
     var moduleTypeId: Int?
+    var isOnline: Bool = true
 
-    init(category: SimSlotCategory, index: Int, moduleTypeId: Int? = nil) {
+    init(category: SimSlotCategory, index: Int, moduleTypeId: Int? = nil, isOnline: Bool = true) {
         self.id = UUID()
         self.category = category
         self.index = index
         self.moduleTypeId = moduleTypeId
+        self.isOnline = isOnline
     }
 
     var flag: String { "\(category.flagPrefix)\(index)" }
