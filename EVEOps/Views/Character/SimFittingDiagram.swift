@@ -385,14 +385,19 @@ struct SimModulePopover: View {
     @Environment(SimulatorState.self) private var simState
     @Environment(\.openWindow) private var openWindow
 
+    // Always read live from simState — the `slot` parameter is a frozen value-type copy.
+    private var liveTypeId: Int? {
+        simState.slots.first { $0.id == slot.id }?.moduleTypeId
+    }
+
     private var moduleType: ESIType? {
-        slot.moduleTypeId.flatMap { simState.moduleTypes[$0] }
+        liveTypeId.flatMap { simState.moduleTypes[$0] }
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            if moduleType == nil, let typeId = slot.moduleTypeId {
-                // Type not yet cached — fetch it, show spinner meanwhile
+            if moduleType == nil, let typeId = liveTypeId {
+                // Type not yet in moduleTypes — fetch it, show spinner meanwhile
                 HStack {
                     Spacer()
                     ProgressView().scaleEffect(0.7)
@@ -405,7 +410,7 @@ struct SimModulePopover: View {
                         simState.moduleTypes[typeId] = t
                     }
                 }
-            } else if let t = moduleType, let typeId = slot.moduleTypeId {
+            } else if let t = moduleType, let typeId = liveTypeId {
                 // ── Header ────────────────────────────────────────────────
                 HStack(spacing: 12) {
                     AsyncImage(url: EVEImageURL.typeIcon(typeId, size: 128)) { img in
