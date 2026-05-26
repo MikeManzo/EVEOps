@@ -31,6 +31,7 @@ final class SimulatorState {
     var draggingCategory: SimSlotCategory? = nil
     var pendingDropPayload: SimModuleDrag? = nil
     var implantTypeIds: [Int] = []
+    private(set) var implantTypes: [Int: ESIType] = [:]
     var includeImplants: Bool = true
     var characterSkills: [Int: Int] = [:]   // skillTypeId → trainedSkillLevel
 
@@ -197,6 +198,16 @@ final class SimulatorState {
         if warpInflationFactor > 0 {
             stats.warpSpeed /= warpInflationFactor
         }
+        // The dogma engine does not apply warp speed implant modifiers (attr 600 effect chain
+        // on implants is broken in the engine). Apply them manually here.
+        if includeImplants {
+            let warpImplantMult = implantTypeIds.reduce(1.0) { acc, id in
+                guard let bonus = implantTypes[id]?.dogmaAttributes?.first(where: { $0.attributeId == 600 })?.value,
+                      bonus != 0 else { return acc }
+                return acc * (1.0 + bonus / 100.0)
+            }
+            stats.warpSpeed *= warpImplantMult
+        }
     }
 
     // Computes how much the dogma engine inflates the base warp speed for the current ship
@@ -227,10 +238,12 @@ final class SimulatorState {
                   "/characters/\(account.characterID)/implants/", token: token
               ) else {
             implantTypeIds = []
+            implantTypes = [:]
             recomputeStats()
             return
         }
         implantTypeIds = ids
+        implantTypes = await UniverseCache.shared.types(ids: ids)
         recomputeStats()
     }
 
