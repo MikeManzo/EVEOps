@@ -184,12 +184,26 @@ final class SimulatorState {
             skills: characterSkills,
             implantTypeIds: includeImplants ? implantTypeIds : []
         )
-        // The dogma engine incorrectly computes warp_speed — it applies an erroneous
-        // dogma effect chain that inflates the value (e.g. Raven: 7 instead of 3 AU/s).
-        // Attribute 600 (warpSpeedMultiplier) from the ESI type cache is correct, so we
-        // override the engine result with the raw SDE value.
-        if let correctWarpSpeed = shipType.dogmaAttributes?.first(where: { $0.attributeId == 600 })?.value {
-            stats.warpSpeed = correctWarpSpeed
+        // The dogma engine inflates the base warp speed via an erroneous effect chain
+        // (e.g. Raven: 7 AU/s instead of 3 AU/s). Attribute 600 (warpSpeedMultiplier)
+        // from the ESI type cache holds the correct base. To preserve warp-speed implant
+        // bonuses (e.g. WS-610), we extract the engine's relative implant multiplier and
+        // apply it to the correct base rather than discarding it entirely.
+        if let correctBase = shipType.dogmaAttributes?.first(where: { $0.attributeId == 600 })?.value {
+            let activeImplants = includeImplants ? implantTypeIds : []
+            if !activeImplants.isEmpty {
+                let noImplantWarp = DogmaEngine.shared.calculate(
+                    shipTypeId: shipType.typeId,
+                    slots: slots,
+                    skills: characterSkills,
+                    implantTypeIds: []
+                ).warpSpeed
+                stats.warpSpeed = noImplantWarp > 0
+                    ? correctBase * (stats.warpSpeed / noImplantWarp)
+                    : correctBase
+            } else {
+                stats.warpSpeed = correctBase
+            }
         }
     }
 
