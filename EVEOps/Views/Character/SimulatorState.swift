@@ -198,7 +198,7 @@ final class SimulatorState {
         if warpInflationFactor > 0 {
             stats.warpSpeed /= warpInflationFactor
         }
-        // The dogma engine does not apply warp speed implant modifiers (attr 600 effect chain
+        // The dogma engine does not apply warp speed implant modifiers (attr 624 effect chain
         // on implants is broken in the engine). Apply them manually here.
         if includeImplants {
             let warpImplantMult = implantTypeIds.reduce(1.0) { acc, id in
@@ -207,6 +207,23 @@ final class SimulatorState {
                 return acc * (1.0 + bonus / 100.0)
             }
             stats.warpSpeed *= warpImplantMult
+        }
+        // The dogma engine ignores rig passive effects on inertia (attr 151). Apply manually.
+        // Astronautics Rigging skill (ID 26254) gives +10% per level to navigation rig effectiveness.
+        // Align time is proportional to inertiaMod, so both scale by the same factor.
+        let astronauticsRiggingLevel = characterSkills[26254] ?? 0
+        let rigInertiaMult = slots
+            .filter { $0.category == .rig && $0.isOnline }
+            .reduce(1.0) { mult, slot in
+                guard let typeId = slot.moduleTypeId,
+                      let bonus = moduleTypes[typeId]?.dogmaAttributes?.first(where: { $0.attributeId == 151 })?.value,
+                      bonus != 0 else { return mult }
+                let skillMult = 1.0 + Double(astronauticsRiggingLevel) * 0.10
+                return mult * (1.0 + bonus * skillMult / 100.0)
+            }
+        if rigInertiaMult != 1.0 {
+            stats.inertiaMod *= rigInertiaMult
+            stats.alignTime  *= rigInertiaMult
         }
     }
 
