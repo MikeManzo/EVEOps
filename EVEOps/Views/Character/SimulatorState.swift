@@ -208,23 +208,6 @@ final class SimulatorState {
             }
             stats.warpSpeed *= warpImplantMult
         }
-        // The dogma engine ignores rig passive effects on inertia (attr 151). Apply manually.
-        // Astronautics Rigging skill (ID 26254) gives +10% per level to navigation rig effectiveness.
-        // Align time is proportional to inertiaMod, so both scale by the same factor.
-        let astronauticsRiggingLevel = characterSkills[26254] ?? 0
-        let rigInertiaMult = slots
-            .filter { $0.category == .rig && $0.isOnline }
-            .reduce(1.0) { mult, slot in
-                guard let typeId = slot.moduleTypeId,
-                      let bonus = moduleTypes[typeId]?.dogmaAttributes?.first(where: { $0.attributeId == 151 })?.value,
-                      bonus != 0 else { return mult }
-                let skillMult = 1.0 + Double(astronauticsRiggingLevel) * 0.10
-                return mult * (1.0 + bonus * skillMult / 100.0)
-            }
-        if rigInertiaMult != 1.0 {
-            stats.inertiaMod *= rigInertiaMult
-            stats.alignTime  *= rigInertiaMult
-        }
     }
 
     // Computes how much the dogma engine inflates the base warp speed for the current ship
