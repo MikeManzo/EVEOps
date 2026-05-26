@@ -204,9 +204,14 @@ private extension FfiSimStats {
                                      kinetic: res(hull_kin_res),   thermal: res(hull_therm_res))
 
         stats.maxVelocity          = max_velocity
-        stats.alignTime            = align_time_sec
         stats.mass                 = mass
         stats.inertiaMod           = inertia_mod
+        // Compute align time from the final mass and inertiaMod rather than using
+        // align_time_sec directly — the engine's aggregate field may not incorporate
+        // all module effects (e.g. rig passive bonuses), while individual attributes do.
+        // EVE formula: T = ln(2) × (mass × inertiaMod) / 1,000,000
+        let mI = mass * inertia_mod
+        stats.alignTime = mI > 0 ? Foundation.log(2.0) * mI / 1_000_000.0 : align_time_sec
         stats.warpSpeed            = warp_speed
         stats.signatureRadius      = signature_radius
         stats.capacitorCapacity    = capacitor_capacity
