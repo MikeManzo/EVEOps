@@ -79,6 +79,10 @@ enum SimSlotCategory: String, CaseIterable, Equatable, Codable {
         }
     }
 
+    // Rigs and subsystems can't be activated — send "Online" not "Active" to the engine,
+    // otherwise it ignores the module entirely and applies none of its passive effects.
+    var isPassiveOnly: Bool { self == .rig || self == .subsystem }
+
 }
 
 // MARK:  Sim Slot

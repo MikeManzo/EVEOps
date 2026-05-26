@@ -136,13 +136,16 @@ final class DogmaEngine {
     ) -> SimStats {
         guard let handle, isReady else { return SimStats() }
 
-        // Build module list from filled slots
+        // Build module list from filled slots.
+        // Rigs and subsystems are passive-only — the engine rejects "Active" for those
+        // slot types and ignores the module entirely, so they must be sent as "Online".
         let modules: [EsfModule] = slots.compactMap { slot in
             guard let typeId = slot.moduleTypeId else { return nil }
+            let onlineState = slot.category.isPassiveOnly ? "Online" : "Active"
             return EsfModule(
                 type_id: typeId,
                 slot: EsfSlot(index: slot.index, slotType: slot.category.esfSlotType),
-                state: slot.isOnline ? "Active" : "Passive",
+                state: slot.isOnline ? onlineState : "Passive",
                 charge: nil
             )
         }
