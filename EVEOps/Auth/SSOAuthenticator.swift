@@ -32,7 +32,7 @@ struct SSOConfiguration: Sendable {
     let scopes: [String]
 
     static let `default` = SSOConfiguration(
-        clientID: "27c5210c4d8a44538fdeeb7fc58f28b6",
+        clientID: "27c5210c4d8a44538fdeeb7fc58f28b6",                       // If you are forking this to make this your own, you MUST change this.
         callbackURL: "eveauth-27c5210c4d8a44538fdeeb7fc58f28b6://callback",
         scopes: [
             "esi-location.read_location.v1",

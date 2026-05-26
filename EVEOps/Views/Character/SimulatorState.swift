@@ -202,7 +202,7 @@ final class SimulatorState {
         // on implants is broken in the engine). Apply them manually here.
         if includeImplants {
             let warpImplantMult = implantTypeIds.reduce(1.0) { acc, id in
-                guard let bonus = implantTypes[id]?.dogmaAttributes?.first(where: { $0.attributeId == 600 })?.value,
+                guard let bonus = implantTypes[id]?.dogmaAttributes?.first(where: { $0.attributeId == 624 })?.value,
                       bonus != 0 else { return acc }
                 return acc * (1.0 + bonus / 100.0)
             }

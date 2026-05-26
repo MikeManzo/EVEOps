@@ -766,42 +766,38 @@ private struct SimImplantsBlock: View {
             179: "Willpower",
         ]
 
-        // Percent bonuses (value is the percent amount, e.g. 3.0 → "+3%", -3.0 → "-3%").
-        // Do NOT include attribute 422 here — that is techLevel (1 = T1, 2 = T2, etc.)
-        // and will falsely match on almost every implant.
+        // Percent bonuses — keyed on the implant's own bonus attribute ID (NOT the ship
+        // attribute being modified). Confirmed from ESI dogma_attributes for each series.
+        // Do NOT include attribute 422 — that is techLevel and appears on every item.
         let pctMap: [Int: String] = [
-            // Armor
-            1280: "Armor HP",
-            1281: "Armor HP",
-            314:  "Armor Repair Amount",
-            // Shield
-            1317: "Shield HP",
-            68:   "Shield HP",
-            271:  "Shield Recharge",
-            // Navigation
-            20:   "Max Velocity",
-            317:  "MWD Cap Use",
-            553:  "Agility",
-            554:  "MWD Speed",
-            // Targeting
-            633:  "Scan Resolution",
-            // Warp
-            600:  "Warp Speed",
-            // Capacitor
-            55:   "Capacitor Capacity",
-            // Missile
-            1227: "Missile Damage",
-            37:   "Missile Velocity",
-            // Turret
-            204:  "Turret Damage",
-            // Drone
-            1010: "Drone Damage",
+            // Armor / Hull — Noble Hull Upgrades HG series
+            1083: "Armor HP",
+            312:  "Armor Repair",       // Noble Repair Systems RS (negative → reduction)
+            // Shield — Gnome series
+            338:  "Shield Recharge",    // Shield Operation SP (negative → reduction)
+            323:  "Shield PG",          // Shield Upgrades SU (negative → PG cost reduction)
+            // Navigation — Rogue series
+            1076: "Max Velocity",       // Navigation NN
+            151:  "Agility",            // Evasive Maneuvering EM (negative → inertia reduction)
+            318:  "MWD Speed",          // Acceleration Control AC
+            // Warp — Rogue WS series
+            624:  "Warp Speed",
+            // Capacitor / Power — Squire series
+            1079: "Capacitor Capacity", // Capacitor Management EM
+            313:  "Power Grid",         // Power Grid Management EG
+            // Turret — Lancer series
+            317:  "Turret Cap Use",     // Controlled Bursts CB (negative → cap reduction)
+            441:  "Gunnery ROF",        // Gunnery RF (negative → cycle time reduction)
+            292:  "Turret Damage",      // Large Energy Turret LE
+            // Missile — Deadeye series
+            20:   "Missile Velocity",   // Missile Projection MP
+            293:  "Missile ROF",        // Rapid Launch RL (negative → cycle time reduction)
+            847:  "Missile Guidance",   // Target Navigation Prediction TN
         ]
 
-        // Attributes stored as negative but representing a positive player benefit
-        // (e.g. attr 553 reduces inertia modifier → better agility). Negate before display
-        // so the UI shows "+5% Agility" rather than the confusing "-5% Agility".
-        let negatedAttributes: Set<Int> = [553]
+        // Attributes stored as negative but representing a positive player benefit.
+        // Negate before display so the UI shows "+3% Agility" instead of "-3% Agility".
+        let negatedAttributes: Set<Int> = [151, 293, 312, 317, 323, 338, 441]
 
         // Check flat attributes first
         for attr in attrs {

@@ -76,7 +76,7 @@ actor SDEDataManager {
         }
     }
 
-    // MARK: - Public API
+    // MARK: Public API
 
     /// Ensures the four .pb2 files are present and current, downloading if needed.
     /// Always checks the latest GitHub release tag; falls back to a 7-day TTL
@@ -111,7 +111,7 @@ actor SDEDataManager {
         }
     }
 
-    // MARK: - Helpers
+    // MARK: Helpers
 
     private func allFilesPresent() -> Bool {
         Self.pb2Files.allSatisfy {
@@ -121,7 +121,7 @@ actor SDEDataManager {
         }
     }
 
-    // MARK: - Download
+    // MARK: Download
 
     private func download(tag: String) async {
         let baseURLString = "https://data.eveship.fit/\(tag)/sde/"
@@ -168,7 +168,7 @@ actor SDEDataManager {
         }
     }
 
-    // MARK: - Release Discovery
+    // MARK: Release Discovery
 
     private func fetchLatestTag() async -> String? {
         guard let url = URL(string: "https://api.github.com/repos/EVEShipFit/data/releases/latest") else {
@@ -188,7 +188,7 @@ actor SDEDataManager {
         return tag
     }
 
-    // MARK: - Session
+    // MARK: Session
 
     private func makeSession() -> URLSession {
         let cfg = URLSessionConfiguration.default

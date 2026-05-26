@@ -842,6 +842,10 @@ private struct AboutTab: View {
                     claudeCodeCard
                         .padding(.top, 8)
                     
+                    // EVE Scout
+                    scoutCard
+                        .padding(.top, 8)
+                    
                     // Sparkle attribution card
                     sparkleCard
                         .padding(.top, 8)
@@ -861,6 +865,7 @@ private struct AboutTab: View {
                             Text("zKillboard is a service provided by zKillboard.com. Killmail data is consumed via the public zKillboard API.")
                             Text("Fuzzwork Enterprises market data is provided courtesy of Steve Ronuken (fuzzwork.co.uk). Used with permission under the public API terms.")
                             Text("Janice appraisal data is provided by e-351.com. Used in accordance with the Janice public API terms of service.")
+                            Text("EVEScout and the EVEScout logo/name are trademarks and/or service marks of EVEScout.")
                             Text("EVEShip.fit and its Dogma Engine are copyright EVEShipFit contributors. Used under open-source license terms.")
                             Text("Claude and Claude Code are trademarks of Anthropic, PBC. Used for AI-assisted development. No user data is transmitted to Anthropic by EVEOps.")
                             Text("EVE Buddy is acknowledged as an inspiration for EVEOps and is not affiliated with or endorsed by this application.")
@@ -1172,6 +1177,58 @@ private struct AboutTab: View {
         .padding(.horizontal, 44)
     }
 
+    // Mark:  sparkle attribution card
+
+    private var scoutCard: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(Color.blue.opacity(0.12))
+                    .frame(width: 38, height: 38)
+                Image(systemName: "service.dog.fill")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Scout")
+                    .font(.system(size: 13, weight: .semibold))
+                Text("WORMHOLE CONNECTIONS")
+                    .font(.system(size: 9, weight: .bold))
+                    .tracking(1.2)
+                    .foregroundStyle(.tertiary)
+            }
+
+            Spacer()
+
+            Button("EVE Scout") {
+                if let url = URL(string: "https://www.eve-scout.com/") {
+                    NSWorkspace.shared.open(url)
+                }
+            }
+            .buttonStyle(.link)
+            .font(.system(size: 11, weight: .medium))
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 11)
+        .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [
+                            Color.blue.opacity(0.30),
+                            Color.blue.opacity(0.08)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        )
+        .padding(.horizontal, 44)
+    }
+
+    
     
     // Mark:  dogmaEngine attribution card
 

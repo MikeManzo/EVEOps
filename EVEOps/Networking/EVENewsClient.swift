@@ -10,7 +10,7 @@
 
 import Foundation
 
-// MARK: - Model
+// MARK: Model
 
 struct EVENewsItem: Identifiable, Sendable {
     let id: String
@@ -22,7 +22,7 @@ struct EVENewsItem: Identifiable, Sendable {
     let author: String      // dc:creator — e.g. "CCP Swift"
 }
 
-// MARK: - Client
+// MARK: Client
 
 actor EVENewsClient {
     static let shared = EVENewsClient()
@@ -63,7 +63,7 @@ actor EVENewsClient {
     }
 }
 
-// MARK: - RSS Parser
+// MARK: RSS Parser
 
 @MainActor
 private final class RSSParser: NSObject, XMLParserDelegate {
