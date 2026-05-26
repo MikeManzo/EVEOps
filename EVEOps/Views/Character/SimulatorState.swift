@@ -34,6 +34,13 @@ final class SimulatorState {
     var includeImplants: Bool = true
     var characterSkills: [Int: Int] = [:]   // skillTypeId → trainedSkillLevel
 
+    // Per-ship warp speed correction. The dogma engine inflates base warp speed by a
+    // constant factor per ship type. We measure it once from a bare engine call (no
+    // modules, no skills, no implants) and divide every result by it, which preserves
+    // all module and implant multipliers while anchoring to the correct base.
+    private var cachedWarpInflationShipId: Int? = nil
+    private var warpInflationFactor: Double = 1.0
+
     /// True while SDE protobuf data is downloading on first launch.
     var isLoadingSDE = false
 
@@ -178,33 +185,36 @@ final class SimulatorState {
     func recomputeStats() {
         guard !isLoadingSDE else { return }
         guard let shipType else { stats = SimStats(); return }
+        refreshWarpInflationFactor(for: shipType)
         stats = DogmaEngine.shared.calculate(
             shipTypeId: shipType.typeId,
             slots: slots,
             skills: characterSkills,
             implantTypeIds: includeImplants ? implantTypeIds : []
         )
-        // The dogma engine inflates the base warp speed via an erroneous effect chain
-        // (e.g. Raven: 7 AU/s instead of 3 AU/s). Attribute 600 (warpSpeedMultiplier)
-        // from the ESI type cache holds the correct base. To preserve warp-speed implant
-        // bonuses (e.g. WS-610), we extract the engine's relative implant multiplier and
-        // apply it to the correct base rather than discarding it entirely.
-        if let correctBase = shipType.dogmaAttributes?.first(where: { $0.attributeId == 600 })?.value {
-            let activeImplants = includeImplants ? implantTypeIds : []
-            if !activeImplants.isEmpty {
-                let noImplantWarp = DogmaEngine.shared.calculate(
-                    shipTypeId: shipType.typeId,
-                    slots: slots,
-                    skills: characterSkills,
-                    implantTypeIds: []
-                ).warpSpeed
-                stats.warpSpeed = noImplantWarp > 0
-                    ? correctBase * (stats.warpSpeed / noImplantWarp)
-                    : correctBase
-            } else {
-                stats.warpSpeed = correctBase
-            }
+        // Divide by the per-ship inflation factor to get the correct warp speed.
+        // This preserves bonuses from modules AND implants — see refreshWarpInflationFactor.
+        if warpInflationFactor > 0 {
+            stats.warpSpeed /= warpInflationFactor
         }
+    }
+
+    // Computes how much the dogma engine inflates the base warp speed for the current ship
+    // type by running a bare call (no modules, no skills, no implants) and comparing the
+    // result to attribute 600 (warpSpeedMultiplier) from the ESI type cache. Cached per
+    // ship type — only runs once per ship selection, not on every module/slot change.
+    private func refreshWarpInflationFactor(for shipType: ESIType) {
+        guard DogmaEngine.shared.isReady,
+              cachedWarpInflationShipId != shipType.typeId,
+              let attr600 = shipType.dogmaAttributes?.first(where: { $0.attributeId == 600 })?.value,
+              attr600 > 0
+        else { return }
+        let bareWarp = DogmaEngine.shared.calculate(
+            shipTypeId: shipType.typeId, slots: [], skills: [:], implantTypeIds: []
+        ).warpSpeed
+        guard bareWarp > 0 else { return }
+        warpInflationFactor = bareWarp / attr600
+        cachedWarpInflationShipId = shipType.typeId
     }
 
     // MARK: Character Data Loading

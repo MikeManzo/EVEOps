@@ -780,8 +780,8 @@ private struct SimImplantsBlock: View {
             271:  "Shield Recharge",
             // Navigation
             20:   "Max Velocity",
-            317:  "MWD Cap Use",        // capNeedBonus (Rogue HS implant line)
-            553:  "Agility",            // implantBonusAgilityModifier (Evasive Maneuvering line)
+            317:  "MWD Cap Use",
+            553:  "Agility",
             554:  "MWD Speed",
             // Targeting
             633:  "Scan Resolution",
@@ -798,6 +798,11 @@ private struct SimImplantsBlock: View {
             1010: "Drone Damage",
         ]
 
+        // Attributes stored as negative but representing a positive player benefit
+        // (e.g. attr 553 reduces inertia modifier → better agility). Negate before display
+        // so the UI shows "+5% Agility" rather than the confusing "-5% Agility".
+        let negatedAttributes: Set<Int> = [553]
+
         // Check flat attributes first
         for attr in attrs {
             if let label = flatMap[attr.attributeId], attr.value != 0 {
@@ -809,7 +814,7 @@ private struct SimImplantsBlock: View {
         // Check percent attributes — skip techLevel (422) which is present on all items
         for attr in attrs where attr.attributeId != 422 {
             if let label = pctMap[attr.attributeId], attr.value != 0 {
-                let pct = attr.value
+                let pct = negatedAttributes.contains(attr.attributeId) ? -attr.value : attr.value
                 let sign = pct >= 0 ? "+" : ""
                 let fmt = pct == pct.rounded() ? "\(sign)%.0f%% \(label)" : "\(sign)%.1f%% \(label)"
                 return String(format: fmt, pct)
