@@ -250,19 +250,29 @@ struct CharacterFittingsView: View {
     // MARK:  EVE Ship Group Table (Static SDE data — immune to API cache corruption)
 
     static let eveShipGroups: [Int: String] = [
+        // Non-combat
         29: "Capsule", 31: "Shuttle", 237: "Corvette",
-        25: "Frigate", 358: "Assault Frigate", 541: "Interceptor",
-        543: "Covert Ops", 831: "Electronic Attack Ship", 1022: "Expedition Frigate",
-        420: "Destroyer", 833: "Interdictor", 902: "Tactical Destroyer", 1202: "Command Destroyer",
-        26: "Cruiser", 359: "Heavy Assault Cruiser", 832: "Heavy Interdiction Cruiser",
-        834: "Logistics", 906: "Recon Ship", 963: "Strategic Cruiser",
+        // Frigates (T1/T2/T3)
+        25: "Frigate", 324: "Assault Frigate", 831: "Interceptor",
+        830: "Covert Ops", 834: "Stealth Bomber", 893: "Electronic Attack Ship",
+        1022: "Expedition Frigate", 1283: "Expedition Frigate", 1527: "Logistics Frigate",
+        // Destroyers (T1/T2/T3)
+        420: "Destroyer", 541: "Interdictor", 1305: "Tactical Destroyer", 1534: "Command Destroyer",
+        // Cruisers (T1/T2/T3)
+        26: "Cruiser", 358: "Heavy Assault Cruiser", 894: "Heavy Interdiction Cruiser",
+        832: "Logistics", 833: "Force Recon Ship", 906: "Combat Recon Ship", 963: "Strategic Cruiser",
+        // Battlecruisers
         419: "Battlecruiser", 1201: "Attack Battlecruiser", 540: "Command Ship",
-        27: "Battleship", 381: "Black Ops", 659: "Marauder",
-        485: "Dreadnought", 547: "Carrier", 893: "Force Auxiliary",
-        30: "Titan", 548: "Supercarrier",
-        28: "Industrial", 380: "Deep Space Transport", 894: "Blockade Runner",
-        441: "Freighter", 898: "Jump Freighter",
-        463: "Mining Barge", 900: "Exhumer", 1305: "Mining Frigate",
+        // Battleships (T1/T2/faction)
+        27: "Battleship", 381: "Elite Battleship", 898: "Black Ops", 900: "Marauder",
+        // Capitals
+        485: "Dreadnought", 547: "Carrier", 1538: "Force Auxiliary", 659: "Supercarrier", 30: "Titan",
+        // Industrials
+        28: "Industrial", 380: "Deep Space Transport", 1202: "Blockade Runner",
+        513: "Freighter", 902: "Jump Freighter",
+        941: "Industrial Command Ship", 883: "Capital Industrial Ship",
+        // Mining
+        463: "Mining Barge", 543: "Exhumer",
     ]
     static let eveShipGroupIds: Set<Int> = Set(eveShipGroups.keys)
 
@@ -473,28 +483,27 @@ struct CharacterFittingsView: View {
         case "Corvette":                        return "scope"
         case "Frigate", "Assault Frigate",
              "Interceptor", "Covert Ops",
-             "Electronic Attack Ship",
-             "Expedition Frigate":              return "arrowtriangle.up.fill"
+             "Stealth Bomber", "Electronic Attack Ship",
+             "Expedition Frigate", "Logistics Frigate": return "arrowtriangle.up.fill"
         case "Destroyer", "Interdictor",
              "Command Destroyer",
              "Tactical Destroyer":              return "bolt.fill"
         case "Cruiser", "Heavy Assault Cruiser",
              "Heavy Interdiction Cruiser",
-             "Logistics", "Recon Ship",
-             "Strategic Cruiser":               return "shield.fill"
+             "Logistics", "Force Recon Ship",
+             "Combat Recon Ship", "Strategic Cruiser": return "shield.fill"
         case "Battlecruiser", "Attack Battlecruiser",
              "Command Ship":                    return "shield.lefthalf.filled"
-        case "Battleship", "Black Ops",
-             "Marauder":                        return "star.fill"
+        case "Battleship", "Elite Battleship",
+             "Black Ops", "Marauder":           return "star.fill"
         case "Carrier", "Force Auxiliary":      return "building.2.fill"
         case "Dreadnought":                     return "scope"
         case "Supercarrier", "Titan":           return "crown.fill"
         case "Freighter", "Jump Freighter":     return "shippingbox.fill"
         case "Industrial", "Deep Space Transport",
              "Blockade Runner":                 return "cube.box.fill"
-        case "Industrial Command Ship",
-             "Mining Barge", "Exhumer",
-             "Mining Frigate":                  return "cube.fill"
+        case "Industrial Command Ship", "Capital Industrial Ship",
+             "Mining Barge", "Exhumer":         return "cube.fill"
         default:                                return "questionmark.circle.fill"
         }
     }

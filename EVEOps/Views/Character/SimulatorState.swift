@@ -11,6 +11,7 @@
 // Copyright (c) 2026 CitizenCoder
 //
 
+import OSLog
 import SwiftUI
 
 // MARK:  Simulator State
@@ -183,6 +184,13 @@ final class SimulatorState {
             skills: characterSkills,
             implantTypeIds: includeImplants ? implantTypeIds : []
         )
+        // The dogma engine incorrectly computes warp_speed — it applies an erroneous
+        // dogma effect chain that inflates the value (e.g. Raven: 7 instead of 3 AU/s).
+        // Attribute 600 (warpSpeedMultiplier) from the ESI type cache is correct, so we
+        // override the engine result with the raw SDE value.
+        if let correctWarpSpeed = shipType.dogmaAttributes?.first(where: { $0.attributeId == 600 })?.value {
+            stats.warpSpeed = correctWarpSpeed
+        }
     }
 
     // MARK: Character Data Loading

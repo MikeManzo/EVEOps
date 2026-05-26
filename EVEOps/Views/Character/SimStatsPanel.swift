@@ -766,7 +766,9 @@ private struct SimImplantsBlock: View {
             179: "Willpower",
         ]
 
-        // Percent bonuses (value is already the percent amount, e.g. 5.0 → "+5%")
+        // Percent bonuses (value is the percent amount, e.g. 3.0 → "+3%", -3.0 → "-3%").
+        // Do NOT include attribute 422 here — that is techLevel (1 = T1, 2 = T2, etc.)
+        // and will falsely match on almost every implant.
         let pctMap: [Int: String] = [
             // Armor
             1280: "Armor HP",
@@ -778,6 +780,8 @@ private struct SimImplantsBlock: View {
             271:  "Shield Recharge",
             // Navigation
             20:   "Max Velocity",
+            317:  "MWD Cap Use",        // capNeedBonus (Rogue HS implant line)
+            553:  "Agility",            // implantBonusAgilityModifier (Evasive Maneuvering line)
             554:  "MWD Speed",
             // Targeting
             633:  "Scan Resolution",
@@ -786,7 +790,6 @@ private struct SimImplantsBlock: View {
             // Capacitor
             55:   "Capacitor Capacity",
             // Missile
-            422:  "Missile Damage",   // note: techLevel reuses some IDs; checked below
             1227: "Missile Damage",
             37:   "Missile Velocity",
             // Turret
@@ -803,10 +806,13 @@ private struct SimImplantsBlock: View {
             }
         }
 
-        // Check percent attributes
-        for attr in attrs {
+        // Check percent attributes — skip techLevel (422) which is present on all items
+        for attr in attrs where attr.attributeId != 422 {
             if let label = pctMap[attr.attributeId], attr.value != 0 {
-                return String(format: "+%.1f%% \(label)", attr.value)
+                let pct = attr.value
+                let sign = pct >= 0 ? "+" : ""
+                let fmt = pct == pct.rounded() ? "\(sign)%.0f%% \(label)" : "\(sign)%.1f%% \(label)"
+                return String(format: fmt, pct)
             }
         }
 

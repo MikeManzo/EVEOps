@@ -20,6 +20,7 @@ private struct EsfFit: Encodable {
     let ship_type_id: Int
     let modules: [EsfModule]
     let drones: [EsfDrone]
+    let implants: [Int]
 }
 
 private struct EsfModule: Encodable {
@@ -146,15 +147,10 @@ final class DogmaEngine {
             )
         }
 
-        // Implants are passed as extra modules in the implicit "None" slot
-        // The dogma engine treats them as items on the character, but since we
-        // have no separate implant slot type, we add them with state Online.
-        // Note: full implant support may require engine-side changes in a future pass.
-
         // Skills: BTreeMap<i32,i32> serialises to {"typeId": level} with string keys
         let skillsStringKeyed = Dictionary(uniqueKeysWithValues: skills.map { (String($0.key), $0.value) })
 
-        let fit = EsfFit(ship_type_id: shipTypeId, modules: modules, drones: [])
+        let fit = EsfFit(ship_type_id: shipTypeId, modules: modules, drones: [], implants: implantTypeIds)
 
         guard let fitData    = try? JSONEncoder().encode(fit),
               let skillsData = try? JSONEncoder().encode(skillsStringKeyed),
