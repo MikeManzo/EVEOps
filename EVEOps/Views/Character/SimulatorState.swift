@@ -212,8 +212,9 @@ final class SimulatorState {
                 return mult * (1.0 + bonus * skillMult / 100.0)
             }
         if rigInertiaMult != 1.0 {
-            stats.inertiaMod *= rigInertiaMult
-            stats.alignTime  *= rigInertiaMult
+            // Engine returns correct inertiaMod (rig already applied) but its align_time_sec
+            // does not reflect the rig — scale only alignTime, not inertiaMod.
+            stats.alignTime *= rigInertiaMult
         }
 
         // The dogma engine does not apply warp speed implant modifiers (attr 624 effect chain
