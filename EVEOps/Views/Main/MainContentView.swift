@@ -45,6 +45,9 @@ struct MainContentView: View {
                 Task { await ESIClient.shared.pruneCache() }
             }
         }
+        .onChange(of: AppRouter.shared.pendingEFTURL) { _, url in
+            if url != nil { selectedSection = .fittings }
+        }
     }
 
     @ViewBuilder

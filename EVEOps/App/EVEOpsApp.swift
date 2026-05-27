@@ -12,12 +12,26 @@ import SwiftUI
 import SwiftData
 import UserNotifications
 
+// Shared routing state — lets AppDelegate hand a file URL to any view in the hierarchy.
+@Observable
+final class AppRouter {
+    static let shared = AppRouter()
+    private init() {}
+    var pendingEFTURL: URL?
+}
+
 // Sets itself as the UNUserNotificationCenter delegate so banners are shown
 // even while the app is active. Without this, macOS silently routes all
 // notifications straight to Notification Center with no banner.
 class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         UNUserNotificationCenter.current().delegate = self
+    }
+
+    func application(_ application: NSApplication, open urls: [URL]) {
+        if let url = urls.first(where: { $0.pathExtension.lowercased() == "eft" }) {
+            AppRouter.shared.pendingEFTURL = url
+        }
     }
 
     func userNotificationCenter(

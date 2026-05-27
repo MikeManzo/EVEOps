@@ -40,6 +40,8 @@ private struct SplitViewAutosave: NSViewRepresentable {
 struct SimulateFittingView: View {
     @State private var simState = SimulatorState()
     @Environment(AccountManager.self) private var accountManager
+    @State private var importedEFTEntry: SavedFittingEntry?
+    @State private var showImportSaveSheet = false
 
     var body: some View {
         HSplitView {
@@ -71,5 +73,45 @@ struct SimulateFittingView: View {
             Task { await simState.loadImplants(accountManager: accountManager) }
             Task { await simState.loadSkills(accountManager: accountManager) }
         }
+        .onAppear {
+            if let url = AppRouter.shared.pendingEFTURL {
+                Task { await importEFTFile(url) }
+            }
+        }
+        .onChange(of: AppRouter.shared.pendingEFTURL) { _, url in
+            guard let url else { return }
+            Task { await importEFTFile(url) }
+        }
+        .sheet(isPresented: $showImportSaveSheet) {
+            if let entry = importedEFTEntry {
+                EFTImportSaveSheet(entry: entry) { loadEntry in
+                    Task { await simState.loadFromSavedFitting(loadEntry) }
+                }
+                .environment(accountManager)
+            }
+        }
+    }
+
+    private func importEFTFile(_ url: URL) async {
+        let accessed = url.startAccessingSecurityScopedResource()
+        defer { if accessed { url.stopAccessingSecurityScopedResource() } }
+        do {
+            let text = try String(contentsOf: url, encoding: .utf8)
+            let parsed = try EFTSerializer.parse(eftText: text)
+            guard let account = accountManager.selectedAccount,
+                  let token = try? await accountManager.validToken(for: account) else { return }
+            let (shipTypeId, name, items) = try await EFTSerializer.resolve(
+                parsed: parsed, account: account, token: token
+            )
+            let entry = SavedFittingEntry(
+                characterID: 0, characterName: "",
+                fittingId: 0, name: name, fittingDescription: "",
+                shipTypeId: shipTypeId, shipTypeName: parsed.shipTypeName,
+                shipClassName: "", items: items
+            )
+            importedEFTEntry = entry
+            showImportSaveSheet = true
+        } catch {}
+        AppRouter.shared.pendingEFTURL = nil
     }
 }

@@ -144,7 +144,10 @@ struct CharacterFittingsView: View {
                 }
             }
         }
-        .task { await load() }
+        .task {
+            if AppRouter.shared.pendingEFTURL != nil { activeTab = .simulate }
+            await load()
+        }
         .task(id: pollInterval) {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(pollInterval))
@@ -158,6 +161,9 @@ struct CharacterFittingsView: View {
             if newTab == .savedFittings && !savedFittingsLoaded && !isSavingsLoading {
                 Task { await loadSavedFittings() }
             }
+        }
+        .onChange(of: AppRouter.shared.pendingEFTURL) { _, url in
+            if url != nil { activeTab = .simulate }
         }
     }
 
