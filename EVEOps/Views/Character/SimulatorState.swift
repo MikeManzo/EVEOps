@@ -131,6 +131,7 @@ final class SimulatorState {
 
     func loadFromSavedFitting(_ fitting: SavedFittingEntry) async {
         await selectShip(typeId: fitting.shipTypeId)
+        shipName = fitting.name
         isLoadingShip = true
         let typeIds = Array(Set(fitting.items.map(\.typeId)))
         let types = await UniverseCache.shared.types(ids: typeIds)
@@ -150,6 +151,7 @@ final class SimulatorState {
 
     func loadFromShipModules(_ ship: ShipEntry, modules: [ESIAsset]) async {
         await selectShip(typeId: ship.typeId)
+        shipName = ship.displayName
         isLoadingShip = true
         let typeIds = Array(Set(modules.map(\.typeId)))
         let types = await UniverseCache.shared.types(ids: typeIds)

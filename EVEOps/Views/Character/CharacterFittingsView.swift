@@ -856,9 +856,11 @@ struct SavedFittingDetailPane: View {
     let fitting: SavedFittingEntry
     let typeNames: [Int: String]
 
+    @State private var showExporter = false
+
     var body: some View {
         VStack(spacing: 0) {
-            ZStack(alignment: .bottomLeading) {
+            ZStack(alignment: .bottom) {
                 AsyncImage(url: EVEImageURL.typeRender(fitting.shipTypeId, size: 512)) { image in
                     image.resizable().aspectRatio(contentMode: .fill)
                 } placeholder: {
@@ -882,19 +884,31 @@ struct SavedFittingDetailPane: View {
                     endPoint: .bottom
                 )
 
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(fitting.name)
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                    Text(fitting.shipTypeName)
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.7))
-                    if !fitting.fittingDescription.isEmpty {
-                        Text(fitting.fittingDescription)
-                            .font(.caption2)
-                            .foregroundStyle(.white.opacity(0.5))
-                            .lineLimit(1)
+                HStack(alignment: .bottom) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(fitting.name)
+                            .font(.headline)
+                            .foregroundStyle(.white)
+                        Text(fitting.shipTypeName)
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.7))
+                        if !fitting.fittingDescription.isEmpty {
+                            Text(fitting.fittingDescription)
+                                .font(.caption2)
+                                .foregroundStyle(.white.opacity(0.5))
+                                .lineLimit(1)
+                        }
                     }
+                    Spacer()
+                    Button { showExporter = true } label: {
+                        Label("Export…", systemImage: "square.and.arrow.up")
+                            .font(.caption.bold())
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+                            .foregroundStyle(.white)
+                    }
+                    .buttonStyle(.plain)
                 }
                 .padding(12)
             }
@@ -917,6 +931,12 @@ struct SavedFittingDetailPane: View {
                 SavedFittingSlotPane(items: fitting.items, typeNames: typeNames, shipName: fitting.shipTypeName, shipClass: fitting.shipClassName)
             }
         }
+        .fileExporter(
+            isPresented: $showExporter,
+            document: EFTFittingDocument(text: EFTSerializer.export(fitting: fitting, typeNames: typeNames)),
+            contentType: .eveFitting,
+            defaultFilename: "\(fitting.name).eft"
+        ) { _ in }
     }
 }
 

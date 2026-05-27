@@ -1329,7 +1329,7 @@ struct ContactCardView: View {
     }
 }
 
-// MARK: - EVE News Widget
+// MARK:  EVE News Widget
 
 struct EVENewsWidgetView: View {
     let items: [EVENewsItem]

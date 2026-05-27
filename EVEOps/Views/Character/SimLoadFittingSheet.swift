@@ -12,6 +12,7 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 // MARK:  Load Fitting Sheet
 
@@ -20,12 +21,17 @@ struct SimLoadFittingSheet: View {
     @Environment(AccountManager.self) private var accountManager
     @Environment(\.dismiss) private var dismiss
 
-    enum LoadMode { case saved, current }
+    enum LoadMode { case saved, current, eft }
     @State private var mode: LoadMode = .saved
     @State private var savedFittings: [SavedFittingEntry] = []
     @State private var ships: [ShipEntry] = []
     @State private var shipModules: [Int: [ESIAsset]] = [:]
     @State private var isLoading = false
+
+    // From File import state
+    @State private var showFileImporter = false
+    @State private var isResolvingEFT = false
+    @State private var eftError: String?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -39,6 +45,7 @@ struct SimLoadFittingSheet: View {
             Picker("Mode", selection: $mode) {
                 Text("Saved Fittings").tag(LoadMode.saved)
                 Text("Current Ships").tag(LoadMode.current)
+                Text("From File").tag(LoadMode.eft)
             }
             .pickerStyle(.segmented)
             .padding(.horizontal)
@@ -54,12 +61,21 @@ struct SimLoadFittingSheet: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if mode == .saved {
                 savedFittingsList
-            } else {
+            } else if mode == .current {
                 currentShipsList
+            } else {
+                eftImportView
             }
         }
         .frame(width: 380, height: 480)
         .task { await loadData() }
+        .fileImporter(
+            isPresented: $showFileImporter,
+            allowedContentTypes: [.eveFitting, .plainText],
+            allowsMultipleSelection: false
+        ) { result in
+            Task { await handleFileImport(result) }
+        }
     }
 
     private var savedFittingsList: some View {
@@ -141,6 +157,83 @@ struct SimLoadFittingSheet: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+
+    // MARK: From File
+
+    private var eftImportView: some View {
+        VStack(spacing: 16) {
+            Spacer()
+            Image(systemName: "doc.badge.arrow.up")
+                .font(.system(size: 44))
+                .foregroundStyle(.secondary)
+            Text("Import a .eft fitting file")
+                .font(.subheadline)
+            Text("Compatible with Pyfa, EFT, and the EVE Online fitting window")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 24)
+
+            if isResolvingEFT {
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text("Resolving modules…").font(.caption).foregroundStyle(.secondary)
+                }
+            } else if let eftError {
+                Text(eftError)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+            }
+
+            Button("Choose .eft File…") { showFileImporter = true }
+                .buttonStyle(.borderedProminent)
+                .disabled(isResolvingEFT)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func handleFileImport(_ result: Result<[URL], Error>) async {
+        guard case .success(let urls) = result, let url = urls.first else {
+            if case .failure(let error) = result { eftError = error.localizedDescription }
+            return
+        }
+
+        let accessed = url.startAccessingSecurityScopedResource()
+        defer { if accessed { url.stopAccessingSecurityScopedResource() } }
+
+        isResolvingEFT = true
+        eftError = nil
+
+        do {
+            let text = try String(contentsOf: url, encoding: .utf8)
+            let parsed = try EFTSerializer.parse(eftText: text)
+
+            guard let account = accountManager.selectedAccount,
+                  let token = try? await accountManager.validToken(for: account) else {
+                eftError = "No active account — sign in to resolve module names"
+                isResolvingEFT = false
+                return
+            }
+
+            let (shipTypeId, name, items) = try await EFTSerializer.resolve(
+                parsed: parsed, account: account, token: token
+            )
+            let entry = SavedFittingEntry(
+                characterID: 0, characterName: "",
+                fittingId: 0, name: name, fittingDescription: "",
+                shipTypeId: shipTypeId, shipTypeName: parsed.shipTypeName,
+                shipClassName: "", items: items
+            )
+            await simState.loadFromSavedFitting(entry)
+            dismiss()
+        } catch {
+            eftError = error.localizedDescription
+        }
+        isResolvingEFT = false
     }
 
     private func loadData() async {

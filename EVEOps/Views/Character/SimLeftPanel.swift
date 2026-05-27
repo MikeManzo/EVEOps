@@ -56,6 +56,8 @@ struct SimLeftPanel: View {
 
     @State private var leftMode: LeftPanelMode = .ships
     @State private var showLoadSheet = false
+    @State private var showExporter = false
+    @State private var eftExportDocument = EFTFittingDocument(text: "")
 
     private var filteredShipSections: [(className: String, ships: [ESIType])] {
         let q = shipSearchText.lowercased().trimmingCharacters(in: .whitespaces)
@@ -79,6 +81,12 @@ struct SimLeftPanel: View {
                 .environment(simState)
                 .environment(accountManager)
         }
+        .fileExporter(
+            isPresented: $showExporter,
+            document: eftExportDocument,
+            contentType: .eveFitting,
+            defaultFilename: "\(simState.shipName.isEmpty ? "fitting" : simState.shipName).eft"
+        ) { _ in }
         .task {
             await loadAllShips()
             if simState.shipTypeId != nil {
@@ -218,6 +226,24 @@ struct SimLeftPanel: View {
                 .foregroundStyle(.secondary)
 
                 Spacer()
+
+                Button {
+                    guard let shipType = simState.shipType else { return }
+                    let text = EFTSerializer.exportSimulator(
+                        shipTypeName: shipType.name,
+                        fittingName: simState.shipName.isEmpty ? shipType.name : simState.shipName,
+                        slots: simState.slots,
+                        moduleTypes: simState.moduleTypes
+                    )
+                    eftExportDocument = EFTFittingDocument(text: text)
+                    showExporter = true
+                } label: {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.caption)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+                .help("Export fitting as .eft file")
 
                 if !simState.shipName.isEmpty {
                     VStack(alignment: .trailing, spacing: 1) {
