@@ -191,12 +191,12 @@ struct SimFittingSection: View {
                     if stats.cpuTotal > 0 {
                         SimResourceBar(label: "CPU", used: stats.cpuUsed, total: stats.cpuTotal,
                                        unit: "tf", color: .teal,
-                                       tip: "CPU — processing power consumed by fitted modules (tf)")
+                                       tip: "CPU — remaining processing power (negative = over budget)")
                     }
                     if stats.powerTotal > 0 {
                         SimResourceBar(label: "PG", used: stats.powerUsed, total: stats.powerTotal,
                                        unit: "MW", color: .orange,
-                                       tip: "Power Grid — power consumed by fitted modules (MW)")
+                                       tip: "Power Grid — remaining power (negative = over budget)")
                     }
                     if stats.calibrationTotal > 0 {
                         SimResourceBar(label: "Cal", used: stats.calibrationUsed, total: stats.calibrationTotal,
@@ -250,11 +250,19 @@ private struct SimResourceBar: View {
     }
 
     private func formatUsage() -> String {
-        "\(fmt(used)) / \(fmt(total))\(unit.isEmpty ? "" : " \(unit)")"
+        // Match in-game convention: show remaining (positive = headroom, negative = over-limit)
+        let remaining = total - used
+        return "\(fmtSigned(remaining)) / \(fmt(total))\(unit.isEmpty ? "" : " \(unit)")"
     }
 
     private func fmt(_ v: Double) -> String {
-        v >= 100 ? String(format: "%.0f", v) : String(format: "%.1f", v)
+        abs(v) >= 100 ? String(format: "%.0f", v) : String(format: "%.1f", v)
+    }
+
+    private func fmtSigned(_ v: Double) -> String {
+        let a = abs(v)
+        let s = a >= 100 ? String(format: "%.0f", a) : String(format: "%.1f", a)
+        return v < 0 ? "-\(s)" : s
     }
 }
 
