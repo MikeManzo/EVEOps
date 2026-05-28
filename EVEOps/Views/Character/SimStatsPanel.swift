@@ -267,7 +267,7 @@ struct SimCapBlock: View {
 
     private var peakRecharge: Double {
         guard stats.rechargeRateSec > 0 else { return 0 }
-        return 2.5 * 0.25 * stats.capacitorCapacity / stats.rechargeRateSec
+        return 2.5 * stats.capacitorCapacity / stats.rechargeRateSec
     }
 
     private var capSummary: String {
@@ -322,7 +322,9 @@ struct SimCapBlock: View {
     }
 
     private func fmtTime(_ s: Double) -> String {
-        String(format: "%.2f s", s)
+        let m = Int(s) / 60
+        let sec = s - Double(m * 60)
+        return m > 0 ? String(format: "%dm %02.0fs", m, sec) : String(format: "%.2f s", s)
     }
 }
 

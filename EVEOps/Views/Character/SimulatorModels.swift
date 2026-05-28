@@ -188,12 +188,10 @@ struct SimStats {
     var droneBayCapacity: Double = 0
 
     var passiveCapRechargePerSec: Double {
-        // EVE cap curve: rate(C) = 2.5·C_max/T·(√(C/C_max) − C/C_max).
-        // Peak occurs at C = 0.25·C_max → peak = 0.625·C_max/T.
-        // Using the raw 2.5 coefficient makes the threshold 4× too large, marking
-        // ships as cap-stable when they actually drain to zero.
+        // EVE cap regen: rate(C) = 10·C_max/τ·(√(C/C_max) − C/C_max)
+        // Peak occurs at C = 0.25·C_max → peakRate = 2.5·C_max/τ
         guard rechargeRateSec > 0 else { return 0 }
-        return 2.5 * 0.25 * capacitorCapacity / rechargeRateSec
+        return 2.5 * capacitorCapacity / rechargeRateSec
     }
     var netCapGJps: Double { passiveCapRechargePerSec - capDrainPerSec }
     var isCapStable: Bool { netCapGJps >= 0 }
