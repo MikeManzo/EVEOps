@@ -1347,9 +1347,7 @@ struct EVENewsWidgetView: View {
                         .font(.callout)
                     Text("EVE News")
                         .font(.title3.bold())
-                    if isLoading {
-                        ProgressView().scaleEffect(0.6).padding(.leading, 2)
-                    } else if !items.isEmpty {
+                    if !items.isEmpty {
                         Text("(\(items.count))")
                             .font(.title3)
                             .foregroundStyle(.secondary)
@@ -1374,8 +1372,6 @@ struct EVENewsWidgetView: View {
                         Spacer()
                     }
                     .padding(.vertical, 20)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
-                    .padding(.top, 8)
                 } else if items.isEmpty {
                     HStack {
                         Spacer()
@@ -1385,20 +1381,14 @@ struct EVENewsWidgetView: View {
                         Spacer()
                     }
                     .padding(.vertical, 20)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
-                    .padding(.top, 8)
                 } else {
-                    VStack(spacing: 0) {
-                        ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                            NewsRowView(item: item)
-                            if index < items.count - 1 {
-                                Divider().padding(.leading, 12)
-                            }
+                    let columns = [GridItem(.adaptive(minimum: 300, maximum: 480), spacing: 12)]
+                    LazyVGrid(columns: columns, spacing: 12) {
+                        ForEach(items) { item in
+                            NewsCardView(item: item)
                         }
                     }
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
-                    .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.white.opacity(0.07), lineWidth: 1))
-                    .padding(.top, 8)
+                    .padding(.top, 12)
                 }
             }
         }
@@ -1406,7 +1396,7 @@ struct EVENewsWidgetView: View {
     }
 }
 
-struct NewsRowView: View {
+struct NewsCardView: View {
     let item: EVENewsItem
     @Environment(\.openURL) private var openURL
 
@@ -1414,51 +1404,131 @@ struct NewsRowView: View {
         Button {
             if let url = item.link { openURL(url) }
         } label: {
-            HStack(alignment: .top, spacing: 10) {
-                // Author pill (CCP dev name) or category fallback
-                let pillText = item.author.isEmpty ? (item.category.isEmpty ? "CCP" : item.category) : item.author
-                Text(pillText)
-                    .font(.caption2.bold())
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(categoryColor.opacity(0.15), in: Capsule())
-                    .foregroundStyle(categoryColor)
-                    .lineLimit(1)
-                    .frame(width: 90, alignment: .leading)
-                    .padding(.top, 1)
+            VStack(spacing: 0) {
+                Rectangle()
+                    .fill(categoryColor)
+                    .frame(height: 3)
 
-                VStack(alignment: .leading, spacing: 2) {
+                bannerView
+                    .frame(height: 100)
+                    .clipped()
+
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 8) {
+                        Text(item.category.isEmpty ? "EVE News" : item.category)
+                            .font(.caption2.bold())
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(categoryColor.opacity(0.15), in: Capsule())
+                            .foregroundStyle(categoryColor)
+                            .lineLimit(1)
+
+                        Spacer()
+
+                        if let date = item.pubDate {
+                            Text(date, style: .relative)
+                                .font(.caption2.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
+                    }
+
                     Text(item.title)
-                        .font(.subheadline)
-                        .lineLimit(1)
+                        .font(.headline)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
 
                     let snippet = plainSummary
                     if !snippet.isEmpty {
                         Text(snippet)
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                            .lineLimit(2)
+                            .lineLimit(3)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
 
-                VStack(alignment: .trailing, spacing: 2) {
-                    if let date = item.pubDate {
-                        Text(date, style: .relative)
-                            .font(.caption2.monospacedDigit())
+                    Spacer(minLength: 8)
+
+                    Divider()
+
+                    HStack {
+                        Label(item.author.isEmpty ? "CCP Games" : item.author, systemImage: "person.fill")
+                            .font(.caption2)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
+
+                        Spacer()
+
+                        Image(systemName: "arrow.up.right.circle")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
                     }
-                    Image(systemName: "arrow.up.right")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
                 }
-                .padding(.top, 1)
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .topLeading)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private var bannerView: some View {
+        if let imageURL = bannerImageURL {
+            AsyncImage(url: imageURL) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .overlay(
+                            LinearGradient(
+                                colors: [.clear, Color.black.opacity(0.55)],
+                                startPoint: .init(x: 0.5, y: 0.3),
+                                endPoint: .bottom
+                            )
+                        )
+                default:
+                    categoryGradientBanner
+                }
+            }
+        } else {
+            categoryGradientBanner
+        }
+    }
+
+    private var categoryGradientBanner: some View {
+        ZStack {
+            LinearGradient(
+                colors: [categoryColor.opacity(0.35), Color(white: 0.08)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            Image(systemName: categoryIcon)
+                .font(.system(size: 36))
+                .foregroundStyle(categoryColor.opacity(0.25))
+        }
+    }
+
+    private var bannerImageURL: URL? {
+        let pattern = #"<img[^>]+src="(https[^"]+)""#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive),
+              let match = regex.firstMatch(
+                  in: item.summary,
+                  range: NSRange(item.summary.startIndex..., in: item.summary)
+              ),
+              let srcRange = Range(match.range(at: 1), in: item.summary) else {
+            return nil
+        }
+        return URL(string: String(item.summary[srcRange]))
+    }
+
+    private var categoryIcon: String {
+        let lower = item.category.lowercased()
+        if lower.contains("dev")   { return "wrench.and.screwdriver.fill" }
+        if lower.contains("event") { return "calendar.badge.plus" }
+        return "megaphone.fill"
     }
 
     private var categoryColor: Color {
@@ -1468,20 +1538,15 @@ struct NewsRowView: View {
         return .blue
     }
 
-    // Strips HTML from the RSS description and returns up to ~2 sentences of plain text.
     private var plainSummary: String {
         var text = item.summary
-        // Remove Discourse lightbox image wrapper blocks
         text = text.replacingOccurrences(
             of: "<div[^>]*class=\"lightbox-wrapper\"[^>]*>[\\s\\S]*?</div>",
             with: " ", options: [.regularExpression, .caseInsensitive]
         )
-        // Treat paragraph/line breaks as spaces
         text = text.replacingOccurrences(of: "<br[^>]*>", with: " ", options: [.regularExpression, .caseInsensitive])
         text = text.replacingOccurrences(of: "</p>", with: " ", options: .caseInsensitive)
-        // Strip all remaining tags
         text = text.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
-        // Decode common HTML entities
         let entities: [(String, String)] = [
             ("&amp;","&"), ("&lt;","<"), ("&gt;",">"),
             ("&quot;","\""), ("&#39;","'"), ("&nbsp;"," "), ("&#32;"," ")
@@ -1489,14 +1554,11 @@ struct NewsRowView: View {
         for (entity, replacement) in entities {
             text = text.replacingOccurrences(of: entity, with: replacement)
         }
-        // Collapse whitespace
         text = text.components(separatedBy: .whitespacesAndNewlines)
             .filter { !$0.isEmpty }.joined(separator: " ")
-        // Remove Discourse footer ("3 posts - 2 participants")
         if let range = text.range(of: #"\d+ posts? - \d+ participants?"#, options: .regularExpression) {
             text = String(text[..<range.lowerBound])
         }
-        // Trim to ~260 chars at the nearest sentence boundary
         if text.count > 260 {
             text = String(text.prefix(260))
             if let last = text.lastIndex(of: ".") {

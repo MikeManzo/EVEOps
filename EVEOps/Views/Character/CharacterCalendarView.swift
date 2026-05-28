@@ -201,6 +201,7 @@ struct CharacterCalendarView: View {
                         Text("Not Responded").tag("not_responded")
                         Text("Declined").tag("declined")
                     }
+                    .labelsHidden()
                     .pickerStyle(.segmented)
                     .frame(maxWidth: 460)
                 }
