@@ -189,9 +189,12 @@ final class SimulatorState {
         guard !isLoadingSDE else { return }
         guard let shipType else { stats = SimStats(); return }
         refreshWarpInflationFactor(for: shipType)
+        // Offline modules are excluded from the engine call: the engine applies passive rig
+        // effects regardless of module state ("Passive" is not honoured for rigs), so the
+        // only reliable way to honour the online/offline toggle is to not pass offline slots.
         stats = DogmaEngine.shared.calculate(
             shipTypeId: shipType.typeId,
-            slots: slots,
+            slots: slots.filter { $0.isOnline },
             skills: characterSkills,
             implantTypeIds: includeImplants ? implantTypeIds : []
         )
@@ -199,24 +202,6 @@ final class SimulatorState {
         // This preserves bonuses from modules AND implants — see refreshWarpInflationFactor.
         if warpInflationFactor > 0 {
             stats.warpSpeed /= warpInflationFactor
-        }
-        // The dogma engine does not apply rig passive effects on inertiaMod (attr 151).
-        // Apply them manually so the rig toggle works and align time is correct.
-        // Astronautics Rigging skill (ID 26254) gives +10% per level to navigation rig effectiveness.
-        let astronauticsRiggingLevel = characterSkills[26254] ?? 0
-        let rigInertiaMult = slots
-            .filter { $0.category == .rig && $0.isOnline }
-            .reduce(1.0) { mult, slot in
-                guard let typeId = slot.moduleTypeId,
-                      let bonus = moduleTypes[typeId]?.dogmaAttributes?.first(where: { $0.attributeId == 151 })?.value,
-                      bonus != 0 else { return mult }
-                let skillMult = 1.0 + Double(astronauticsRiggingLevel) * 0.10
-                return mult * (1.0 + bonus * skillMult / 100.0)
-            }
-        if rigInertiaMult != 1.0 {
-            // Engine returns correct inertiaMod (rig already applied) but its align_time_sec
-            // does not reflect the rig — scale only alignTime, not inertiaMod.
-            stats.alignTime *= rigInertiaMult
         }
 
         // The dogma engine does not apply warp speed implant modifiers (attr 624 effect chain

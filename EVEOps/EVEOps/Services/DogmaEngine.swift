@@ -211,14 +211,17 @@ private extension FfiSimStats {
         // align_time_sec, which the engine does not update when rigs modify inertia.
         let mI = mass * inertia_mod
         stats.alignTime = mI > 0 ? Foundation.log(4.0) * mI / 1_000_000.0 : align_time_sec
-        stats.warpSpeed            = warp_speed
+        // The engine JSON has warp_speed and max_locked_targets swapped relative to their
+        // semantic meaning: the field named "max_locked_targets" carries the warp speed AU/s,
+        // and the field named "warp_speed" carries the max locked targets count.
+        stats.warpSpeed            = max_locked_targets
+        stats.maxLockedTargets     = warp_speed
         stats.signatureRadius      = signature_radius
         stats.capacitorCapacity    = capacitor_capacity
         stats.rechargeRateSec      = capacitor_recharge_sec
         stats.shieldRechargeTimeSec = shield_recharge_sec
         stats.maxTargetRange       = max_target_range
         stats.scanResolution       = scan_resolution
-        stats.maxLockedTargets     = max_locked_targets
         stats.sensorStrength       = sensor_strength
         stats.cpuTotal             = cpu_total
         stats.cpuUsed              = cpu_used
