@@ -88,8 +88,36 @@ struct CharacterFittingsView: View {
     @AppStorage("collapsedShipSections") private var collapsedShipRaw: String = ""
     @AppStorage("collapsedFittingSections") private var collapsedFittingRaw: String = ""
 
+    // Lifted so the toolbar can access simulator state for sharing
+    @State private var simState = SimulatorState()
+
     private var shipsEmpty: Bool { shipSections.isEmpty }
     private var savedEmpty: Bool { fittingSections.isEmpty }
+
+    private var toolbarShareTransferable: EFTTransferable? {
+        switch activeTab {
+        case .savedFittings:
+            guard let fitting = selectedFitting else { return nil }
+            return EFTTransferable(
+                text: EFTSerializer.export(fitting: fitting, typeNames: fittingTypeNames),
+                filename: "\(fitting.name).eft"
+            )
+        case .simulate:
+            guard let shipType = simState.shipType else { return nil }
+            let name = simState.shipName.isEmpty ? shipType.name : simState.shipName
+            return EFTTransferable(
+                text: EFTSerializer.exportSimulator(
+                    shipTypeName: shipType.name,
+                    fittingName: name,
+                    slots: simState.slots,
+                    moduleTypes: simState.moduleTypes
+                ),
+                filename: "\(name).eft"
+            )
+        default:
+            return nil
+        }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -124,10 +152,21 @@ struct CharacterFittingsView: View {
                 CommunityFittingsView()
             } else {
                 SimulateFittingView()
+                    .environment(simState)
             }
         }
         .navigationTitle("Ships & Fittings")
         .toolbar {
+            if let transferable = toolbarShareTransferable {
+                ToolbarItem(placement: .automatic) {
+                    ShareLink(
+                        item: transferable,
+                        preview: SharePreview(transferable.filename, image: Image(systemName: "doc.text"))
+                    ) {
+                        Label("Share Fitting", systemImage: "square.and.arrow.up")
+                    }
+                }
+            }
             ToolbarItem(placement: .automatic) {
                 Button {
                     Task {
@@ -907,7 +946,7 @@ struct SavedFittingDetailPane: View {
                     }
                     Spacer()
                     Button { showExporter = true } label: {
-                        Label("Export…", systemImage: "square.and.arrow.up")
+                        Label("Export…", systemImage: "arrow.down.doc")
                             .font(.caption.bold())
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)

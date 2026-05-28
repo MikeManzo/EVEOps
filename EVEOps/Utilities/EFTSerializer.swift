@@ -18,9 +18,7 @@ import UniformTypeIdentifiers
 // MARK: UTType
 
 extension UTType {
-    // Derive from the .eft extension rather than a custom identifier — avoids
-    // the plist-declaration requirement and resolves cleanly in NSSavePanel.
-    static let eveFitting = UTType(tag: "eft", tagClass: .filenameExtension, conformingTo: .plainText) ?? .plainText
+    static let eveFitting = UTType("com.eveops.eft-fitting") ?? .plainText
 }
 
 // MARK: EFTFittingDocument
@@ -41,6 +39,27 @@ struct EFTFittingDocument: FileDocument {
 
     func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
         FileWrapper(regularFileWithContents: Data(text.utf8))
+    }
+}
+
+// MARK: EFTTransferable
+
+struct EFTTransferable: Transferable {
+    let text: String
+    let filename: String
+
+    static var transferRepresentation: some TransferRepresentation {
+        FileRepresentation(contentType: .eveFitting) { item in
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent(item.filename)
+            try item.text.write(to: url, atomically: true, encoding: .utf8)
+            return SentTransferredFile(url)
+        } importing: { received in
+            EFTTransferable(
+                text: (try? String(contentsOf: received.file, encoding: .utf8)) ?? "",
+                filename: received.file.lastPathComponent
+            )
+        }
     }
 }
 

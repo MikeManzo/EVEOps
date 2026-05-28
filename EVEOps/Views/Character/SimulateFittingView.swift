@@ -38,7 +38,7 @@ private struct SplitViewAutosave: NSViewRepresentable {
 }
 
 struct SimulateFittingView: View {
-    @State private var simState = SimulatorState()
+    @Environment(SimulatorState.self) private var simState
     @Environment(AccountManager.self) private var accountManager
     @State private var importedEFTEntry: SavedFittingEntry?
     @State private var showImportSaveSheet = false

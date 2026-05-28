@@ -238,12 +238,12 @@ struct SimLeftPanel: View {
                     eftExportDocument = EFTFittingDocument(text: text)
                     showExporter = true
                 } label: {
-                    Image(systemName: "square.and.arrow.up")
+                    Image(systemName: "arrow.down.doc")
                         .font(.caption)
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
-                .help("Export fitting as .eft file")
+                .help("Save fitting as .eft file")
 
                 if !simState.shipName.isEmpty {
                     VStack(alignment: .trailing, spacing: 1) {
