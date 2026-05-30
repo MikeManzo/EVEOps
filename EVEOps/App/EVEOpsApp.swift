@@ -25,6 +25,12 @@ final class AppRouter {
 // even while the app is active. Without this, macOS silently routes all
 // notifications straight to Notification Center with no banner.
 class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        // Replaces LSUIElement = YES so iconservicesd can serve our UTI icons
+        // while keeping the app hidden from the Dock and App Switcher.
+        NSApp.setActivationPolicy(.accessory)
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         UNUserNotificationCenter.current().delegate = self
         // Re-register UTIs (including the .eft document type icon) with Launch Services

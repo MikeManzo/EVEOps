@@ -18,7 +18,7 @@ import UniformTypeIdentifiers
 // MARK: UTType
 
 extension UTType {
-    static let eveFitting = UTType("com.eveops.eft-fitting") ?? .plainText
+    static let eveFitting = UTType("com.eveops.eft-fitting") ?? .data
 }
 
 // MARK: EFTFittingDocument

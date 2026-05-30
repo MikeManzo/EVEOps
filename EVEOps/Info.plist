@@ -23,12 +23,18 @@
 			</array>
 		</dict>
 	</array>
+	<key>SUEnableInstallerLauncherService</key>
+	<true/>
+	<key>SUFeedURL</key>
+	<string>https://raw.githubusercontent.com/MikeManzo/EVEOps/main/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>y+33YO6BpkfLECMjKFrZhjalMQzj7rNSHhtj3dNA3DY=</string>
 	<key>UTExportedTypeDeclarations</key>
 	<array>
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.data</string>
 			</array>
 			<key>UTTypeDescription</key>
 			<string>EVE Fitting Tool File</string>
@@ -47,11 +53,5 @@
 			</dict>
 		</dict>
 	</array>
-	<key>SUEnableInstallerLauncherService</key>
-	<true/>
-	<key>SUFeedURL</key>
-	<string>https://raw.githubusercontent.com/MikeManzo/EVEOps/main/appcast.xml</string>
-	<key>SUPublicEDKey</key>
-	<string>y+33YO6BpkfLECMjKFrZhjalMQzj7rNSHhtj3dNA3DY=</string>
 </dict>
 </plist>
