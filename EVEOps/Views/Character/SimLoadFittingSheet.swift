@@ -85,6 +85,20 @@ struct SimLoadFittingSheet: View {
         }
     }
 
+    private var shipSections: [(className: String, ships: [ShipEntry])] {
+        let byClass = Dictionary(grouping: ships, by: \.shipClassName)
+        return byClass.keys.sorted().map { cls in
+            (className: cls, ships: byClass[cls]!.sorted { $0.displayName < $1.displayName })
+        }
+    }
+
+    private var fittingSections: [(className: String, fittings: [SavedFittingEntry])] {
+        let byClass = Dictionary(grouping: savedFittings, by: \.shipClassName)
+        return byClass.keys.sorted().map { cls in
+            (className: cls, fittings: byClass[cls]!.sorted { $0.name < $1.name })
+        }
+    }
+
     private var savedFittingsList: some View {
         Group {
             if savedFittings.isEmpty {
@@ -94,14 +108,29 @@ struct SimLoadFittingSheet: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                List(savedFittings) { fitting in
-                    loadRow(
-                        imageURL: EVEImageURL.typeRender(fitting.shipTypeId, size: 128),
-                        title: fitting.name,
-                        subtitle: fitting.shipTypeName,
-                        detail: "\(fitting.items.count) modules"
-                    ) {
-                        Task { await simState.loadFromSavedFitting(fitting); dismiss() }
+                List {
+                    ForEach(fittingSections, id: \.className) { section in
+                        Section {
+                            ForEach(section.fittings) { fitting in
+                                loadRow(
+                                    imageURL: EVEImageURL.typeRender(fitting.shipTypeId, size: 128),
+                                    title: fitting.name,
+                                    subtitle: fitting.shipTypeName,
+                                    detail: "\(fitting.items.count) modules"
+                                ) {
+                                    Task { await simState.loadFromSavedFitting(fitting); dismiss() }
+                                }
+                            }
+                        } header: {
+                            HStack(spacing: 6) {
+                                Image(systemName: CharacterFittingsView.shipClassIcon(section.className))
+                                Text(section.className).font(.headline)
+                                Spacer()
+                                Text("\(section.fittings.count)")
+                                    .font(.subheadline.monospacedDigit())
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
                     }
                 }
                 .listStyle(.inset)
@@ -118,16 +147,31 @@ struct SimLoadFittingSheet: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                List(ships) { ship in
-                    loadRow(
-                        imageURL: EVEImageURL.typeRender(ship.typeId, size: 128),
-                        title: ship.displayName,
-                        subtitle: ship.typeName,
-                        detail: ship.locationName
-                    ) {
-                        Task {
-                            await simState.loadFromShipModules(ship, modules: shipModules[ship.itemId] ?? [])
-                            dismiss()
+                List {
+                    ForEach(shipSections, id: \.className) { section in
+                        Section {
+                            ForEach(section.ships) { ship in
+                                loadRow(
+                                    imageURL: EVEImageURL.typeRender(ship.typeId, size: 128),
+                                    title: ship.displayName,
+                                    subtitle: ship.typeName,
+                                    detail: ship.locationName
+                                ) {
+                                    Task {
+                                        await simState.loadFromShipModules(ship, modules: shipModules[ship.itemId] ?? [])
+                                        dismiss()
+                                    }
+                                }
+                            }
+                        } header: {
+                            HStack(spacing: 6) {
+                                Image(systemName: CharacterFittingsView.shipClassIcon(section.className))
+                                Text(section.className).font(.headline)
+                                Spacer()
+                                Text("\(section.ships.count)")
+                                    .font(.subheadline.monospacedDigit())
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
                 }

@@ -276,8 +276,6 @@ final class SimulatorState {
             let mI = stats.mass * stats.inertiaMod
             if mI > 0 { stats.alignTime = Foundation.log(4.0) * mI / 1_000_000.0 }
 
-            Logger.dogmaEngine.debug("[Sim] Warp: base=\(base, privacy: .public) implantFactor=\(warpFactor, privacy: .public) final=\(self.stats.warpSpeed, privacy: .public)")
-            Logger.dogmaEngine.debug("[Sim] Inertia: noImplant=\(noImplant.inertiaMod, privacy: .public) alignFactor=\(self.inertiaAlignFactor, privacy: .public) implantFactor=\(inertiaFactor, privacy: .public) final=\(self.stats.inertiaMod, privacy: .public)")
         }
 
         // Engine always returns calibration_total=0 and calibration_used=0 (known limitation).
@@ -296,7 +294,6 @@ final class SimulatorState {
                     .reduce(0, +)
                 stats.calibrationTotal = total
                 stats.calibrationUsed = used
-                Logger.dogmaEngine.debug("[Sim] Calibration override: total=\(total, privacy: .public) used=\(used, privacy: .public)")
             }
         }
 

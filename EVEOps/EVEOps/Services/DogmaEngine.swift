@@ -173,10 +173,6 @@ final class DogmaEngine {
             return SimStats()
         }
 
-        Logger.dogmaEngine.debug("[DogmaEngine] INPUT shipTypeId=\(shipTypeId, privacy: .public) modules=\(modules.count, privacy: .public) skills=\(skills.count, privacy: .public) implants=\(implantTypeIds.count, privacy: .public)")
-        Logger.dogmaEngine.debug("[DogmaEngine] INPUT fit=\(fitStr, privacy: .public)")
-        Logger.dogmaEngine.debug("[DogmaEngine] INPUT skills=\(skillStr, privacy: .public)")
-
         guard let resultPtr = dogma_engine_calculate(handle, fitStr, skillStr) else {
             Logger.dogmaEngine.error("[DogmaEngine] calculate() returned null — shipTypeId=\(shipTypeId, privacy: .public) modules=\(modules.count, privacy: .public) skills=\(skills.count, privacy: .public) implants=\(implantTypeIds.count, privacy: .public)")
             return SimStats()
@@ -184,7 +180,6 @@ final class DogmaEngine {
         defer { dogma_engine_free_string(resultPtr) }
 
         let resultStr = String(cString: resultPtr)
-        Logger.dogmaEngine.debug("[DogmaEngine] OUTPUT raw=\(resultStr, privacy: .public)")
 
         guard let resultData = resultStr.data(using: .utf8),
               let raw = try? JSONDecoder().decode(FfiSimStats.self, from: resultData)
@@ -194,9 +189,6 @@ final class DogmaEngine {
         }
 
         let stats = raw.toSimStats()
-        // The engine JSON has warp_speed ↔ max_locked_targets semantically inverted.
-        // Log both raw field values and post-swap assignments so any future engine fix is immediately visible.
-        Logger.dogmaEngine.debug("[DogmaEngine] FIELD SWAP: engine.warp_speed=\(raw.warp_speed, privacy: .public)→maxLockedTargets=\(stats.maxLockedTargets, privacy: .public)  engine.max_locked_targets=\(raw.max_locked_targets, privacy: .public)→warpSpeed=\(stats.warpSpeed, privacy: .public)")
         return stats
     }
 }

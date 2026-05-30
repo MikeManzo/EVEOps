@@ -504,12 +504,6 @@ nonisolated struct ESIDogmaModifier: Codable, Sendable {
             let ac = (try? decoder.container(keyedBy: AnyKey.self))
             groupId = (try? ac?.decodeIfPresent(Int.self, forKey: AnyKey(stringValue: "groupId")))
                    ?? (try? ac?.decodeIfPresent(Int.self, forKey: AnyKey(stringValue: "group_id")))
-#if DEBUG
-            if let fn = function, fn.contains("Group"), groupId == nil {
-                let keys = ac?.allKeys.map(\.stringValue) ?? []
-                print("[ESIDogmaModifier] func=\(fn): groupId still nil after all fallbacks — JSON keys visible: \(keys)")
-            }
-#endif
         }
     }
 }

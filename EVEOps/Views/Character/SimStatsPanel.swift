@@ -125,7 +125,7 @@ private struct SimCalcInfoBanner: View {
 
                     Text("Powered by EVEShipFit dogma-engine")
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.tertiary)
                 }
                 .padding()
                 .frame(width: 300)
