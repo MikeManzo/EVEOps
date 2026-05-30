@@ -53,6 +53,10 @@ struct EFTTransferable: Transferable {
             let url = FileManager.default.temporaryDirectory
                 .appendingPathComponent(item.filename)
             try item.text.write(to: url, atomically: true, encoding: .utf8)
+            if let iconURL = Bundle.main.url(forResource: "EFTDocument", withExtension: "icns"),
+               let icon = NSImage(contentsOf: iconURL) {
+                NSWorkspace.shared.setIcon(icon, forFile: url.path, options: [])
+            }
             return SentTransferredFile(url)
         } importing: { received in
             EFTTransferable(
