@@ -50,7 +50,6 @@ struct SimStatsPanel: View {
                         SimNavBlock(stats: simState.stats)
                         SimDronesBlock(stats: simState.stats)
                         SimImplantsBlock()
-                        SimTrainingBlock()
                     } else {
                         VStack(spacing: 8) {
                             Image(systemName: "exclamationmark.triangle").foregroundStyle(.orange)
@@ -70,50 +69,83 @@ struct SimStatsPanel: View {
 // MARK:  Calculation info banner
 
 private struct SimCalcInfoBanner: View {
+    @Environment(SimulatorState.self) private var simState
     @State private var showingInfo = false
 
     var body: some View {
-        Button { showingInfo = true } label: {
-            HStack(spacing: 4) {
-                Spacer()
+        HStack(spacing: 6) {
+            Button { showingInfo = true } label: {
                 Image(systemName: "info.circle")
                     .font(.system(size: 10))
-                Text("All active modules simulated")
-                    .font(.system(size: 10))
-                Spacer()
+                    .foregroundStyle(.red.opacity(0.7))
+                Text("Limitations")
             }
-            .foregroundStyle(.white)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-        }
-        .buttonStyle(.plain)
-        .help("How stats are calculated")
-        .popover(isPresented: $showingInfo) {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("How Stats Are Calculated")
-                    .font(.headline)
+            .buttonStyle(.plain)
+            .help("How stats are calculated")
+            .popover(isPresented: $showingInfo) {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("How Stats Are Calculated")
+                        .font(.headline)
 
-                VStack(alignment: .leading, spacing: 8) {
-                    infoRow("bolt.fill",
-                            "Every module in a fitted slot is treated as online and active, even if it's manually offlined in-game to stay within limits. CPU/PG shown is the theoretical maximum if everything were running simultaneously — the same baseline used by pyfa and EFT.")
+                    VStack(alignment: .leading, spacing: 8) {
+                        infoRow("bolt.fill",
+                                "Toggle active modules on/off. Active 'ON' shows peak performance with all hardeners cycling — the same baseline used by pyfa and EFT. Active 'OFF' shows the passive-only view closely matching the in-game station display with hardeners idle.")
 
-                    infoRow("shield.lefthalf.filled",
-                            "Resistance values reflect active hardeners cycling. In-game readings will be lower when hardeners are offline or not activated.")
+                        infoRow("shield.lefthalf.filled",
+                                "With active modules 'ON', resistance values reflect hardeners cycling. Toggle 'OFF' to see the passive-only resist values that match in-game readings when hardeners are not activated.")
 
-                    infoRow("person.fill",
-                            "Character skills are applied at the current active skill level. Omega skills above your active clone level are excluded.")
+                        infoRow("person.fill",
+                                "Character skills are applied at the current trained skill level. Omega skills above your active clone level are excluded.")
 
-                    infoRow("capsule.fill",
-                            "Implants are included by default if loaded. Toggle them off in the Implants section to see base stats.")
+                        infoRow("capsule.fill",
+                                "Loaded implants are included by default. Toggle them 'OFF' to see the base stats.")
+                    }
+
+                    Divider()
+
+                    Text("What's Not Simulated")
+                        .font(.headline)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        infoRow("person.2.fill",
+                                "Fleet command bursts — warp speed, speed, agility, and other bonuses applied by Command Destroyers or Command Battlecruisers in your fleet.")
+
+                        infoRow("pills.fill",
+                                "Combat boosters and drugs — temporary stat bonuses from consumables active at the time of capture.")
+
+                        infoRow("circle.hexagongrid.fill",
+                                "Environmental modifiers — wormhole effects, Abyssal filament bonuses/penalties, and similar in-space conditions.")
+
+                        infoRow("bolt.trianglebadge.exclamationmark",
+                                "Module scripts and charges — damage control scripts, sensor booster scripts, and loaded charges that alter module behaviour.")
+
+                        infoRow("building.2.fill",
+                                "Structure service bonuses — Standup Warp Speed Upgrade and similar Upwell structure modules that apply passive bonuses to docked or tethered ships.")
+                    }
+
+                    Text("Powered by EVEShipFit dogma-engine")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
-
-                Text("Powered by EVEShipFit dogma-engine")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                .padding()
+                .frame(width: 300)
             }
-            .padding()
-            .frame(width: 300)
+
+            Spacer()
+
+            Text(simState.activeModulesEnabled ? "Active Mode" : "Passive Mode")
+                .font(.system(size: 10))
+                .foregroundStyle(.white)
+
+            Toggle(isOn: Binding(
+                get: { simState.activeModulesEnabled },
+                set: { v in simState.activeModulesEnabled = v; simState.recomputeStats() }
+            )) { EmptyView() }
+            .toggleStyle(.switch)
+            .controlSize(.mini)
         }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
     }
 
     private func infoRow(_ icon: String, _ text: String) -> some View {
@@ -828,84 +860,6 @@ private struct SimImplantsBlock: View {
         }
 
         return nil
-    }
-}
-
-// MARK:  Training
-
-private struct SimTrainingBlock: View {
-    @Environment(SimulatorState.self) private var simState
-    @AppStorage("sim.section.training.expanded") private var isExpanded = true
-
-    var body: some View {
-        let contributions = simState.stats.trainingContributions
-        if !contributions.isEmpty {
-            VStack(spacing: 0) {
-                trainingHeader
-                if isExpanded {
-                    trainingContent
-                }
-            }
-        }
-    }
-
-    private var trainingHeader: some View {
-        HStack {
-            Text("Training")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.secondary)
-            Spacer()
-            Text("\(simState.stats.trainingContributions.count) skills")
-                .font(.system(size: 10))
-                .foregroundStyle(.tertiary)
-            Button {
-                withAnimation(.easeInOut(duration: 0.15)) { isExpanded.toggle() }
-            } label: {
-                Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(.tertiary)
-                    .frame(width: 14)
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 5)
-        .background(Color.primary.opacity(0.06))
-    }
-
-    private var trainingContent: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            ForEach(simState.stats.trainingContributions) { c in
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 6) {
-                        AsyncImage(url: EVEImageURL.typeIcon(c.typeId, size: 64)) { img in
-                            img.resizable().aspectRatio(contentMode: .fit)
-                        } placeholder: {
-                            RoundedRectangle(cornerRadius: 3).fill(.quaternary)
-                        }
-                        .frame(width: 20, height: 20)
-                        .clipShape(RoundedRectangle(cornerRadius: 3))
-
-                        Text("\(c.name) (L\(c.level))")
-                            .font(.system(size: 10, weight: .semibold))
-                            .lineLimit(1)
-                    }
-                    ForEach(c.bonuses, id: \.self) { bonus in
-                        HStack(spacing: 4) {
-                            Circle()
-                                .fill(.blue.opacity(0.5))
-                                .frame(width: 4, height: 4)
-                            Text(bonus)
-                                .font(.system(size: 10))
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.leading, 26)
-                    }
-                }
-            }
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
     }
 }
 

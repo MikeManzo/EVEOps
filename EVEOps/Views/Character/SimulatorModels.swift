@@ -132,25 +132,6 @@ struct SimEHPProfile {
     var hasData: Bool { em > 0 }
 }
 
-// MARK:  Implant Contribution
-
-struct ImplantContribution: Identifiable {
-    let typeId: Int
-    let name: String
-    let bonuses: [String]
-    var id: Int { typeId }
-}
-
-// MARK:  Training Contribution
-
-struct TrainingContribution: Identifiable {
-    let typeId: Int
-    let name: String
-    let level: Int
-    let bonuses: [String]
-    var id: Int { typeId }
-}
-
 // MARK:  Sim Stats
 
 struct SimStats {
@@ -197,8 +178,6 @@ struct SimStats {
     var isCapStable: Bool { netCapGJps >= 0 }
 
     var hasData: Bool { shieldHP > 0 || armorHP > 0 || hullHP > 0 }
-    var implantContributions: [ImplantContribution] = []
-    var trainingContributions: [TrainingContribution] = []
 
     /// Populates `ehp` from the current HP and resistance values.
     /// Resistance values are percentages (0 = no resist, 100 = immune).

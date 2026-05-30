@@ -140,7 +140,7 @@ struct SimSlotRowView: View {
                 .foregroundStyle(category.color)
 
             LazyVGrid(
-                columns: Array(repeating: GridItem(.fixed(52), spacing: 6), count: 8),
+                columns: Array(repeating: GridItem(.fixed(62), spacing: 6), count: 8),
                 alignment: .leading,
                 spacing: 6
             ) {
@@ -311,7 +311,7 @@ struct SimSlotSocketView: View {
                 }
             }
             .buttonStyle(.plain)
-            .frame(width: 52, height: 52)
+            .frame(width: 62, height: 62)
             .scaleEffect(isValidDropTarget ? 1.08 : isInvalidDropTarget ? 0.94 : 1.0)
             .animation(.spring(response: 0.2, dampingFraction: 0.6), value: isValidDropTarget)
             .animation(.spring(response: 0.2, dampingFraction: 0.6), value: isInvalidDropTarget)
@@ -518,7 +518,7 @@ private struct SimModuleStatsSections: View {
     @ViewBuilder private var fittingSection: some View {
         let cpu = attrVal(50)
         let pg  = attrVal(30)
-        let cal = attrVal(1132)
+        let cal = attrVal(1153)
         let hasFitting = (cpu ?? 0) > 0 || (pg ?? 0) > 0 || (cal ?? 0) > 0
         if hasFitting {
             Divider()

@@ -1410,7 +1410,7 @@ struct NewsCardView: View {
                     .frame(height: 3)
 
                 bannerView
-                    .frame(height: 100)
+                    .frame(height: 60)
                     .clipped()
 
                 VStack(alignment: .leading, spacing: 8) {

@@ -132,16 +132,25 @@ final class DogmaEngine {
         shipTypeId: Int,
         slots: [SimSlot],
         skills: [Int: Int],
-        implantTypeIds: [Int] = []
+        implantTypeIds: [Int] = [],
+        passiveModuleTypeIds: Set<Int> = []
     ) -> SimStats {
-        guard let handle, isReady else { return SimStats() }
+        guard let handle, isReady else {
+            Logger.dogmaEngine.warning("[DogmaEngine] calculate() called before engine is ready (shipTypeId=\(shipTypeId, privacy: .public))")
+            return SimStats()
+        }
 
         // Build module list from filled slots.
         // Rigs and subsystems are passive-only — the engine rejects "Active" for those
         // slot types and ignores the module entirely, so they must be sent as "Online".
+        // Passive modules in activatable slot types (e.g. Shield Resistance Amplifiers in
+        // medium slots, Energized Platings in low slots) have no activation cycle; sending
+        // them as "Active" causes the engine to double-apply their bonus. The caller
+        // identifies these via attr 6 (capacitorNeed) == 0 and passes them in passiveModuleTypeIds.
         let modules: [EsfModule] = slots.compactMap { slot in
             guard let typeId = slot.moduleTypeId else { return nil }
-            let onlineState = slot.category.isPassiveOnly ? "Online" : "Active"
+            let isPassive = slot.category.isPassiveOnly || passiveModuleTypeIds.contains(typeId)
+            let onlineState = isPassive ? "Online" : "Active"
             return EsfModule(
                 type_id: typeId,
                 slot: EsfSlot(index: slot.index, slotType: slot.category.esfSlotType),
@@ -160,25 +169,35 @@ final class DogmaEngine {
               let fitStr     = String(data: fitData,    encoding: .utf8),
               let skillStr   = String(data: skillsData, encoding: .utf8)
         else {
-            Logger.dogmaEngine.info("[DogmaEngine] JSON encoding failed")
+            Logger.dogmaEngine.error("[DogmaEngine] JSON encoding failed — shipTypeId=\(shipTypeId, privacy: .public)")
             return SimStats()
         }
 
+        Logger.dogmaEngine.debug("[DogmaEngine] INPUT shipTypeId=\(shipTypeId, privacy: .public) modules=\(modules.count, privacy: .public) skills=\(skills.count, privacy: .public) implants=\(implantTypeIds.count, privacy: .public)")
+        Logger.dogmaEngine.debug("[DogmaEngine] INPUT fit=\(fitStr, privacy: .public)")
+        Logger.dogmaEngine.debug("[DogmaEngine] INPUT skills=\(skillStr, privacy: .public)")
+
         guard let resultPtr = dogma_engine_calculate(handle, fitStr, skillStr) else {
-            Logger.dogmaEngine.info("[DogmaEngine] calculate() returned null — check fit/skills JSON and .pb2 data")
+            Logger.dogmaEngine.error("[DogmaEngine] calculate() returned null — shipTypeId=\(shipTypeId, privacy: .public) modules=\(modules.count, privacy: .public) skills=\(skills.count, privacy: .public) implants=\(implantTypeIds.count, privacy: .public)")
             return SimStats()
         }
         defer { dogma_engine_free_string(resultPtr) }
 
         let resultStr = String(cString: resultPtr)
+        Logger.dogmaEngine.debug("[DogmaEngine] OUTPUT raw=\(resultStr, privacy: .public)")
+
         guard let resultData = resultStr.data(using: .utf8),
               let raw = try? JSONDecoder().decode(FfiSimStats.self, from: resultData)
         else {
-            Logger.dogmaEngine.info("[DogmaEngine] Failed to decode result JSON: \(resultStr, privacy: .public)")
+            Logger.dogmaEngine.error("[DogmaEngine] Decode failed — shipTypeId=\(shipTypeId, privacy: .public) raw=\(resultStr, privacy: .public)")
             return SimStats()
         }
 
-        return raw.toSimStats()
+        let stats = raw.toSimStats()
+        // The engine JSON has warp_speed ↔ max_locked_targets semantically inverted.
+        // Log both raw field values and post-swap assignments so any future engine fix is immediately visible.
+        Logger.dogmaEngine.debug("[DogmaEngine] FIELD SWAP: engine.warp_speed=\(raw.warp_speed, privacy: .public)→maxLockedTargets=\(stats.maxLockedTargets, privacy: .public)  engine.max_locked_targets=\(raw.max_locked_targets, privacy: .public)→warpSpeed=\(stats.warpSpeed, privacy: .public)")
+        return stats
     }
 }
 

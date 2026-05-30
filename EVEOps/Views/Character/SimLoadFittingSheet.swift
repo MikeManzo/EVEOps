@@ -22,7 +22,7 @@ struct SimLoadFittingSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     enum LoadMode { case saved, current, eft }
-    @State private var mode: LoadMode = .saved
+    @State private var mode: LoadMode = .current
     @State private var savedFittings: [SavedFittingEntry] = []
     @State private var ships: [ShipEntry] = []
     @State private var shipModules: [Int: [ESIAsset]] = [:]
@@ -48,8 +48,8 @@ struct SimLoadFittingSheet: View {
             .padding()
 
             Picker("Mode", selection: $mode) {
-                Text("Saved Fittings").tag(LoadMode.saved)
                 Text("Current Ships").tag(LoadMode.current)
+                Text("Saved Fittings").tag(LoadMode.saved)
                 Text("From File").tag(LoadMode.eft)
             }
             .pickerStyle(.segmented)
@@ -462,6 +462,47 @@ struct SimLoadFittingSheet: View {
                         f.locationFlag.hasPrefix("SubSystem")
                     }
                     if !mods.isEmpty { loadedModules[a.itemId] = mods }
+                }
+
+                // ESI assets endpoint omits the actively piloted ship hull when the
+                // character is in space. Cross-reference with /ship/ and add it if missing.
+                if let shipInfo: ESICharacterShip = try? await ESIClient.shared.fetch(
+                    "/characters/\(account.characterID)/ship/", token: token
+                ), !loadedShips.contains(where: { $0.itemId == shipInfo.shipItemId }) {
+                    var fetchedType: ESIType? = types[shipInfo.shipTypeId]
+                    if fetchedType == nil {
+                        fetchedType = (await UniverseCache.shared.types(ids: [shipInfo.shipTypeId]))[shipInfo.shipTypeId]
+                    }
+                    let typeName = fetchedType?.name ?? "Ship #\(shipInfo.shipTypeId)"
+                    let groupId = fetchedType?.groupId ?? 0
+                    var groupName: String? = assetGroups[groupId]?.name
+                    if groupName == nil {
+                        groupName = (await UniverseCache.shared.groups(ids: [groupId]))[groupId]?.name
+                    }
+                    let loc: ESICharacterLocation? = try? await ESIClient.shared.fetch(
+                        "/characters/\(account.characterID)/location/", token: token
+                    )
+                    let locId = loc.map { $0.stationId ?? $0.structureId ?? $0.solarSystemId } ?? 0
+                    let locName = locId > 0
+                        ? await NameResolver.shared.resolveLocation(id: locId, token: token)
+                        : "In Space"
+                    let activeMods = (byLoc[shipInfo.shipItemId] ?? []).filter { f in
+                        f.locationFlag.hasPrefix("HiSlot") || f.locationFlag.hasPrefix("MedSlot") ||
+                        f.locationFlag.hasPrefix("LoSlot") || f.locationFlag.hasPrefix("RigSlot") ||
+                        f.locationFlag.hasPrefix("SubSystem")
+                    }
+                    if !activeMods.isEmpty { loadedModules[shipInfo.shipItemId] = activeMods }
+                    loadedShips.append(ShipEntry(
+                        characterID: account.characterID,
+                        characterName: account.characterName,
+                        itemId: shipInfo.shipItemId,
+                        typeId: shipInfo.shipTypeId,
+                        typeName: typeName,
+                        customName: (!shipInfo.shipName.isEmpty && shipInfo.shipName != typeName) ? shipInfo.shipName : nil,
+                        locationName: locName,
+                        isSingleton: true,
+                        shipClassName: groupName ?? "Unknown"
+                    ))
                 }
             }
         }

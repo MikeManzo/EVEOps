@@ -346,9 +346,18 @@ struct CharacterFittingsView: View {
                 let typeIds = Array(Set(assets.map(\.typeId)))
                 let types = await UniverseCache.shared.types(ids: typeIds)
 
-                let shipTypeIds = Set(
-                    types.filter { Self.eveShipGroupIds.contains($0.value.groupId) }.keys
-                )
+                // Filter to EVE ship types using a two-tier approach:
+                //   1. Hardcoded group IDs — guaranteed pass even if ESI fetch fails
+                //   2. Live category 6 check — catches Triglavian, EDENCOM, and future
+                //      ship types not yet in the hardcoded list
+                // A group must pass EITHER tier; this keeps known ships visible when the
+                // groups endpoint is slow or returning errors.
+                let groupIds = Set(types.values.map(\.groupId))
+                let fetchedGroups = await UniverseCache.shared.groups(ids: groupIds)
+                let shipTypeIds = Set(types.filter { entry in
+                    let gid = entry.value.groupId
+                    return Self.eveShipGroupIds.contains(gid) || fetchedGroups[gid]?.categoryId == 6
+                }.keys)
                 let shipAssets = assets.filter { shipTypeIds.contains($0.typeId) }
 
                 let assetsByLocation = Dictionary(grouping: assets, by: \.locationId)
@@ -387,6 +396,7 @@ struct CharacterFittingsView: View {
 
                 let ships = shipAssets.map { asset in
                     let groupId = types[asset.typeId]?.groupId ?? 0
+                    let className = fetchedGroups[groupId]?.name ?? Self.eveShipGroups[groupId] ?? "Unknown"
                     return ShipEntry(
                         characterID: account.characterID,
                         characterName: account.characterName,
@@ -396,10 +406,47 @@ struct CharacterFittingsView: View {
                         customName: customNames[asset.itemId],
                         locationName: locationNames[asset.locationId] ?? "#\(asset.locationId)",
                         isSingleton: asset.isSingleton,
-                        shipClassName: Self.eveShipGroups[groupId] ?? "Unknown"
+                        shipClassName: className
                     )
                 }
                 allShips.append(contentsOf: ships)
+
+                // ESI assets endpoint omits the actively piloted ship hull when the
+                // character is in space. Cross-reference with /ship/ and add it if missing.
+                if let shipInfo: ESICharacterShip = try? await ESIClient.shared.fetch(
+                    "/characters/\(account.characterID)/ship/", token: token
+                ), !allShips.contains(where: { $0.itemId == shipInfo.shipItemId }) {
+                    var fetchedType: ESIType? = types[shipInfo.shipTypeId]
+                    if fetchedType == nil {
+                        fetchedType = (await UniverseCache.shared.types(ids: [shipInfo.shipTypeId]))[shipInfo.shipTypeId]
+                    }
+                    let typeName = fetchedType?.name ?? "Ship #\(shipInfo.shipTypeId)"
+                    let groupId = fetchedType?.groupId ?? 0
+                    let groupName = fetchedGroups[groupId]?.name ?? Self.eveShipGroups[groupId] ?? "Unknown"
+                    let loc: ESICharacterLocation? = try? await ESIClient.shared.fetch(
+                        "/characters/\(account.characterID)/location/", token: token
+                    )
+                    let locId = loc.map { $0.stationId ?? $0.structureId ?? $0.solarSystemId } ?? 0
+                    let locName = locId > 0
+                        ? await NameResolver.shared.resolveLocation(id: locId, token: token)
+                        : "In Space"
+                    let activeModules = (assetsByLocation[shipInfo.shipItemId] ?? []).filter { isSlotModule($0.locationFlag) }
+                    if !activeModules.isEmpty {
+                        allModulesByShip[shipInfo.shipItemId] = activeModules
+                        allModuleTypeIds.formUnion(activeModules.map(\.typeId))
+                    }
+                    allShips.append(ShipEntry(
+                        characterID: account.characterID,
+                        characterName: account.characterName,
+                        itemId: shipInfo.shipItemId,
+                        typeId: shipInfo.shipTypeId,
+                        typeName: typeName,
+                        customName: (!shipInfo.shipName.isEmpty && shipInfo.shipName != typeName) ? shipInfo.shipName : nil,
+                        locationName: locName,
+                        isSingleton: true,
+                        shipClassName: groupName
+                    ))
+                }
             } catch { lastError = error }
         }
 
