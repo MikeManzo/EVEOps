@@ -10,7 +10,7 @@
 				<string>eft</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>AppIcon</string>
+			<string>EFTDocument</string>
 			<key>CFBundleTypeName</key>
 			<string>EVE Fitting Tool File</string>
 			<key>CFBundleTypeRole</key>
@@ -34,7 +34,7 @@
 			<string>EVE Fitting Tool File</string>
 			<key>UTTypeIconFiles</key>
 			<array>
-				<string>AppIcon</string>
+				<string>EFTDocument</string>
 			</array>
 			<key>UTTypeIdentifier</key>
 			<string>com.eveops.eft-fitting</string>

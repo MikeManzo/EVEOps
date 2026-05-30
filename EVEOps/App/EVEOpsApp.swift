@@ -11,6 +11,7 @@
 import SwiftUI
 import SwiftData
 import UserNotifications
+import CoreServices
 
 // Shared routing state — lets AppDelegate hand a file URL to any view in the hierarchy.
 @Observable
@@ -26,6 +27,9 @@ final class AppRouter {
 class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         UNUserNotificationCenter.current().delegate = self
+        // Re-register UTIs (including the .eft document type icon) with Launch Services
+        // on every launch so Finder always shows the correct icon without manual lsregister.
+        LSRegisterURL(Bundle.main.bundleURL as CFURL, true)
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {
