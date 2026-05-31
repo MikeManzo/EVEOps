@@ -314,7 +314,9 @@ struct DashboardView: View {
                 let resolved = await NameResolver.shared.resolve(ids: [skillID])
                 summary.trainingSkillName = resolved[skillID]
             }
-        } catch {}
+        } catch {
+            summary.loadError = error.localizedDescription
+        }
         return summary
     }
 
@@ -500,6 +502,7 @@ struct CharacterSummary {
     var expiredExtractorCount: Int = 0
     var corporationName: String = ""
     var allianceName: String? = nil
+    var loadError: String? = nil
 }
 
 // Mark:  Contact Summary
@@ -945,6 +948,24 @@ struct CharacterCardView: View {
                         }
                     }
                 }
+
+                // Load error banner — shown when the ESI fetch failed for this character
+                if let err = summary?.loadError {
+                    HStack(spacing: 6) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.caption2)
+                            .foregroundStyle(.red)
+                        Text(err)
+                            .font(.caption2)
+                            .foregroundStyle(.red.opacity(0.85))
+                            .lineLimit(2)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(.red.opacity(0.08), in: RoundedRectangle(cornerRadius: 6))
+                    .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(.red.opacity(0.2), lineWidth: 1))
+                }
             }
             .padding(12)
             .padding(.top, -38)  // #1: portrait overlaps banner by ~28pt
@@ -974,6 +995,7 @@ struct CharacterCardView: View {
     // #3: Accent stripe color based on most critical state
     private var cardAccentColor: Color {
         guard let s = summary else { return Color(white: 0.25) }
+        if s.loadError != nil { return .red }
         if s.expiredExtractorCount > 0 { return .red }
         if s.isQueueEmpty { return .orange }
         if s.online { return .green }

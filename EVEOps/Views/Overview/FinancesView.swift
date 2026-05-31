@@ -55,13 +55,42 @@ struct FinancesView: View {
     }
 
     var body: some View {
-        LoadingStateView(isLoading: isLoading, error: error, isEmpty: characterFinances.isEmpty, emptyMessage: "No financial data") {
+        LoadingStateView(
+            isLoading: isLoading,
+            error: error,
+            isEmpty: characterFinances.isEmpty,
+            emptyMessage: "No financial data",
+            onRetry: {
+                Task {
+                    error = nil
+                    isLoading = true
+                    await loadAllFinances()
+                    await resolveTypeNames()
+                    await loadAssetValues()
+                }
+            }
+        ) {
             ScrollView {
                 VStack(spacing: 20) {
                     summaryCards
                     wealthDistribution
                     characterSelector
                     if let finance = selectedFinance {
+                        if let warning = finance.partialLoadWarning {
+                            HStack(spacing: 6) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundStyle(.yellow)
+                                    .font(.caption)
+                                Text(warning)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Spacer()
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(.yellow.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+                            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.yellow.opacity(0.2), lineWidth: 1))
+                        }
                         characterDetail(finance)
                     }
                 }
@@ -901,12 +930,13 @@ struct FinancesView: View {
         var transactions: [ESIWalletTransaction] = []
         var orders: [ESIMarketOrder] = []
         var lp: [ESILoyaltyPoints] = []
+        var firstFieldError: Error? = nil
 
-        do { balance = try await ESIClient.shared.fetch("/characters/\(charID)/wallet/", token: token) } catch {}
-        do { journal = try await ESIClient.shared.fetch("/characters/\(charID)/wallet/journal/", token: token) } catch {}
-        do { transactions = try await ESIClient.shared.fetch("/characters/\(charID)/wallet/transactions/", token: token) } catch {}
-        do { orders = try await ESIClient.shared.fetch("/characters/\(charID)/orders/", token: token) } catch {}
-        do { lp = try await ESIClient.shared.fetch("/characters/\(charID)/loyalty/points/", token: token) } catch {}
+        do { balance = try await ESIClient.shared.fetch("/characters/\(charID)/wallet/", token: token) } catch { if firstFieldError == nil { firstFieldError = error } }
+        do { journal = try await ESIClient.shared.fetch("/characters/\(charID)/wallet/journal/", token: token) } catch { if firstFieldError == nil { firstFieldError = error } }
+        do { transactions = try await ESIClient.shared.fetch("/characters/\(charID)/wallet/transactions/", token: token) } catch { if firstFieldError == nil { firstFieldError = error } }
+        do { orders = try await ESIClient.shared.fetch("/characters/\(charID)/orders/", token: token) } catch { if firstFieldError == nil { firstFieldError = error } }
+        do { lp = try await ESIClient.shared.fetch("/characters/\(charID)/loyalty/points/", token: token) } catch { if firstFieldError == nil { firstFieldError = error } }
 
         // Resolve LP corporation names
         let corpIDs = lp.map(\.corporationId)
@@ -927,7 +957,8 @@ struct FinancesView: View {
             journal: journal.sorted { $0.date > $1.date },
             transactions: transactions.sorted { $0.date > $1.date },
             marketOrders: orders,
-            loyaltyPoints: resolvedLP
+            loyaltyPoints: resolvedLP,
+            partialLoadWarning: firstFieldError?.localizedDescription
         )
     }
 }
@@ -945,6 +976,8 @@ struct CharacterFinanceData {
     let loyaltyPoints: [ResolvedLoyaltyPoints]
     /// Estimated total asset value using ESI market average prices. Populated after initial load.
     var assetValue: Double = 0
+    /// Non-nil when one or more ESI fields failed to fetch; some displayed data may be missing.
+    var partialLoadWarning: String? = nil
 
     var totalEscrow: Double {
         marketOrders.filter { $0.isBuyOrder ?? false }.compactMap(\.escrow).reduce(0, +)

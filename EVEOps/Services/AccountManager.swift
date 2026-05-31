@@ -39,6 +39,14 @@ final class AccountManager {
         accounts.first { $0.characterID == selectedCharacterID }
     }
 
+    var hasAccountsNeedingReauth: Bool {
+        accounts.contains { $0.needsReauth }
+    }
+
+    var reauthNeededCharacterNames: [String] {
+        accounts.filter { $0.needsReauth }.map { $0.characterName }
+    }
+
     var uniqueCorporations: [(id: Int, name: String)] {
         let corps = Set(accounts.map { $0.corporationID })
         return corps.compactMap { corpID in

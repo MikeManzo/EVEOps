@@ -300,16 +300,21 @@ struct MenuBarView: View {
             var contracts: [ESIContract] = []
             var industry: [ESIIndustryJob] = []
             var colonies: [ESIColony] = []
+            var firstFieldError: Error? = nil
 
-            do { wallet = try await ESIClient.shared.fetch("/characters/\(charID)/wallet/", token: token) } catch {}
-            do { queue = try await ESIClient.shared.fetch("/characters/\(charID)/skillqueue/", token: token) } catch {}
-            do { skills = try await ESIClient.shared.fetch("/characters/\(charID)/skills/", token: token) } catch {}
-            do { loc = try await ESIClient.shared.fetch("/characters/\(charID)/location/", token: token) } catch {}
-            do { ship = try await ESIClient.shared.fetch("/characters/\(charID)/ship/", token: token) } catch {}
-            do { online = try await ESIClient.shared.fetch("/characters/\(charID)/online/", token: token) } catch {}
-            do { contracts = try await ESIClient.shared.fetch("/characters/\(charID)/contracts/", token: token) } catch {}
-            do { industry = try await ESIClient.shared.fetch("/characters/\(charID)/industry/jobs/", token: token) } catch {}
-            do { colonies = try await ESIClient.shared.fetch("/characters/\(charID)/planets/", token: token) } catch {}
+            do { wallet = try await ESIClient.shared.fetch("/characters/\(charID)/wallet/", token: token) } catch { if firstFieldError == nil { firstFieldError = error } }
+            do { queue = try await ESIClient.shared.fetch("/characters/\(charID)/skillqueue/", token: token) } catch { if firstFieldError == nil { firstFieldError = error } }
+            do { skills = try await ESIClient.shared.fetch("/characters/\(charID)/skills/", token: token) } catch { if firstFieldError == nil { firstFieldError = error } }
+            do { loc = try await ESIClient.shared.fetch("/characters/\(charID)/location/", token: token) } catch { if firstFieldError == nil { firstFieldError = error } }
+            do { ship = try await ESIClient.shared.fetch("/characters/\(charID)/ship/", token: token) } catch { if firstFieldError == nil { firstFieldError = error } }
+            do { online = try await ESIClient.shared.fetch("/characters/\(charID)/online/", token: token) } catch { if firstFieldError == nil { firstFieldError = error } }
+            do { contracts = try await ESIClient.shared.fetch("/characters/\(charID)/contracts/", token: token) } catch { if firstFieldError == nil { firstFieldError = error } }
+            do { industry = try await ESIClient.shared.fetch("/characters/\(charID)/industry/jobs/", token: token) } catch { if firstFieldError == nil { firstFieldError = error } }
+            do { colonies = try await ESIClient.shared.fetch("/characters/\(charID)/planets/", token: token) } catch { if firstFieldError == nil { firstFieldError = error } }
+
+            if let err = firstFieldError {
+                s.loadError = err.localizedDescription
+            }
 
             s.wallet = wallet
             s.totalSP = skills?.totalSp ?? 0
@@ -369,7 +374,7 @@ struct MenuBarView: View {
                 }
             }
         } catch {
-            // Token refresh failed, show partial data
+            s.loadError = error.localizedDescription
         }
 
         return s

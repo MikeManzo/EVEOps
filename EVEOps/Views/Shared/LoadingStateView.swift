@@ -18,6 +18,7 @@ struct LoadingStateView<Content: View>: View {
     let isEmpty: Bool
     let emptyMessage: String
     let loadingMessage: String
+    let onRetry: (() -> Void)?
     @ViewBuilder let content: () -> Content
 
     init(
@@ -26,6 +27,7 @@ struct LoadingStateView<Content: View>: View {
         isEmpty: Bool = false,
         emptyMessage: String = "No data available",
         loadingMessage: String = "Loading...",
+        onRetry: (() -> Void)? = nil,
         @ViewBuilder content: @escaping () -> Content
     ) {
         self.isLoading = isLoading
@@ -33,6 +35,7 @@ struct LoadingStateView<Content: View>: View {
         self.isEmpty = isEmpty
         self.emptyMessage = emptyMessage
         self.loadingMessage = loadingMessage
+        self.onRetry = onRetry
         self.content = content
     }
 
@@ -58,6 +61,11 @@ struct LoadingStateView<Content: View>: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+                    if let onRetry {
+                        Button("Retry", action: onRetry)
+                            .buttonStyle(.bordered)
+                    }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if isEmpty {

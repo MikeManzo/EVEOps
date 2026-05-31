@@ -26,8 +26,13 @@ struct MainContentView: View {
             detailView
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .safeAreaInset(edge: .top) {
-                    if !apiStatus.isReachable {
-                        APIStatusBanner(message: apiStatus.statusMessage)
+                    VStack(spacing: 0) {
+                        if !apiStatus.isReachable {
+                            APIStatusBanner(message: apiStatus.statusMessage)
+                        }
+                        if accountManager.hasAccountsNeedingReauth {
+                            ReauthBanner(characterNames: accountManager.reauthNeededCharacterNames)
+                        }
                     }
                 }
         }
@@ -138,6 +143,37 @@ struct MainContentView: View {
         } else {
             DashboardView()
         }
+    }
+}
+
+// MARK: - Reauth Banner
+
+struct ReauthBanner: View {
+    let characterNames: [String]
+    @Environment(\.openSettings) private var openSettings
+
+    private var names: String {
+        characterNames.joined(separator: ", ")
+    }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "lock.trianglebadge.exclamationmark.fill")
+                .foregroundStyle(.red)
+            Text("Re-authentication required: \(names)")
+                .font(.callout)
+            Spacer()
+            Button("Settings") {
+                openSettings()
+            }
+            .font(.callout)
+            .buttonStyle(.plain)
+            .foregroundStyle(.red)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(.red.opacity(0.10))
+        .transition(.move(edge: .top).combined(with: .opacity))
     }
 }
 
