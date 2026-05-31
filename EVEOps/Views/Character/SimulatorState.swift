@@ -230,7 +230,7 @@ final class SimulatorState {
             passiveModuleTypeIds = Set(fittedModuleIds)
         }
 
-        Logger.dogmaEngine.info("[Sim] recompute ship=\(shipType.typeId, privacy: .public) modules=\(fittedModuleIds, privacy: .public) passive=\(Array(passiveModuleTypeIds), privacy: .public) skills=\(self.characterSkills.count, privacy: .public) implants=\(activeImplants, privacy: .public)")
+        Logger.dogmaEngine.info("[Sim] recompute ship=\(shipType.typeId) modules=\(fittedModuleIds) passive=\(Array(passiveModuleTypeIds)) skills=\(self.characterSkills.count) implants=\(activeImplants)")
         stats = DogmaEngine.shared.calculate(
             shipTypeId: shipType.typeId,
             slots: onlineSlots,
@@ -239,7 +239,7 @@ final class SimulatorState {
             passiveModuleTypeIds: passiveModuleTypeIds
         )
 
-        Logger.dogmaEngine.info("[Sim] raw resists shEM=\(self.stats.shieldResists.em, privacy: .public) shThm=\(self.stats.shieldResists.thermal, privacy: .public) shKin=\(self.stats.shieldResists.kinetic, privacy: .public) shExp=\(self.stats.shieldResists.explosive, privacy: .public)")
+        Logger.dogmaEngine.info("[Sim] raw resists shEM=\(self.stats.shieldResists.em) shThm=\(self.stats.shieldResists.thermal) shKin=\(self.stats.shieldResists.kinetic) shExp=\(self.stats.shieldResists.explosive)")
 
         // Re-run without implants to establish a no-implant baseline used by both the warp
         // speed and inertia corrections below. For each stat we prefer the engine's own
@@ -307,7 +307,7 @@ final class SimulatorState {
                 shipTypeId: shipType.typeId, slots: [], skills: characterSkills,
                 implantTypeIds: includeImplants ? implantTypeIds : []
             )
-            Logger.dogmaEngine.warning("[Sim] Scan resolution anomaly: engine=\(self.stats.scanResolution, privacy: .public) base=\(baseScanRes, privacy: .public) — overriding with no-module value=\(clean.scanResolution, privacy: .public)")
+            Logger.dogmaEngine.warning("[Sim] Scan resolution anomaly: engine=\(self.stats.scanResolution) base=\(baseScanRes) — overriding with no-module value=\(clean.scanResolution)")
             stats.scanResolution = clean.scanResolution
         }
     }
@@ -327,23 +327,23 @@ final class SimulatorState {
             shipTypeId: shipType.typeId, slots: [], skills: [:], implantTypeIds: []
         )
         guard bare.warpSpeed > 0 else {
-            Logger.dogmaEngine.error("[Sim] Bare warp=0 for typeId=\(shipType.typeId, privacy: .public) — calibration skipped")
+            Logger.dogmaEngine.error("[Sim] Bare warp=0 for typeId=\(shipType.typeId) — calibration skipped")
             return
         }
 
         let factor = bare.warpSpeed / attr600
         guard (0.01...1000.0).contains(factor) else {
-            Logger.dogmaEngine.error("[Sim] Inflation factor \(factor, privacy: .public) out of range for typeId=\(shipType.typeId, privacy: .public) (bare=\(bare.warpSpeed, privacy: .public) attr600=\(attr600, privacy: .public))")
+            Logger.dogmaEngine.error("[Sim] Inflation factor \(factor) out of range for typeId=\(shipType.typeId) (bare=\(bare.warpSpeed) attr600=\(attr600))")
             return
         }
         warpInflationFactor = factor
-        Logger.dogmaEngine.info("[Sim] Warp calibration typeId=\(shipType.typeId, privacy: .public): attr600=\(attr600, privacy: .public) bare=\(bare.warpSpeed, privacy: .public) factor=\(factor, privacy: .public)")
+        Logger.dogmaEngine.info("[Sim] Warp calibration typeId=\(shipType.typeId): attr600=\(attr600) bare=\(bare.warpSpeed) factor=\(factor)")
 
         // Inertia (attr 70): ESI base / bare engine result corrects stale SDE values.
         if let attr70 = shipType.dogmaAttributes?.first(where: { $0.attributeId == 70 })?.value,
            attr70 > 0, bare.inertiaMod > 0 {
             inertiaAlignFactor = attr70 / bare.inertiaMod
-            Logger.dogmaEngine.info("[Sim] Inertia calibration typeId=\(shipType.typeId, privacy: .public): attr70=\(attr70, privacy: .public) bare=\(bare.inertiaMod, privacy: .public) factor=\(self.inertiaAlignFactor, privacy: .public)")
+            Logger.dogmaEngine.info("[Sim] Inertia calibration typeId=\(shipType.typeId): attr70=\(attr70) bare=\(bare.inertiaMod) factor=\(self.inertiaAlignFactor)")
         } else {
             inertiaAlignFactor = 1.0
         }
@@ -386,7 +386,7 @@ final class SimulatorState {
         })
         guard !allEffectIds.isEmpty else { return [:] }
         let effectMap = await UniverseCache.shared.effectDetails(ids: allEffectIds)
-        Logger.dogmaEngine.info("[Sim] Implant chain: implants=\(self.implantTypeIds.count, privacy: .public) effectIds=\(allEffectIds.count, privacy: .public) fetched=\(effectMap.count, privacy: .public)")
+        Logger.dogmaEngine.info("[Sim] Implant chain: implants=\(self.implantTypeIds.count) effectIds=\(allEffectIds.count) fetched=\(effectMap.count)")
         var multipliers: [Int: Double] = [:]
         for id in implantTypeIds {
             guard let t = implantTypes[id] else { continue }
@@ -411,7 +411,7 @@ final class SimulatorState {
             }
         }
         if !multipliers.isEmpty {
-            Logger.dogmaEngine.info("[Sim] Implant attr multipliers: \(multipliers, privacy: .public)")
+            Logger.dogmaEngine.info("[Sim] Implant attr multipliers: \(multipliers)")
         }
         return multipliers
     }

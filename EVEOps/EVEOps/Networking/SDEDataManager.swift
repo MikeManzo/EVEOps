@@ -87,10 +87,10 @@ actor SDEDataManager {
         if let latest = latestTag {
             if let meta = loadMeta(), meta.tag == latest, allFilesPresent() {
                 pbDirPath = Self.cacheDir.path
-                await Logger.sdeData.info("\("SDEDataManager", privacy: .public) Cache is current (tag: \(latest, privacy: .public)) — skipping download")
+                await Logger.sdeData.info("SDEDataManager Cache is current (tag: \(latest)) — skipping download")
                 return
             }
-            await Logger.sdeData.info("\("SDEDataManager", privacy: .public) New SDE version detected: \(latest, privacy: .public) — downloading")
+            await Logger.sdeData.info("SDEDataManager New SDE version detected: \(latest) — downloading")
             await download(tag: latest)
         } else {
             // GitHub API unreachable — use TTL-based fallback
@@ -98,16 +98,16 @@ actor SDEDataManager {
                Date().timeIntervalSince(meta.downloadedAt) < Self.fallbackTTL,
                allFilesPresent() {
                 pbDirPath = Self.cacheDir.path
-                await Logger.sdeData.info("\("SDEDataManager", privacy: .public) GitHub API unavailable — using cached SDE data (tag: \(meta.tag, privacy: .public))")
+                await Logger.sdeData.info("SDEDataManager GitHub API unavailable — using cached SDE data (tag: \(meta.tag))")
                 return
             }
-            await Logger.sdeData.error("\("SDEDataManager", privacy: .public) GitHub API unavailable and cache is stale or missing — SDE data cannot be refreshed")
+            await Logger.sdeData.error("SDEDataManager GitHub API unavailable and cache is stale or missing — SDE data cannot be refreshed")
         }
 
         if allFilesPresent() {
             pbDirPath = Self.cacheDir.path
         } else {
-            await Logger.dogmaEngine.error("\("SDEDataManager", privacy: .public) SDE data unavailable — dogma engine will not load")
+            await Logger.dogmaEngine.error("SDEDataManager SDE data unavailable — dogma engine will not load")
         }
     }
 
@@ -125,7 +125,7 @@ actor SDEDataManager {
 
     private func download(tag: String) async {
         let baseURLString = "https://data.eveship.fit/\(tag)/sde/"
-        await Logger.sdeData.info("[SDEDataManager] Downloading SDE protobuf data (tag: \(tag, privacy: .public))…")
+        await Logger.sdeData.info("[SDEDataManager] Downloading SDE protobuf data (tag: \(tag))…")
 
         let session = makeSession()
         var allSucceeded = true
@@ -141,15 +141,15 @@ actor SDEDataManager {
                         let (data, response) = try await session.data(for: req)
                         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
                             let code = (response as? HTTPURLResponse)?.statusCode ?? -1
-                            await Logger.sdeData.info("[SDEDataManager] HTTP \(code) for \(file, privacy: .public)")
+                            await Logger.sdeData.info("[SDEDataManager] HTTP \(code) for \(file)")
                             return false
                         }
                         let dest = Self.cacheDir.appendingPathComponent(file)
                         try data.write(to: dest, options: .atomic)
-                        await Logger.sdeData.info("[SDEDataManager] ✓ \(file, privacy: .public) (\(data.count / 1024) KB)")
+                        await Logger.sdeData.info("[SDEDataManager] ✓ \(file) (\(data.count / 1024) KB)")
                         return true
                     } catch {
-                        await Logger.sdeData.error("[SDEDataManager] Download failed for \(file, privacy: .public): \(error.localizedDescription, privacy: .public)")
+                        await Logger.sdeData.error("[SDEDataManager] Download failed for \(file): \(error.localizedDescription)")
                         return false
                     }
                 }
@@ -162,9 +162,9 @@ actor SDEDataManager {
 
         if allSucceeded {
             saveMeta(tag: tag)
-            await Logger.sdeData.info("\("SDEDataManager", privacy: .public) All SDE files downloaded successfully (tag: \(tag, privacy: .public))")
+            await Logger.sdeData.info("SDEDataManager All SDE files downloaded successfully (tag: \(tag))")
         } else {
-            await Logger.sdeData.error("\("SDEDataManager", privacy: .public) One or more SDE files failed to download")
+            await Logger.sdeData.error("SDEDataManager One or more SDE files failed to download")
         }
     }
 
@@ -182,7 +182,7 @@ actor SDEDataManager {
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let tag  = json["tag_name"] as? String
         else {
-            await Logger.sdeData.error("\("SDEDataManager", privacy: .public) GitHub releases API fetch failed")
+            await Logger.sdeData.error("SDEDataManager GitHub releases API fetch failed")
             return nil
         }
         return tag

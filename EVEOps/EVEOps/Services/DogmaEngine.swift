@@ -116,9 +116,9 @@ final class DogmaEngine {
         handle = dogma_engine_create(pbDirPath)
         isReady = handle != nil
         if isReady {
-            Logger.dogmaEngine.info("[DogmaEngine] Loaded SDE data from \(pbDirPath, privacy: .public)")
+            Logger.dogmaEngine.info("[DogmaEngine] Loaded SDE data from \(pbDirPath)")
         } else {
-            Logger.dogmaEngine.info("[DogmaEngine] Failed to load SDE data — check .pb2 files at \(pbDirPath, privacy: .public)")
+            Logger.dogmaEngine.info("[DogmaEngine] Failed to load SDE data — check .pb2 files at \(pbDirPath)")
         }
     }
 
@@ -136,7 +136,7 @@ final class DogmaEngine {
         passiveModuleTypeIds: Set<Int> = []
     ) -> SimStats {
         guard let handle, isReady else {
-            Logger.dogmaEngine.warning("[DogmaEngine] calculate() called before engine is ready (shipTypeId=\(shipTypeId, privacy: .public))")
+            Logger.dogmaEngine.warning("[DogmaEngine] calculate() called before engine is ready (shipTypeId=\(shipTypeId))")
             return SimStats()
         }
 
@@ -169,12 +169,12 @@ final class DogmaEngine {
               let fitStr     = String(data: fitData,    encoding: .utf8),
               let skillStr   = String(data: skillsData, encoding: .utf8)
         else {
-            Logger.dogmaEngine.error("[DogmaEngine] JSON encoding failed — shipTypeId=\(shipTypeId, privacy: .public)")
+            Logger.dogmaEngine.error("[DogmaEngine] JSON encoding failed — shipTypeId=\(shipTypeId)")
             return SimStats()
         }
 
         guard let resultPtr = dogma_engine_calculate(handle, fitStr, skillStr) else {
-            Logger.dogmaEngine.error("[DogmaEngine] calculate() returned null — shipTypeId=\(shipTypeId, privacy: .public) modules=\(modules.count, privacy: .public) skills=\(skills.count, privacy: .public) implants=\(implantTypeIds.count, privacy: .public)")
+            Logger.dogmaEngine.error("[DogmaEngine] calculate() returned null — shipTypeId=\(shipTypeId) modules=\(modules.count) skills=\(skills.count) implants=\(implantTypeIds.count)")
             return SimStats()
         }
         defer { dogma_engine_free_string(resultPtr) }
@@ -184,7 +184,7 @@ final class DogmaEngine {
         guard let resultData = resultStr.data(using: .utf8),
               let raw = try? JSONDecoder().decode(FfiSimStats.self, from: resultData)
         else {
-            Logger.dogmaEngine.error("[DogmaEngine] Decode failed — shipTypeId=\(shipTypeId, privacy: .public) raw=\(resultStr, privacy: .public)")
+            Logger.dogmaEngine.error("[DogmaEngine] Decode failed — shipTypeId=\(shipTypeId) raw=\(resultStr)")
             return SimStats()
         }
 

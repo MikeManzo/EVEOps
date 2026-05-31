@@ -16,6 +16,7 @@ struct MainContentView: View {
     @Environment(APIStatusMonitor.self) private var apiStatus
     @Environment(\.scenePhase) private var scenePhase
     @State private var selectedSection: NavigationSection? = .dashboard
+    @AppStorage("showDiagnosticPane") private var showDiagnosticPane = false
 
     var body: some View {
         @Bindable var am = accountManager
@@ -38,6 +39,12 @@ struct MainContentView: View {
         }
         .navigationSplitViewStyle(.balanced)
         .frame(minWidth: 900, minHeight: 600)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if showDiagnosticPane {
+                DiagnosticPaneView()
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
         .onChange(of: accountManager.accounts.count) {
             if accountManager.accounts.isEmpty {
                 selectedSection = nil
@@ -48,6 +55,7 @@ struct MainContentView: View {
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .background {
                 Task { await ESIClient.shared.pruneCache() }
+                DiagnosticLogStore.shared.flushNow()
             }
         }
         .onChange(of: AppRouter.shared.pendingEFTURL) { _, url in
@@ -146,7 +154,7 @@ struct MainContentView: View {
     }
 }
 
-// MARK: - Reauth Banner
+// MARK:  Reauth Banner
 
 struct ReauthBanner: View {
     let characterNames: [String]

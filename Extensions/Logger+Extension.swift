@@ -11,7 +11,8 @@
 import OSLog
 
 extension Logger {
-    static var sdeData: Logger { Logger(subsystem: "CitizenCoder.EVEOps", category: "sdeData") }
-    static var dogmaEngine: Logger { Logger(subsystem: "CitizenCoder.EVEOps", category: "dogmaEngine") }
-    static var systemSearch: Logger { Logger(subsystem: "CitizenCoder.EVEOps", category: "systemSearch") }
+    static var app: EVELogger { EVELogger(category: "app") }
+    static var sdeData: EVELogger { EVELogger(category: "sdeData") }
+    static var dogmaEngine: EVELogger { EVELogger(category: "dogmaEngine") }
+    static var systemSearch: EVELogger { EVELogger(category: "systemSearch") }
 }

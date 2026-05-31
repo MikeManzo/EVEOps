@@ -677,6 +677,9 @@ private struct CacheTab: View {
 private struct AdvancedTab: View {
     @AppStorage("esiServer") private var esiServer: String = "tranquility"
     @AppStorage("debugMode") private var debugMode = false
+    @AppStorage("showDiagnosticPane") private var showDiagnosticPane = false
+    @AppStorage("diagMaxEntries") private var diagMaxEntries: Int = 1000
+    @AppStorage("diagMaxDays") private var diagMaxDays: Int = 7
 
     var body: some View {
         Form {
@@ -701,6 +704,30 @@ private struct AdvancedTab: View {
                 Text("Logs additional diagnostic information to the console.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                Toggle("Show diagnostic log pane", isOn: $showDiagnosticPane)
+                Text("Displays a live log viewer at the bottom of the main window.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Picker("Max log entries", selection: $diagMaxEntries) {
+                    Text("250").tag(250)
+                    Text("500").tag(500)
+                    Text("1,000").tag(1000)
+                    Text("2,500").tag(2500)
+                    Text("5,000").tag(5000)
+                }
+                .pickerStyle(.menu)
+                Picker("Keep logs for", selection: $diagMaxDays) {
+                    Text("1 day").tag(1)
+                    Text("3 days").tag(3)
+                    Text("7 days").tag(7)
+                    Text("14 days").tag(14)
+                    Text("30 days").tag(30)
+                }
+                .pickerStyle(.menu)
+                Button("Clear Log Now") {
+                    DiagnosticLogStore.shared.clear()
+                }
+                .foregroundStyle(.red)
             }
         }
         .formStyle(.grouped)

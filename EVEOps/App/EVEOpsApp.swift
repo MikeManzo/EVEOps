@@ -10,6 +10,7 @@
 
 import SwiftUI
 import SwiftData
+import OSLog
 import UserNotifications
 import CoreServices
 
@@ -101,6 +102,8 @@ struct EVEOpsApp: App {
         Task { @MainActor in
             bg.start(accountManager: manager)
             api.start()
+            DiagnosticLogStore.shared.load()
+            Logger.app.info("EVEOps started — diagnostic log active")
 
             // Configure presence tracker before starting the poll loop so it
             // has access to accounts and prefetched data from the first cycle.
