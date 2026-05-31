@@ -9,6 +9,7 @@
 //
 
 import Foundation
+import OSLog
 import SwiftData
 import SwiftUI
 
@@ -77,6 +78,7 @@ final class AccountManager {
                 existing.tokenExpiry = Date().addingTimeInterval(TimeInterval(tokenResponse.expiresIn))
                 existing.scopes = character.scopes
                 tokenVersion += 1
+                Logger.auth.info("Auth: Token updated for \(existing.characterName) (ID: \(existing.characterID))")
             } else {
                 let charInfo: ESICharacterPublic = try await ESIClient.shared.fetch(
                     "/characters/\(character.characterID)/"
@@ -105,6 +107,7 @@ final class AccountManager {
                     scopes: character.scopes
                 )
                 modelContext.insert(account)
+                Logger.auth.info("Auth: Account added — \(account.characterName) (ID: \(account.characterID))")
             }
 
             try modelContext.save()
@@ -116,6 +119,7 @@ final class AccountManager {
     }
 
     func removeAccount(_ account: StoredAccount) {
+        Logger.auth.info("Auth: Account removed — \(account.characterName) (ID: \(account.characterID))")
         modelContext.delete(account)
         try? modelContext.save()
         loadAccounts()
@@ -138,6 +142,7 @@ final class AccountManager {
             return tokenResponse.accessToken
         }
 
+        Logger.auth.info("Auth: Token expired for \(account.characterName) — refreshing")
         let task = Task<SSOTokenResponse, Error> {
             try await self.authenticator.refreshToken(account.refreshToken)
         }
@@ -151,12 +156,14 @@ final class AccountManager {
             account.tokenExpiry = Date().addingTimeInterval(TimeInterval(tokenResponse.expiresIn))
             account.needsReauth = false
             tokenVersion += 1
+            Logger.auth.info("Auth: Token refreshed successfully for \(account.characterName)")
             try? modelContext.save()
             return tokenResponse.accessToken
         } catch SSOError.refreshTokenExpired {
             // Refresh token is permanently invalid — user must log in again manually.
             refreshTasks.removeValue(forKey: charID)
             account.needsReauth = true
+            Logger.auth.error("Auth: Refresh token permanently expired for \(account.characterName) — manual reauth required")
             try? modelContext.save()
             throw SSOError.refreshTokenExpired
         } catch {
@@ -174,6 +181,7 @@ final class AccountManager {
             let tokenResponse = try await authenticator.authenticate()
             let character = try decodeJWT(tokenResponse.accessToken)
             guard character.characterID == account.characterID else {
+                Logger.auth.warning("Auth: Reauth failed — wrong character (expected \(account.characterName))")
                 self.error = "Wrong character. Please log in as \(account.characterName)."
                 isLoading = false
                 return
@@ -185,7 +193,9 @@ final class AccountManager {
             account.needsReauth = false
             try? modelContext.save()
             tokenVersion += 1
+            Logger.auth.info("Auth: Reauthorized \(account.characterName) successfully")
         } catch {
+            Logger.auth.error("Auth: Reauth error for \(account.characterName): \(error.localizedDescription)")
             self.error = error.localizedDescription
         }
         isLoading = false

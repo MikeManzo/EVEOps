@@ -9,6 +9,7 @@
 //
 
 import Foundation
+import OSLog
 
 /// Monitors ESI API reachability and exposes status for UI banners.
 @MainActor
@@ -48,6 +49,7 @@ final class APIStatusMonitor {
             let (_, response) = try await URLSession.shared.data(for: request)
             guard let http = response as? HTTPURLResponse else {
                 await MainActor.run {
+                    if self.isReachable { Logger.api.error("API: EVE servers unreachable — invalid HTTP response") }
                     self.isReachable = false
                     self.statusMessage = "Unable to reach EVE servers"
                 }
@@ -55,18 +57,22 @@ final class APIStatusMonitor {
             }
             await MainActor.run {
                 if (200...299).contains(http.statusCode) {
+                    if !self.isReachable { Logger.api.info("API: EVE servers reachable") }
                     self.isReachable = true
                     self.statusMessage = ""
                 } else if http.statusCode == 503 {
+                    if self.isReachable { Logger.api.warning("API: EVE servers unreachable — maintenance (503)") }
                     self.isReachable = false
                     self.statusMessage = "EVE servers are undergoing maintenance"
                 } else {
+                    if self.isReachable { Logger.api.error("API: EVE servers unreachable — HTTP \(http.statusCode)") }
                     self.isReachable = false
                     self.statusMessage = "EVE API returned an error (\(http.statusCode))"
                 }
             }
         } catch let error as URLError {
             await MainActor.run {
+                if self.isReachable { Logger.api.error("API: EVE servers unreachable — \(error.localizedDescription)") }
                 self.isReachable = false
                 switch error.code {
                 case .notConnectedToInternet:
@@ -79,6 +85,7 @@ final class APIStatusMonitor {
             }
         } catch {
             await MainActor.run {
+                if self.isReachable { Logger.api.error("API: EVE servers unreachable — \(error.localizedDescription)") }
                 self.isReachable = false
                 self.statusMessage = "Unable to reach EVE servers"
             }

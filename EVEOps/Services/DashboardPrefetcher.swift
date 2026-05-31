@@ -9,6 +9,7 @@
 //
 
 import Foundation
+import OSLog
 
 /// Prefetches all character data at app startup so every view loads instantly.
 /// Views check `data(for:)` and `resolvedName(_:)` before making their own API calls.
@@ -68,6 +69,7 @@ final class DashboardPrefetcher {
     func prefetchAll(accountManager: AccountManager) async {
         guard !isLoading else { return }
         isLoading = true
+        Logger.prefetch.info("Prefetcher: Starting prefetch for \(accountManager.accounts.count) account(s)")
         await ESIClient.shared.clearAllCaches()
 
         await withTaskGroup(of: (Int, PrefetchedCharacterData?).self) { group in
@@ -88,6 +90,7 @@ final class DashboardPrefetcher {
         await resolveAllCachedData(accountManager: accountManager)
 
         lastRefresh = Date()
+        Logger.prefetch.info("Prefetcher: Complete — \(characterData.count) character(s) loaded")
         isLoading = false
     }
 
@@ -177,6 +180,7 @@ final class DashboardPrefetcher {
                 fetchedAt: Date()
             )
         } catch {
+            await Logger.prefetch.error("Prefetcher: Failed to prefetch \(account.characterName) — \(error.localizedDescription)")
             return nil
         }
     }

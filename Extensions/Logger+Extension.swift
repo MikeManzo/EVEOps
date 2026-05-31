@@ -12,6 +12,10 @@ import OSLog
 
 extension Logger {
     static var app: EVELogger { EVELogger(category: "app") }
+    static var auth: EVELogger { EVELogger(category: "auth") }
+    static var network: EVELogger { EVELogger(category: "network") }
+    static var prefetch: EVELogger { EVELogger(category: "prefetch") }
+    static var api: EVELogger { EVELogger(category: "api") }
     static var sdeData: EVELogger { EVELogger(category: "sdeData") }
     static var dogmaEngine: EVELogger { EVELogger(category: "dogmaEngine") }
     static var systemSearch: EVELogger { EVELogger(category: "systemSearch") }

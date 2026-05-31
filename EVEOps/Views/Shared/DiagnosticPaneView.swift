@@ -93,7 +93,7 @@ struct DiagnosticPaneView: View {
             }
             .pickerStyle(.menu)
             .controlSize(.mini)
-            .frame(width: 64)
+            .fixedSize()
 
             HStack(spacing: 4) {
                 Image(systemName: "magnifyingglass")
@@ -249,10 +249,15 @@ private struct LogEntryRow: View {
 
 private func diagCategoryColor(_ category: String) -> Color {
     switch category {
+    case "app":          return .green
+    case "auth":         return .yellow
+    case "network":      return .red
+    case "prefetch":     return .teal
+    case "api":          return .orange
     case "sdeData":      return .cyan
     case "dogmaEngine":  return .purple
     case "systemSearch": return .blue
-    default:             return .orange
+    default:             return .secondary
     }
 }
 

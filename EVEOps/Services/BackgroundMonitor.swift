@@ -9,6 +9,7 @@
 //
 
 import Foundation
+import OSLog
 
 @MainActor
 @Observable
@@ -59,6 +60,7 @@ final class BackgroundMonitor {
         let current = pollInterval
         guard current != lastKnownInterval || monitorTask == nil else { return }
         lastKnownInterval = current
+        Logger.prefetch.info("BackgroundMonitor: Poll interval set to \(Int(current))s — starting background task")
 
         monitorTask?.cancel()
         monitorTask = Task { [weak self] in
@@ -66,6 +68,7 @@ final class BackgroundMonitor {
                 try? await Task.sleep(for: .seconds(self?.pollInterval ?? 300))
                 guard !Task.isCancelled else { break }
 
+                Logger.prefetch.info("BackgroundMonitor: Poll cycle — refreshing \(accountManager.accounts.count) account(s)")
                 await accountManager.refreshPublicInfo()
                 let accounts = accountManager.accounts
                 await NotificationService.shared.checkForUpdates(accounts: accounts) { account in

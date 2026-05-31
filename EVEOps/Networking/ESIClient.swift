@@ -9,6 +9,7 @@
 //
 
 import Foundation
+import OSLog
 
 enum ESIError: LocalizedError {
     case invalidURL
@@ -121,6 +122,7 @@ actor ESIClient {
         do {
             (data, response) = try await session.data(for: request)
         } catch {
+            await Logger.network.error("ESI network error for \(endpoint): \(error.localizedDescription)")
             throw ESIError.networkError(error)
         }
 
@@ -131,13 +133,19 @@ actor ESIClient {
         switch httpResponse.statusCode {
         case 200...299:
             break
-        case 401: throw ESIError.unauthorized
-        case 403: throw ESIError.forbidden
+        case 401:
+            await Logger.network.error("ESI 401 Unauthorized: \(endpoint)")
+            throw ESIError.unauthorized
+        case 403:
+            await Logger.network.error("ESI 403 Forbidden: \(endpoint)")
+            throw ESIError.forbidden
         case 420:
             let retryAfter = Int(httpResponse.value(forHTTPHeaderField: "Retry-After") ?? "60") ?? 60
+            await Logger.network.warning("ESI 420 Rate Limited: retry after \(retryAfter)s — \(endpoint)")
             throw ESIError.rateLimited(retryAfter: retryAfter)
         default:
             let body = String(data: data, encoding: .utf8) ?? "Unknown error"
+            await Logger.network.error("ESI \(httpResponse.statusCode) for \(endpoint): \(body)")
             throw ESIError.serverError(statusCode: httpResponse.statusCode, message: body)
         }
 
