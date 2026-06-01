@@ -54,6 +54,7 @@ struct SSOConfiguration: Sendable {
             "esi-fleets.write_fleet.v1",
             "esi-characters.read_notifications.v1",
             "esi-corporations.read_structures.v1",
+            "esi-corporations.read_divisions.v1",
             "esi-corporations.read_corporation_membership.v1",
             "esi-industry.read_corporation_jobs.v1",
             "esi-assets.read_corporation_assets.v1",

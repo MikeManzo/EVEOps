@@ -333,7 +333,7 @@ actor ESIClient {
         }
     }
 
-    func fetchPages<T: Decodable>(_ endpoint: String, token: String? = nil) async throws -> [T] {
+    func fetchPages<T: Decodable>(_ endpoint: String, token: String? = nil, bypassCache: Bool = false) async throws -> [T] {
         guard var components = URLComponents(string: "\(baseURL)\(endpoint)") else {
             throw ESIError.invalidURL
         }
@@ -344,7 +344,7 @@ actor ESIClient {
         let cacheKey = url.absoluteString
 
         // Check cache for page 1
-        if let cached = responseCache[cacheKey], cached.expires > Date() {
+        if !bypassCache, let cached = responseCache[cacheKey], cached.expires > Date() {
             // For paginated responses we only cache single-page results
             if let results = try? decoder.decode([T].self, from: cached.data) {
                 return results

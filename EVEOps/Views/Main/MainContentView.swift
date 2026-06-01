@@ -92,6 +92,8 @@ struct MainContentView: View {
             // Corporation
             case .corpAssets:
                 CorporationAssetsView()
+            case .corpHangars:
+                CorporationHangarsView()
             case .corpIndustry:
                 CorporationIndustryView()
             case .corpMembers:

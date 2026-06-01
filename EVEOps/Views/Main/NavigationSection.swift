@@ -41,6 +41,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
     case research = "Research Agents"
     // Corporation
     case corpAssets = "Corp Assets"
+    case corpHangars = "Corp Hangars"
     case corpIndustry = "Corp Industry"
     case corpMembers = "Corp Members"
     case corpStructures = "Corp Structures"
@@ -64,6 +65,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
         case .training: return "graduationcap.fill"
         case .finances: return "banknote.fill"
         case .assets, .corpAssets: return "shippingbox.fill"
+        case .corpHangars: return "archivebox.fill"
         case .clones: return "person.2.fill"
         case .colonies: return "globe.americas.fill"
         case .contracts: return "doc.text.fill"
@@ -117,7 +119,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
     }
 
     static var corporationSections: [NavigationSection] {
-        [.corpAssets, .corpIndustry, .corpMembers, .corpStructures, .corpWallets,
+        [.corpAssets, .corpHangars, .corpIndustry, .corpMembers, .corpStructures, .corpWallets,
          .corpContracts, .corpKillmails, .corpMarketOrders, .corpMining, .corpWars, .corpMoonExtractions]
     }
 

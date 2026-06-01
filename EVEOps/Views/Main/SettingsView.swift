@@ -563,6 +563,7 @@ private struct CacheTab: View {
     @State private var nameCacheSize: String = "Calculating\u{2026}"
     @State private var isClearingUniverse = false
     @State private var isClearingNames = false
+    @State private var isClearingESI = false
     @State private var isRefreshing = false
     @State private var sdeTag: String?
 
@@ -596,6 +597,20 @@ private struct CacheTab: View {
                 }
                 .disabled(isClearingNames)
                 Text("Stores resolved names for characters, corporations, systems, and skills.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section("ESI Response Cache") {
+                Button(isClearingESI ? "Clearing…" : "Clear ESI Cache") {
+                    Task {
+                        isClearingESI = true
+                        await ESIClient.shared.clearAllCaches()
+                        isClearingESI = false
+                    }
+                }
+                .disabled(isClearingESI)
+                Text("Clears cached ESI responses so the next load fetches live data. Useful when assets or locations appear out of date.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

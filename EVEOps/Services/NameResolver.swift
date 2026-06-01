@@ -118,11 +118,18 @@ actor NameResolver {
                 return station.name
             }
         }
-        // Player-owned structure IDs: large 64-bit values
-        else if id > 1_000_000_000, let token {
-            if let structure: ESIStructure = try? await ESIClient.shared.fetch(
-                "/universe/structures/\(id)/", token: token
-            ) {
+        // Player-owned structure IDs: large 64-bit values.
+        // Try authenticated first (private structures where character has docking access),
+        // then unauthenticated for public freeports/trade hubs.
+        else if id > 1_000_000_000 {
+            var resolvedStructure: ESIStructure?
+            if let token {
+                resolvedStructure = try? await ESIClient.shared.fetch("/universe/structures/\(id)/", token: token)
+            }
+            if resolvedStructure == nil {
+                resolvedStructure = try? await ESIClient.shared.fetch("/universe/structures/\(id)/")
+            }
+            if let structure = resolvedStructure {
                 cache[id] = structure.name
                 dirty = true
                 saveToDisk()

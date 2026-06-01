@@ -420,6 +420,16 @@ nonisolated struct ESICorporationHistory: Codable, Sendable {
     let startDate: Date
 }
 
+nonisolated struct ESICorporationDivisions: Codable, Sendable {
+    let hangar: [ESIDivisionEntry]?
+    let wallet: [ESIDivisionEntry]?
+}
+
+nonisolated struct ESIDivisionEntry: Codable, Sendable {
+    let division: Int
+    let name: String?
+}
+
 nonisolated struct ESICorporationStructure: Codable, Sendable, Identifiable {
     let corporationId: Int
     let fuelExpires: Date?
