@@ -1402,7 +1402,6 @@ struct ModuleDetailPopover: View {
     let name: String?
     let quantity: Int
 
-    @Environment(\.openWindow) private var openWindow
     @State private var esiType: ESIType?
     @State private var groupName: String?
 
@@ -1496,7 +1495,7 @@ struct ModuleDetailPopover: View {
         Divider()
 
         Button {
-            openWindow(value: GalaxyMarketSearchInput(typeId: typeId, typeName: name ?? "Type #\(typeId)"))
+            WindowService.shared.showGalaxySearch(typeId: typeId, typeName: name ?? "Type #\(typeId)")
         } label: {
             Label("Find in Galaxy", systemImage: "globe.europe.africa.fill")
                 .frame(maxWidth: .infinity)

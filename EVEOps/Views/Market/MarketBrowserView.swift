@@ -261,7 +261,6 @@ struct MarketBrowserView: View {
     @State private var historyDays = 90
     @State private var openInEVEMessage: String?
     @State private var insightResetKey = ""
-    @Environment(\.openWindow) private var openWindow
 
     // Persisted pane sizes — written only on drag end to avoid UserDefaults
     // writes at 60 Hz, which would cause re-render jitter during dragging.
@@ -319,7 +318,7 @@ struct MarketBrowserView: View {
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .automatic) {
             Button {
-                openWindow(value: GalaxyMarketSearchInput(typeId: selectedTypeId, typeName: selectedTypeName))
+                WindowService.shared.showGalaxySearch(typeId: selectedTypeId, typeName: selectedTypeName)
             } label: {
                 Label("Galaxy Search", systemImage: "globe.europe.africa.fill")
             }

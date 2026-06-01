@@ -397,7 +397,6 @@ struct SimModuleDragPreview: View {
 struct SimModulePopover: View {
     let slot: SimSlot
     @Environment(SimulatorState.self) private var simState
-    @Environment(\.openWindow) private var openWindow
 
     // Always read live from simState — the `slot` parameter is a frozen value-type copy.
     private var liveTypeId: Int? {
@@ -476,7 +475,7 @@ struct SimModulePopover: View {
                     Divider().frame(height: 30)
 
                     Button {
-                        openWindow(value: GalaxyMarketSearchInput(typeId: typeId, typeName: t.name))
+                        WindowService.shared.showGalaxySearch(typeId: typeId, typeName: t.name)
                     } label: {
                         Label("Market", systemImage: "globe.europe.africa.fill")
                             .font(.caption).frame(maxWidth: .infinity)

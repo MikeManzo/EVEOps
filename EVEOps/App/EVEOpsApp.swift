@@ -27,12 +27,15 @@ final class AppRouter {
 // notifications straight to Notification Center with no banner.
 class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
     func applicationWillFinishLaunching(_ notification: Notification) {
-        // Replaces LSUIElement = YES so iconservicesd can serve our UTI icons
-        // while keeping the app hidden from the Dock and App Switcher.
+        // Lock the activation policy before SwiftUI scenes (Settings) can promote the app
+        // to .regular. Calling this in didFinishLaunching is too late — scenes init first.
         NSApp.setActivationPolicy(.accessory)
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        
+        NSApp.setActivationPolicy(.accessory)
+        
         UNUserNotificationCenter.current().delegate = self
         // Re-register UTIs (including the .eft document type icon) with Launch Services
         // on every launch so Finder always shows the correct icon without manual lsregister.
@@ -79,7 +82,7 @@ struct EVEOpsApp: App {
     @State private var prefetcher: DashboardPrefetcher
     @State private var apiStatusMonitor: APIStatusMonitor
     @State private var presenceTracker: PresenceTracker
-    @State private var appUpdater = AppUpdater()
+    @State private var appUpdater: AppUpdater
     @AppStorage("colorScheme") private var colorSchemePref: String = "system"
 
     private var resolvedColorScheme: ColorScheme? {
@@ -96,12 +99,23 @@ struct EVEOpsApp: App {
         let pf = DashboardPrefetcher()
         let api = APIStatusMonitor()
         let tracker = PresenceTracker()
+        let updater = AppUpdater()
 
         _accountManager = State(initialValue: manager)
         _backgroundMonitor = State(initialValue: bg)
         _prefetcher = State(initialValue: pf)
         _apiStatusMonitor = State(initialValue: api)
         _presenceTracker = State(initialValue: tracker)
+        _appUpdater = State(initialValue: updater)
+
+        WindowService.shared.configure(
+            accountManager: manager,
+            prefetcher: pf,
+            apiStatusMonitor: api,
+            presenceTracker: tracker,
+            modelContainer: sharedModelContainer,
+            appUpdater: updater
+        )
 
         Task { @MainActor in
             bg.start(accountManager: manager)
@@ -124,38 +138,6 @@ struct EVEOpsApp: App {
     }
 
     var body: some Scene {
-        Window("EVEOps", id: "main") {
-            MainContentView()
-                .environment(accountManager)
-                .environment(prefetcher)
-                .environment(apiStatusMonitor)
-                .environment(presenceTracker)
-                .preferredColorScheme(resolvedColorScheme)
-        }
-        .modelContainer(sharedModelContainer)
-        .windowStyle(.automatic)
-        .defaultSize(width: 1100, height: 700)
-        .defaultLaunchBehavior(.suppressed)
-
-        WindowGroup(for: GalaxyMarketSearchInput.self) { $input in
-            GalaxyMarketSearchView(
-                initialTypeId: input?.typeId,
-                initialTypeName: input?.typeName ?? ""
-            )
-            .environment(accountManager)
-            .environment(prefetcher)
-            .preferredColorScheme(resolvedColorScheme)
-        }
-        .defaultSize(width: 1100, height: 680)
-
-        Settings {
-            SettingsView()
-                .environment(accountManager)
-                .environment(prefetcher)
-                .environment(appUpdater)
-                .preferredColorScheme(resolvedColorScheme)
-        }
-
         MenuBarExtra {
             MenuBarView()
                 .environment(accountManager)

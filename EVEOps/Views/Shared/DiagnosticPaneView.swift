@@ -22,8 +22,18 @@ struct DiagnosticPaneView: View {
     private var filteredEntries: [LogEntry] {
         store.entries.filter { entry in
             (selectedCategory == nil || entry.category == selectedCategory) &&
-            entry.level >= minLevel &&
+            matchesLevelFilter(entry.level) &&
             (searchText.isEmpty || entry.message.localizedCaseInsensitiveContains(searchText))
+        }
+    }
+
+    private func matchesLevelFilter(_ level: LogEntry.Level) -> Bool {
+        switch minLevel {
+        case .debug:  return true
+        case .info:   return level == .info
+        case .notice: return level == .notice
+        case .error:  return level == .error || level == .fault
+        case .fault:  return level == .fault
         }
     }
 
@@ -52,8 +62,9 @@ struct DiagnosticPaneView: View {
             Divider().frame(height: 14)
 
             Picker("Level", selection: $minLevel) {
-                Text("All").tag(LogEntry.Level.debug)
-                Text("Info+").tag(LogEntry.Level.info)
+                Text("Debug").tag(LogEntry.Level.debug)
+                Text("Info").tag(LogEntry.Level.info)
+                Text("Warnings").tag(LogEntry.Level.notice)
                 Text("Errors").tag(LogEntry.Level.error)
             }
             .pickerStyle(.menu)
@@ -183,7 +194,7 @@ private struct LogEntryRow: View {
             Text(diagTimeFormatter.string(from: entry.date))
                 .font(.system(size: 10, design: .monospaced))
                 .foregroundStyle(.tertiary)
-                .frame(width: 82, alignment: .leading)
+                .frame(width: 38, alignment: .leading)
 
             Text(entry.category)
                 .font(.system(size: 9, weight: .bold))
@@ -215,7 +226,7 @@ private struct LogEntryRow: View {
 
 private let diagTimeFormatter: DateFormatter = {
     let f = DateFormatter()
-    f.dateFormat = "HH:mm:ss.SSS"
+    f.dateFormat = "HH:mm"
     return f
 }()
 
@@ -235,10 +246,9 @@ private func diagCategoryColor(_ category: String) -> Color {
 
 private func diagLevelColor(_ level: LogEntry.Level) -> Color {
     switch level {
-    case .debug:         return .secondary
-    case .info, .notice: return .primary
-    case .error:         return .orange
-    case .fault:         return .red
+    case .debug, .info:  return .white
+    case .notice:        return .yellow
+    case .error, .fault: return .red
     }
 }
 
