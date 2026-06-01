@@ -279,6 +279,11 @@ struct CorporationHangarsView: View {
                                             .foregroundStyle(.orange)
                                     }
                                 }
+                                if let name = asset.customName {
+                                    Text(name)
+                                        .font(.caption.italic())
+                                        .foregroundStyle(.primary.opacity(0.7))
+                                }
                                 if locations.count > 1 || selectedLocationID == nil {
                                     Text(asset.locationName)
                                         .font(.caption)
@@ -389,6 +394,22 @@ struct CorporationHangarsView: View {
                 }
             }
 
+            // Fetch custom names for singleton items (ships, assembled containers).
+            // The ESI endpoint only returns entries for items that actually have a player-set name.
+            let singletonIDs = hangarRaw.filter(\.isSingleton).map(\.itemId)
+            var customNames: [Int: String] = [:]
+            if !singletonIDs.isEmpty {
+                if let nameEntries: [ESIAssetName] = try? await ESIClient.shared.post(
+                    "/corporations/\(account.corporationID)/assets/names/",
+                    body: singletonIDs,
+                    token: token
+                ) {
+                    for entry in nameEntries where !entry.name.isEmpty {
+                        customNames[entry.itemId] = entry.name
+                    }
+                }
+            }
+
             allHangarAssets = hangarRaw.map { asset in
                 let effId = effectiveLocIdMap[asset.locationId] ?? asset.locationId
                 return ResolvedAsset(
@@ -400,7 +421,8 @@ struct CorporationHangarsView: View {
                     locationName: locNames[effId] ?? "Unknown Location",
                     locationFlag: asset.locationFlag,
                     isBlueprintCopy: asset.isBlueprintCopy ?? false,
-                    isSingleton: asset.isSingleton
+                    isSingleton: asset.isSingleton,
+                    customName: customNames[asset.itemId]
                 )
             }.sorted { $0.typeName < $1.typeName }
 

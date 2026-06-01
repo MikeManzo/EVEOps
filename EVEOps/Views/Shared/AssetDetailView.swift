@@ -125,6 +125,9 @@ struct AssetDetailView: View {
                 .font(.subheadline.bold())
                 .foregroundStyle(.secondary)
 
+            if let name = asset.customName {
+                infoRow(label: "Custom Name", value: name)
+            }
             infoRow(label: "Quantity", value: "\(asset.quantity)")
             infoRow(label: "Location", value: asset.locationName)
             infoRow(label: "Location Flag", value: formatLocationFlag(asset.locationFlag))

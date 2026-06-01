@@ -14,26 +14,96 @@ import Sparkle
 import FoundationModels
 
 struct SettingsView: View {
+    @State private var selection: SettingsSection? = .accounts
+
     var body: some View {
-        TabView {
-            AccountsTab()
-                .tabItem { Label("Accounts", systemImage: "person.2") }
-            GeneralTab()
-                .tabItem { Label("General", systemImage: "gearshape") }
-            AppearanceTab()
-                .tabItem { Label("Appearance", systemImage: "paintbrush") }
-            NotificationsTab()
-                .tabItem { Label("Notifications", systemImage: "bell") }
-            CacheTab()
-                .tabItem { Label("Cache & Data", systemImage: "internaldrive") }
-            AdvancedTab()
-                .tabItem { Label("Advanced", systemImage: "terminal") }
-            IntelligenceTab()
-                .tabItem { Label("Intelligence", systemImage: "brain") }
-            AboutTab()
-                .tabItem { Label("About", systemImage: "info.circle") }
+        NavigationSplitView {
+            List(SettingsSection.allCases, id: \.self, selection: $selection) { section in
+                SettingsSidebarRow(section: section)
+            }
+            .listStyle(.sidebar)
+            .navigationSplitViewColumnWidth(min: 160, ideal: 200, max: 260)
+        } detail: {
+            let current = selection ?? .accounts
+            Group {
+                switch current {
+                case .accounts:      AccountsTab()
+                case .general:       GeneralTab()
+                case .appearance:    AppearanceTab()
+                case .notifications: NotificationsTab()
+                case .cache:         CacheTab()
+                case .advanced:      AdvancedTab()
+                case .intelligence:  IntelligenceTab()
+                case .about:         AboutTab()
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .navigationTitle(current.title)
         }
-        .frame(width: 580, height: 460)
+        .frame(width: 780, height: 540)
+    }
+}
+
+// MARK: - Sidebar Navigation Model
+
+private enum SettingsSection: String, CaseIterable, Identifiable, Hashable {
+    case accounts, general, appearance, notifications, cache, advanced, intelligence, about
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .accounts:      "Accounts"
+        case .general:       "General"
+        case .appearance:    "Appearance"
+        case .notifications: "Notifications"
+        case .cache:         "Cache & Data"
+        case .advanced:      "Advanced"
+        case .intelligence:  "Intelligence"
+        case .about:         "About"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .accounts:      "person.2.fill"
+        case .general:       "gearshape.fill"
+        case .appearance:    "paintbrush.fill"
+        case .notifications: "bell.fill"
+        case .cache:         "internaldrive.fill"
+        case .advanced:      "terminal.fill"
+        case .intelligence:  "brain"
+        case .about:         "info.circle.fill"
+        }
+    }
+
+    var iconColor: Color {
+        switch self {
+        case .accounts:      .blue
+        case .general:       .gray
+        case .appearance:    .purple
+        case .notifications: .red
+        case .cache:         .green
+        case .advanced:      Color(white: 0.25)
+        case .intelligence:  .indigo
+        case .about:         .teal
+        }
+    }
+}
+
+private struct SettingsSidebarRow: View {
+    let section: SettingsSection
+
+    var body: some View {
+        Label {
+            Text(section.title)
+        } icon: {
+            Image(systemName: section.icon)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 26, height: 26)
+                .background(section.iconColor, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+        }
     }
 }
 

@@ -258,6 +258,7 @@ struct ResolvedAsset: Identifiable, Hashable {
     var locationFlag: String = ""
     var isBlueprintCopy: Bool = false
     var isSingleton: Bool = false
+    var customName: String? = nil
 
     var id: Int { itemId }
 }
