@@ -122,7 +122,9 @@ actor ESIClient {
         do {
             (data, response) = try await session.data(for: request)
         } catch {
-            await Logger.network.error("ESI network error for \(endpoint): \(error.localizedDescription)")
+            if (error as? URLError)?.code != .cancelled {
+                await Logger.network.error("ESI network error for \(endpoint): \(error.localizedDescription)")
+            }
             throw ESIError.networkError(error)
         }
 

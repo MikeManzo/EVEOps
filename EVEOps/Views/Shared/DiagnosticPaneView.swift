@@ -15,6 +15,7 @@ struct DiagnosticPaneView: View {
     @State private var minLevel: LogEntry.Level = .debug
     @State private var searchText = ""
     @State private var autoScroll = true
+    @State private var selectedEntries: Set<LogEntry.ID> = []
 
     private let store = DiagnosticLogStore.shared
 
@@ -105,23 +106,39 @@ struct DiagnosticPaneView: View {
 
     private var logList: some View {
         ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 0) {
-                    ForEach(filteredEntries) { entry in
-                        LogEntryRow(entry: entry)
-                        Divider().padding(.leading, 8).opacity(0.4)
+            List(filteredEntries, selection: $selectedEntries) { entry in
+                LogEntryRow(entry: entry)
+                    .id(entry.id)
+                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                    .listRowSeparator(.hidden)
+            }
+            .listStyle(.plain)
+            .contextMenu(forSelectionType: LogEntry.ID.self) { ids in
+                if !ids.isEmpty {
+                    Button {
+                        copyEntries(ids)
+                    } label: {
+                        Label(
+                            ids.count == 1 ? "Copy Entry" : "Copy \(ids.count) Entries",
+                            systemImage: "doc.on.doc"
+                        )
                     }
-                    Color.clear.frame(height: 1).id("diag-bottom")
+                }
+            } primaryAction: { _ in }
+            .onChange(of: filteredEntries.count) {
+                if autoScroll, let last = filteredEntries.last {
+                    proxy.scrollTo(last.id, anchor: .bottom)
                 }
             }
-            .onChange(of: filteredEntries.count) {
-                if autoScroll { proxy.scrollTo("diag-bottom", anchor: .bottom) }
-            }
             .onChange(of: selectedCategory) {
-                if autoScroll { proxy.scrollTo("diag-bottom", anchor: .bottom) }
+                if autoScroll, let last = filteredEntries.last {
+                    proxy.scrollTo(last.id, anchor: .bottom)
+                }
             }
             .onChange(of: minLevel) {
-                if autoScroll { proxy.scrollTo("diag-bottom", anchor: .bottom) }
+                if autoScroll, let last = filteredEntries.last {
+                    proxy.scrollTo(last.id, anchor: .bottom)
+                }
             }
         }
     }
@@ -145,6 +162,15 @@ struct DiagnosticPaneView: View {
         }
         .buttonStyle(.plain)
     }
+
+    private func copyEntries(_ ids: Set<LogEntry.ID>) {
+        let lines = filteredEntries
+            .filter { ids.contains($0.id) }
+            .map { "\(diagTimeFormatter.string(from: $0.date))  [\($0.category)]  \($0.message)" }
+            .joined(separator: "\n")
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(lines, forType: .string)
+    }
 }
 
 // MARK:  Log Entry Row
@@ -152,15 +178,9 @@ struct DiagnosticPaneView: View {
 private struct LogEntryRow: View {
     let entry: LogEntry
 
-    private static let timeFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "HH:mm:ss.SSS"
-        return f
-    }()
-
     var body: some View {
         HStack(spacing: 6) {
-            Text(Self.timeFormatter.string(from: entry.date))
+            Text(diagTimeFormatter.string(from: entry.date))
                 .font(.system(size: 10, design: .monospaced))
                 .foregroundStyle(.tertiary)
                 .frame(width: 82, alignment: .leading)
@@ -183,25 +203,21 @@ private struct LogEntryRow: View {
                 .font(.system(size: 11, design: .monospaced))
                 .foregroundStyle(diagLevelColor(entry.level))
                 .lineLimit(1)
-                .textSelection(.enabled)
 
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 3)
-        .contextMenu {
-            Button {
-                let line = "\(Self.timeFormatter.string(from: entry.date))  [\(entry.category)]  \(entry.message)"
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(line, forType: .string)
-            } label: {
-                Label("Copy Entry", systemImage: "doc.on.doc")
-            }
-        }
     }
 }
 
 // MARK:  Helpers (file-private)
+
+private let diagTimeFormatter: DateFormatter = {
+    let f = DateFormatter()
+    f.dateFormat = "HH:mm:ss.SSS"
+    return f
+}()
 
 private func diagCategoryColor(_ category: String) -> Color {
     switch category {
