@@ -11,19 +11,12 @@
 import SwiftUI
 
 struct DiagnosticPaneView: View {
-    @State private var paneHeight: CGFloat = 180
-    @GestureState private var dragDelta: CGFloat = 0
     @State private var selectedCategory: String? = nil
     @State private var minLevel: LogEntry.Level = .debug
     @State private var searchText = ""
     @State private var autoScroll = true
-    @AppStorage("showDiagnosticPane") private var isVisible = true
 
     private let store = DiagnosticLogStore.shared
-
-    private var displayHeight: CGFloat {
-        max(100, min(400, paneHeight - dragDelta))
-    }
 
     private var filteredEntries: [LogEntry] {
         store.entries.filter { entry in
@@ -39,39 +32,10 @@ struct DiagnosticPaneView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            grabHandle
             toolbar
             Divider()
             logList
         }
-        .frame(height: 400, alignment: .top)   // inner layout is always stable
-        .frame(height: displayHeight, alignment: .top)  // only the clip boundary moves
-        .clipped()
-        .background(.background)
-        .overlay(alignment: .top) { Divider() }
-    }
-
-    // MARK:  Grab Handle
-
-    private var grabHandle: some View {
-        HStack {
-            Spacer()
-            RoundedRectangle(cornerRadius: 2)
-                .fill(.secondary.opacity(0.35))
-                .frame(width: 36, height: 3)
-            Spacer()
-        }
-        .frame(height: 14)
-        .contentShape(Rectangle())
-        .gesture(
-            DragGesture(minimumDistance: 1)
-                .updating($dragDelta) { value, state, _ in
-                    state = value.translation.height
-                }
-                .onEnded { value in
-                    paneHeight = max(100, min(400, paneHeight - value.translation.height))
-                }
-        )
     }
 
     // MARK:  Toolbar
@@ -132,14 +96,6 @@ struct DiagnosticPaneView: View {
             }
             .buttonStyle(.plain)
             .help("Clear log entries")
-
-            Button { isVisible = false } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(.secondary)
-            }
-            .buttonStyle(.plain)
-            .help("Hide diagnostic pane")
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 5)

@@ -43,7 +43,7 @@ final class DiagnosticLogStore {
 
     private static let flushThreshold = 25
 
-    private static let storageURL: URL = {
+    static let storageURL: URL = {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         return base.appendingPathComponent("EVEOps/diagnostics.json")
     }()
@@ -93,6 +93,21 @@ final class DiagnosticLogStore {
         guard !entries.isEmpty else { return }
         unsavedCount = 0
         flush()
+    }
+
+    func flushSync() {
+        guard !entries.isEmpty else { return }
+        unsavedCount = 0
+        let snapshot = entries
+        let url = Self.storageURL
+        do {
+            try FileManager.default.createDirectory(
+                at: url.deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
+            let data = try JSONEncoder().encode(snapshot)
+            try data.write(to: url, options: .atomic)
+        } catch {}
     }
 
     func clear() {

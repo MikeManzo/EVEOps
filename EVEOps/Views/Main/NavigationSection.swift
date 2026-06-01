@@ -52,6 +52,9 @@ enum NavigationSection: String, CaseIterable, Identifiable {
     case corpWars = "Corp Wars"
     case corpMoonExtractions = "Moon Extractions"
 
+    // Utility
+    case diagnosticLogs = "Diagnostic Logs"
+
     var id: String { rawValue }
 
     var iconName: String {
@@ -89,6 +92,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
         case .remapAdvisor: return "brain.filled.head.profile"
         case .research: return "atom"
         case .corpMoonExtractions: return "moon.fill"
+        case .diagnosticLogs: return "terminal"
         }
     }
 
@@ -115,5 +119,9 @@ enum NavigationSection: String, CaseIterable, Identifiable {
     static var corporationSections: [NavigationSection] {
         [.corpAssets, .corpIndustry, .corpMembers, .corpStructures, .corpWallets,
          .corpContracts, .corpKillmails, .corpMarketOrders, .corpMining, .corpWars, .corpMoonExtractions]
+    }
+
+    static var utilitySections: [NavigationSection] {
+        [.diagnosticLogs]
     }
 }

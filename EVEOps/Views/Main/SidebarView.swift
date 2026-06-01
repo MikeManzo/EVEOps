@@ -20,6 +20,8 @@ struct SidebarView: View {
     @AppStorage("sidebar.socialExpanded") private var socialExpanded = true
     @AppStorage("sidebar.universeExpanded") private var universeExpanded = true
     @AppStorage("sidebar.corpExpanded") private var corpExpanded = true
+    @AppStorage("sidebar.utilityExpanded") private var utilityExpanded = true
+    @AppStorage("sidebar.showUtility") private var showUtilitySection = true
     @State private var todayEventCount = 0
 
     var body: some View {
@@ -185,6 +187,23 @@ struct SidebarView: View {
                             Text("Corp: \(account.corporationName)")
                                 .font(.title3) // Adjust size here
                                 .textCase(.none) // Optional: prevents default uppercase styling
+                        }
+                    )
+                }
+
+                if showUtilitySection {
+                    Section(
+                        isExpanded: $utilityExpanded,
+                        content: {
+                            ForEach(NavigationSection.utilitySections) { section in
+                                Label(section.rawValue, systemImage: section.iconName)
+                                    .tag(section)
+                            }
+                        },
+                        header: {
+                            Text("Utility")
+                                .font(.title3)
+                                .textCase(.none)
                         }
                     )
                 }

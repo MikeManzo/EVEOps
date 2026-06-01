@@ -677,9 +677,25 @@ private struct CacheTab: View {
 private struct AdvancedTab: View {
     @AppStorage("esiServer") private var esiServer: String = "tranquility"
     @AppStorage("debugMode") private var debugMode = false
-    @AppStorage("showDiagnosticPane") private var showDiagnosticPane = false
+    @AppStorage("sidebar.showUtility") private var showUtilitySection = true
     @AppStorage("diagMaxEntries") private var diagMaxEntries: Int = 1000
     @AppStorage("diagMaxDays") private var diagMaxDays: Int = 7
+
+    private var logStore: DiagnosticLogStore { DiagnosticLogStore.shared }
+    @State private var logFileSize: String = ""
+
+    private func refreshFileSize() {
+        let path = DiagnosticLogStore.storageURL.path
+        if let attrs = try? FileManager.default.attributesOfItem(atPath: path),
+           let bytes = attrs[.size] as? Int64, bytes > 0 {
+            logFileSize = ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
+        } else if !logStore.entries.isEmpty,
+                  let data = try? JSONEncoder().encode(logStore.entries) {
+            logFileSize = ByteCountFormatter.string(fromByteCount: Int64(data.count), countStyle: .file)
+        } else {
+            logFileSize = "0 KB"
+        }
+    }
 
     var body: some View {
         Form {
@@ -704,8 +720,8 @@ private struct AdvancedTab: View {
                 Text("Logs additional diagnostic information to the console.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Toggle("Show diagnostic log pane", isOn: $showDiagnosticPane)
-                Text("Displays a live log viewer at the bottom of the main window.")
+                Toggle("Show Utility section in sidebar", isOn: $showUtilitySection)
+                Text("Displays the Utility section containing the Diagnostic Logs viewer.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Picker("Max log entries", selection: $diagMaxEntries) {
@@ -724,10 +740,20 @@ private struct AdvancedTab: View {
                     Text("30 days").tag(30)
                 }
                 .pickerStyle(.menu)
-                Button("Clear Log Now") {
-                    DiagnosticLogStore.shared.clear()
+                HStack {
+                    Button("Clear Log Now") {
+                        logStore.clear()
+                        refreshFileSize()
+                    }
+                    .foregroundStyle(.red)
+                    if !logFileSize.isEmpty {
+                        Text(logFileSize)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
-                .foregroundStyle(.red)
+                .onAppear { refreshFileSize() }
+                .onChange(of: logStore.entries.count) { refreshFileSize() }
             }
         }
         .formStyle(.grouped)

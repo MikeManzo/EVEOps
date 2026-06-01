@@ -39,6 +39,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         LSRegisterURL(Bundle.main.bundleURL as CFURL, true)
     }
 
+    func applicationWillTerminate(_ notification: Notification) {
+        DiagnosticLogStore.shared.flushSync()
+    }
+
     func application(_ application: NSApplication, open urls: [URL]) {
         if let url = urls.first(where: { $0.pathExtension.lowercased() == "eft" }) {
             AppRouter.shared.pendingEFTURL = url
