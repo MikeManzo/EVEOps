@@ -573,8 +573,7 @@ struct SummaryGridView: View {
     private var nextJobFinish: Date?   { summaries.compactMap(\.nextJobFinish).min() }
 
     var body: some View {
-        let columns = [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())]
-        LazyVGrid(columns: columns, spacing: 8) {
+        HStack(spacing: 8) {
             MetricTileView(
                 icon: "creditcard.fill", color: .green,
                 value: EVEFormatters.formatISKShort(totalWealth),
@@ -590,7 +589,6 @@ struct SummaryGridView: View {
                 value: "\(onlineCount) / \(summaries.count)",
                 label: onlineCount == summaries.count ? "All Online" : "Online"
             )
-            // Training: show time remaining on current skill instead of a static count
             if emptyQueues > 0 {
                 MetricTileView(
                     icon: "exclamationmark.triangle.fill", color: .orange,
@@ -602,7 +600,7 @@ struct SummaryGridView: View {
                 MetricTileView(
                     icon: "graduationcap.fill", color: .green,
                     value: EVEFormatters.timeUntil(finish),
-                    label: "Next Skill Done",
+                    label: "Next Skill",
                     subLabel: "\(summaries.count == 1 ? "" : "\(summaries.count) queues · ")All training"
                 )
             } else {
@@ -612,7 +610,6 @@ struct SummaryGridView: View {
                     label: "Training"
                 )
             }
-            // Industry: show time to next completion instead of a static count
             if activeJobs == 0 {
                 MetricTileView(
                     icon: "hammer.fill", color: .secondary,
@@ -623,7 +620,7 @@ struct SummaryGridView: View {
                 MetricTileView(
                     icon: "hammer.fill", color: .purple,
                     value: EVEFormatters.timeUntil(next),
-                    label: "Next Job Done",
+                    label: "Next Job",
                     subLabel: "\(activeJobs) job\(activeJobs == 1 ? "" : "s") active"
                 )
             } else {
@@ -665,38 +662,56 @@ struct MetricTileView: View {
     var isAlert: Bool = false
 
     var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: icon)
-                .font(.title3)
-                .foregroundStyle(color)
-                .frame(width: 22, alignment: .center)
+        VStack(spacing: 0) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(color.opacity(0.18))
+                    .frame(width: 36, height: 36)
+                Image(systemName: icon)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(color)
+            }
+            .padding(.top, 12)
 
-            VStack(alignment: .leading, spacing: 1) {
-                Text(value)
-                    .font(.subheadline.bold().monospacedDigit())
+            Spacer(minLength: 6)
+
+            Text(value)
+                .font(.system(size: 13, weight: .bold).monospacedDigit())
+                .foregroundStyle(isAlert ? color : .primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.65)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 6)
+
+            Spacer(minLength: 2)
+
+            Text(label)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 4)
+
+            if let sub = subLabel {
+                Text(sub)
+                    .font(.system(size: 9))
+                    .foregroundStyle(.secondary.opacity(0.65))
                     .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-                Text(label)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                if let sub = subLabel {
-                    Text(sub)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary.opacity(0.65))
-                        .lineLimit(1)
-                }
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 4)
+                    .padding(.bottom, 2)
             }
 
-            Spacer(minLength: 0)
+            Spacer(minLength: 8)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(color.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
+        .frame(maxWidth: .infinity, minHeight: 82)
+        .background(
+            RoundedRectangle(cornerRadius: 11)
+                .fill(color.opacity(0.06))
+        )
         .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .strokeBorder(color.opacity(isAlert ? 0.45 : 0.15), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 11)
+                .strokeBorder(color.opacity(isAlert ? 0.50 : 0.18), lineWidth: 1)
         )
     }
 }
