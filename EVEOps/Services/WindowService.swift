@@ -76,8 +76,9 @@ final class WindowService {
         window.minSize = NSSize(width: 900, height: 600)
         window.setContentSize(NSSize(width: 1100, height: 700))
         window.isReleasedWhenClosed = false
+        let hasSavedFrame = window.setFrameUsingName("EVEOpsMainWindow")
         window.setFrameAutosaveName("EVEOpsMainWindow")
-        if NSWindow.frameRect(forContentRect: .zero, styleMask: window.styleMask).isEmpty {
+        if !hasSavedFrame {
             window.center()
         }
 

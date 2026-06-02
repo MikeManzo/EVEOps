@@ -214,7 +214,7 @@ struct TrainingOverviewView: View {
             Spacer()
 
             if info.queueEmpty {
-                Label("Queue Empty!", systemImage: "exclamationmark.triangle.fill")
+                Label("Training Queue Empty!", systemImage: "exclamationmark.triangle.fill")
                     .font(.caption.bold())
                     .foregroundStyle(.orange)
                     .padding(.horizontal, 8)
