@@ -1580,11 +1580,11 @@ struct CharacterHeroView: View {
     private var attributePillsRow: some View {
         HStack(spacing: 5) {
             if let attrs = liveAttributes {
-                attrPill("brain", label: "INT", value: attrs.intelligence, color: .blue)
-                attrPill("memorychip", label: "MEM", value: attrs.memory, color: .green)
-                attrPill("eye.fill", label: "PER", value: attrs.perception, color: .orange)
-                attrPill("bolt.fill", label: "WIL", value: attrs.willpower, color: .purple)
-                attrPill("person.wave.2.fill", label: "CHA", value: attrs.charisma, color: .pink)
+                attrPill("brain", label: "Intelligence", value: attrs.intelligence, color: .blue)
+                attrPill("memorychip", label: "Memory", value: attrs.memory, color: .green)
+                attrPill("eye.fill", label: "Perception", value: attrs.perception, color: .orange)
+                attrPill("bolt.fill", label: "Willpower", value: attrs.willpower, color: .purple)
+                attrPill("person.wave.2.fill", label: "Charisma", value: attrs.charisma, color: .pink)
             } else {
                 ForEach([("brain", "INT", Color.blue), ("memorychip", "MEM", Color.green), ("eye.fill", "PER", Color.orange), ("bolt.fill", "WIL", Color.purple), ("person.wave.2.fill", "CHA", Color.pink)], id: \.1) { icon, label, color in
                     HStack(spacing: 4) {
