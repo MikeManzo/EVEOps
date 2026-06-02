@@ -11,6 +11,13 @@
 import OSLog
 import SwiftUI
 
+enum HangarSortOrder: String, CaseIterable, Identifiable {
+    case name = "Name"
+    case quantity = "Quantity"
+    case value = "Value"
+    var id: String { rawValue }
+}
+
 struct CorporationHangarsView: View {
     @Environment(AccountManager.self) private var accountManager
     @State private var allHangarAssets: [ResolvedAsset] = []
@@ -24,6 +31,13 @@ struct CorporationHangarsView: View {
     @State private var searchText = ""
     @State private var needsDivisionsScope = false
     @State private var needsUniverseStructuresScope = false
+    @State private var hangarPrices: [Int: FuzzworkPrice] = [:]
+    @State private var itemTypeVolumes: [Int: Double] = [:]
+    @State private var itemTypeCategories: [Int: String] = [:]
+    @State private var sortOrder: HangarSortOrder = .name
+    @State private var groupByCategory = false
+    @State private var isAppraisingAll = false
+    @State private var loadID = 0
 
     private static let hangarFlags = [
         "CorpSAG1", "CorpSAG2", "CorpSAG3",
@@ -59,10 +73,36 @@ struct CorporationHangarsView: View {
             }
         }
         .navigationTitle("Corp Hangars")
-        .task { await loadHangars() }
+        .toolbar {
+            ToolbarItemGroup(placement: .primaryAction) {
+                Menu {
+                    Picker("Sort by", selection: $sortOrder) {
+                        ForEach(HangarSortOrder.allCases) { order in
+                            Text(order.rawValue).tag(order)
+                        }
+                    }
+                } label: {
+                    Label("Sort: \(sortOrder.rawValue)", systemImage: "arrow.up.arrow.down")
+                }
+
+                Toggle(isOn: $groupByCategory) {
+                    Label("Group", systemImage: groupByCategory ? "folder.fill" : "folder")
+                }
+                .toggleStyle(.button)
+                .help("Group items by category")
+
+                Button {
+                    loadID += 1
+                } label: {
+                    Label("Refresh", systemImage: "arrow.clockwise")
+                }
+                .help("Reload hangar contents")
+            }
+        }
+        .task(id: loadID) { await loadHangars() }
     }
 
-    // MARK:  Header
+    // MARK: Header
 
     private var hangarHeader: some View {
         HStack {
@@ -74,17 +114,45 @@ struct CorporationHangarsView: View {
                     .font(.title2.bold())
             }
             Spacer()
-            Text("\(allHangarAssets.count) total")
-                .font(.caption.monospacedDigit())
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(.quaternary, in: Capsule())
+            HStack(spacing: 12) {
+                if divisionVolume > 0 {
+                    VStack(alignment: .trailing, spacing: 1) {
+                        Text(formatVolume(divisionVolume))
+                            .font(.caption.monospacedDigit().bold())
+                        Text("m³")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                if isAppraisingAll {
+                    VStack(alignment: .trailing, spacing: 1) {
+                        ProgressView().controlSize(.small)
+                        Text("valuing…")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                } else if divisionBuyValue > 0 {
+                    VStack(alignment: .trailing, spacing: 1) {
+                        Text(EVEFormatters.formatISK(divisionBuyValue))
+                            .font(.caption.monospacedDigit().bold())
+                            .foregroundStyle(.green)
+                        Text("est. buy value")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Text("\(allHangarAssets.count) total")
+                    .font(.caption.monospacedDigit())
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(.quaternary, in: Capsule())
+            }
         }
         .padding()
         .background(.regularMaterial)
     }
 
-    // MARK:  Scope warning banner
+    // MARK: Scope warning banners
 
     private var scopeWarningBanner: some View {
         HStack(spacing: 8) {
@@ -114,8 +182,6 @@ struct CorporationHangarsView: View {
         .transition(.move(edge: .top).combined(with: .opacity))
     }
 
-    // MARK:  Structure scope warning banner
-
     private var structureScopeWarningBanner: some View {
         HStack(spacing: 8) {
             Image(systemName: "building.2.crop.circle.badge.xmark")
@@ -144,7 +210,7 @@ struct CorporationHangarsView: View {
         .transition(.move(edge: .top).combined(with: .opacity))
     }
 
-    // MARK:  Location bar
+    // MARK: Location bar
 
     private var locationBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -186,7 +252,7 @@ struct CorporationHangarsView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK:  Division bar
+    // MARK: Division bar
 
     private var divisionBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -230,7 +296,7 @@ struct CorporationHangarsView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK:  Item panel
+    // MARK: Item panel
 
     private var itemPanel: some View {
         VStack(spacing: 0) {
@@ -254,48 +320,18 @@ struct CorporationHangarsView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List(selection: $selectedAsset) {
-                    ForEach(visibleItems) { asset in
-                        HStack(spacing: 8) {
-                            AsyncImage(url: EVEImageURL.typeIcon(asset.typeId, size: 256)) { phase in
-                                if let image = phase.image {
-                                    image.resizable()
-                                        .frame(width: 28, height: 28)
-                                        .clipShape(RoundedRectangle(cornerRadius: 4))
-                                } else {
-                                    Image(systemName: "shippingbox.fill")
-                                        .foregroundStyle(.teal)
-                                        .frame(width: 28, height: 28)
+                    if groupByCategory && !itemTypeCategories.isEmpty {
+                        ForEach(groupedVisibleItems, id: \.category) { section in
+                            Section(section.category) {
+                                ForEach(section.items) { asset in
+                                    assetRow(asset).tag(asset)
                                 }
                             }
-                            VStack(alignment: .leading, spacing: 2) {
-                                HStack(spacing: 4) {
-                                    Text(asset.typeName)
-                                    if asset.isBlueprintCopy {
-                                        Text("BPC")
-                                            .font(.caption2)
-                                            .padding(.horizontal, 4)
-                                            .padding(.vertical, 1)
-                                            .background(.orange.opacity(0.2), in: Capsule())
-                                            .foregroundStyle(.orange)
-                                    }
-                                }
-                                if let name = asset.customName {
-                                    Text(name)
-                                        .font(.caption.italic())
-                                        .foregroundStyle(.primary.opacity(0.7))
-                                }
-                                if locations.count > 1 || selectedLocationID == nil {
-                                    Text(asset.locationName)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                            Spacer()
-                            Text("×\(asset.quantity)")
-                                .font(.caption.monospacedDigit())
-                                .foregroundStyle(.secondary)
                         }
-                        .tag(asset)
+                    } else {
+                        ForEach(visibleItems) { asset in
+                            assetRow(asset).tag(asset)
+                        }
                     }
                 }
             }
@@ -303,7 +339,58 @@ struct CorporationHangarsView: View {
         .frame(maxWidth: .infinity)
     }
 
-    // MARK:  Computed
+    @ViewBuilder
+    private func assetRow(_ asset: ResolvedAsset) -> some View {
+        HStack(spacing: 8) {
+            AsyncImage(url: EVEImageURL.typeIcon(asset.typeId, size: 256)) { phase in
+                if let image = phase.image {
+                    image.resizable()
+                        .frame(width: 28, height: 28)
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                } else {
+                    Image(systemName: "shippingbox.fill")
+                        .foregroundStyle(.teal)
+                        .frame(width: 28, height: 28)
+                }
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 4) {
+                    Text(asset.typeName)
+                    if asset.isBlueprintCopy {
+                        Text("BPC")
+                            .font(.caption2)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 1)
+                            .background(.orange.opacity(0.2), in: Capsule())
+                            .foregroundStyle(.orange)
+                    }
+                }
+                if let name = asset.customName {
+                    Text(name)
+                        .font(.caption.italic())
+                        .foregroundStyle(.primary.opacity(0.7))
+                }
+                if locations.count > 1 || selectedLocationID == nil {
+                    Text(asset.locationName)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer()
+            VStack(alignment: .trailing, spacing: 2) {
+                Text("×\(asset.quantity)")
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                if let price = hangarPrices[asset.typeId], price.buyMax > 0 {
+                    Text(EVEFormatters.formatISK(price.buyMax * Double(asset.quantity)))
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(.green.opacity(0.8))
+                }
+            }
+        }
+    }
+
+    // MARK: Computed
 
     private var visibleItems: [ResolvedAsset] {
         var base = allHangarAssets.filter { $0.locationFlag == selectedFlag }
@@ -316,18 +403,64 @@ struct CorporationHangarsView: View {
                 $0.locationName.localizedCaseInsensitiveContains(searchText)
             }
         }
-        return base
+        switch sortOrder {
+        case .name:
+            return base
+        case .quantity:
+            return base.sorted { $0.quantity > $1.quantity }
+        case .value:
+            return base.sorted {
+                let v0 = (hangarPrices[$0.typeId]?.buyMax ?? 0) * Double($0.quantity)
+                let v1 = (hangarPrices[$1.typeId]?.buyMax ?? 0) * Double($1.quantity)
+                return v0 > v1
+            }
+        }
+    }
+
+    private var groupedVisibleItems: [(category: String, items: [ResolvedAsset])] {
+        let grouped = Dictionary(grouping: visibleItems) { asset in
+            itemTypeCategories[asset.typeId] ?? "Unknown"
+        }
+        return grouped
+            .map { (category: $0.key, items: $0.value) }
+            .sorted { $0.category < $1.category }
+    }
+
+    private var divisionBuyValue: Double {
+        visibleItems.reduce(0.0) { sum, asset in
+            sum + (hangarPrices[asset.typeId]?.buyMax ?? 0) * Double(asset.quantity)
+        }
+    }
+
+    private var divisionVolume: Double {
+        visibleItems.reduce(0.0) { sum, asset in
+            sum + (itemTypeVolumes[asset.typeId] ?? 0) * Double(asset.quantity)
+        }
     }
 
     private func divisionDisplayName(for flag: String) -> String {
         divisions.first(where: { $0.flag == flag })?.name ?? flag
     }
 
-    // MARK:  Data loading
+    private func formatVolume(_ volume: Double) -> String {
+        if volume >= 1_000_000_000 {
+            return String(format: "%.2fB", volume / 1_000_000_000)
+        } else if volume >= 1_000_000 {
+            return String(format: "%.2fM", volume / 1_000_000)
+        } else if volume >= 1_000 {
+            return String(format: "%.1fK", volume / 1_000)
+        }
+        return String(format: "%.1f", volume)
+    }
+
+    // MARK: Data loading
 
     private func loadHangars() async {
         guard let account = accountManager.selectedAccount else { return }
         isLoading = true
+        hangarPrices = [:]
+        itemTypeVolumes = [:]
+        itemTypeCategories = [:]
         do {
             let token = try await accountManager.validToken(for: account)
 
@@ -464,9 +597,70 @@ struct CorporationHangarsView: View {
             self.error = error.localizedDescription
         }
         isLoading = false
+
+        // Load prices, volumes, and category names after the UI is visible
+        if !allHangarAssets.isEmpty {
+            await loadPricesAndTypes()
+        }
     }
 
-    // MARK:  JWT helpers
+    private func loadPricesAndTypes() async {
+        let typeIds = Array(Set(allHangarAssets.map(\.typeId)))
+        guard !typeIds.isEmpty else { return }
+        isAppraisingAll = true
+        defer { isAppraisingAll = false }
+
+        // Fuzzwork bulk price fetch for all types in one request
+        if let prices = try? await FuzzworkClient.shared.prices(typeIds: typeIds) {
+            hangarPrices = prices
+        }
+
+        // Batch-fetch type info for volumes + category resolution
+        let typeMap = await UniverseCache.shared.types(ids: typeIds)
+
+        let groupIds = Array(Set(typeMap.values.map(\.groupId)))
+        var groupCategoryIds: [Int: Int] = [:]
+        await withTaskGroup(of: (Int, Int?).self) { group in
+            for groupId in groupIds {
+                group.addTask {
+                    let g = await UniverseCache.shared.group(id: groupId)
+                    return (groupId, g?.categoryId)
+                }
+            }
+            for await (groupId, categoryId) in group {
+                if let categoryId { groupCategoryIds[groupId] = categoryId }
+            }
+        }
+
+        let categoryIds = Array(Set(groupCategoryIds.values))
+        var categoryNames: [Int: String] = [:]
+        await withTaskGroup(of: (Int, String?).self) { group in
+            for categoryId in categoryIds {
+                group.addTask {
+                    let c = await UniverseCache.shared.category(id: categoryId)
+                    return (categoryId, c?.name)
+                }
+            }
+            for await (categoryId, name) in group {
+                if let name { categoryNames[categoryId] = name }
+            }
+        }
+
+        var volumes: [Int: Double] = [:]
+        var categories: [Int: String] = [:]
+        for (typeId, typeInfo) in typeMap {
+            volumes[typeId] = typeInfo.packagedVolume ?? typeInfo.volume ?? 0
+            if let groupCatId = groupCategoryIds[typeInfo.groupId],
+               let catName = categoryNames[groupCatId] {
+                categories[typeId] = catName
+            }
+        }
+
+        itemTypeVolumes = volumes
+        itemTypeCategories = categories
+    }
+
+    // MARK: JWT helpers
 
     private func jwtContainsScope(_ token: String, _ scope: String) -> Bool {
         let parts = token.components(separatedBy: ".")
@@ -484,7 +678,7 @@ struct CorporationHangarsView: View {
     }
 }
 
-// MARK:  Supporting models
+// MARK: Supporting models
 
 struct HangarLocation: Identifiable {
     let id: Int

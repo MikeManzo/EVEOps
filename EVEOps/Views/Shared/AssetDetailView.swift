@@ -27,6 +27,7 @@ struct AssetDetailView: View {
     @State private var showMarketPopover = false
     @State private var fuzzworkPrice: FuzzworkPrice?
     @State private var isAppraising = false
+    @State private var stationTypeId: Int?
 
     var body: some View {
         ScrollView {
@@ -63,7 +64,7 @@ struct AssetDetailView: View {
             }
         }
         .frame(minWidth: 280, idealWidth: 320)
-        .task(id: asset.typeId) { await loadTypeInfo() }
+        .task(id: asset.itemId) { await loadTypeInfo() }
         .task(id: asset.typeId) { await loadMarketPrice() }
     }
 
@@ -71,23 +72,25 @@ struct AssetDetailView: View {
 
     private var headerSection: some View {
         ZStack(alignment: .bottom) {
-            AsyncImage(url: EVEImageURL.typeRender(asset.typeId, size: 1024)) { phase in
+            AsyncImage(url: EVEImageURL.typeRender(stationTypeId ?? asset.typeId, size: 1024)) { phase in
                 if let image = phase.image {
                     image
                         .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(maxHeight: 200)
+                        .scaledToFill()
+                        .frame(maxWidth: .infinity, maxHeight: 200)
+                        .clipped()
                 } else {
                     // Render not available (most non-ship items); show large icon instead
                     Rectangle()
                         .fill(Color(white: 0.1))
-                        .frame(height: 200)
+                        .frame(maxWidth: .infinity, minHeight: 200, maxHeight: 200)
                         .overlay {
-                            AsyncImage(url: EVEImageURL.typeIcon(asset.typeId, size: 256)) { iconPhase in
+                            AsyncImage(url: EVEImageURL.typeIcon(stationTypeId ?? asset.typeId, size: 256)) { iconPhase in
                                 if let icon = iconPhase.image {
                                     icon.resizable()
                                         .interpolation(.high)
-                                        .frame(width: 128, height: 128)
+                                        .scaledToFit()
+                                        .padding(36)
                                 } else if iconPhase.error != nil {
                                     Image(systemName: "cube.box.fill")
                                         .font(.system(size: 48))
@@ -516,6 +519,7 @@ struct AssetDetailView: View {
 
     private func loadTypeInfo() async {
         isLoading = true
+        stationTypeId = nil
         jitaSellPrice = nil
         jitaBuyPrice = nil
         sellOrders = []
@@ -574,6 +578,14 @@ struct AssetDetailView: View {
         } catch {
             // Partial info is fine
         }
+
+        // For office assets the header image should show the containing station,
+        // not the generic office type icon.
+        if asset.locationFlag == "OfficeFolder",
+           let station = await UniverseCache.shared.station(id: asset.locationId) {
+            stationTypeId = station.typeId
+        }
+
         isLoading = false
     }
 }
