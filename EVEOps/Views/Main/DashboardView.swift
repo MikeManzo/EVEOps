@@ -23,6 +23,14 @@ struct DashboardView: View {
     @State private var newsItems: [EVENewsItem] = []
     @State private var newsIsLoading = true
     @AppStorage("dashboard.news.expanded") private var newsExpanded = true
+    @AppStorage("dashboard.news.readIDs") private var readIDsRaw = ""
+
+    private var readIDs: Binding<Set<String>> {
+        Binding(
+            get: { Set(self.readIDsRaw.components(separatedBy: ",").filter { !$0.isEmpty }) },
+            set: { self.readIDsRaw = Array($0).joined(separator: ",") }
+        )
+    }
 
     var body: some View {
         ScrollView {
@@ -49,7 +57,7 @@ struct DashboardView: View {
                 }
                 .padding(.horizontal)
 
-                EVENewsWidgetView(items: newsItems, isLoading: newsIsLoading, isExpanded: $newsExpanded)
+                EVENewsWidgetView(items: newsItems, isLoading: newsIsLoading, isExpanded: $newsExpanded, readIDs: readIDs)
 
                 // Contacts — split into Players, NPCs, Organizations
                 let playerContacts = contactSummaries.filter { $0.isPlayerCharacter }
@@ -1357,6 +1365,9 @@ struct EVENewsWidgetView: View {
     let items: [EVENewsItem]
     let isLoading: Bool
     @Binding var isExpanded: Bool
+    @Binding var readIDs: Set<String>
+
+    private var unreadCount: Int { items.filter { !readIDs.contains($0.id) }.count }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -1369,10 +1380,13 @@ struct EVENewsWidgetView: View {
                         .font(.callout)
                     Text("EVE News")
                         .font(.title3.bold())
-                    if !items.isEmpty {
-                        Text("(\(items.count))")
-                            .font(.title3)
-                            .foregroundStyle(.secondary)
+                    if unreadCount > 0 {
+                        Text("\(unreadCount)")
+                            .font(.caption.bold())
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 3)
+                            .background(.blue, in: Capsule())
+                            .foregroundStyle(.white)
                     }
                     Spacer()
                     Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
@@ -1407,7 +1421,7 @@ struct EVENewsWidgetView: View {
                     let columns = [GridItem(.adaptive(minimum: 300, maximum: 480), spacing: 12)]
                     LazyVGrid(columns: columns, spacing: 12) {
                         ForEach(items) { item in
-                            NewsCardView(item: item)
+                            NewsCardView(item: item, readIDs: $readIDs)
                         }
                     }
                     .padding(.top, 12)
@@ -1420,11 +1434,17 @@ struct EVENewsWidgetView: View {
 
 struct NewsCardView: View {
     let item: EVENewsItem
+    @Binding var readIDs: Set<String>
     @Environment(\.openURL) private var openURL
+
+    private var isRead: Bool { readIDs.contains(item.id) }
 
     var body: some View {
         Button {
-            if let url = item.link { openURL(url) }
+            if let url = item.link {
+                readIDs.insert(item.id)
+                openURL(url)
+            }
         } label: {
             VStack(spacing: 0) {
                 Rectangle()
@@ -1434,6 +1454,15 @@ struct NewsCardView: View {
                 bannerView
                     .frame(height: 60)
                     .clipped()
+                    .overlay(alignment: .topTrailing) {
+                        if !isRead {
+                            Circle()
+                                .fill(.blue)
+                                .frame(width: 10, height: 10)
+                                .shadow(color: .black.opacity(0.4), radius: 2)
+                                .padding(6)
+                        }
+                    }
 
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 8) {

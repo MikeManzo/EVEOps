@@ -149,6 +149,8 @@ struct CorporationWarsView: View {
                 for await (id, name) in group { result[id] = name }
                 return result
             }
+        } catch ESIError.serverError(let statusCode, _) where statusCode == 404 {
+            wars = []
         } catch {
             self.error = error.localizedDescription
         }
