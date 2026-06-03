@@ -1347,13 +1347,18 @@ struct CharacterHeroView: View {
                                 let years = Calendar.current.dateComponents([.year], from: birthday, to: Date()).year ?? 0
                                 Text("\(account.characterName), \(years) years old")
                                     .font(.headline)
+                                    .foregroundStyle(.white)
+                                    .shadow(color: .black.opacity(0.7), radius: 4, x: 0, y: 1)
                             } else {
                                 Text(account.characterName)
                                     .font(.headline)
+                                    .foregroundStyle(.white)
+                                    .shadow(color: .black.opacity(0.7), radius: 4, x: 0, y: 1)
                             }
                             Spacer()
                             onlineIndicator
                         }
+                        .padding(.bottom, 7)
                         HStack(spacing: 6) {
                             Text(effectiveCorpName)
                                 .font(.subheadline)

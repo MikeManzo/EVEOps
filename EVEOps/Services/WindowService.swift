@@ -30,6 +30,7 @@ final class WindowService {
     private var mainWindow: NSWindow?
     private var galaxySearchWindow: NSWindow?
     private var settingsWindow: NSWindow?
+    private var defaultsObserver: NSObjectProtocol?
 
     func configure(
         accountManager: AccountManager,
@@ -45,6 +46,14 @@ final class WindowService {
         self.presenceTracker = presenceTracker
         self.modelContainer = modelContainer
         self.appUpdater = appUpdater
+
+        defaultsObserver = NotificationCenter.default.addObserver(
+            forName: UserDefaults.didChangeNotification,
+            object: UserDefaults.standard,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.updateAppearance() }
+        }
     }
 
     // MARK: Main Window
@@ -67,10 +76,10 @@ final class WindowService {
             .environment(api)
             .environment(pt)
             .modelContainer(mc)
-            .preferredColorScheme(resolvedColorScheme)
 
         let controller = NSHostingController(rootView: content)
         let window = NSWindow(contentViewController: controller)
+        window.appearance = resolvedNSAppearance
         window.title = "EVEOps"
         window.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
         window.minSize = NSSize(width: 900, height: 600)
@@ -102,10 +111,10 @@ final class WindowService {
         let content = GalaxyMarketSearchView(initialTypeId: typeId, initialTypeName: typeName)
             .environment(am)
             .environment(pf)
-            .preferredColorScheme(resolvedColorScheme)
 
         let controller = NSHostingController(rootView: content)
         let window = NSWindow(contentViewController: controller)
+        window.appearance = resolvedNSAppearance
         window.title = "Galaxy Market Search"
         window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
         window.minSize = NSSize(width: 800, height: 500)
@@ -135,10 +144,10 @@ final class WindowService {
             .environment(am)
             .environment(pf)
             .environment(au)
-            .preferredColorScheme(resolvedColorScheme)
 
         let controller = NSHostingController(rootView: content)
         let window = NSWindow(contentViewController: controller)
+        window.appearance = resolvedNSAppearance
         window.title = "Settings"
         window.styleMask = [.titled, .closable]
         window.isReleasedWhenClosed = false
@@ -152,10 +161,17 @@ final class WindowService {
 
     // MARK: Helpers
 
-    private var resolvedColorScheme: ColorScheme? {
+    func updateAppearance() {
+        let appearance = resolvedNSAppearance
+        mainWindow?.appearance = appearance
+        galaxySearchWindow?.appearance = appearance
+        settingsWindow?.appearance = appearance
+    }
+
+    private var resolvedNSAppearance: NSAppearance? {
         switch UserDefaults.standard.string(forKey: "colorScheme") ?? "system" {
-        case "light": return .light
-        case "dark":  return .dark
+        case "light": return NSAppearance(named: .aqua)
+        case "dark":  return NSAppearance(named: .darkAqua)
         default:      return nil
         }
     }
