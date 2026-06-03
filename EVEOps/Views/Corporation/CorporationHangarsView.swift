@@ -99,7 +99,12 @@ struct CorporationHangarsView: View {
                 .help("Reload hangar contents")
             }
         }
-        .task(id: loadID) { await loadHangars() }
+        .task(id: "\(loadID)-\(accountManager.selectedCharacterID ?? 0)") {
+            allHangarAssets = []
+            locations = []
+            isLoading = true
+            await loadHangars()
+        }
     }
 
     // MARK: Header

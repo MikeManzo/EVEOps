@@ -183,8 +183,13 @@ struct CharacterFittingsView: View {
                 }
             }
         }
-        .task {
+        .task(id: accountManager.selectedCharacterID) {
             if AppRouter.shared.pendingEFTURL != nil { activeTab = .simulate }
+            shipSections = []
+            fittingSections = []
+            selectedShip = nil
+            selectedFitting = nil
+            savedFittingsLoaded = false
             await load()
         }
         .task(id: pollInterval) {
@@ -333,7 +338,7 @@ struct CharacterFittingsView: View {
         var allModuleTypeIds: Set<Int> = []
         var lastError: Error?
 
-        for account in accountManager.accounts {
+        for account in [accountManager.selectedAccount].compactMap({ $0 }) {
             do {
                 let token = try await accountManager.validToken(for: account)
                 let rawAssets: [ESIAsset] = try await ESIClient.shared.fetchPages(
@@ -453,7 +458,7 @@ struct CharacterFittingsView: View {
         let moduleTypes = await UniverseCache.shared.types(ids: Array(allModuleTypeIds))
         moduleTypeNames = moduleTypes.mapValues(\.name)
         modulesByShip = allModulesByShip
-        multiAccount = accountManager.accounts.count > 1
+        multiAccount = false
 
         let byClass = Dictionary(grouping: allShips, by: \.shipClassName)
         shipSections = byClass.keys
@@ -476,7 +481,7 @@ struct CharacterFittingsView: View {
         savingsError = nil
 
         var rawByAccount: [(characterName: String, characterID: Int, fittings: [ESIFitting])] = []
-        for account in accountManager.accounts {
+        for account in [accountManager.selectedAccount].compactMap({ $0 }) {
             guard let token = try? await accountManager.validToken(for: account) else { continue }
             if let fittings: [ESIFitting] = try? await ESIClient.shared.fetch(
                 "/characters/\(account.characterID)/fittings/",

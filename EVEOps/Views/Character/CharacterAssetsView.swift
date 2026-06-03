@@ -64,7 +64,12 @@ struct CharacterAssetsView: View {
             }
         }
         .navigationTitle("Assets")
-        .task { await loadAssets() }
+        .task(id: accountManager.selectedCharacterID) {
+            assets = []
+            selectedAsset = nil
+            isLoading = true
+            await loadAssets()
+        }
         .onChange(of: collapsedSections) { saveCollapsedSections() }
         .onChange(of: groupMode) { collapsedSections = [] }
     }

@@ -41,7 +41,12 @@ struct CharacterKillmailsView: View {
         .sheet(item: $selectedEntry) { entry in
             KillmailDetailSheet(entry: entry)
         }
-        .task { isLoading = true; await load() }
+        .task(id: accountManager.selectedCharacterID) {
+            groups = []
+            selectedEntry = nil
+            isLoading = true
+            await load()
+        }
     }
 
     private var filterBar: some View {

@@ -41,7 +41,13 @@ struct CorporationMembersView: View {
             }
         }
         .navigationTitle("Corp Members")
-        .task { await loadMembers() }
+        .task(id: accountManager.selectedCharacterID) {
+            members = []
+            selectedMemberID = nil
+            selectedDetail = nil
+            isLoading = true
+            await loadMembers()
+        }
     }
 
     // MARK:  Member List

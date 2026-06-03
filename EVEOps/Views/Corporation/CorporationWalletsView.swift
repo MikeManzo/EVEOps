@@ -33,7 +33,12 @@ struct CorporationWalletsView: View {
             }
         }
         .navigationTitle("Corp Wallets")
-        .task { await loadWallets() }
+        .task(id: accountManager.selectedCharacterID) {
+            wallets = []
+            journal = []
+            isLoading = true
+            await loadWallets()
+        }
     }
 
     private var walletHeader: some View {

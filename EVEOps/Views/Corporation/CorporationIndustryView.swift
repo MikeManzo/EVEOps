@@ -35,7 +35,11 @@ struct CorporationIndustryView: View {
             }
         }
         .navigationTitle("Corp Industry")
-        .task { await loadJobs() }
+        .task(id: accountManager.selectedCharacterID) {
+            jobs = []
+            isLoading = true
+            await loadJobs()
+        }
     }
 
     private var filteredJobs: [ESIIndustryJob] {

@@ -61,7 +61,8 @@ struct TrainingOverviewView: View {
             }
         }
         .navigationTitle("Training Overview")
-        .task {
+        .task(id: accountManager.selectedCharacterID) {
+            trainingData = []
             if buildFromPrefetcher() { return }
             isLoading = true
             await loadTraining()
@@ -655,7 +656,7 @@ struct TrainingOverviewView: View {
 
     private func buildFromPrefetcher() -> Bool {
         var data: [CharacterTrainingInfo] = []
-        for account in accountManager.accounts {
+        for account in [accountManager.selectedAccount].compactMap({ $0 }) {
             guard let prefetched = prefetcher.data(for: account.characterID) else { return false }
             let skills = prefetched.skills
             let queue = prefetched.skillQueue.sorted { $0.queuePosition < $1.queuePosition }
@@ -738,7 +739,7 @@ struct TrainingOverviewView: View {
         error = nil
         var data: [CharacterTrainingInfo] = []
         var lastError: Error?
-        for account in accountManager.accounts {
+        for account in [accountManager.selectedAccount].compactMap({ $0 }) {
             do {
                 let token = try await accountManager.validToken(for: account)
 

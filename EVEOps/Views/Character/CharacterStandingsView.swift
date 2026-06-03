@@ -32,7 +32,11 @@ struct CharacterStandingsView: View {
             }
         }
         .navigationTitle("Standings")
-        .task { isLoading = true; await load() }
+        .task(id: accountManager.selectedCharacterID) {
+            groups = []
+            isLoading = true
+            await load()
+        }
     }
 
     private func typeLabel(_ type: String) -> String {

@@ -43,7 +43,8 @@ struct LocationOverviewView: View {
                 }
             }
         }
-        .task {
+        .task(id: accountManager.selectedCharacterID) {
+            locations = []
             if buildFromPrefetcher() {
                 Task { await loadSystemActivity() }
                 return
@@ -242,32 +243,33 @@ struct LocationOverviewView: View {
                                 .font(.subheadline.bold())
                         }
 
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(info.shipName)
-                                .font(.body.bold())
-                                .lineLimit(1)
-                            Text(info.shipTypeName)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                        HStack(alignment: .top, spacing: 8) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(info.shipName)
+                                    .font(.headline)
+                                    .lineLimit(1)
+                                Text(info.shipTypeName)
+                                    .font(.callout)
+                                    .foregroundStyle(.secondary)
 
-                            if let group = info.shipGroupName {
-                                Text(group)
-                                    .font(.caption2)
-                                    .foregroundStyle(.tertiary)
+                                if let group = info.shipGroupName {
+                                    Text(group)
+                                        .font(.caption)
+                                        .foregroundStyle(.tertiary)
+                                }
                             }
-                        }
 
-                        // Ship attributes
-                        if info.shipMass != nil || info.shipVolume != nil || info.shipCapacity != nil {
-                            HStack(spacing: 12) {
-                                if let mass = info.shipMass, mass > 0 {
-                                    shipStat(label: "Mass", value: formatLarge(mass) + " kg")
-                                }
-                                if let volume = info.shipVolume, volume > 0 {
-                                    shipStat(label: "Volume", value: String(format: "%.0f m\u{00B3}", volume))
-                                }
-                                if let capacity = info.shipCapacity, capacity > 0 {
-                                    shipStat(label: "Cargo", value: String(format: "%.0f m\u{00B3}", capacity))
+                            if info.shipMass != nil || info.shipVolume != nil || info.shipCapacity != nil {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    if let mass = info.shipMass, mass > 0 {
+                                        shipStat(label: "Mass", value: formatLarge(mass) + " kg")
+                                    }
+                                    if let volume = info.shipVolume, volume > 0 {
+                                        shipStat(label: "Volume", value: String(format: "%.0f m\u{00B3}", volume))
+                                    }
+                                    if let capacity = info.shipCapacity, capacity > 0 {
+                                        shipStat(label: "Cargo", value: String(format: "%.0f m\u{00B3}", capacity))
+                                    }
                                 }
                             }
                         }
@@ -692,12 +694,12 @@ struct LocationOverviewView: View {
     }
 
     private func shipStat(label: String, value: String) -> some View {
-        VStack(spacing: 1) {
+        HStack(spacing: 4) {
             Text(label)
-                .font(.caption2)
+                .font(.caption)
                 .foregroundStyle(.tertiary)
             Text(value)
-                .font(.caption2.monospacedDigit())
+                .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
         }
     }
@@ -717,7 +719,7 @@ struct LocationOverviewView: View {
 
     private func buildFromPrefetcher() -> Bool {
         var data: [CharacterLocationInfo] = []
-        for account in accountManager.accounts {
+        for account in [accountManager.selectedAccount].compactMap({ $0 }) {
             guard let prefetched = prefetcher.data(for: account.characterID) else { return false }
             guard let systemInfo = prefetcher.resolvedSystems[prefetched.location.solarSystemId] else { return false }
 
@@ -780,7 +782,7 @@ struct LocationOverviewView: View {
         error = nil
         var data: [CharacterLocationInfo] = []
         var lastError: Error?
-        for account in accountManager.accounts {
+        for account in [accountManager.selectedAccount].compactMap({ $0 }) {
             do {
                 let token = try await accountManager.validToken(for: account)
 

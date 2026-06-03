@@ -55,7 +55,14 @@ struct CharacterClonesView: View {
             }
         }
         .navigationTitle("Clones")
-        .task { await loadClones() }
+        .task(id: accountManager.selectedCharacterID) {
+            clonesResponse = nil
+            activeImplants = []
+            jumpClones = []
+            selectedImplant = nil
+            isLoading = true
+            await loadClones()
+        }
     }
 
     // MARK:  Sections

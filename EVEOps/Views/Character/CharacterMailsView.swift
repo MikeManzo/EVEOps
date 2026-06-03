@@ -55,7 +55,13 @@ struct CharacterMailsView: View {
                 await sendMail(subject: subject, recipients: recipients, body: body)
             }
         }
-        .task { await loadMails() }
+        .task(id: accountManager.selectedCharacterID) {
+            mails = []
+            selectedMail = nil
+            mailBody = nil
+            isLoading = true
+            await loadMails()
+        }
     }
 
     private var mailList: some View {

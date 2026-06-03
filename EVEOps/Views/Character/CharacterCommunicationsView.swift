@@ -53,7 +53,12 @@ struct CharacterCommunicationsView: View {
             }
         }
         .navigationTitle("Communications")
-        .task { await loadNotifications() }
+        .task(id: accountManager.selectedCharacterID) {
+            notifications = []
+            selectedNotification = nil
+            isLoading = true
+            await loadNotifications()
+        }
     }
 
     private func notificationRow(_ notification: ESINotification) -> some View {

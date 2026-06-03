@@ -767,17 +767,6 @@ struct CharacterCardView: View {
                 .frame(height: 130)
                 .allowsHitTesting(false)
 
-                // Corp logo — slightly larger for visual weight
-                AsyncImage(url: EVEImageURL.corporationLogo(account.corporationID, size: 256)) { phase in
-                    if let image = phase.image {
-                        image
-                            .resizable()
-                            .frame(width: 36, height: 36)
-                            .clipShape(RoundedRectangle(cornerRadius: 5))
-                            .shadow(color: .black.opacity(0.6), radius: 4)
-                    }
-                }
-                .padding(8)
             }
             .frame(height: 130)
 
@@ -793,6 +782,17 @@ struct CharacterCardView: View {
                     .frame(width: 60, height: 60)
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                     .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.white.opacity(0.18), lineWidth: 1))
+                    .overlay(alignment: .bottomTrailing) {
+                        AsyncImage(url: EVEImageURL.corporationLogo(account.corporationID, size: 256)) { phase in
+                            if let image = phase.image {
+                                image.resizable()
+                                    .frame(width: 20, height: 20)
+                                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                                    .shadow(color: .black.opacity(0.6), radius: 3)
+                            }
+                        }
+                        .offset(x: 4, y: 4)
+                    }
                     .shadow(color: .black.opacity(0.55), radius: 7, y: 3)
 
                     VStack(alignment: .leading, spacing: 3) {
@@ -1315,15 +1315,6 @@ struct CharacterHeroView: View {
                 .frame(height: 140)
                 .allowsHitTesting(false)
 
-                AsyncImage(url: EVEImageURL.corporationLogo(account.corporationID, size: 256)) { phase in
-                    if let image = phase.image {
-                        image.resizable()
-                            .frame(width: 36, height: 36)
-                            .clipShape(RoundedRectangle(cornerRadius: 5))
-                            .shadow(color: .black.opacity(0.6), radius: 4)
-                    }
-                }
-                .padding(8)
             }
             .frame(height: 140)
 
@@ -1337,6 +1328,17 @@ struct CharacterHeroView: View {
                     .frame(width: 84, height: 84)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
                     .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(.white.opacity(0.22), lineWidth: 1.5))
+                    .overlay(alignment: .bottomTrailing) {
+                        AsyncImage(url: EVEImageURL.corporationLogo(account.corporationID, size: 256)) { phase in
+                            if let image = phase.image {
+                                image.resizable()
+                                    .frame(width: 26, height: 26)
+                                    .clipShape(RoundedRectangle(cornerRadius: 5))
+                                    .shadow(color: .black.opacity(0.6), radius: 4)
+                            }
+                        }
+                        .offset(x: 4, y: 4)
+                    }
                     .shadow(color: .black.opacity(0.60), radius: 10, y: 4)
 
                     VStack(alignment: .leading, spacing: 3) {

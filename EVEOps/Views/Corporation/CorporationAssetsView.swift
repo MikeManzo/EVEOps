@@ -99,7 +99,12 @@ struct CorporationAssetsView: View {
             }
         }
         .navigationTitle("Corp Assets")
-        .task { await loadAssets() }
+        .task(id: accountManager.selectedCharacterID) {
+            assets = []
+            selectedAsset = nil
+            isLoading = true
+            await loadAssets()
+        }
     }
 
     private var filteredAssets: [ResolvedAsset] {

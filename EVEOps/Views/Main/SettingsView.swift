@@ -79,14 +79,14 @@ private enum SettingsSection: String, CaseIterable, Identifiable, Hashable {
 
     var iconColor: Color {
         switch self {
-        case .accounts:      .blue
-        case .general:       .gray
-        case .appearance:    .purple
-        case .notifications: .red
-        case .cache:         .green
-        case .advanced:      Color(white: 0.25)
-        case .intelligence:  .indigo
-        case .about:         .teal
+        case .accounts:      Color(red: 0.30, green: 0.52, blue: 0.80)
+        case .general:       Color(white: 0.52)
+        case .appearance:    Color(red: 0.57, green: 0.40, blue: 0.72)
+        case .notifications: Color(red: 0.80, green: 0.32, blue: 0.32)
+        case .cache:         Color(red: 0.28, green: 0.67, blue: 0.42)
+        case .advanced:      Color(white: 0.40)
+        case .intelligence:  Color(red: 0.40, green: 0.45, blue: 0.76)
+        case .about:         Color(red: 0.24, green: 0.60, blue: 0.63)
         }
     }
 }

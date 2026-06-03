@@ -36,7 +36,16 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         
         NSApp.setActivationPolicy(.accessory)
         
+        // Set the delegate to handle foreground notifications
         UNUserNotificationCenter.current().delegate = self
+        
+        // Request permission immediately on launch
+        Task {
+            do {
+                await NotificationService.shared.requestPermission()
+            }
+        }
+
         // Re-register UTIs (including the .eft document type icon) with Launch Services
         // on every launch so Finder always shows the correct icon without manual lsregister.
         LSRegisterURL(Bundle.main.bundleURL as CFURL, true)

@@ -615,7 +615,7 @@ struct AttributeRemapView: View {
         var data: [CharacterRemapData] = []
         var lastError: Error?
 
-        for account in accountManager.accounts {
+        for account in [accountManager.selectedAccount].compactMap({ $0 }) {
             do {
                 let token = try await accountManager.validToken(for: account)
 

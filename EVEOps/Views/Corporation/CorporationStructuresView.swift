@@ -92,7 +92,11 @@ struct CorporationStructuresView: View {
             }
         }
         .navigationTitle("Corp Structures")
-        .task { await loadStructures() }
+        .task(id: accountManager.selectedCharacterID) {
+            structures = []
+            isLoading = true
+            await loadStructures()
+        }
     }
 
     private func stateColor(_ state: String) -> Color {
