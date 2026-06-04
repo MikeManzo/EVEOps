@@ -247,6 +247,16 @@ struct CareerAgentsView: View {
                 .frame(width: 300)
             }
         }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            HStack {
+                Text("Career Agents")
+                    .font(.largeTitle.bold())
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(.background)
+        }
         .navigationTitle("Career Agents")
         .task {
             await resolveAllSystems()

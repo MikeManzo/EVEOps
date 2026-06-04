@@ -71,6 +71,16 @@ struct RegionStationBrowserView: View {
                     .frame(width: 320)
             }
         }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            HStack {
+                Text("Station Browser")
+                    .font(.largeTitle.bold())
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(.background)
+        }
         .navigationTitle("Station Browser")
         .task { await loadRegions() }
         .task(id: selectedRegionId) {

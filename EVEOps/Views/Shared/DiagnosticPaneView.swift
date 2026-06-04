@@ -47,6 +47,17 @@ struct DiagnosticPaneView: View {
             Divider()
             logList
         }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            HStack {
+                Text("Diagnostic Logs")
+                    .font(.largeTitle.bold())
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(.background)
+        }
+        .navigationTitle("Diagnostic Logs")
     }
 
     // MARK:  Toolbar

@@ -119,6 +119,17 @@ struct GalaxyMapView: View {
                 }
             }
         }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            HStack {
+                Text("Galaxy Map")
+                    .font(.largeTitle.bold())
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(.background)
+        }
+        .navigationTitle("Galaxy Map")
         .task { await loadData() }
         .onAppear {
             if starfieldSeeds.isEmpty {
