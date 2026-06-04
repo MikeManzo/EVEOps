@@ -62,13 +62,28 @@ struct CharacterContactsView: View {
     }
 
     var body: some View {
-        LoadingStateView(isLoading: isLoading, error: error, isEmpty: contacts.isEmpty, emptyMessage: "No contacts found") {
-            HStack(spacing: 0) {
-                contactList
-                    .frame(minWidth: 300, maxWidth: 400)
-                Divider()
-                detailPane
-                    .frame(maxWidth: .infinity)
+        VStack(spacing: 0) {
+            HStack {
+                Spacer()
+                Button {
+                    showingAddContact = true
+                } label: {
+                    Label("Add Contact", systemImage: "person.badge.plus")
+                }
+                .buttonStyle(.borderless)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(.bar)
+            Divider()
+            LoadingStateView(isLoading: isLoading, error: error, isEmpty: contacts.isEmpty, emptyMessage: "No contacts found") {
+                HStack(spacing: 0) {
+                    contactList
+                        .frame(minWidth: 300, maxWidth: 400)
+                    Divider()
+                    detailPane
+                        .frame(maxWidth: .infinity)
+                }
             }
         }
         .navigationTitle("Contacts")
@@ -96,17 +111,6 @@ struct CharacterContactsView: View {
 
     private var contactList: some View {
         VStack(spacing: 0) {
-            HStack {
-                Spacer()
-                Button {
-                    showingAddContact = true
-                } label: {
-                    Label("Add Contact", systemImage: "person.badge.plus")
-                }
-                .buttonStyle(.borderless)
-                .padding(.trailing, 8)
-            }
-            .padding(.vertical, 4)
             filterBar
             List(selection: $selectedContactID) {
                 ForEach(groupedContacts, id: \.0) { type, group in
@@ -152,7 +156,6 @@ struct CharacterContactsView: View {
                     }
                 }
             }
-            .searchable(text: $searchFilter, prompt: "Filter contacts")
             .onChange(of: selectedContactID) { _, newID in
                 if let id = newID {
                     Task { await loadDetail(for: id) }
@@ -375,7 +378,7 @@ struct CharacterContactsView: View {
     }
 
     private var filterBar: some View {
-        HStack {
+        VStack(spacing: 6) {
             Picker("Type", selection: $typeFilter) {
                 Text("All").tag("all")
                 Text("Players").tag("player")
@@ -384,8 +387,8 @@ struct CharacterContactsView: View {
                 Text("Alliances").tag("alliance")
             }
             .pickerStyle(.segmented)
-            .frame(maxWidth: 520)
-            Spacer()
+            TextField("Filter contacts", text: $searchFilter)
+                .textFieldStyle(.roundedBorder)
         }
         .padding(10)
         .background(.bar)
