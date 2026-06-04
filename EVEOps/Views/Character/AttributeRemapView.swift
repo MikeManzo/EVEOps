@@ -54,6 +54,19 @@ struct AttributeRemapView: View {
                          isEmpty: characterData.isEmpty, emptyMessage: "No training data") {
             ScrollView {
                 VStack(spacing: 20) {
+                    HStack {
+                        Spacer()
+                        Button {
+                            Task {
+                                await UniverseCache.shared.clearDiskCache()
+                                await load()
+                            }
+                        } label: {
+                            Label("Refresh Implant Data", systemImage: "arrow.clockwise")
+                        }
+                        .buttonStyle(.borderless)
+                        .help("Clears the local type cache and re-fetches implant data from ESI. Use this if implant bonuses appear incorrect.")
+                    }
                     if characterData.count > 1 {
                         Picker("Character", selection: $selectedCharacterID) {
                             ForEach(characterData, id: \.characterID) { d in
@@ -78,19 +91,6 @@ struct AttributeRemapView: View {
             }
         }
         .navigationTitle("Remap Advisor")
-        .toolbar {
-            ToolbarItem(placement: .automatic) {
-                Button {
-                    Task {
-                        await UniverseCache.shared.clearDiskCache()
-                        await load()
-                    }
-                } label: {
-                    Label("Refresh Implant Data", systemImage: "arrow.clockwise")
-                }
-                .help("Clears the local type cache and re-fetches implant data from ESI. Use this if implant bonuses appear incorrect.")
-            }
-        }
         .task(id: accountManager.selectedCharacterID) { await load() }
         .task(id: "timer") {
             while !Task.isCancelled {

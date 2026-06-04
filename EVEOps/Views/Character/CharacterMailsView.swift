@@ -23,33 +23,38 @@ struct CharacterMailsView: View {
 
     var body: some View {
         LoadingStateView(isLoading: isLoading, error: error, isEmpty: mails.isEmpty, emptyMessage: "No mails found") {
-            HSplitView {
-                mailList
-                    .frame(minWidth: 300, idealWidth: 350)
-                mailDetail
-                    .frame(minWidth: 300)
+            VStack(spacing: 0) {
+                HStack {
+                    Spacer()
+                    Button {
+                        showingCompose = true
+                    } label: {
+                        Label("Compose", systemImage: "square.and.pencil")
+                    }
+                    .buttonStyle(.borderless)
+                    Button(role: .destructive) {
+                        Task {
+                            if let mail = selectedMail { await deleteMail(mail) }
+                        }
+                    } label: {
+                        Label("Delete Mail", systemImage: "trash")
+                    }
+                    .buttonStyle(.borderless)
+                    .disabled(selectedMail == nil)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(.bar)
+                Divider()
+                HSplitView {
+                    mailList
+                        .frame(minWidth: 300, idealWidth: 350)
+                    mailDetail
+                        .frame(minWidth: 300)
+                }
             }
         }
         .navigationTitle("Mails")
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    showingCompose = true
-                } label: {
-                    Label("Compose", systemImage: "square.and.pencil")
-                }
-            }
-            ToolbarItem {
-                Button(role: .destructive) {
-                    Task {
-                        if let mail = selectedMail { await deleteMail(mail) }
-                    }
-                } label: {
-                    Label("Delete Mail", systemImage: "trash")
-                }
-                .disabled(selectedMail == nil)
-            }
-        }
         .sheet(isPresented: $showingCompose) {
             ComposeMailSheet { subject, recipients, body in
                 await sendMail(subject: subject, recipients: recipients, body: body)

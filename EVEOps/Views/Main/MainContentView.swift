@@ -37,6 +37,7 @@ struct MainContentView: View {
                 }
         }
         .navigationSplitViewStyle(.balanced)
+        .toolbarVisibility(.visible, for: .windowToolbar)
         .frame(minWidth: 900, minHeight: 600)
         .onChange(of: accountManager.accounts.count) {
             if accountManager.accounts.isEmpty {

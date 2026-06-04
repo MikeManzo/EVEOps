@@ -121,14 +121,40 @@ struct CharacterFittingsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 2) {
-                fittingsTabButton("My Ships", icon: "ferry.fill", tab: .ships)
-                fittingsTabButton("Saved Ships", icon: "bookmark.fill", tab: .savedFittings)
-                fittingsTabButton("Community Ships", icon: "globe", tab: .community)
-                fittingsTabButton("Simulate Ships", icon: "slider.horizontal.3", tab: .simulate)
+            HStack(alignment: .center, spacing: 0) {
+                HStack(spacing: 2) {
+                    fittingsTabButton("My Ships", icon: "ferry.fill", tab: .ships)
+                    fittingsTabButton("Saved Ships", icon: "bookmark.fill", tab: .savedFittings)
+                    fittingsTabButton("Community Ships", icon: "globe", tab: .community)
+                    fittingsTabButton("Simulate Ships", icon: "slider.horizontal.3", tab: .simulate)
+                }
+                .padding(3)
+                .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
+                Spacer()
+                if let transferable = toolbarShareTransferable {
+                    ShareLink(
+                        item: transferable,
+                        preview: SharePreview(transferable.filename, image: Image(systemName: "doc.text"))
+                    ) {
+                        Label("Share Fitting", systemImage: "square.and.arrow.up")
+                    }
+                    .buttonStyle(.borderless)
+                }
+                Button {
+                    Task {
+                        await ESIClient.shared.clearCache()
+                        await UniverseCache.shared.clearDiskCache()
+                        if activeTab == .ships {
+                            await load()
+                        } else {
+                            await loadSavedFittings()
+                        }
+                    }
+                } label: {
+                    Label("Refresh", systemImage: "arrow.clockwise")
+                }
+                .buttonStyle(.borderless)
             }
-            .padding(3)
-            .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
             .zIndex(1)
@@ -156,33 +182,6 @@ struct CharacterFittingsView: View {
             }
         }
         .navigationTitle("Ships & Fittings")
-        .toolbar {
-            if let transferable = toolbarShareTransferable {
-                ToolbarItem(placement: .automatic) {
-                    ShareLink(
-                        item: transferable,
-                        preview: SharePreview(transferable.filename, image: Image(systemName: "doc.text"))
-                    ) {
-                        Label("Share Fitting", systemImage: "square.and.arrow.up")
-                    }
-                }
-            }
-            ToolbarItem(placement: .automatic) {
-                Button {
-                    Task {
-                        await ESIClient.shared.clearCache()
-                        await UniverseCache.shared.clearDiskCache()
-                        if activeTab == .ships {
-                            await load()
-                        } else {
-                            await loadSavedFittings()
-                        }
-                    }
-                } label: {
-                    Label("Refresh", systemImage: "arrow.clockwise")
-                }
-            }
-        }
         .task(id: accountManager.selectedCharacterID) {
             if AppRouter.shared.pendingEFTURL != nil { activeTab = .simulate }
             shipSections = []

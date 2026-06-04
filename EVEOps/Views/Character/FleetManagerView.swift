@@ -28,6 +28,13 @@ struct FleetManagerView: View {
         LoadingStateView(isLoading: isLoading, error: error, isEmpty: fleetInfo == nil, emptyMessage: "You are not currently in a fleet") {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
+                    HStack {
+                        Spacer()
+                        Button { Task { await loadFleet() } } label: {
+                            Label("Refresh", systemImage: "arrow.clockwise")
+                        }
+                        .buttonStyle(.borderless)
+                    }
                     if let info = fleetInfo {
                         fleetStatusCard(info)
                         if canInvite(info) {
@@ -48,20 +55,6 @@ struct FleetManagerView: View {
             }
         }
         .navigationTitle("Fleet Manager")
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button { Task { await loadFleet() } } label: {
-                    Label("Refresh", systemImage: "arrow.clockwise")
-                }
-            }
-            if let info = fleetInfo, canInvite(info) {
-                ToolbarItem {
-                    Button { showingInvite = true } label: {
-                        Label("Invite Member", systemImage: "person.badge.plus")
-                    }
-                }
-            }
-        }
         .sheet(isPresented: $showingInvite) {
             InviteFleetMemberSheet { characterId, role in
                 await sendInvite(characterId: characterId, role: role)

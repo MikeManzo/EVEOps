@@ -72,15 +72,6 @@ struct CharacterContactsView: View {
             }
         }
         .navigationTitle("Contacts")
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    showingAddContact = true
-                } label: {
-                    Label("Add Contact", systemImage: "person.badge.plus")
-                }
-            }
-        }
         .sheet(isPresented: $showingAddContact) {
             AddContactSheet { contactId, contactType, standing in
                 await addContact(contactId: contactId, contactType: contactType, standing: standing)
@@ -105,6 +96,17 @@ struct CharacterContactsView: View {
 
     private var contactList: some View {
         VStack(spacing: 0) {
+            HStack {
+                Spacer()
+                Button {
+                    showingAddContact = true
+                } label: {
+                    Label("Add Contact", systemImage: "person.badge.plus")
+                }
+                .buttonStyle(.borderless)
+                .padding(.trailing, 8)
+            }
+            .padding(.vertical, 4)
             filterBar
             List(selection: $selectedContactID) {
                 ForEach(groupedContacts, id: \.0) { type, group in

@@ -25,7 +25,19 @@ struct LocationOverviewView: View {
     var body: some View {
         LoadingStateView(isLoading: isLoading, error: error, isEmpty: locations.isEmpty, emptyMessage: "No location data") {
             ScrollView {
-                VStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 20) {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("Location Overview")
+                            .font(.largeTitle.bold())
+                        Spacer()
+                        if let lastRefresh {
+                            Text("Updated \(lastRefresh, style: .relative) ago")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .padding(.horizontal)
+
                     ForEach(locations, id: \.characterID) { info in
                         locationCard(info)
                     }
@@ -34,15 +46,6 @@ struct LocationOverviewView: View {
             }
         }
         .navigationTitle("Location Overview")
-        .toolbar {
-            ToolbarItem(placement: .automatic) {
-                if let lastRefresh {
-                    Text("Updated \(lastRefresh, style: .relative) ago")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                }
-            }
-        }
         .task(id: accountManager.selectedCharacterID) {
             locations = []
             if buildFromPrefetcher() {

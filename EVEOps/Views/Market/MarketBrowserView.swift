@@ -281,6 +281,43 @@ struct MarketBrowserView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // ── Inline action bar ─────────────────────────────────────
+            HStack(spacing: 8) {
+                Spacer()
+                Button {
+                    WindowService.shared.showGalaxySearch(typeId: selectedTypeId, typeName: selectedTypeName)
+                } label: {
+                    Label("Galaxy Search", systemImage: "globe.europe.africa.fill")
+                }
+                .buttonStyle(.borderless)
+                .help("Search cheapest sell orders across all k-space regions")
+                Menu {
+                    ForEach(availableRegions, id: \.id) { region in
+                        Button {
+                            selectedRegionId = region.id
+                            onRegionChanged()
+                        } label: {
+                            Text("\(regionEmoji(region.id))  \(region.name)")
+                        }
+                    }
+                } label: {
+                    let current = availableRegions.first(where: { $0.id == selectedRegionId })
+                    HStack(spacing: 5) {
+                        Circle()
+                            .fill(regionColor(current?.id ?? selectedRegionId))
+                            .frame(width: 8, height: 8)
+                        Text(current?.name ?? "Region")
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .disabled(availableRegions.isEmpty)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(.bar)
+            Divider()
             // ── Top row ───────────────────────────────────────────────
             HStack(spacing: 0) {
                 leftPane
@@ -307,47 +344,8 @@ struct MarketBrowserView: View {
                 .frame(height: detailHeight)
         }
         .navigationTitle("Market Browser")
-        .toolbar { toolbarContent }
         .task { await loadInitialData() }
 
-    }
-
-    // MARK:  Toolbar
-
-    @ToolbarContentBuilder
-    private var toolbarContent: some ToolbarContent {
-        ToolbarItem(placement: .automatic) {
-            Button {
-                WindowService.shared.showGalaxySearch(typeId: selectedTypeId, typeName: selectedTypeName)
-            } label: {
-                Label("Galaxy Search", systemImage: "globe.europe.africa.fill")
-            }
-            .help("Search cheapest sell orders across all k-space regions")
-        }
-        ToolbarItem(placement: .automatic) {
-            Menu {
-                ForEach(availableRegions, id: \.id) { region in
-                    Button {
-                        selectedRegionId = region.id
-                        onRegionChanged()
-                    } label: {
-                        Text("\(regionEmoji(region.id))  \(region.name)")
-                    }
-                }
-            } label: {
-                let current = availableRegions.first(where: { $0.id == selectedRegionId })
-                HStack(spacing: 5) {
-                    Circle()
-                        .fill(regionColor(current?.id ?? selectedRegionId))
-                        .frame(width: 8, height: 8)
-                    Text(current?.name ?? "Region")
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .disabled(availableRegions.isEmpty)
-        }
     }
 
     private func onRegionChanged() {

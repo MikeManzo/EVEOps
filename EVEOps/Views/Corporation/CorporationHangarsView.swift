@@ -73,32 +73,6 @@ struct CorporationHangarsView: View {
             }
         }
         .navigationTitle("Corp Hangars")
-        .toolbar {
-            ToolbarItemGroup(placement: .primaryAction) {
-                Menu {
-                    Picker("Sort by", selection: $sortOrder) {
-                        ForEach(HangarSortOrder.allCases) { order in
-                            Text(order.rawValue).tag(order)
-                        }
-                    }
-                } label: {
-                    Label("Sort: \(sortOrder.rawValue)", systemImage: "arrow.up.arrow.down")
-                }
-
-                Toggle(isOn: $groupByCategory) {
-                    Label("Group", systemImage: groupByCategory ? "folder.fill" : "folder")
-                }
-                .toggleStyle(.button)
-                .help("Group items by category")
-
-                Button {
-                    loadID += 1
-                } label: {
-                    Label("Refresh", systemImage: "arrow.clockwise")
-                }
-                .help("Reload hangar contents")
-            }
-        }
         .task(id: "\(loadID)-\(accountManager.selectedCharacterID ?? 0)") {
             allHangarAssets = []
             locations = []
@@ -151,6 +125,32 @@ struct CorporationHangarsView: View {
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
                     .background(.quaternary, in: Capsule())
+
+                Divider().frame(height: 20)
+
+                Menu {
+                    Picker("Sort by", selection: $sortOrder) {
+                        ForEach(HangarSortOrder.allCases) { order in
+                            Text(order.rawValue).tag(order)
+                        }
+                    }
+                } label: {
+                    Label("Sort: \(sortOrder.rawValue)", systemImage: "arrow.up.arrow.down")
+                }
+
+                Toggle(isOn: $groupByCategory) {
+                    Label("Group", systemImage: groupByCategory ? "folder.fill" : "folder")
+                }
+                .toggleStyle(.button)
+                .help("Group items by category")
+
+                Button {
+                    loadID += 1
+                } label: {
+                    Label("Refresh", systemImage: "arrow.clockwise")
+                }
+                .buttonStyle(.borderless)
+                .help("Reload hangar contents")
             }
         }
         .padding()
