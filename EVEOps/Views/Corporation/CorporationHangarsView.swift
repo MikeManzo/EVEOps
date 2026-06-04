@@ -72,6 +72,16 @@ struct CorporationHangarsView: View {
                 }
             }
         }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            HStack {
+                Text("Corp Hangars")
+                    .font(.largeTitle.bold())
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(.background)
+        }
         .navigationTitle("Corp Hangars")
         .task(id: "\(loadID)-\(accountManager.selectedCharacterID ?? 0)") {
             allHangarAssets = []

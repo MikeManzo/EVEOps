@@ -36,6 +36,16 @@ struct CorporationMoonExtractionsView: View {
                 )
             }
         }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            HStack {
+                Text("Moon Extractions")
+                    .font(.largeTitle.bold())
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(.background)
+        }
         .navigationTitle("Moon Extractions (\(extractions.count))")
         .task(id: accountManager.selectedCharacterID) {
             await load()

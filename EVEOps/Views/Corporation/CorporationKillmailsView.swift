@@ -33,6 +33,16 @@ struct CorporationKillmailsView: View {
                 }
             }
         }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            HStack {
+                Text("Corp Kill/Loss Mails")
+                    .font(.largeTitle.bold())
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(.background)
+        }
         .navigationTitle("Corp Kill/Loss Mails")
         .sheet(item: $selectedEntry) { entry in
             KillmailDetailSheet(entry: entry)

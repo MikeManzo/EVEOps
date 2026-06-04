@@ -181,6 +181,16 @@ struct CharacterFittingsView: View {
                     .environment(simState)
             }
         }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            HStack {
+                Text("Ships & Fittings")
+                    .font(.largeTitle.bold())
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(.background)
+        }
         .navigationTitle("Ships & Fittings")
         .task(id: accountManager.selectedCharacterID) {
             if AppRouter.shared.pendingEFTURL != nil { activeTab = .simulate }

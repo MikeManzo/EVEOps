@@ -63,6 +63,16 @@ struct CharacterAssetsView: View {
                     .frame(width: 320)
             }
         }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            HStack {
+                Text("Assets")
+                    .font(.largeTitle.bold())
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(.background)
+        }
         .navigationTitle("Assets")
         .task(id: accountManager.selectedCharacterID) {
             assets = []

@@ -32,6 +32,16 @@ struct CorporationWalletsView: View {
                 tabContent
             }
         }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            HStack {
+                Text("Corp Wallets")
+                    .font(.largeTitle.bold())
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(.background)
+        }
         .navigationTitle("Corp Wallets")
         .task(id: accountManager.selectedCharacterID) {
             wallets = []

@@ -156,6 +156,16 @@ struct CharacterCalendarView: View {
                 bottomSplit
             }
         }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            HStack {
+                Text("Calendar")
+                    .font(.largeTitle.bold())
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(.background)
+        }
         .navigationTitle("Calendar")
         .task(id: accountManager.selectedCharacterID) { await loadAll() }
     }

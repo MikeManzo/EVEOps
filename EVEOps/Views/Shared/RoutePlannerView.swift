@@ -52,6 +52,16 @@ struct RoutePlannerView: View {
             }
             .padding()
         }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            HStack {
+                Text("Route Planner")
+                    .font(.largeTitle.bold())
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(.background)
+        }
         .navigationTitle("Route Planner")
         .task { await loadTheraConnections() }
     }

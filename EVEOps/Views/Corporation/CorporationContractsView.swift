@@ -24,6 +24,16 @@ struct CorporationContractsView: View {
                 contractList
             }
         }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            HStack {
+                Text("Corp Contracts")
+                    .font(.largeTitle.bold())
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(.background)
+        }
         .navigationTitle("Corp Contracts")
         .task(id: accountManager.selectedCharacterID) {
             guard let account = accountManager.selectedAccount else { return }

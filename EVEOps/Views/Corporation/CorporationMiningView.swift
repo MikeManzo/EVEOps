@@ -29,6 +29,16 @@ struct CorporationMiningView: View {
                     }
             }
         }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            HStack {
+                Text("Corp Mining Ledger")
+                    .font(.largeTitle.bold())
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(.background)
+        }
         .navigationTitle("Corp Mining Ledger")
         .task(id: accountManager.selectedCharacterID) {
             guard let account = accountManager.selectedAccount else { return }

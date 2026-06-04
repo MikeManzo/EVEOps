@@ -343,6 +343,16 @@ struct MarketBrowserView: View {
             detailPane
                 .frame(height: detailHeight)
         }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            HStack {
+                Text("Market Browser")
+                    .font(.largeTitle.bold())
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(.background)
+        }
         .navigationTitle("Market Browser")
         .task { await loadInitialData() }
 

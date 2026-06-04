@@ -47,6 +47,16 @@ struct CharacterBookmarksView: View {
                 bookmarkList
             }
         }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            HStack {
+                Text("Bookmarks")
+                    .font(.largeTitle.bold())
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(.background)
+        }
         .navigationTitle("Bookmarks (\(bookmarks.count))")
         .searchable(text: $searchText, prompt: "Search bookmarks")
         .task(id: accountManager.selectedCharacterID) {

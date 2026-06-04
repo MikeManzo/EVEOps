@@ -97,6 +97,16 @@ struct FinancesView: View {
                 .padding()
             }
         }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            HStack {
+                Text("Finances")
+                    .font(.largeTitle.bold())
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(.background)
+        }
         .navigationTitle("Finances")
         .task(id: accountManager.selectedCharacterID) {
             if buildFromPrefetcher() {

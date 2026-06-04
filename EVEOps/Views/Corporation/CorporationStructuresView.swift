@@ -91,6 +91,16 @@ struct CorporationStructuresView: View {
                 .padding(.vertical, 4)
             }
         }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            HStack {
+                Text("Corp Structures")
+                    .font(.largeTitle.bold())
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(.background)
+        }
         .navigationTitle("Corp Structures")
         .task(id: accountManager.selectedCharacterID) {
             structures = []

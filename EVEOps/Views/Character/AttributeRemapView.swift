@@ -90,6 +90,16 @@ struct AttributeRemapView: View {
                 .padding()
             }
         }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            HStack {
+                Text("Remap Advisor")
+                    .font(.largeTitle.bold())
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(.background)
+        }
         .navigationTitle("Remap Advisor")
         .task(id: accountManager.selectedCharacterID) { await load() }
         .task(id: "timer") {

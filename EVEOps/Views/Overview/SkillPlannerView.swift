@@ -40,6 +40,16 @@ struct SkillPlannerView: View {
                 skillBrowser
             }
         }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            HStack {
+                Text("Skill Planner")
+                    .font(.largeTitle.bold())
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(.background)
+        }
         .navigationTitle("Skill Planner")
         .task(id: accountManager.selectedCharacterID) {
             await loadData()

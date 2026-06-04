@@ -31,6 +31,16 @@ struct CharacterResearchAgentsView: View {
                 }
             }
         }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            HStack {
+                Text("Research Agents")
+                    .font(.largeTitle.bold())
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(.background)
+        }
         .navigationTitle("Research Agents")
         .task(id: accountManager.selectedCharacterID) { await load() }
         .task(id: "timer") {

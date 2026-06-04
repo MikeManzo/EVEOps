@@ -155,6 +155,16 @@ struct ItemAppraisalView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            HStack {
+                Text("Item Appraisal")
+                    .font(.largeTitle.bold())
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(.background)
+        }
         .navigationTitle("Item Appraisal")
     }
 

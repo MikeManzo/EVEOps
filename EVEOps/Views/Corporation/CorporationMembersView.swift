@@ -40,6 +40,16 @@ struct CorporationMembersView: View {
                     .frame(maxWidth: .infinity)
             }
         }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            HStack {
+                Text("Corp Members")
+                    .font(.largeTitle.bold())
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(.background)
+        }
         .navigationTitle("Corp Members")
         .task(id: accountManager.selectedCharacterID) {
             members = []

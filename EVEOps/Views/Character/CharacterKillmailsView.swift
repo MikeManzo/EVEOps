@@ -37,6 +37,16 @@ struct CharacterKillmailsView: View {
                 killmailList
             }
         }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            HStack {
+                Text("Kill/Loss Mails")
+                    .font(.largeTitle.bold())
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(.background)
+        }
         .navigationTitle("Kill/Loss Mails")
         .sheet(item: $selectedEntry) { entry in
             KillmailDetailSheet(entry: entry)

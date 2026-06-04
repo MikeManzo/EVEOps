@@ -43,6 +43,16 @@ struct CorporationMarketOrdersView: View {
                 }
             }
         }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            HStack {
+                Text("Corp Market Orders")
+                    .font(.largeTitle.bold())
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(.background)
+        }
         .navigationTitle("Corp Market Orders")
         .task(id: accountManager.selectedCharacterID) {
             guard let account = accountManager.selectedAccount else { return }

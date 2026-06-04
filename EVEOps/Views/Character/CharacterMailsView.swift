@@ -54,6 +54,16 @@ struct CharacterMailsView: View {
                 }
             }
         }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            HStack {
+                Text("Mails")
+                    .font(.largeTitle.bold())
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(.background)
+        }
         .navigationTitle("Mails")
         .sheet(isPresented: $showingCompose) {
             ComposeMailSheet { subject, recipients, body in
