@@ -38,7 +38,7 @@ struct CorporationMoonExtractionsView: View {
         }
         .safeAreaInset(edge: .top, spacing: 0) {
             HStack {
-                Text("Moon Extractions")
+                Text("Corp Moon Mining")
                     .font(.largeTitle.bold())
                 Spacer()
             }

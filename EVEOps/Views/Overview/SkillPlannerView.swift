@@ -33,6 +33,7 @@ struct SkillPlannerView: View {
     var body: some View {
         LoadingStateView(isLoading: isLoading, error: error, isEmpty: trainingData.isEmpty, emptyMessage: "No character data") {
             HStack(spacing: 0) {
+                Spacer(minLength: 15)    // MRM
                 planPanel
                     .frame(width: 320)
                     .background(.regularMaterial)

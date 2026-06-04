@@ -615,8 +615,8 @@ private struct AppearanceTab: View {
                 Toggle("Show skill points", isOn: $menuBarShowSP)
                 Toggle("Show current location", isOn: $menuBarShowLocation)
                 Toggle("Show current ship", isOn: $menuBarShowShip)
-                Divider()
-                Toggle("Compact layout", isOn: $menuBarCompact)
+//                Divider()
+//                Toggle("Compact layout", isOn: $menuBarCompact)
             }
         }
         .formStyle(.grouped)
@@ -800,15 +800,17 @@ private struct AdvancedTab: View {
                 LabeledContent("Callback URL", value: "eveops://callback")
             }
 
-            Section("Developer") {
-                Toggle("Debug mode", isOn: $debugMode)
-                Text("Logs additional diagnostic information to the console.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Toggle("Show Utility section in sidebar", isOn: $showUtilitySection)
-                Text("Displays the Utility section containing the Diagnostic Logs viewer.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            Section("Debug") {
+//                Toggle("Debug mode", isOn: $debugMode)
+//                Text("Logs additional diagnostic information to the console.")
+//                    .font(.caption)
+//                    .foregroundStyle(.secondary)
+                VStack (alignment: .leading, spacing: 10) {
+                    Toggle("Show Utility section in sidebar", isOn: $showUtilitySection)
+                    Text("Displays the Utility section containing the Diagnostic Logs viewer")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 Picker("Max log entries", selection: $diagMaxEntries) {
                     Text("250").tag(250)
                     Text("500").tag(500)

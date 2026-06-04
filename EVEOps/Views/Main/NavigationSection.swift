@@ -51,7 +51,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
     case corpMarketOrders = "Corp Market Orders"
     case corpMining = "Corp Mining"
     case corpWars = "Corp Wars"
-    case corpMoonExtractions = "Moon Extractions"
+    case corpMoonExtractions = "Corp Moon Mining"
 
     // Utility
     case diagnosticLogs = "Diagnostic Logs"

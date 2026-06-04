@@ -274,51 +274,58 @@ struct SidebarView: View {
     @ViewBuilder
     private var accountSwitcher: some View {
         if accountManager.accounts.count > 1 {
-            Menu {
-                ForEach(accountManager.accounts, id: \.characterID) { account in
-                    Button {
-                        accountManager.selectedCharacterID = account.characterID
-                    } label: {
-                        Label {
-                            Text(account.characterName)
-                        } icon: {
-                            AsyncImage(url: EVEImageURL.characterPortrait(account.characterID, size: 32)) { image in
-                                image.resizable()
-                                    .aspectRatio(contentMode: .fill)
-                                    .frame(width: 16, height: 16)
-                                    .clipShape(Circle())
-                            } placeholder: {
-                                Circle().fill(.secondary.opacity(0.3))
-                                    .frame(width: 16, height: 16)
+            HStack {
+                Spacer(minLength: 3)
+                Text("Pilot")
+                    .font(.title)
+                Menu {
+                    ForEach(accountManager.accounts, id: \.characterID) { account in
+                        Button {
+                            accountManager.selectedCharacterID = account.characterID
+                        } label: {
+                            Label {
+                                Text(account.characterName)
+                            } icon: {
+                                AsyncImage(url: EVEImageURL.characterPortrait(account.characterID, size: 32)) { image in
+                                    image.resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                        .frame(width: 16, height: 16)
+                                        .clipShape(Circle())
+                                } placeholder: {
+                                    Circle().fill(.secondary.opacity(0.3))
+                                        .frame(width: 16, height: 16)
+                                }
                             }
                         }
                     }
-                }
-            } label: {
-                HStack(spacing: 6) {
-                    if let account = accountManager.selectedAccount {
-                        AsyncImage(url: EVEImageURL.characterPortrait(account.characterID, size: 32)) { image in
-                            image.resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(width: 20, height: 20)
-                                .clipShape(Circle())
-                        } placeholder: {
-                            Circle().fill(.secondary.opacity(0.3))
-                                .frame(width: 20, height: 20)
+                } label: {
+                    HStack(spacing: 6) {
+                        if let account = accountManager.selectedAccount {
+                            AsyncImage(url: EVEImageURL.characterPortrait(account.characterID, size: 32)) { image in
+                                image.resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(width: 20, height: 20)
+                                    .clipShape(Circle())
+                            } placeholder: {
+                                Circle().fill(.secondary.opacity(0.3))
+                                    .frame(width: 20, height: 20)
+                            }
+                            Text(account.characterName)
+                                .lineLimit(1)
+                                .font(.title2)
                         }
-                        Text(account.characterName)
-                            .lineLimit(1)
+                        Spacer()
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
                     }
-                    Spacer()
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity)
                 }
-                .frame(maxWidth: .infinity)
+                .menuStyle(.borderlessButton)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                Spacer()
             }
-            .menuStyle(.borderlessButton)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
         }
     }
 
