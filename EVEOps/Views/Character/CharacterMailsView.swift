@@ -64,7 +64,7 @@ struct CharacterMailsView: View {
             .padding(.vertical, 12)
             .background(.background)
         }
-        .navigationTitle("Mails")
+        .navigationTitle("")
         .sheet(isPresented: $showingCompose) {
             ComposeMailSheet { subject, recipients, body in
                 await sendMail(subject: subject, recipients: recipients, body: body)

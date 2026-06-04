@@ -57,7 +57,7 @@ struct CharacterBookmarksView: View {
             .padding(.vertical, 12)
             .background(.background)
         }
-        .navigationTitle("Bookmarks (\(bookmarks.count))")
+        .navigationTitle("")
         .searchable(text: $searchText, prompt: "Search bookmarks")
         .task(id: accountManager.selectedCharacterID) {
             await loadBookmarks()

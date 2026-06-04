@@ -53,7 +53,7 @@ struct CorporationMarketOrdersView: View {
             .padding(.vertical, 12)
             .background(.background)
         }
-        .navigationTitle("Corp Market Orders")
+        .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) {
             guard let account = accountManager.selectedAccount else { return }
             isLoading = true

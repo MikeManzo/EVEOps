@@ -129,7 +129,7 @@ struct GalaxyMapView: View {
             .padding(.vertical, 12)
             .background(.background)
         }
-        .navigationTitle("Galaxy Map")
+        .navigationTitle("")
         .task { await loadData() }
         .onAppear {
             if starfieldSeeds.isEmpty {

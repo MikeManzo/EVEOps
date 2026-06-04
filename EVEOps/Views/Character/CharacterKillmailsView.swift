@@ -47,7 +47,7 @@ struct CharacterKillmailsView: View {
             .padding(.vertical, 12)
             .background(.background)
         }
-        .navigationTitle("Kill/Loss Mails")
+        .navigationTitle("")
         .sheet(item: $selectedEntry) { entry in
             KillmailDetailSheet(entry: entry)
         }

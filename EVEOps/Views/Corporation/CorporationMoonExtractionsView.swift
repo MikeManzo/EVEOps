@@ -46,7 +46,7 @@ struct CorporationMoonExtractionsView: View {
             .padding(.vertical, 12)
             .background(.background)
         }
-        .navigationTitle("Moon Extractions (\(extractions.count))")
+        .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) {
             await load()
         }

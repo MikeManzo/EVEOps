@@ -41,7 +41,7 @@ struct CharacterStandingsView: View {
             .padding(.vertical, 12)
             .background(.background)
         }
-        .navigationTitle("Standings")
+        .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) {
             groups = []
             isLoading = true

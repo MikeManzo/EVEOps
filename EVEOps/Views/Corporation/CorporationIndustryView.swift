@@ -44,7 +44,7 @@ struct CorporationIndustryView: View {
             .padding(.vertical, 12)
             .background(.background)
         }
-        .navigationTitle("Corp Industry")
+        .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) {
             jobs = []
             isLoading = true

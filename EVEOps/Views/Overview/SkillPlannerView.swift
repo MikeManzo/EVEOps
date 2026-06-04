@@ -50,7 +50,7 @@ struct SkillPlannerView: View {
             .padding(.vertical, 12)
             .background(.background)
         }
-        .navigationTitle("Skill Planner")
+        .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) {
             await loadData()
         }

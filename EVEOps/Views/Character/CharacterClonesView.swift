@@ -64,7 +64,7 @@ struct CharacterClonesView: View {
             .padding(.vertical, 12)
             .background(.background)
         }
-        .navigationTitle("Clones")
+        .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) {
             clonesResponse = nil
             activeImplants = []

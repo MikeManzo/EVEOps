@@ -80,7 +80,7 @@ final class WindowService {
         let controller = NSHostingController(rootView: content)
         let window = NSWindow(contentViewController: controller)
         window.appearance = resolvedNSAppearance
-        window.title = "EVEOps"
+        window.title = ""//"EVEOps"
         window.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
         window.minSize = NSSize(width: 900, height: 600)
         window.setContentSize(NSSize(width: 1100, height: 700))

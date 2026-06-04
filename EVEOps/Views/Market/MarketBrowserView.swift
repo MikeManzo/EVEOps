@@ -353,7 +353,7 @@ struct MarketBrowserView: View {
             .padding(.vertical, 12)
             .background(.background)
         }
-        .navigationTitle("Market Browser")
+        .navigationTitle("")
         .task { await loadInitialData() }
 
     }

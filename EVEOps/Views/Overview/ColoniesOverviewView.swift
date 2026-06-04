@@ -45,7 +45,7 @@ struct ColoniesOverviewView: View {
             .padding(.vertical, 12)
             .background(.background)
         }
-        .navigationTitle("Colonies Overview")
+        .navigationTitle("")
         .sheet(item: $selectedEntry) { entry in
             ColonyDetailView(characterID: entry.characterID, colony: entry.colony)
         }

@@ -100,7 +100,7 @@ struct AttributeRemapView: View {
             .padding(.vertical, 12)
             .background(.background)
         }
-        .navigationTitle("Remap Advisor")
+        .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) { await load() }
         .task(id: "timer") {
             while !Task.isCancelled {

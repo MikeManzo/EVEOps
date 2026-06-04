@@ -45,7 +45,7 @@ struct LocationOverviewView: View {
                 .padding()
             }
         }
-        .navigationTitle("Location Overview")
+        .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) {
             locations = []
             if buildFromPrefetcher() {

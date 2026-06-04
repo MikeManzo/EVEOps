@@ -57,7 +57,7 @@ struct DiagnosticPaneView: View {
             .padding(.vertical, 12)
             .background(.background)
         }
-        .navigationTitle("Diagnostic Logs")
+        .navigationTitle("")
     }
 
     // MARK:  Toolbar

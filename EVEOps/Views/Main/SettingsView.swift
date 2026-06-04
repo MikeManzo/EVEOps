@@ -38,7 +38,7 @@ struct SettingsView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .navigationTitle(current.title)
+            .navigationTitle(""/*current.title*/)
         }
         .frame(width: 780, height: 540)
     }

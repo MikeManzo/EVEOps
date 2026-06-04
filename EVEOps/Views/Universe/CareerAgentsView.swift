@@ -257,7 +257,7 @@ struct CareerAgentsView: View {
             .padding(.vertical, 12)
             .background(.background)
         }
-        .navigationTitle("Career Agents")
+        .navigationTitle("")
         .task {
             await resolveAllSystems()
         }

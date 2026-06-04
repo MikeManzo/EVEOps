@@ -50,7 +50,7 @@ struct CorporationMembersView: View {
             .padding(.vertical, 12)
             .background(.background)
         }
-        .navigationTitle("Corp Members")
+        .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) {
             members = []
             selectedMemberID = nil

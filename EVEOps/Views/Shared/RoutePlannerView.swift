@@ -62,7 +62,7 @@ struct RoutePlannerView: View {
             .padding(.vertical, 12)
             .background(.background)
         }
-        .navigationTitle("Route Planner")
+        .navigationTitle("")
         .task { await loadTheraConnections() }
     }
 

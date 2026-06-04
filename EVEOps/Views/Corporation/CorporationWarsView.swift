@@ -47,7 +47,7 @@ struct CorporationWarsView: View {
             .padding(.vertical, 12)
             .background(.background)
         }
-        .navigationTitle("Corp Wars")
+        .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) { await load() }
     }
 

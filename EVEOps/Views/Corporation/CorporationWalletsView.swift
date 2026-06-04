@@ -42,7 +42,7 @@ struct CorporationWalletsView: View {
             .padding(.vertical, 12)
             .background(.background)
         }
-        .navigationTitle("Corp Wallets")
+        .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) {
             wallets = []
             journal = []

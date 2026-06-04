@@ -57,7 +57,7 @@ struct IndustryOverviewView: View {
             .padding(.vertical, 12)
             .background(.background)
         }
-        .navigationTitle("Industry Overview")
+        .navigationTitle("")
         .task {
             if buildFromPrefetcher() { return }
             isLoading = true

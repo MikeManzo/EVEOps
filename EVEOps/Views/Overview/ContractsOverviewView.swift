@@ -35,7 +35,7 @@ struct ContractsOverviewView: View {
             .padding(.vertical, 12)
             .background(.background)
         }
-        .navigationTitle("Contracts Overview")
+        .navigationTitle("")
         .task {
             if buildFromPrefetcher() { return }
             isLoading = true

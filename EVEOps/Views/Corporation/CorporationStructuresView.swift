@@ -101,7 +101,7 @@ struct CorporationStructuresView: View {
             .padding(.vertical, 12)
             .background(.background)
         }
-        .navigationTitle("Corp Structures")
+        .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) {
             structures = []
             isLoading = true

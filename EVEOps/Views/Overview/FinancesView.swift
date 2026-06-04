@@ -107,7 +107,7 @@ struct FinancesView: View {
             .padding(.vertical, 12)
             .background(.background)
         }
-        .navigationTitle("Finances")
+        .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) {
             if buildFromPrefetcher() {
                 await resolveTypeNames()

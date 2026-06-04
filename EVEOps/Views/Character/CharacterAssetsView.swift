@@ -73,7 +73,7 @@ struct CharacterAssetsView: View {
             .padding(.vertical, 12)
             .background(.background)
         }
-        .navigationTitle("Assets")
+        .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) {
             assets = []
             selectedAsset = nil

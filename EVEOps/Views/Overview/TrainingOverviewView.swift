@@ -70,7 +70,7 @@ struct TrainingOverviewView: View {
             .padding(.vertical, 12)
             .background(.background)
         }
-        .navigationTitle("Training Overview")
+        .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) {
             trainingData = []
             if buildFromPrefetcher() { return }

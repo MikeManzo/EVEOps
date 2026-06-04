@@ -39,7 +39,7 @@ struct CorporationMiningView: View {
             .padding(.vertical, 12)
             .background(.background)
         }
-        .navigationTitle("Corp Mining Ledger")
+        .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) {
             guard let account = accountManager.selectedAccount else { return }
             isLoading = true

@@ -62,7 +62,7 @@ struct CharacterCommunicationsView: View {
             .padding(.vertical, 12)
             .background(.background)
         }
-        .navigationTitle("Communications")
+        .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) {
             notifications = []
             selectedNotification = nil

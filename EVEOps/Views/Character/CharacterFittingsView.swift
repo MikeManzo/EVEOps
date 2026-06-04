@@ -191,7 +191,7 @@ struct CharacterFittingsView: View {
             .padding(.vertical, 12)
             .background(.background)
         }
-        .navigationTitle("Ships & Fittings")
+        .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) {
             if AppRouter.shared.pendingEFTURL != nil { activeTab = .simulate }
             shipSections = []

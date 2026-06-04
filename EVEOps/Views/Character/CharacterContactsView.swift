@@ -96,7 +96,7 @@ struct CharacterContactsView: View {
             .padding(.vertical, 12)
             .background(.background)
         }
-        .navigationTitle("Contacts")
+        .navigationTitle("")
         .sheet(isPresented: $showingAddContact) {
             AddContactSheet { contactId, contactType, standing in
                 await addContact(contactId: contactId, contactType: contactType, standing: standing)

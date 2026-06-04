@@ -64,7 +64,7 @@ struct FleetManagerView: View {
             .padding(.vertical, 12)
             .background(.background)
         }
-        .navigationTitle("Fleet Manager")
+        .navigationTitle("")
         .sheet(isPresented: $showingInvite) {
             InviteFleetMemberSheet { characterId, role in
                 await sendInvite(characterId: characterId, role: role)

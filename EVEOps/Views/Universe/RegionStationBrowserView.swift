@@ -81,7 +81,7 @@ struct RegionStationBrowserView: View {
             .padding(.vertical, 12)
             .background(.background)
         }
-        .navigationTitle("Station Browser")
+        .navigationTitle("")
         .task { await loadRegions() }
         .task(id: selectedRegionId) {
             selectedStation = nil

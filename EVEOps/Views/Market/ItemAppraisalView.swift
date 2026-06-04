@@ -165,7 +165,7 @@ struct ItemAppraisalView: View {
             .padding(.vertical, 12)
             .background(.background)
         }
-        .navigationTitle("Item Appraisal")
+        .navigationTitle("")
     }
 
     // MARK: Row

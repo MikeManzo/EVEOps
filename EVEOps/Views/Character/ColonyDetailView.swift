@@ -55,7 +55,7 @@ struct ColonyDetailView: View {
                     }
                 }
             }
-            .navigationTitle("\(colony.systemName) — \(colony.planetType.capitalized)")
+            .navigationTitle(""/*"\(colony.systemName) — \(colony.planetType.capitalized)"*/)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }

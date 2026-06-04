@@ -82,7 +82,7 @@ struct CorporationHangarsView: View {
             .padding(.vertical, 12)
             .background(.background)
         }
-        .navigationTitle("Corp Hangars")
+        .navigationTitle("")
         .task(id: "\(loadID)-\(accountManager.selectedCharacterID ?? 0)") {
             allHangarAssets = []
             locations = []

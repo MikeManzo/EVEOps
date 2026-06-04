@@ -166,7 +166,7 @@ struct CharacterCalendarView: View {
             .padding(.vertical, 12)
             .background(.background)
         }
-        .navigationTitle("Calendar")
+        .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) { await loadAll() }
     }
 

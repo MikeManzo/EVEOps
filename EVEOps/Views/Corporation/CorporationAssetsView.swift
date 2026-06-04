@@ -108,7 +108,7 @@ struct CorporationAssetsView: View {
             .padding(.vertical, 12)
             .background(.background)
         }
-        .navigationTitle("Corp Assets")
+        .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) {
             assets = []
             selectedAsset = nil
