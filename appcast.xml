@@ -3,12 +3,12 @@
     <channel>
         <title>EVEOps</title>
         <item>
-            <title>0.9.8.33</title>
-            <pubDate>Fri, 05 Jun 2026 07:28:37 -0400</pubDate>
-            <sparkle:version>70</sparkle:version>
-            <sparkle:shortVersionString>0.9.8.33</sparkle:shortVersionString>
+            <title>0.9.8.34</title>
+            <pubDate>Fri, 05 Jun 2026 16:58:57 -0400</pubDate>
+            <sparkle:version>71</sparkle:version>
+            <sparkle:shortVersionString>0.9.8.34</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.8.33/EVEOps.dmg" length="31687333" type="application/octet-stream" sparkle:edSignature="RbYF/bO0GJlff4QogF4pMyf0gXj4OhpH44VkvCqe0B5pe4z1Yjd0W5pvtS+vg3SFSYgYXUCTUrXbYleCQtK9Bw=="/>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.8.34/EVEOps.dmg" length="31725918" type="application/octet-stream" sparkle:edSignature="AurKDpesPpN41fb9Jc9IHqSLFEcmNWAVPRlADZEhJcas99wDGxr51XH2m9rgF8Q8RKDwkf1PpBvNXjG/aJSrBA=="/>
         </item>
     </channel>
 </rss>
