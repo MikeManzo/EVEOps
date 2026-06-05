@@ -127,6 +127,19 @@ struct CloneInsight: Sendable {
 actor IntelligenceService {
     static let shared = IntelligenceService()
 
+    // Low temperature reduces token-sampling variance while keeping responses natural.
+    private static let generationOptions = GenerationOptions(temperature: 0.2)
+
+    // Per-type caches keyed by prompt content — identical inputs always return the same result.
+    private var financeCache: [String: FinanceInsight] = [:]
+    private var skillCache: [String: SkillTrainingRecommendation] = [:]
+    private var combatCache: [String: CombatInsight] = [:]
+    private var industryCache: [String: IndustryInsight] = [:]
+    private var assetCache: [String: AssetInsight] = [:]
+    private var fittingCache: [String: FittingInsight] = [:]
+    private var marketCache: [String: MarketInsight] = [:]
+    private var cloneCache: [String: CloneInsight] = [:]
+
     // MARK: Finance Analysis
 
     func analyzeFinances(
@@ -149,10 +162,13 @@ actor IntelligenceService {
         Recent financial activity: \(activitySummary.isEmpty ? "no recent activity recorded" : activitySummary)
         """
 
+        if let cached = financeCache[prompt] { return cached }
+
         let session = LanguageModelSession(
             instructions: "You are a concise EVE Online financial advisor. Provide practical ISK-making analysis using correct EVE Online terminology."
         )
-        let response = try await session.respond(to: prompt, generating: FinanceInsight.self)
+        let response = try await session.respond(to: prompt, generating: FinanceInsight.self, options: Self.generationOptions)
+        financeCache[prompt] = response.content
         return response.content
     }
 
@@ -189,10 +205,13 @@ actor IntelligenceService {
         \(maxedList)
         """
 
+        if let cached = skillCache[prompt] { return cached }
+
         let session = LanguageModelSession(
             instructions: "You are an EVE Online skill advisor. Based on the character's skill areas, recommend 7 skills to train next. You may suggest training a partially-trained skill to a higher level, or suggest a brand-new skill (not yet trained) that suits the character. For skillName give ONLY the bare EVE skill name — no level info, no prefixes (e.g. 'Caldari Cruiser', not 'Caldari Cruiser to Level V'). For targetLevel give the integer level to train TO; it must be strictly greater than the skill's current level shown in parentheses, or 1 if the skill is not listed. Never recommend maxed (L5) skills."
         )
-        let response = try await session.respond(to: prompt, generating: SkillTrainingRecommendation.self)
+        let response = try await session.respond(to: prompt, generating: SkillTrainingRecommendation.self, options: Self.generationOptions)
+        skillCache[prompt] = response.content
         return response.content
     }
 
@@ -222,10 +241,13 @@ actor IntelligenceService {
         Common ships attacking this character: \(threatSummary.isEmpty ? "unknown" : threatSummary)
         """
 
+        if let cached = combatCache[prompt] { return cached }
+
         let session = LanguageModelSession(
             instructions: "You are a concise EVE Online PvP analyst. Assess this character's combat style and efficiency based on their kill/loss data, then give one practical suggestion to improve their combat performance or survivability."
         )
-        let response = try await session.respond(to: prompt, generating: CombatInsight.self)
+        let response = try await session.respond(to: prompt, generating: CombatInsight.self, options: Self.generationOptions)
+        combatCache[prompt] = response.content
         return response.content
     }
 
@@ -250,10 +272,13 @@ actor IntelligenceService {
         Most used blueprints: \(blueprintList.isEmpty ? "none" : blueprintList)
         """
 
+        if let cached = industryCache[prompt] { return cached }
+
         let session = LanguageModelSession(
             instructions: "You are a concise EVE Online industrial advisor. Analyze this character's manufacturing and industry activity, then give one practical suggestion to improve efficiency, profitability, or production chain value. Use correct EVE Online industry terminology."
         )
-        let response = try await session.respond(to: prompt, generating: IndustryInsight.self)
+        let response = try await session.respond(to: prompt, generating: IndustryInsight.self, options: Self.generationOptions)
+        industryCache[prompt] = response.content
         return response.content
     }
 
@@ -280,10 +305,13 @@ actor IntelligenceService {
         Most-held items by quantity: \(itemLines.isEmpty ? "none" : itemLines)
         """
 
+        if let cached = assetCache[prompt] { return cached }
+
         let session = LanguageModelSession(
             instructions: "You are a concise EVE Online logistics advisor. Analyze how this character's assets are distributed across New Eden and give one actionable suggestion to consolidate, liquidate, or better utilize their holdings."
         )
-        let response = try await session.respond(to: prompt, generating: AssetInsight.self)
+        let response = try await session.respond(to: prompt, generating: AssetInsight.self, options: Self.generationOptions)
+        assetCache[prompt] = response.content
         return response.content
     }
 
@@ -306,10 +334,13 @@ actor IntelligenceService {
         \(slotLines.isEmpty ? "  No modules" : slotLines)
         """
 
+        if let cached = fittingCache[prompt] { return cached }
+
         let session = LanguageModelSession(
             instructions: "You are a concise EVE Online fitting advisor. Based on the module loadout, identify the fitting's role and tank type, then give one specific, practical module swap or addition to improve it. Use correct EVE Online module names and fitting terminology."
         )
-        let response = try await session.respond(to: prompt, generating: FittingInsight.self)
+        let response = try await session.respond(to: prompt, generating: FittingInsight.self, options: Self.generationOptions)
+        fittingCache[prompt] = response.content
         return response.content
     }
 
@@ -354,10 +385,13 @@ actor IntelligenceService {
         \(priceLine)
         """
 
+        if let cached = marketCache[prompt] { return cached }
+
         let session = LanguageModelSession(
             instructions: "You are a concise EVE Online market analyst. Assess this item's price trend, liquidity, and spread, then give one actionable trading suggestion. Use correct EVE Online market terminology (station trading, arbitrage, margin, buy/sell wall, etc.)."
         )
-        let response = try await session.respond(to: prompt, generating: MarketInsight.self)
+        let response = try await session.respond(to: prompt, generating: MarketInsight.self, options: Self.generationOptions)
+        marketCache[prompt] = response.content
         return response.content
     }
 
@@ -403,10 +437,13 @@ actor IntelligenceService {
         \(jumpCloneLines)
         """
 
+        if let cached = cloneCache[prompt] { return cached }
+
         let session = LanguageModelSession(
             instructions: "You are a knowledgeable EVE Online implant advisor. Write a thorough, detailed assessment of the character's active implant set covering grade quality, slot coverage, and playstyle fit — use at least three complete, specific sentences for the set assessment. Slot numbering: slots 1–5 are attribute implants (1=Perception, 2=Memory, 3=Willpower, 4=Intelligence, 5=Charisma); slots 6–10 are hardwirings. Cybernetics skill gates grades: I=+1%, II=+2%, III=+3%, IV=+4%, V=+5% attribute implants and High-grade/Low-grade named sets (Slave, Snake, Halo, Amulet, Ascendancy, Genolution CA series). Explicitly name which slots are filled and which are empty. Relate the installed implants to the character's skill focus and SP total. Recommend one specific upgrade using the exact EVE item name and identify any prerequisite skill training."
         )
-        let response = try await session.respond(to: prompt, generating: CloneInsight.self)
+        let response = try await session.respond(to: prompt, generating: CloneInsight.self, options: Self.generationOptions)
+        cloneCache[prompt] = response.content
         return response.content
     }
 
