@@ -338,7 +338,8 @@ struct LocationOverviewView: View {
             let columns = [GridItem(.adaptive(minimum: 130), alignment: .leading)]
             LazyVGrid(columns: columns, alignment: .leading, spacing: 6) {
                 ForEach(services.sorted(), id: \.self) { service in
-                    stationServiceBadge(service)
+                    let (label, icon, color) = stationServiceInfo(service)
+                    StationServiceBadge(service: service, label: label, icon: icon, color: color, station: station)
                 }
             }
 
@@ -356,21 +357,6 @@ struct LocationOverviewView: View {
                 }
             }
         }
-    }
-
-    private func stationServiceBadge(_ service: String) -> some View {
-        let (label, icon, color) = stationServiceInfo(service)
-        return HStack(spacing: 4) {
-            Image(systemName: icon)
-                .font(.caption2)
-                .foregroundStyle(color)
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(.primary)
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(color.opacity(0.12), in: Capsule())
     }
 
     private func stationServiceInfo(_ service: String) -> (String, String, Color) {
@@ -969,6 +955,168 @@ struct LocationOverviewView: View {
             )
         }
         systemActivity = map
+    }
+}
+
+// MARK: - Station Service Badge
+
+private struct StationServiceBadge: View {
+    let service: String
+    let label: String
+    let icon: String
+    let color: Color
+    let station: ESIStation
+    @State private var showPopover = false
+
+    var body: some View {
+        Button { showPopover = true } label: {
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.caption2)
+                    .foregroundStyle(color)
+                Text(label)
+                    .font(.caption)
+                    .foregroundStyle(.primary)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(color.opacity(0.12), in: Capsule())
+        }
+        .buttonStyle(.plain)
+        .popover(isPresented: $showPopover, arrowEdge: .bottom) {
+            StationServicePopover(service: service, label: label, icon: icon, color: color, station: station)
+        }
+    }
+}
+
+private struct StationServicePopover: View {
+    let service: String
+    let label: String
+    let icon: String
+    let color: Color
+    let station: ESIStation
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.title3)
+                    .foregroundStyle(color)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(label)
+                        .font(.headline)
+                    Text(station.name)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            }
+
+            Divider()
+
+            Text(serviceDescription)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            stationDetails
+        }
+        .padding(14)
+        .frame(minWidth: 240, maxWidth: 300)
+    }
+
+    private var serviceDescription: String {
+        switch service {
+        case "market":               return "Buy and sell items on the regional market. Orders are visible to all players in the region."
+        case "reprocessing-plant":   return "Refine ore, ice, and salvage into base minerals and materials."
+        case "repair-facilities":    return "Repair hull, armor, and module damage on your docked ship."
+        case "fitting":              return "Install, remove, and rearrange modules, rigs, and subsystems while docked."
+        case "cloning":              return "Create and manage jump clones, and swap implant sets without traveling."
+        case "factory", "manufacturing": return "Manufacture ships, modules, ammunition, and other items from blueprints."
+        case "labratory", "research": return "Research blueprint ME/TE efficiency, copy blueprints, and run invention jobs."
+        case "insurance":            return "Purchase insurance for your ship. Compensation is paid if destroyed in combat."
+        case "docking":              return "Dock your ship to access station facilities and services."
+        case "office-rental":        return "Rent a corporation office for item storage, hangar access, and operations."
+        case "loyalty-point-store":  return "Exchange loyalty points from missions for faction ships, modules, and implants."
+        case "navy-offices":         return "Interact with the empire faction navy for missions and faction standings."
+        case "security-offices":     return "File crime reports and interact with CONCORD and security agencies."
+        case "bounty-missions":      return "Accept combat and bounty hunting missions from faction agents."
+        case "assay-office":         return "Compress ore, run reactions, and process moon mining materials."
+        case "storage":              return "Rent additional hangar space beyond your standard personal storage."
+        case "stock-exchange":       return "Access a specialized commodity exchange for bulk trading."
+        default:
+            return service.split(separator: "-").map { $0.capitalized }.joined(separator: " ") + " services available at this station."
+        }
+    }
+
+    @ViewBuilder
+    private var stationDetails: some View {
+        if service == "reprocessing-plant" {
+            let hasData = station.reprocessingEfficiency != nil || station.reprocessingStationsTake != nil
+            if hasData {
+                Divider()
+                VStack(alignment: .leading, spacing: 6) {
+                    if let eff = station.reprocessingEfficiency, eff > 0 {
+                        detailRow("Base Efficiency", value: String(format: "%.1f%%", eff * 100), color: .green)
+                    }
+                    if let take = station.reprocessingStationsTake, take > 0 {
+                        detailRow("Station Tax", value: String(format: "%.1f%%", take * 100), color: .orange)
+                    }
+                }
+            }
+        } else if service == "docking" || service == "repair-facilities" {
+            if let vol = station.maxDockableShipVolume, vol > 0 {
+                Divider()
+                detailRow("Max Ship Volume", value: volumeString(vol), color: .blue)
+            }
+        } else if service == "office-rental" {
+            if let cost = station.officeRentalCost, cost > 0 {
+                Divider()
+                detailRow("Weekly Cost", value: EVEFormatters.formatISKShort(cost) + " ISK", color: .yellow)
+            }
+        } else if service == "insurance" {
+            Divider()
+            VStack(alignment: .leading, spacing: 5) {
+                Text("Coverage Tiers")
+                    .font(.caption2.bold())
+                    .foregroundStyle(.tertiary)
+                insuranceTier("Bronze",   premium: 20, payout: 50)
+                insuranceTier("Silver",   premium: 30, payout: 60)
+                insuranceTier("Gold",     premium: 40, payout: 75)
+                insuranceTier("Platinum", premium: 50, payout: 85)
+                insuranceTier("Titanium", premium: 60, payout: 97)
+            }
+        }
+    }
+
+    private func detailRow(_ label: String, value: String, color: Color) -> some View {
+        HStack {
+            Text(label).font(.caption).foregroundStyle(.tertiary)
+            Spacer()
+            Text(value).font(.caption.monospacedDigit().bold()).foregroundStyle(color)
+        }
+    }
+
+    private func insuranceTier(_ name: String, premium: Int, payout: Int) -> some View {
+        HStack(spacing: 0) {
+            Text(name)
+                .font(.caption2)
+                .frame(width: 58, alignment: .leading)
+            Text("\(premium)% premium")
+                .font(.caption2.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Text("\(payout)% payout")
+                .font(.caption2.monospacedDigit().bold())
+                .foregroundStyle(.green)
+        }
+    }
+
+    private func volumeString(_ vol: Double) -> String {
+        if vol >= 1_000_000_000 { return String(format: "%.1fB m³", vol / 1_000_000_000) }
+        if vol >= 1_000_000 { return String(format: "%.1fM m³", vol / 1_000_000) }
+        if vol >= 1_000 { return String(format: "%.1fK m³", vol / 1_000) }
+        return String(format: "%.0f m³", vol)
     }
 }
 

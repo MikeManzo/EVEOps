@@ -9,6 +9,7 @@
 //
 
 import SwiftUI
+import AppKit
 
 struct SidebarView: View {
     @Bindable var accountManager: AccountManager
@@ -215,6 +216,7 @@ struct SidebarView: View {
             addAccountButton
         }
         .frame(minWidth: 200)
+        .background(SplitViewAutosaver())
         .task(id: accountManager.selectedCharacterID) {
             todayEventCount = 0
             guard let account = accountManager.selectedAccount else { return }
@@ -355,5 +357,33 @@ struct SidebarView: View {
         case .corpMining: return "Mining"
         default: return section.rawValue
         }
+    }
+}
+
+// MARK: - NSSplitView width persistence
+
+private struct SplitViewAutosaver: NSViewRepresentable {
+    func makeNSView(context: Context) -> AutosaveProbeView { AutosaveProbeView() }
+    func updateNSView(_ nsView: AutosaveProbeView, context: Context) {}
+}
+
+private class AutosaveProbeView: NSView {
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        guard window != nil else { return }
+        installAutosave()
+    }
+
+    private func installAutosave() {
+        var current: NSView? = superview
+        while let view = current {
+            if let splitView = view as? NSSplitView, splitView.autosaveName == nil {
+                splitView.autosaveName = .init("EVEOpsMainSidebar")
+                return
+            }
+            current = view.superview
+        }
+        // Retry if the NSSplitView wasn't in the hierarchy yet
+        DispatchQueue.main.async { [weak self] in self?.installAutosave() }
     }
 }
