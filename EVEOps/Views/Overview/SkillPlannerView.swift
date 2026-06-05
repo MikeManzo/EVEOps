@@ -16,7 +16,6 @@ struct SkillPlannerView: View {
     @Environment(DashboardPrefetcher.self) private var prefetcher
 
     @State private var trainingData: [CharacterTrainingInfo] = []
-    @State private var selectedCharacterID: Int?
     @State private var attributes: ESICharacterAttributes?
     @State private var planItems: [SkillPlanItem] = []
     @State private var skillTypes: [Int: ESIType] = [:]
@@ -26,7 +25,7 @@ struct SkillPlannerView: View {
     @State private var error: String?
 
     private var selectedCharInfo: CharacterTrainingInfo? {
-        let id = selectedCharacterID ?? accountManager.selectedAccount?.characterID ?? 0
+        let id = accountManager.selectedAccount?.characterID ?? 0
         return trainingData.first { $0.characterID == id }
     }
 
@@ -61,13 +60,6 @@ struct SkillPlannerView: View {
 
     private var planPanel: some View {
         VStack(spacing: 0) {
-            if accountManager.accounts.count > 1 {
-                characterPicker
-                    .padding(10)
-                    .background(.bar)
-                Divider()
-            }
-
             if let attrs = attributes {
                 attributesBar(attrs)
                     .padding(.horizontal, 12)
@@ -116,25 +108,6 @@ struct SkillPlannerView: View {
                 .frame(maxHeight: .infinity)
             }
         }
-    }
-
-    private var characterPicker: some View {
-        Picker("Character", selection: Binding(
-            get: { selectedCharacterID ?? accountManager.selectedAccount?.characterID },
-            set: { newVal in
-                selectedCharacterID = newVal
-                planItems = []
-                Task {
-                    await loadAttributes()
-                    loadPlan()
-                }
-            }
-        )) {
-            ForEach(accountManager.accounts, id: \.characterID) { account in
-                Text(account.characterName).tag(Optional(account.characterID))
-            }
-        }
-        .pickerStyle(.menu)
     }
 
     private func attributesBar(_ attrs: ESICharacterAttributes) -> some View {
@@ -585,7 +558,7 @@ struct SkillPlannerView: View {
     // MARK:  Persistence
 
     private var planKey: String {
-        "skillPlan-\(selectedCharacterID ?? accountManager.selectedAccount?.characterID ?? 0)"
+        "skillPlan-\(accountManager.selectedAccount?.characterID ?? 0)"
     }
 
     private func savePlan() {
@@ -620,9 +593,6 @@ struct SkillPlannerView: View {
 
         if !data.isEmpty {
             trainingData = data
-            if selectedCharacterID == nil {
-                selectedCharacterID = accountManager.selectedAccount?.characterID
-            }
             await loadAttributes()
             loadPlan()
             isLoading = false
@@ -661,7 +631,6 @@ struct SkillPlannerView: View {
                 skillGroups: skillGroups, lastCloneJumpDate: nil
             )
             trainingData = [info]
-            selectedCharacterID = account.characterID
             await loadAttributes()
             loadPlan()
         } catch {
@@ -671,7 +640,7 @@ struct SkillPlannerView: View {
     }
 
     private func loadAttributes() async {
-        let charID = selectedCharacterID ?? accountManager.selectedAccount?.characterID ?? 0
+        let charID = accountManager.selectedAccount?.characterID ?? 0
         guard let account = accountManager.accounts.first(where: { $0.characterID == charID }) else { return }
         do {
             let token = try await accountManager.validToken(for: account)
