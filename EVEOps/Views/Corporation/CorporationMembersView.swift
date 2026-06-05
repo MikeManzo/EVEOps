@@ -108,12 +108,12 @@ struct CorporationMembersView: View {
             } placeholder: {
                 RoundedRectangle(cornerRadius: 6).fill(.quaternary)
             }
-            .frame(width: 36, height: 36)
+            .frame(width: 48, height: 48)
             .clipShape(RoundedRectangle(cornerRadius: 6))
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(member.name)
-                    .font(.body)
+                    .font(.title3)
                     .lineLimit(1)
 
                 HStack(spacing: 6) {

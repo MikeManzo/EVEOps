@@ -17,7 +17,7 @@ struct CorporationStructuresView: View {
     @State private var error: String?
 
     var body: some View {
-        LoadingStateView(isLoading: isLoading, error: error, isEmpty: structures.isEmpty, emptyMessage: "No structures found or insufficient permissions") {
+        LoadingStateView(isLoading: isLoading, error: error, isEmpty: structures.isEmpty, emptyMessage: "No structures owned by this corporation, or the selected character lacks the Station Manager or Director role required to view them.") {
             List(structures, id: \.structureId) { structure in
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {

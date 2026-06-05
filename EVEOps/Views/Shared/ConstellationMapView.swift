@@ -671,6 +671,7 @@ struct ConstellationMapView: View {
             externalConnections = resolvedExtConns
             killsData = killsMap
             jumpsData = jumpsMap
+            selectedSystem = mapSystems.first { $0.systemId == currentSystemId }
 
         isLoading = false
     }

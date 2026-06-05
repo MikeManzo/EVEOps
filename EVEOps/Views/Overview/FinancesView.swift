@@ -18,7 +18,6 @@ struct FinancesView: View {
     @State private var characterFinances: [CharacterFinanceData] = []
     @State private var isLoading = false
     @State private var error: String?
-    @State private var selectedCharacterID: Int?
     @State private var selectedTab = 0
     @State private var typeNames: [Int: String] = [:]
     @State private var isLoadingAssets = false
@@ -48,10 +47,7 @@ struct FinancesView: View {
     }
 
     private var selectedFinance: CharacterFinanceData? {
-        if let id = selectedCharacterID {
-            return characterFinances.first { $0.characterID == id }
-        }
-        return characterFinances.first
+        characterFinances.first
     }
 
     var body: some View {
@@ -74,7 +70,6 @@ struct FinancesView: View {
                 VStack(spacing: 20) {
                     summaryCards
                     wealthDistribution
-                    characterSelector
                     if let finance = selectedFinance {
                         if let warning = finance.partialLoadWarning {
                             HStack(spacing: 6) {
@@ -158,18 +153,17 @@ struct FinancesView: View {
     }
 
     private var wealthDistribution: some View {
-        HStack(alignment: .top, spacing: 12) {
-            // Category breakdown — always shown regardless of character count
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Wealth Distribution")
-                    .font(.subheadline.bold())
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Wealth Distribution")
+                .font(.subheadline.bold())
 
-                let categories = wealthCategoryData
-                if categories.isEmpty {
-                    Text("No wealth data")
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, minHeight: 60, alignment: .center)
-                } else {
+            let categories = wealthCategoryData
+            if categories.isEmpty {
+                Text("No wealth data")
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, minHeight: 60, alignment: .center)
+            } else {
+                HStack(alignment: .top, spacing: 16) {
                     Chart(categories) { cat in
                         SectorMark(
                             angle: .value("ISK", cat.value),
@@ -180,7 +174,7 @@ struct FinancesView: View {
                         .cornerRadius(4)
                     }
                     .chartLegend(.hidden)
-                    .frame(height: 100)
+                    .frame(width: 100, height: 100)
 
                     VStack(alignment: .leading, spacing: 4) {
                         ForEach(categories) { cat in
@@ -226,110 +220,9 @@ struct FinancesView: View {
                     }
                 }
             }
-            .padding(10)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-
-            // Per-character breakdown
-            VStack(alignment: .leading, spacing: 6) {
-                Text("By Character")
-                    .font(.subheadline.bold())
-
-                if characterFinances.count > 1 {
-                    Chart(characterFinances, id: \.characterID) { data in
-                        SectorMark(
-                            angle: .value("ISK", data.balance + data.totalSellOrderValue + data.totalEscrow + data.assetValue),
-                            innerRadius: .ratio(0.5),
-                            angularInset: 2
-                        )
-                        .foregroundStyle(by: .value("Character", data.characterName))
-                        .cornerRadius(4)
-                    }
-                    .frame(height: 90)
-                }
-
-                ForEach(characterFinances.sorted(by: { $0.balance > $1.balance }), id: \.characterID) { data in
-                    VStack(spacing: 3) {
-                        HStack(spacing: 6) {
-                            AsyncImage(url: EVEImageURL.characterPortrait(data.characterID, size: 128)) { image in
-                                image.resizable()
-                            } placeholder: {
-                                RoundedRectangle(cornerRadius: 3).fill(.quaternary)
-                            }
-                            .frame(width: 22, height: 22)
-                            .clipShape(RoundedRectangle(cornerRadius: 3))
-
-                            VStack(alignment: .leading, spacing: 1) {
-                                Text(data.characterName)
-                                    .font(.caption2)
-                                Text(data.corporationName)
-                                    .font(.system(size: 9))
-                                    .foregroundStyle(.tertiary)
-                            }
-
-                            Spacer()
-
-                            VStack(alignment: .trailing, spacing: 1) {
-                                let charNet = data.balance + data.totalSellOrderValue + data.totalEscrow + data.assetValue
-                                Text(EVEFormatters.formatISKShort(charNet))
-                                    .font(.caption2.monospacedDigit())
-                                if netWorth > 0 {
-                                    Text(String(format: "%.1f%%", (charNet / netWorth) * 100))
-                                        .font(.system(size: 9))
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                        }
-
-                        // Mini stacked bar: assets / sell orders / escrow / wallet per character
-                        let charTotal = data.balance + data.totalSellOrderValue + data.totalEscrow + data.assetValue
-                        if charTotal > 0 {
-                            GeometryReader { geo in
-                                HStack(spacing: 1) {
-                                    if data.assetValue > 0 {
-                                        RoundedRectangle(cornerRadius: 1)
-                                            .fill(Color.purple)
-                                            .frame(width: geo.size.width * data.assetValue / charTotal)
-                                    }
-                                    if data.totalSellOrderValue > 0 {
-                                        RoundedRectangle(cornerRadius: 1)
-                                            .fill(Color.green)
-                                            .frame(width: geo.size.width * data.totalSellOrderValue / charTotal)
-                                    }
-                                    if data.totalEscrow > 0 {
-                                        RoundedRectangle(cornerRadius: 1)
-                                            .fill(Color.orange)
-                                            .frame(width: geo.size.width * data.totalEscrow / charTotal)
-                                    }
-                                    if data.balance > 0 {
-                                        RoundedRectangle(cornerRadius: 1)
-                                            .fill(Color.blue)
-                                    }
-                                }
-                            }
-                            .frame(height: 4)
-                        }
-                    }
-                }
-            }
-            .padding(10)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
         }
-    }
-
-    // MARK:  Character Selector
-
-    private var characterSelector: some View {
-        VStack(spacing: 0) {
-            if characterFinances.count > 1 {
-                Picker("Character", selection: $selectedCharacterID) {
-                    ForEach(characterFinances, id: \.characterID) { finance in
-                        Text(finance.characterName).tag(Optional(finance.characterID))
-                    }
-                }
-                .pickerStyle(.segmented)
-                .padding(.bottom, 8)
-            }
-        }
+        .padding(10)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
     }
 
     // MARK:  Character Detail
@@ -872,35 +765,28 @@ struct FinancesView: View {
     // MARK:  Prefetcher Fast Path
 
     private func buildFromPrefetcher() -> Bool {
-        var results: [CharacterFinanceData] = []
-        for account in accountManager.accounts {
-            guard let prefetched = prefetcher.data(for: account.characterID) else { return false }
+        guard let account = accountManager.selectedAccount,
+              let prefetched = prefetcher.data(for: account.characterID) else { return false }
 
-            // Resolve LP corporation names from prefetcher
-            let resolvedLP = prefetched.loyaltyPoints.map { entry in
-                ResolvedLoyaltyPoints(
-                    corporationId: entry.corporationId,
-                    corporationName: prefetcher.resolvedNames[entry.corporationId] ?? "Corporation #\(entry.corporationId)",
-                    loyaltyPoints: entry.loyaltyPoints
-                )
-            }
+        let resolvedLP = prefetched.loyaltyPoints.map { entry in
+            ResolvedLoyaltyPoints(
+                corporationId: entry.corporationId,
+                corporationName: prefetcher.resolvedNames[entry.corporationId] ?? "Corporation #\(entry.corporationId)",
+                loyaltyPoints: entry.loyaltyPoints
+            )
+        }
 
-            results.append(CharacterFinanceData(
-                characterID: account.characterID,
-                characterName: account.characterName,
-                corporationName: account.corporationName,
-                balance: prefetched.wallet,
-                journal: prefetched.journal.sorted { $0.date > $1.date },
-                transactions: prefetched.transactions.sorted { $0.date > $1.date },
-                marketOrders: prefetched.marketOrders,
-                loyaltyPoints: resolvedLP
-            ))
-        }
-        characterFinances = results.sorted { $0.balance > $1.balance }
-        if selectedCharacterID == nil {
-            selectedCharacterID = characterFinances.first?.characterID
-        }
-        return !results.isEmpty
+        characterFinances = [CharacterFinanceData(
+            characterID: account.characterID,
+            characterName: account.characterName,
+            corporationName: account.corporationName,
+            balance: prefetched.wallet,
+            journal: prefetched.journal.sorted { $0.date > $1.date },
+            transactions: prefetched.transactions.sorted { $0.date > $1.date },
+            marketOrders: prefetched.marketOrders,
+            loyaltyPoints: resolvedLP
+        )]
+        return true
     }
 
     // MARK:  Data Loading
@@ -908,24 +794,18 @@ struct FinancesView: View {
     private func loadAllFinances() async {
         isLoading = true
         self.error = nil
-        var results: [CharacterFinanceData] = []
-        var lastError: Error?
 
-        for account in accountManager.accounts {
-            do {
-                let data = try await loadFinance(for: account)
-                results.append(data)
-            } catch {
-                lastError = error
-            }
+        guard let account = accountManager.selectedAccount else {
+            isLoading = false
+            return
         }
 
-        characterFinances = results.sorted { $0.balance > $1.balance }
-        if results.isEmpty, let lastError {
-            self.error = lastError.localizedDescription
-        }
-        if selectedCharacterID == nil {
-            selectedCharacterID = characterFinances.first?.characterID
+        do {
+            let data = try await loadFinance(for: account)
+            characterFinances = [data]
+        } catch {
+            characterFinances = []
+            self.error = error.localizedDescription
         }
         isLoading = false
     }
