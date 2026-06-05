@@ -19,8 +19,28 @@ struct CorporationWalletsView: View {
     @State private var selectedDivision: Int = 1
     @State private var selectedTab = 0
 
+    private static let liabilityRefTypes: Set<String> = [
+        "office_rental_fee",
+        "infrastructure_hub_maintenance",
+        "sovereignty_registrar_fee",
+        "starbase_fuel_cost",
+        "structure_maintenance_payment"
+    ]
+
     private var totalBalance: Double {
         wallets.reduce(0) { $0 + $1.balance }
+    }
+
+    private var liabilityEntries: [ESIWalletJournalEntry] {
+        journal.filter { Self.liabilityRefTypes.contains($0.refType) }
+    }
+
+    private var liabilitiesByType: [(type: String, total: Double, entries: [ESIWalletJournalEntry])] {
+        let grouped = Dictionary(grouping: liabilityEntries) { $0.refType }
+        return grouped.map { key, entries in
+            let total = entries.compactMap { $0.amount }.reduce(0, +)
+            return (type: key, total: total, entries: entries.sorted { $0.date > $1.date })
+        }.sorted { abs($0.total) > abs($1.total) }
     }
 
     var body: some View {
@@ -100,18 +120,19 @@ struct CorporationWalletsView: View {
         Picker("View", selection: $selectedTab) {
             Text("Balances").tag(0)
             Text("Journal").tag(1)
+            Text("Liabilities").tag(2)
         }
         .pickerStyle(.segmented)
         .padding(10)
-        .frame(maxWidth: 250)
+        .frame(maxWidth: 350)
     }
 
     @ViewBuilder
     private var tabContent: some View {
-        if selectedTab == 0 {
-            balancesView
-        } else {
-            journalView
+        switch selectedTab {
+        case 0: balancesView
+        case 1: journalView
+        default: liabilitiesView
         }
     }
 
@@ -152,6 +173,64 @@ struct CorporationWalletsView: View {
                     Text(entry.date, style: .date)
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var liabilitiesView: some View {
+        if liabilityEntries.isEmpty {
+            ContentUnavailableView(
+                "No Liability Payments",
+                systemImage: "checkmark.circle",
+                description: Text("No office rent, sovereignty, or maintenance fees found in this division's journal.")
+            )
+        } else {
+            List {
+                let grandTotal = liabilityEntries.compactMap { $0.amount }.reduce(0, +)
+                Section {
+                    HStack {
+                        Text("Total Paid (this page)")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Text(EVEFormatters.formatISK(abs(grandTotal)))
+                            .font(.subheadline.bold().monospacedDigit())
+                            .foregroundStyle(.red)
+                    }
+                }
+
+                ForEach(liabilitiesByType, id: \.type) { group in
+                    Section(header: HStack {
+                        Text(group.type.replacingOccurrences(of: "_", with: " ").capitalized)
+                        Spacer()
+                        Text(EVEFormatters.formatISKShort(abs(group.total)))
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.red)
+                    }) {
+                        ForEach(group.entries) { entry in
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(entry.description)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(2)
+                                }
+                                Spacer()
+                                VStack(alignment: .trailing, spacing: 2) {
+                                    if let amount = entry.amount {
+                                        Text(EVEFormatters.formatISKShort(abs(amount)))
+                                            .font(.subheadline.monospacedDigit())
+                                            .foregroundStyle(.red)
+                                    }
+                                    Text(entry.date, style: .date)
+                                        .font(.caption2)
+                                        .foregroundStyle(.tertiary)
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

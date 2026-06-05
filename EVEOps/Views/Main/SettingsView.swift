@@ -44,7 +44,7 @@ struct SettingsView: View {
     }
 }
 
-// MARK: - Sidebar Navigation Model
+// MARK:  Sidebar Navigation Model
 
 private enum SettingsSection: String, CaseIterable, Identifiable, Hashable {
     case accounts, general, appearance, notifications, cache, advanced, intelligence, about
