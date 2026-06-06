@@ -16,6 +16,12 @@ struct DiagnosticPaneView: View {
     @State private var searchText = ""
     @State private var autoScroll = true
     @State private var selectedEntries: Set<LogEntry.ID> = []
+    @State private var expandedDays: Set<String> = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.locale = Locale(identifier: "en_US_POSIX")
+        return [f.string(from: Date())]
+    }()
 
     private let store = DiagnosticLogStore.shared
 
@@ -25,6 +31,14 @@ struct DiagnosticPaneView: View {
             matchesLevelFilter(entry.level) &&
             (searchText.isEmpty || entry.message.localizedCaseInsensitiveContains(searchText))
         }
+    }
+
+    // Groups filtered entries by day, newest day first, newest entry first within each day.
+    private var entriesByDay: [(key: String, label: String, entries: [LogEntry])] {
+        let grouped = Dictionary(grouping: filteredEntries) { diagDayKeyFormatter.string(from: $0.date) }
+        return grouped
+            .sorted { $0.key > $1.key }
+            .map { (key: $0.key, label: diagDaySectionLabel($0.key), entries: $0.value.sorted { $0.date > $1.date }) }
     }
 
     private func matchesLevelFilter(_ level: LogEntry.Level) -> Bool {
@@ -105,7 +119,7 @@ struct DiagnosticPaneView: View {
             Spacer()
 
             Button { autoScroll.toggle() } label: {
-                Image(systemName: "arrow.down.to.line")
+                Image(systemName: "arrow.up.to.line")
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(autoScroll ? .green : .secondary)
             }
@@ -128,11 +142,30 @@ struct DiagnosticPaneView: View {
 
     private var logList: some View {
         ScrollViewReader { proxy in
-            List(filteredEntries, selection: $selectedEntries) { entry in
-                LogEntryRow(entry: entry)
-                    .id(entry.id)
-                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
-                    .listRowSeparator(.hidden)
+            List(selection: $selectedEntries) {
+                ForEach(entriesByDay, id: \.key) { group in
+                    DisclosureGroup(
+                        isExpanded: Binding(
+                            get: { expandedDays.contains(group.key) },
+                            set: { expanded in
+                                if expanded { expandedDays.insert(group.key) }
+                                else { expandedDays.remove(group.key) }
+                            }
+                        )
+                    ) {
+                        ForEach(group.entries) { entry in
+                            LogEntryRow(entry: entry)
+                                .id(entry.id)
+                                .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                                .listRowSeparator(.hidden)
+                        }
+                    } label: {
+                        Text(group.label)
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                            .padding(.vertical, 2)
+                    }
+                }
             }
             .listStyle(.plain)
             .contextMenu(forSelectionType: LogEntry.ID.self) { ids in
@@ -148,18 +181,19 @@ struct DiagnosticPaneView: View {
                 }
             } primaryAction: { _ in }
             .onChange(of: filteredEntries.count) {
-                if autoScroll, let last = filteredEntries.last {
-                    proxy.scrollTo(last.id, anchor: .bottom)
+                if autoScroll, let firstGroup = entriesByDay.first, let firstEntry = firstGroup.entries.first {
+                    expandedDays.insert(firstGroup.key)
+                    proxy.scrollTo(firstEntry.id, anchor: .top)
                 }
             }
             .onChange(of: selectedCategory) {
-                if autoScroll, let last = filteredEntries.last {
-                    proxy.scrollTo(last.id, anchor: .bottom)
+                if autoScroll, let firstGroup = entriesByDay.first, let firstEntry = firstGroup.entries.first {
+                    proxy.scrollTo(firstEntry.id, anchor: .top)
                 }
             }
             .onChange(of: minLevel) {
-                if autoScroll, let last = filteredEntries.last {
-                    proxy.scrollTo(last.id, anchor: .bottom)
+                if autoScroll, let firstGroup = entriesByDay.first, let firstEntry = firstGroup.entries.first {
+                    proxy.scrollTo(firstEntry.id, anchor: .top)
                 }
             }
         }
@@ -240,6 +274,29 @@ private let diagTimeFormatter: DateFormatter = {
     f.dateFormat = "HH:mm"
     return f
 }()
+
+private let diagDayKeyFormatter: DateFormatter = {
+    let f = DateFormatter()
+    f.dateFormat = "yyyy-MM-dd"
+    f.locale = Locale(identifier: "en_US_POSIX")
+    return f
+}()
+
+private let diagDaySectionFormatter: DateFormatter = {
+    let f = DateFormatter()
+    f.dateStyle = .full
+    f.timeStyle = .none
+    return f
+}()
+
+private func diagDaySectionLabel(_ key: String) -> String {
+    let today = diagDayKeyFormatter.string(from: Date())
+    let yesterday = diagDayKeyFormatter.string(from: Calendar.current.date(byAdding: .day, value: -1, to: Date())!)
+    if key == today { return "Today" }
+    if key == yesterday { return "Yesterday" }
+    guard let date = diagDayKeyFormatter.date(from: key) else { return key }
+    return diagDaySectionFormatter.string(from: date)
+}
 
 private func diagCategoryColor(_ category: String) -> Color {
     switch category {

@@ -1027,7 +1027,7 @@ struct LocationOverviewView: View {
     }
 }
 
-// MARK: - Station Service Badge
+// MARK:  Station Service Badge
 
 private struct StationServiceBadge: View {
     let service: String

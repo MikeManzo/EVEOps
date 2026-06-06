@@ -163,7 +163,7 @@ struct CorporationKillmailsView: View {
     }
 }
 
-// MARK: - Section Header
+// MARK:  Section Header
 
 private struct CorpKillmailSectionHeader: View {
     let group: KillmailGroup

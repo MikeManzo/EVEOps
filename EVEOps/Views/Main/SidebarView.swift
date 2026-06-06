@@ -360,7 +360,7 @@ struct SidebarView: View {
     }
 }
 
-// MARK: - NSSplitView width persistence
+// MARK:  NSSplitView width persistence
 
 private struct SplitViewAutosaver: NSViewRepresentable {
     func makeNSView(context: Context) -> AutosaveProbeView { AutosaveProbeView() }
