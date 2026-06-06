@@ -997,7 +997,11 @@ private struct AboutTab: View {
                     // Sparkle attribution card
                     sparkleCard
                         .padding(.top, 8)
-                    
+
+                    // Anoik.is attribution card
+                    anoikCard
+                        .padding(.top, 8)
+
                     // Collapsible legal
                     DisclosureGroup(isExpanded: $legalExpanded) {
                         VStack(alignment: .leading, spacing: 6) {
@@ -1017,6 +1021,7 @@ private struct AboutTab: View {
                             Text("EVEScout and the EVEScout logo/name are trademarks and/or service marks of EVEScout.")
                             Text("EVEShip.fit and its Dogma Engine are copyright EVEShipFit contributors. Used under open-source license terms.")
                             Text("Claude and Claude Code are trademarks of Anthropic, PBC. Used for AI-assisted development. No user data is transmitted to Anthropic by EVEOps.")
+                            Text("Anoik.is is a third-party wormhole system database for EVE Online. Used in accordance with the Anoik.is public API terms of service.")
                             Text("EVE Buddy is acknowledged as an inspiration for EVEOps and is not affiliated with or endorsed by this application.")
                         }
                         .font(.caption)
@@ -1317,6 +1322,57 @@ private struct AboutTab: View {
                         colors: [
                             Color.white.opacity(0.30),
                             Color.white.opacity(0.08)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        )
+        .padding(.horizontal, 44)
+    }
+
+    // Mark:  Anoik.is attribution card
+
+    private var anoikCard: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(Color.cyan.opacity(0.12))
+                    .frame(width: 38, height: 38)
+                Image(systemName: "globe.americas.fill")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.cyan)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Anoik.is")
+                    .font(.system(size: 13, weight: .semibold))
+                Text("WORMHOLE SYSTEM DATABASE")
+                    .font(.system(size: 9, weight: .bold))
+                    .tracking(1.2)
+                    .foregroundStyle(.tertiary)
+            }
+
+            Spacer()
+
+            Button("anoik.is") {
+                if let url = URL(string: "https://anoik.is") {
+                    NSWorkspace.shared.open(url)
+                }
+            }
+            .buttonStyle(.link)
+            .font(.system(size: 11, weight: .medium))
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 11)
+        .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [
+                            Color.cyan.opacity(0.30),
+                            Color.cyan.opacity(0.08)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
