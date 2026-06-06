@@ -303,6 +303,12 @@ struct LocationOverviewView: View {
                 Divider()
                 systemActivityRow(systemId: info.systemId)
 
+                // Wormhole intel (J-space only)
+                if let whInfo = WHSpaceInfo.info(systemId: info.systemId, systemName: info.systemName, regionName: info.regionName) {
+                    Divider()
+                    wormholeSection(whInfo)
+                }
+
                 // Constellation star map
                 Divider()
 
@@ -585,6 +591,69 @@ struct LocationOverviewView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+
+    // MARK:  Wormhole Intel
+
+    private func wormholeSection(_ wh: WHSystemInfo) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: "tornado.circle.fill")
+                    .foregroundStyle(.purple)
+                Text("Wormhole Space")
+                    .font(.subheadline.bold())
+            }
+
+            HStack(alignment: .top, spacing: 16) {
+                // Class column
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("CLASS")
+                        .font(.system(size: 8, weight: .bold))
+                        .tracking(0.8)
+                        .foregroundStyle(.tertiary)
+                    HStack(spacing: 6) {
+                        Text(wh.whClass.shortName)
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(wh.whClass.color)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(wh.whClass.color.opacity(0.15), in: Capsule())
+                        Text(wh.whClass.displayName)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Text(wh.whClass.description)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                // Effect column
+                if let effect = wh.effect {
+                    Divider().frame(height: 50)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("SYSTEM EFFECT")
+                            .font(.system(size: 8, weight: .bold))
+                            .tracking(0.8)
+                            .foregroundStyle(.tertiary)
+                        HStack(spacing: 5) {
+                            Image(systemName: effect.systemImage)
+                                .font(.caption.bold())
+                                .foregroundStyle(effect.color)
+                            Text(effect.displayName)
+                                .font(.caption.bold())
+                                .foregroundStyle(effect.color)
+                        }
+                        Text(effect.mechanic)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
         }
     }

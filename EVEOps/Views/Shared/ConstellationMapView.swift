@@ -265,7 +265,8 @@ struct ConstellationMapView: View {
                         y: transformed.y - radius,
                         width: radius * 2, height: radius * 2
                     )
-                    context.fill(Circle().path(in: rect), with: .color(securityColor(sys.securityStatus)))
+                    let nodeColor: Color = sys.securityStatus < -0.5 ? .purple : securityColor(sys.securityStatus)
+                    context.fill(Circle().path(in: rect), with: .color(nodeColor))
                     context.stroke(
                         Circle().path(in: rect),
                         with: .color(isCurrent ? .white : .white.opacity(0.3)),
@@ -293,15 +294,17 @@ struct ConstellationMapView: View {
                     )
 
                     // Security + activity numbers
-                    var subLabels: [String] = [String(format: "%.1f", sys.securityStatus)]
+                    let isWHSys = sys.securityStatus < -0.5
+                    var subLabels: [String] = [isWHSys ? "WH" : String(format: "%.1f", sys.securityStatus)]
                     if showActivity {
                         let kills = killsData[sys.systemId]
                         if let sk = kills?.shipKills, sk > 0 { subLabels.append("\(sk)k") }
                         if let j = jumpsData[sys.systemId], j > 0 { subLabels.append("\(j)j") }
                     }
+                    let subLabelColor: Color = isWHSys ? .purple.opacity(0.8) : securityColor(sys.securityStatus).opacity(0.8)
                     let secLabel = Text(subLabels.joined(separator: " "))
                         .font(.system(size: 8))
-                        .foregroundColor(securityColor(sys.securityStatus).opacity(0.8))
+                        .foregroundColor(subLabelColor)
                     let resolvedSec = context.resolve(secLabel)
                     context.draw(
                         resolvedSec,
@@ -520,12 +523,15 @@ struct ConstellationMapView: View {
     }
 
     private func securityBadge(_ value: Double) -> some View {
-        Text(String(format: "%.1f", value))
+        let isWH = value < -0.5
+        let label = isWH ? "WH" : String(format: "%.1f", value)
+        let color: Color = isWH ? .purple : securityColor(value)
+        return Text(label)
             .font(.caption2.bold().monospacedDigit())
-            .foregroundStyle(securityColor(value))
+            .foregroundStyle(color)
             .padding(.horizontal, 5)
             .padding(.vertical, 1)
-            .background(securityColor(value).opacity(0.15), in: Capsule())
+            .background(color.opacity(0.15), in: Capsule())
     }
 
     private func legendItem(color: Color, label: String) -> some View {

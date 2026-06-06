@@ -194,6 +194,9 @@ struct DashboardView: View {
             if let sysInfo = prefetcher.resolvedSystems[prefetched.location.solarSystemId] {
                 s.systemName = sysInfo.name
                 s.securityStatus = sysInfo.securityStatus
+                if let constInfo = prefetcher.resolvedConstellations[sysInfo.constellationId] {
+                    s.regionName = prefetcher.resolvedRegions[constInfo.regionId]?.name
+                }
             }
             if let typeInfo = prefetcher.resolvedTypes[prefetched.ship.shipTypeId] {
                 s.shipTypeName = typeInfo.name
@@ -312,6 +315,9 @@ struct DashboardView: View {
             if let sysInfo = await UniverseCache.shared.solarSystem(id: loc.solarSystemId) {
                 summary.systemName = sysInfo.name
                 summary.securityStatus = sysInfo.securityStatus
+                if let constInfo = await UniverseCache.shared.constellation(id: sysInfo.constellationId) {
+                    summary.regionName = await UniverseCache.shared.region(id: constInfo.regionId)?.name
+                }
             }
             if let typeInfo = await UniverseCache.shared.type(id: ship.shipTypeId) {
                 summary.shipTypeName = typeInfo.name
@@ -467,6 +473,9 @@ struct DashboardView: View {
         if let sysInfo = await UniverseCache.shared.solarSystem(id: prefetched.location.solarSystemId) {
             summary.systemName = sysInfo.name
             summary.securityStatus = sysInfo.securityStatus
+            if let constInfo = await UniverseCache.shared.constellation(id: sysInfo.constellationId) {
+                summary.regionName = await UniverseCache.shared.region(id: constInfo.regionId)?.name
+            }
         }
         if let typeInfo = await UniverseCache.shared.type(id: prefetched.ship.shipTypeId) {
             summary.shipTypeName = typeInfo.name
@@ -494,6 +503,7 @@ struct CharacterSummary {
     var shipTypeName: String = ""
     var location: ESICharacterLocation?
     var systemName: String = ""
+    var regionName: String? = nil
     var securityStatus: Double?
     var skillQueueCount: Int = 0
     var currentSkillFinish: Date?
@@ -823,7 +833,13 @@ struct CharacterCardView: View {
                         VStack(alignment: .leading, spacing: 1) {
                             Text(summary?.systemName ?? "---")
                                 .font(.caption)
-                            if let sec = summary?.securityStatus {
+                            if let systemId = summary?.location?.solarSystemId,
+                               WHSpaceInfo.isWormholeSystem(systemId) {
+                                let whInfo = WHSpaceInfo.info(systemId: systemId, systemName: summary?.systemName, regionName: summary?.regionName)
+                                Text(whInfo?.whClass.shortName ?? "WH")
+                                    .font(.caption2.bold())
+                                    .foregroundStyle(.purple)
+                            } else if let sec = summary?.securityStatus {
                                 Text(String(format: "%.1f", sec))
                                     .font(.caption2.monospacedDigit())
                                     .foregroundStyle(sec >= 0.5 ? .green : sec >= 0.0 ? .yellow : .red)
@@ -1390,7 +1406,13 @@ struct CharacterHeroView: View {
                                     HStack(spacing: 5) {
                                         Text(summary?.systemName ?? "---")
                                             .font(.callout.weight(.medium))
-                                        if let sec = summary?.securityStatus {
+                                        if let systemId = summary?.location?.solarSystemId,
+                                           WHSpaceInfo.isWormholeSystem(systemId) {
+                                            let whInfo = WHSpaceInfo.info(systemId: systemId, systemName: summary?.systemName, regionName: summary?.regionName)
+                                            Text(whInfo?.whClass.shortName ?? "WH")
+                                                .font(.caption.bold())
+                                                .foregroundStyle(.purple)
+                                        } else if let sec = summary?.securityStatus {
                                             Text(String(format: "%.1f", sec))
                                                 .font(.caption.monospacedDigit())
                                                 .foregroundStyle(sec >= 0.5 ? .green : sec >= 0.0 ? .yellow : .red)
