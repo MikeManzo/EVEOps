@@ -38,6 +38,15 @@ struct MainContentView: View {
         }
         .navigationSplitViewStyle(.balanced)
         .toolbarVisibility(.visible, for: .windowToolbar)
+        .toolbar {
+            ToolbarItem(placement: .automatic) {
+                Button {
+                    WindowService.shared.showSettings()
+                } label: {
+                    Image(systemName: "gear")
+                }
+            }
+        }
         .frame(minWidth: 900, minHeight: 600)
         .onChange(of: accountManager.accounts.count) {
             if accountManager.accounts.isEmpty {

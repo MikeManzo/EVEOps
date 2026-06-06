@@ -14,7 +14,11 @@ import Sparkle
 import FoundationModels
 
 struct SettingsView: View {
-    @State private var selection: SettingsSection? = .accounts
+    @State private var selection: SettingsSection?
+
+    init(openToUpdate: Bool = false) {
+        _selection = State(initialValue: openToUpdate ? .general : .accounts)
+    }
 
     var body: some View {
         NavigationSplitView {

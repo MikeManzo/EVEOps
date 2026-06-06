@@ -16,9 +16,9 @@ import SwiftData
 /// only a MenuBarExtra — no Window, WindowGroup, or Settings scene that
 /// macOS Tahoe reserves dock resources for or auto-opens at startup.
 @MainActor
-final class WindowService {
+final class WindowService: NSObject {
     static let shared = WindowService()
-    private init() {}
+    private override init() {}
 
     private var accountManager: AccountManager?
     private var prefetcher: DashboardPrefetcher?
@@ -140,7 +140,7 @@ final class WindowService {
 
         guard let am = accountManager, let pf = prefetcher, let au = appUpdater else { return }
 
-        let content = SettingsView()
+        let content = SettingsView(openToUpdate: au.updateAvailable)
             .environment(am)
             .environment(pf)
             .environment(au)
@@ -152,6 +152,7 @@ final class WindowService {
         window.styleMask = [.titled, .closable]
         window.isReleasedWhenClosed = false
         window.setFrameAutosaveName("EVEOpsSettingsWindow")
+        window.delegate = self
         window.center()
 
         settingsWindow = window
@@ -173,6 +174,17 @@ final class WindowService {
         case "light": return NSAppearance(named: .aqua)
         case "dark":  return NSAppearance(named: .darkAqua)
         default:      return nil
+        }
+    }
+}
+
+// MARK: NSWindowDelegate
+
+extension WindowService: NSWindowDelegate {
+    nonisolated func windowWillClose(_ notification: Notification) {
+        guard let window = notification.object as? NSWindow else { return }
+        MainActor.assumeIsolated {
+            if window === settingsWindow { settingsWindow = nil }
         }
     }
 }
