@@ -989,7 +989,11 @@ private struct AboutTab: View {
                     // EVE Scout
                     scoutCard
                         .padding(.top, 8)
-                    
+
+                    // EVERef attribution card
+                    eveRefCard
+                        .padding(.top, 8)
+
                     // Sparkle attribution card
                     sparkleCard
                         .padding(.top, 8)
@@ -1009,6 +1013,7 @@ private struct AboutTab: View {
                             Text("zKillboard is a service provided by zKillboard.com. Killmail data is consumed via the public zKillboard API.")
                             Text("Fuzzwork Enterprises market data is provided courtesy of Steve Ronuken (fuzzwork.co.uk). Used with permission under the public API terms.")
                             Text("Janice appraisal data is provided by e-351.com. Used in accordance with the Janice public API terms of service.")
+                            Text("EVERef reference data is provided by Autonomous Logic. Used under the EVERef public API terms. Not affiliated with or endorsed by CCP.")
                             Text("EVEScout and the EVEScout logo/name are trademarks and/or service marks of EVEScout.")
                             Text("EVEShip.fit and its Dogma Engine are copyright EVEShipFit contributors. Used under open-source license terms.")
                             Text("Claude and Claude Code are trademarks of Anthropic, PBC. Used for AI-assisted development. No user data is transmitted to Anthropic by EVEOps.")
@@ -1518,6 +1523,57 @@ private struct AboutTab: View {
                         colors: [
                             Color.purple.opacity(0.30),
                             Color.purple.opacity(0.08)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        )
+        .padding(.horizontal, 44)
+    }
+
+    // Mark:  EVERef attribution card
+
+    private var eveRefCard: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(Color.teal.opacity(0.12))
+                    .frame(width: 38, height: 38)
+                Image(systemName: "books.vertical.fill")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.teal)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("EVERef")
+                    .font(.system(size: 13, weight: .semibold))
+                Text("ITEM & BLUEPRINT REFERENCE")
+                    .font(.system(size: 9, weight: .bold))
+                    .tracking(1.2)
+                    .foregroundStyle(.tertiary)
+            }
+
+            Spacer()
+
+            Button("everef.net") {
+                if let url = URL(string: "https://everef.net") {
+                    NSWorkspace.shared.open(url)
+                }
+            }
+            .buttonStyle(.link)
+            .font(.system(size: 11, weight: .medium))
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 11)
+        .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [
+                            Color.teal.opacity(0.30),
+                            Color.teal.opacity(0.08)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing

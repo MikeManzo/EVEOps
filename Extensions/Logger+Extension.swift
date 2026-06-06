@@ -19,4 +19,5 @@ extension Logger {
     static var sdeData: EVELogger { EVELogger(category: "sdeData") }
     static var dogmaEngine: EVELogger { EVELogger(category: "dogmaEngine") }
     static var systemSearch: EVELogger { EVELogger(category: "systemSearch") }
+    static var eveRef: EVELogger { EVELogger(category: "eveRef") }
 }
