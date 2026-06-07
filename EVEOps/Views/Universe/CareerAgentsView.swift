@@ -83,6 +83,14 @@ enum SecurityRangeFilter: String, CaseIterable, Identifiable {
     }
 }
 
+// MARK:  Agent Sort Order
+
+enum AgentSortOrder: String, CaseIterable, Identifiable {
+    case jumps = "Jumps"
+    case level = "Level"
+    var id: String { rawValue }
+}
+
 // MARK:  Resolved Agent
 
 struct ResolvedAgent: Identifiable {
@@ -130,6 +138,9 @@ struct AgentFinderView: View {
     @State private var isResolvingResults = false
     @State private var searchTask: Task<Void, Never>? = nil
 
+    // Sort
+    @State private var sortOrder: AgentSortOrder = .jumps
+
     // Selection
     @State private var selectedAgent: ResolvedAgent? = nil
 
@@ -173,6 +184,7 @@ struct AgentFinderView: View {
         .onChange(of: secFilter)      { _, _ in triggerSearch() }
         .onChange(of: divisionFilter) { _, _ in triggerSearch() }
         .onChange(of: factionFilter)  { _, _ in triggerSearch() }
+        .onChange(of: sortOrder)      { _, _ in resolvedAgents = sortedAgents(resolvedAgents) }
     }
 
     // MARK: Left Panel
@@ -333,9 +345,21 @@ struct AgentFinderView: View {
                         }
                     }
                     Spacer()
-                    if resolvedAgents.count < totalFiltered && totalFiltered > 0 {
-                        Text("Showing top \(resolvedAgents.count)")
-                            .font(.caption2).foregroundStyle(.tertiary)
+                    HStack(spacing: 8) {
+                        if resolvedAgents.count < totalFiltered && totalFiltered > 0 {
+                            Text("Showing top \(resolvedAgents.count)")
+                                .font(.caption2).foregroundStyle(.tertiary)
+                        }
+                        Picker("Sort", selection: $sortOrder) {
+                            ForEach(AgentSortOrder.allCases) { order in
+                                Text(order.rawValue).tag(order)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .controlSize(.mini)
+                        .frame(width: 110)
+                        .labelsHidden()
+                        .disabled(!dbLoaded || resolvedAgents.isEmpty)
                     }
                 }
                 .padding(.horizontal, 16).padding(.vertical, 8)
@@ -505,6 +529,30 @@ struct AgentFinderView: View {
         }
     }
 
+    private func sortedAgents(_ agents: [ResolvedAgent]) -> [ResolvedAgent] {
+        switch sortOrder {
+        case .jumps:
+            return agents.sorted {
+                switch ($0.jumpCount, $1.jumpCount) {
+                case (nil, nil):        return $0.agent.level > $1.agent.level
+                case (nil, _):          return false
+                case (_, nil):          return true
+                case (let a?, let b?):  return a == b ? $0.agent.level > $1.agent.level : a < b
+                }
+            }
+        case .level:
+            return agents.sorted {
+                if $0.agent.level != $1.agent.level { return $0.agent.level > $1.agent.level }
+                switch ($0.jumpCount, $1.jumpCount) {
+                case (nil, nil):        return false
+                case (nil, _):          return false
+                case (_, nil):          return true
+                case (let a?, let b?):  return a < b
+                }
+            }
+        }
+    }
+
     private func triggerSearch() {
         searchTask?.cancel()
         searchTask = Task {
@@ -602,7 +650,7 @@ struct AgentFinderView: View {
                   "/characters/\(account.characterID)/location/", token: token
               )
         else {
-            resolvedAgents = working.sorted { ($0.systemName ?? "") < ($1.systemName ?? "") }
+            resolvedAgents = sortedAgents(working)
             return
         }
 
@@ -628,18 +676,7 @@ struct AgentFinderView: View {
         }
         if Task.isCancelled { return }
 
-        // Sort: by jump count ascending, nulls last; ties broken by level descending
-        working.sort {
-            switch ($0.jumpCount, $1.jumpCount) {
-            case (nil, nil):   return $0.agent.level > $1.agent.level
-            case (nil, _):     return false
-            case (_, nil):     return true
-            case (let a?, let b?):
-                return a == b ? $0.agent.level > $1.agent.level : a < b
-            }
-        }
-
-        resolvedAgents = working
+        resolvedAgents = sortedAgents(working)
 
         // Refresh selected agent detail if it's in the updated list
         if let sel = selectedAgent, let updated = working.first(where: { $0.id == sel.id }) {
@@ -806,7 +843,7 @@ func agentJumpBadge(_ jumps: Int) -> some View {
                 .padding(.horizontal, 6).padding(.vertical, 2)
                 .background(.green.opacity(0.12), in: Capsule())
         } else {
-            Text("\(jumps)j").font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+            Text("\(jumps) jumps").font(.caption.monospacedDigit()).foregroundStyle(.secondary)
                 .padding(.horizontal, 6).padding(.vertical, 2)
                 .background(.secondary.opacity(0.1), in: Capsule())
         }
