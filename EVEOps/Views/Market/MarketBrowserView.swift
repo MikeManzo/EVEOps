@@ -255,6 +255,7 @@ struct MarketBrowserView: View {
     // Jump cache
     @State private var characterSystemId: Int?
     @State private var jumpCache: [Int: Int] = [:]
+    @State private var regionManuallyOverridden = false
 
     // UI state
     @State private var selectedOrderTab = 0   // 0 = sell, 1 = buy, 2 = history
@@ -359,15 +360,17 @@ struct MarketBrowserView: View {
     }
 
     private func onRegionChanged() {
+        regionManuallyOverridden = true
         jumpCache.removeAll()
         insightResetKey = ""
+        let regionId = selectedRegionId
         if let typeId = selectedTypeId {
             Task {
                 await withTaskGroup(of: Void.self) { group in
-                    group.addTask { await self.loadOrders(typeId: typeId) }
-                    group.addTask { await self.loadPriceHistory(typeId: typeId) }
+                    group.addTask { await self.loadOrders(typeId: typeId, regionOverride: regionId) }
+                    group.addTask { await self.loadPriceHistory(typeId: typeId, regionOverride: regionId) }
                 }
-                insightResetKey = "\(typeId)-\(selectedRegionId)"
+                insightResetKey = "\(typeId)-\(regionId)"
             }
         }
     }
@@ -1046,6 +1049,15 @@ struct MarketBrowserView: View {
             group.addTask { await self.loadMarketPrices() }
         }
 
+        // Set region to character's current location unless overridden manually this session
+        if !regionManuallyOverridden,
+           let sysId = characterSystemId,
+           let system = await UniverseCache.shared.solarSystem(id: sysId),
+           let constellation = await UniverseCache.shared.constellation(id: system.constellationId),
+           availableRegions.contains(where: { $0.id == constellation.regionId }) {
+            selectedRegionId = constellation.regionId
+        }
+
         // Restore last-viewed item (ESIClient cache makes this cheap on re-open)
         if savedTypeId > 0 && selectedTypeId == nil {
             let typeId = savedTypeId
@@ -1067,17 +1079,6 @@ struct MarketBrowserView: View {
     private func loadRegions() async {
         guard availableRegions.isEmpty else { return }
         availableRegions = await UniverseCache.shared.knownSpaceRegions()
-
-        // Auto-set region from character location only on first-ever open (no saved session)
-        if savedTypeId == 0,
-           let sysId = characterSystemId,
-           let system = await UniverseCache.shared.solarSystem(id: sysId),
-           let constellation = await UniverseCache.shared.constellation(id: system.constellationId) {
-            let regionId = constellation.regionId
-            if availableRegions.contains(where: { $0.id == regionId }) {
-                selectedRegionId = regionId
-            }
-        }
     }
 
     private func loadMarketGroups() async {
@@ -1199,7 +1200,7 @@ struct MarketBrowserView: View {
         insightResetKey = "\(typeId)-\(selectedRegionId)"
     }
 
-    private func loadOrders(typeId: Int) async {
+    private func loadOrders(typeId: Int, regionOverride: Int? = nil) async {
         isLoadingOrders = true
         ordersError = nil
         sellOrders = []
@@ -1214,7 +1215,7 @@ struct MarketBrowserView: View {
         let orders: [ESIRegionMarketOrder]
         do {
             orders = try await ESIClient.shared.fetch(
-                "/markets/\(selectedRegionId)/orders/",
+                "/markets/\(regionOverride ?? selectedRegionId)/orders/",
                 queryItems: [
                     URLQueryItem(name: "type_id", value: "\(typeId)"),
                     URLQueryItem(name: "order_type", value: "all")
@@ -1344,9 +1345,9 @@ struct MarketBrowserView: View {
         }
     }
 
-    private func loadPriceHistory(typeId: Int) async {
+    private func loadPriceHistory(typeId: Int, regionOverride: Int? = nil) async {
         let history: [ESIMarketHistory]? = try? await ESIClient.shared.fetch(
-            "/markets/\(selectedRegionId)/history/",
+            "/markets/\(regionOverride ?? selectedRegionId)/history/",
             queryItems: [URLQueryItem(name: "type_id", value: "\(typeId)")]
         )
         priceHistory = (history ?? []).sorted { $0.date < $1.date }
