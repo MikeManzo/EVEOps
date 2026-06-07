@@ -10,248 +10,155 @@
 
 import SwiftUI
 
-// MARK:  Career Agent Type
+// MARK:  Agent Type Filter
 
-enum CareerAgentType: String, CaseIterable {
-    case industry = "Industry"
-    case business = "Business"
-    case military = "Military"
-    case advancedMilitary = "Soldier of Fortune"
-    case exploration = "Exploration"
+enum AgentTypeFilter: String, CaseIterable, Identifiable {
+    case career      = "Career"
+    case basic       = "Basic Mission"
+    case research    = "R&D Research"
+    case storyline   = "Storyline"
+    case factWarfare = "Faction Warfare"
+    case epicArc     = "Epic Arc"
+    case locator     = "Locator"
+
+    var id: String { rawValue }
+
+    var agentTypeID: Int? {
+        switch self {
+        case .career:      return 12
+        case .basic:       return 2
+        case .research:    return 4
+        case .storyline:   return 7
+        case .factWarfare: return 9
+        case .epicArc:     return 10
+        case .locator:     return nil
+        }
+    }
+
+    var isLocatorMode: Bool { self == .locator }
 
     var iconName: String {
         switch self {
-        case .industry: return "hammer.fill"
-        case .business: return "banknote.fill"
-        case .military: return "shield.lefthalf.filled"
-        case .advancedMilitary: return "flame.fill"
-        case .exploration: return "safari.fill"
+        case .career:      return "graduationcap.fill"
+        case .basic:       return "shield.fill"
+        case .research:    return "atom"
+        case .storyline:   return "book.fill"
+        case .factWarfare: return "flag.fill"
+        case .epicArc:     return "sparkles"
+        case .locator:     return "magnifyingglass.circle.fill"
         }
     }
 
     var color: Color {
         switch self {
-        case .industry: return .orange
-        case .business: return .green
-        case .military: return .blue
-        case .advancedMilitary: return .red
-        case .exploration: return .purple
+        case .career:      return .cyan
+        case .basic:       return .blue
+        case .research:    return .purple
+        case .storyline:   return .orange
+        case .factWarfare: return .red
+        case .epicArc:     return .yellow
+        case .locator:     return .green
         }
     }
+}
 
-    var description: String {
+// MARK:  Security Range Filter
+
+enum SecurityRangeFilter: String, CaseIterable, Identifiable {
+    case any  = "Any"
+    case high = "High Sec"
+    case low  = "Low Sec"
+    case null = "Null Sec"
+
+    var id: String { rawValue }
+
+    func matches(_ status: Double?) -> Bool {
+        guard let s = status else { return self == .any }
         switch self {
-        case .industry:
-            return "Learn the foundations of manufacturing and mining. These agents teach ore refining, blueprint usage, and basic ship production — the backbone of the EVE economy."
-        case .business:
-            return "Master market trading and hauling. Missions cover reading market orders, running courier contracts, and building wealth through commerce."
-        case .military:
-            return "Develop combat fundamentals through structured PvE missions. Learn module fitting, engagement ranges, and how to tackle NPC enemies efficiently."
-        case .advancedMilitary:
-            return "Advanced combat covering fleet tactics, electronic warfare, and specialized roles. Harder missions with better rewards for pilots ready to fight seriously."
-        case .exploration:
-            return "Discover the universe through probe scanning, hacking, and archaeology. Agents teach data and relic site mechanics, covert navigation, and the secrets of unknown space."
-        }
-    }
-
-    /// Skill names (matching ESI) and a brief reason for recommending each
-    var recommendedSkills: [(name: String, reason: String)] {
-        switch self {
-        case .industry:
-            return [
-                ("Mining", "Extract ore from asteroids"),
-                ("Astrogeology", "Mine 50% more ore per cycle"),
-                ("Reprocessing", "Refine ore into minerals"),
-                ("Industry", "Faster blueprint manufacturing"),
-                ("Science", "Prerequisite for research & invention"),
-                ("Mining Upgrades", "Fit mining upgrade modules")
-            ]
-        case .business:
-            return [
-                ("Trade", "Increases active market orders"),
-                ("Retail", "Even more concurrent orders"),
-                ("Accounting", "Reduces sales tax"),
-                ("Broker Relations", "Reduces market broker fees"),
-                ("Contracting", "Run more simultaneous contracts"),
-                ("Daytrading", "Modify orders from any station")
-            ]
-        case .military:
-            return [
-                ("Gunnery", "Base skill for all turret weapons"),
-                ("Missile Launcher Operation", "Base skill for all missiles"),
-                ("Drones", "Deploy combat drones"),
-                ("Shield Management", "Increases shield capacity"),
-                ("Hull Upgrades", "Armor HP and damage control fitting"),
-                ("Navigation", "Faster base sub-warp speed")
-            ]
-        case .advancedMilitary:
-            return [
-                ("Electronic Warfare", "Operate ECM jamming modules"),
-                ("Target Painting", "Increase target signature radius"),
-                ("Weapon Upgrades", "Fit damage-boosting modules"),
-                ("Advanced Weapon Upgrades", "Reduce power grid use of weapons"),
-                ("Thermodynamics", "Overheat modules for burst performance"),
-                ("Evasive Maneuvering", "Faster ship agility and align time")
-            ]
-        case .exploration:
-            return [
-                ("Astrometrics", "Core probe scanning skill"),
-                ("Astrometric Rangefinding", "Stronger scan signal"),
-                ("Astrometric Pinpointing", "Tighter scan accuracy"),
-                ("Hacking", "Hack data site containers"),
-                ("Archaeology", "Open relic site containers"),
-                ("Covert Ops", "Fly cloaked scanning frigates")
-            ]
+        case .any:  return true
+        case .high: return s >= 0.5
+        case .low:  return s >= 0.1 && s < 0.5
+        case .null: return s < 0.1
         }
     }
 }
 
-// MARK:  Career Faction Data
+// MARK:  Resolved Agent
 
-struct CareerFactionData: Identifiable {
-    let id: String
-    let name: String
-    let factionColor: Color
-    /// NPC corporation ID used for the faction logo on the image server
-    let factionCorpID: Int
-    /// ESI faction ID for /v2/universe/factions/
-    let factionID: Int
-    /// (agent type, system name) pairs — one system per career type
-    let systems: [(type: CareerAgentType, systemName: String)]
+struct ResolvedAgent: Identifiable {
+    let agent: AgentDataManager.SDEAgent
+    var name: String?
+    var corpName: String?
+    var systemID: Int?
+    var systemName: String?
+    var securityStatus: Double?
+    var jumpCount: Int?
+    var constellationName: String?
+    var regionName: String?
+    var id: Int { agent.agentID }
 
-    static let all: [CareerFactionData] = [
-        CareerFactionData(
-            id: "caldari",
-            name: "Caldari State",
-            factionColor: .cyan,
-            factionCorpID: 1000035,   // Caldari Navy
-            factionID: 500001,
-            systems: [
-                (.industry, "Uitra"),
-                (.business, "Kisogo"),
-                (.military, "Jouvulen"),
-                (.advancedMilitary, "Haajinen"),
-                (.exploration, "Akiainavas")
-            ]
-        ),
-        CareerFactionData(
-            id: "gallente",
-            name: "Gallente Federation",
-            factionColor: .teal,
-            factionCorpID: 1000046,   // Federation Navy
-            factionID: 500004,
-            systems: [
-                (.industry, "Clellinon"),
-                (.business, "Trossere"),
-                (.military, "Couster"),
-                (.advancedMilitary, "Aunia"),
-                (.exploration, "Duripant")
-            ]
-        ),
-        CareerFactionData(
-            id: "amarr",
-            name: "Amarr Empire",
-            factionColor: .yellow,
-            factionCorpID: 1000096,   // Imperial Navy
-            factionID: 500003,
-            systems: [
-                (.industry, "Deepari"),
-                (.business, "Conoban"),
-                (.military, "Pasha"),
-                (.advancedMilitary, "Ardishapur Prime"),
-                (.exploration, "Arzad")
-            ]
-        ),
-        CareerFactionData(
-            id: "minmatar",
-            name: "Minmatar Republic",
-            factionColor: .orange,
-            factionCorpID: 1000060,   // Republic Fleet
-            factionID: 500002,
-            systems: [
-                (.industry, "Embod"),
-                (.business, "Hadaugago"),
-                (.military, "Malukker"),
-                (.advancedMilitary, "Ryddinjorn"),
-                (.exploration, "Emolgranlan")
-            ]
-        )
-    ]
+    var displayName: String   { name     ?? "Agent \(agent.agentID)" }
+    var displayCorp: String   { corpName ?? "Corp \(agent.corporationID)" }
+    var displaySystem: String { systemName ?? "Station \(agent.locationID)" }
 }
 
-// MARK:  Resolved System
+// MARK:  Agent Finder View
 
-struct ResolvedCareerSystem {
-    let systemID: Int
-    let securityStatus: Double
-    let securityClass: String?
-}
-
-// MARK:  Selected Career Entry
-
-struct SelectedCareerEntry: Equatable {
-    let factionID: String
-    let agentType: CareerAgentType
-    let systemName: String
-
-    static func == (lhs: SelectedCareerEntry, rhs: SelectedCareerEntry) -> Bool {
-        lhs.factionID == rhs.factionID && lhs.agentType == rhs.agentType
-    }
-}
-
-// MARK:  Career Agents View
-
-struct CareerAgentsView: View {
+struct AgentFinderView: View {
     @Environment(AccountManager.self) private var accountManager
 
-    @State private var resolvedSystems: [String: ResolvedCareerSystem] = [:]
-    @State private var factionDescriptions: [Int: String] = [:]
-    @State private var isLoading = false
-    @State private var loadError: String?
-    @State private var selectedEntry: SelectedCareerEntry?
+    // Filters
+    @State private var typeFilter: AgentTypeFilter    = .career
+    @State private var levelFilter: Int?              = nil
+    @State private var secFilter: SecurityRangeFilter = .any
+    @State private var divisionFilter: Int?           = nil
+    @State private var factionFilter: Int?            = nil
+
+    // Database state
+    @State private var dbLoaded  = false
+    @State private var dbLoading = false
+    @State private var dbError: String? = nil
+    @State private var availableDivisions: [(id: Int, name: String)] = []
+    @State private var availableFactions: [(id: Int, name: String, shortName: String)] = []
+
+    // Faction logo cache (pre-loaded so Picker can use them synchronously)
+    @State private var factionImages: [Int: NSImage] = [:]
+
+    // Results
+    @State private var resolvedAgents: [ResolvedAgent] = []
+    @State private var totalFiltered   = 0
+    @State private var isResolvingResults = false
+    @State private var searchTask: Task<Void, Never>? = nil
+
+    // Selection
+    @State private var selectedAgent: ResolvedAgent? = nil
 
     var body: some View {
         HStack(spacing: 0) {
-            // Left: faction list
-            ScrollView {
-                VStack(spacing: 16) {
-                    ForEach(CareerFactionData.all) { faction in
-                        factionSection(faction)
-                    }
-
-                    if let err = loadError {
-                        HStack(spacing: 6) {
-                            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
-                            Text(err)
-                        }
-                        .font(.caption)
-                        .padding(10)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
-                    }
-                }
-                .padding()
-            }
-
-            // Right: detail pane
-            if let entry = selectedEntry,
-               let faction = CareerFactionData.all.first(where: { $0.id == entry.factionID }) {
+            leftPanel
+            if let agent = selectedAgent {
                 Divider()
-                CareerAgentDetailView(
-                    faction: faction,
-                    agentType: entry.agentType,
-                    systemName: entry.systemName,
-                    resolved: resolvedSystems[entry.systemName],
-                    factionDescription: factionDescriptions[faction.factionID]
+                AgentDetailView(
+                    agent: agent,
+                    onDestinationSet: { msg in
+                        if let idx = resolvedAgents.firstIndex(where: { $0.id == agent.id }) {
+                            // detail view handles its own message state
+                            _ = idx
+                        }
+                    }
                 )
                 .frame(width: 300)
+                .id(agent.id)
             }
         }
         .safeAreaInset(edge: .top, spacing: 0) {
             HStack {
-                Text("Career Agents")
+                Text("Agent Finder")
                     .font(.largeTitle.bold())
                 Spacer()
+                if dbLoading || isResolvingResults {
+                    ProgressView().scaleEffect(0.7)
+                }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
@@ -259,209 +166,498 @@ struct CareerAgentsView: View {
         }
         .navigationTitle("")
         .task {
-            await resolveAllSystems()
+            await startDatabase()
+        }
+        .onChange(of: typeFilter)     { _, _ in divisionFilter = nil; triggerSearch() }
+        .onChange(of: levelFilter)    { _, _ in triggerSearch() }
+        .onChange(of: secFilter)      { _, _ in triggerSearch() }
+        .onChange(of: divisionFilter) { _, _ in triggerSearch() }
+        .onChange(of: factionFilter)  { _, _ in triggerSearch() }
+    }
+
+    // MARK: Left Panel
+
+    private var leftPanel: some View {
+        VStack(spacing: 0) {
+            filterPanel
+            Divider()
+            resultsPanel
         }
     }
 
-    // MARK:  Faction Section
+    // MARK: Filter Panel
 
-    private func factionSection(_ faction: CareerFactionData) -> some View {
-        GroupBox {
-            VStack(spacing: 0) {
-                ForEach(Array(faction.systems.enumerated()), id: \.offset) { index, entry in
-                    agentRow(faction: faction, entry: entry)
-                    if index < faction.systems.count - 1 {
-                        Divider().padding(.leading, 44)
+    private var filterPanel: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Agent type row
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Agent Type")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(AgentTypeFilter.allCases) { type_ in
+                            filterChip(
+                                label: type_.rawValue,
+                                icon: type_.iconName,
+                                color: type_.color,
+                                isSelected: typeFilter == type_
+                            ) { typeFilter = type_ }
+                        }
                     }
                 }
             }
-        } label: {
-            HStack(spacing: 8) {
-                AsyncImage(url: EVEImageURL.corporationLogo(faction.factionCorpID, size: 32)) { phase in
-                    if let image = phase.image {
-                        image.resizable()
-                            .frame(width: 20, height: 20)
-                            .clipShape(RoundedRectangle(cornerRadius: 4))
+
+            // Division sub-filter (only for Basic Mission)
+            if typeFilter == .basic && !availableDivisions.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Division")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 6) {
+                            filterChip(label: "Any", icon: "square.grid.2x2", color: .secondary, isSelected: divisionFilter == nil) {
+                                divisionFilter = nil
+                            }
+                            ForEach(availableDivisions, id: \.id) { div in
+                                filterChip(label: div.name, icon: divisionIcon(div.name), color: divisionColor(div.name), isSelected: divisionFilter == div.id) {
+                                    divisionFilter = div.id
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Level + Security + Faction row
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Level")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    Picker("Level", selection: $levelFilter) {
+                        Text("Any").tag(Optional<Int>.none)
+                        ForEach(1...5, id: \.self) { l in Text("L\(l)").tag(Optional<Int>.some(l)) }
+                    }
+                    .pickerStyle(.menu)
+                    .labelsHidden()
+                    .controlSize(.small)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Security")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    Picker("Security", selection: $secFilter) {
+                        ForEach(SecurityRangeFilter.allCases) { s in Text(s.rawValue).tag(s) }
+                    }
+                    .pickerStyle(.menu)
+                    .labelsHidden()
+                    .controlSize(.small)
+                }
+
+                if !availableFactions.isEmpty {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Faction")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                        Picker("Faction", selection: $factionFilter) {
+                            Label("All", systemImage: "globe").tag(Optional<Int>.none)
+                            ForEach(availableFactions, id: \.id) { f in
+                                Label {
+                                    Text(f.shortName)
+                                } icon: {
+                                    if let img = factionImages[f.id] {
+                                        Image(nsImage: img)
+                                            .resizable()
+                                            .interpolation(.high)
+                                            .frame(width: 16, height: 16)
+                                            .clipShape(RoundedRectangle(cornerRadius: 3))
+                                    } else {
+                                        Image(systemName: "shield.fill")
+                                            .foregroundStyle(Self.factionColor(f.id))
+                                    }
+                                }
+                                .tag(Optional<Int>.some(f.id))
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .labelsHidden()
+                        .controlSize(.small)
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(.bar)
+    }
+
+    private func filterChip(
+        label: String, icon: String, color: Color,
+        isSelected: Bool, action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                Image(systemName: icon).font(.caption2)
+                Text(label).font(.caption.weight(.semibold))
+            }
+            .padding(.horizontal, 9).padding(.vertical, 5)
+            .background(isSelected ? color.opacity(0.2) : Color.secondary.opacity(0.08), in: Capsule())
+            .foregroundStyle(isSelected ? color : .secondary)
+            .overlay(Capsule().strokeBorder(isSelected ? color.opacity(0.5) : Color.clear, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: Results Panel
+
+    private var resultsPanel: some View {
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                // Status row
+                HStack {
+                    if dbLoading {
+                        Label("Downloading agent database…", systemImage: "arrow.down.circle")
+                            .font(.caption).foregroundStyle(.secondary)
+                    } else if let err = dbError {
+                        Label(err, systemImage: "exclamationmark.triangle.fill")
+                            .font(.caption).foregroundStyle(.orange)
+                    } else if !dbLoaded {
+                        ProgressView("Loading…").font(.caption)
                     } else {
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(faction.factionColor.opacity(0.3))
-                            .frame(width: 20, height: 20)
+                        Text("\(totalFiltered) agents found")
+                            .font(.caption).foregroundStyle(.secondary)
+                        if isResolvingResults {
+                            ProgressView().scaleEffect(0.6).padding(.leading, 4)
+                        }
+                    }
+                    Spacer()
+                    if resolvedAgents.count < totalFiltered && totalFiltered > 0 {
+                        Text("Showing top \(resolvedAgents.count)")
+                            .font(.caption2).foregroundStyle(.tertiary)
                     }
                 }
-                Text(faction.name)
-                    .foregroundStyle(faction.factionColor)
-                    .font(.headline)
+                .padding(.horizontal, 16).padding(.vertical, 8)
+
+                if resolvedAgents.isEmpty && dbLoaded && !isResolvingResults {
+                    Text("No agents match the current filters.")
+                        .font(.callout).foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity).padding(32)
+                } else {
+                    ForEach(Array(resolvedAgents.enumerated()), id: \.element.id) { _, agent in
+                        agentRow(agent)
+                        Divider().padding(.leading, 56)
+                    }
+                }
             }
         }
     }
-
-    // MARK:  Agent Row
 
     @ViewBuilder
-    private func agentRow(faction: CareerFactionData, entry: (type: CareerAgentType, systemName: String)) -> some View {
-        let resolved = resolvedSystems[entry.systemName]
-        let isSelected = selectedEntry?.factionID == faction.id && selectedEntry?.agentType == entry.type
-
+    private func agentRow(_ agent: ResolvedAgent) -> some View {
+        let isSelected = selectedAgent?.id == agent.id
         Button {
-            selectedEntry = SelectedCareerEntry(
-                factionID: faction.id,
-                agentType: entry.type,
-                systemName: entry.systemName
-            )
+            selectedAgent = agent
         } label: {
             HStack(spacing: 10) {
-                Image(systemName: entry.type.iconName)
-                    .foregroundStyle(entry.type.color)
-                    .frame(width: 22, alignment: .center)
+                // Portrait
+                AsyncImage(url: characterPortraitURL(agent.agent.agentID)) { phase in
+                    if let img = phase.image {
+                        img.resizable().frame(width: 48, height: 48).clipShape(RoundedRectangle(cornerRadius: 6))
+                    } else {
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(typeFilter.color.opacity(0.2))
+                            .frame(width: 48, height: 48)
+                            .overlay(Image(systemName: typeFilter.iconName).font(.callout).foregroundStyle(typeFilter.color))
+                    }
+                }
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(entry.type.rawValue)
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.primary)
-                    Text(entry.systemName)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    Text(agent.displayName).font(.subheadline.weight(.medium)).foregroundStyle(.primary).lineLimit(1)
+                    HStack(spacing: 6) {
+                        Text(agent.displaySystem).font(.caption).foregroundStyle(.secondary)
+                        if let sec = agent.securityStatus {
+                            agentSecBadge(sec)
+                        }
+                    }
+                    Text(agent.displayCorp).font(.caption2).foregroundStyle(.tertiary).lineLimit(1)
                 }
 
                 Spacer()
 
-                if let resolved {
-                    securityBadge(resolved.securityStatus)
-                } else if isLoading {
-                    ProgressView().scaleEffect(0.6)
+                VStack(alignment: .trailing, spacing: 3) {
+                    levelBadge(agent.agent.level)
+                    if let jumps = agent.jumpCount {
+                        agentJumpBadge(jumps)
+                    } else if isResolvingResults {
+                        ProgressView().scaleEffect(0.45)
+                    }
                 }
 
-                Image(systemName: "chevron.right")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                Image(systemName: "chevron.right").font(.caption2).foregroundStyle(.tertiary)
             }
-            .padding(.vertical, 8)
-            .padding(.horizontal, 4)
-            .background(isSelected ? entry.type.color.opacity(0.1) : Color.clear, in: RoundedRectangle(cornerRadius: 6))
+            .padding(.horizontal, 16).padding(.vertical, 8)
+            .background(isSelected ? typeFilter.color.opacity(0.08) : Color.clear)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
 
-    // MARK:  Security Badge
-
-    private func securityBadge(_ sec: Double) -> some View {
-        Text(String(format: "%.1f", max(0.0, sec)))
-            .font(.caption.bold().monospacedDigit())
-            .foregroundStyle(careerSecColor(sec))
-            .padding(.horizontal, 7)
-            .padding(.vertical, 3)
-            .background(careerSecColor(sec).opacity(0.15), in: Capsule())
+    private func levelBadge(_ level: Int) -> some View {
+        let colors: [Color] = [.secondary, .gray, .blue, .green, .purple, .orange]
+        let c = colors[min(level, 5)]
+        return Text("L\(level)")
+            .font(.caption2.bold().monospacedDigit())
+            .foregroundStyle(c)
+            .padding(.horizontal, 5).padding(.vertical, 2)
+            .background(c.opacity(0.15), in: Capsule())
     }
 
-    // MARK:  Data Loading
+    // MARK: Division Helpers
 
-    private func resolveAllSystems() async {
-        guard resolvedSystems.isEmpty else { return }
-        isLoading = true
-        defer { isLoading = false }
+    private func divisionIcon(_ name: String) -> String {
+        let l = name.lowercased()
+        if l.contains("security") || l.contains("combat") { return "shield.lefthalf.filled" }
+        if l.contains("distribution") || l.contains("courier") { return "shippingbox.fill" }
+        if l.contains("mining") { return "cylinder.fill" }
+        if l.contains("research") || l.contains("r&d") { return "atom" }
+        if l.contains("internal") { return "lock.fill" }
+        return "person.fill"
+    }
 
-        let allFactions = CareerFactionData.all
-        let allNames = allFactions.flatMap { $0.systems.map(\.systemName) }
+    private func divisionColor(_ name: String) -> Color {
+        let l = name.lowercased()
+        if l.contains("security") { return .blue }
+        if l.contains("distribution") { return .green }
+        if l.contains("mining") { return .orange }
+        if l.contains("research") { return .purple }
+        return .secondary
+    }
 
-        enum FetchResult {
-            case systems([String: ResolvedCareerSystem], String?)
-            case descriptions([Int: String])
+    // MARK: Faction Color
+
+    static func factionColor(_ id: Int) -> Color {
+        switch id {
+        case 500001: return .cyan      // Caldari
+        case 500002: return .orange    // Minmatar
+        case 500003: return .yellow    // Amarr
+        case 500004: return .teal      // Gallente
+        case 500006: return .white     // CONCORD
+        case 500008: return .purple    // Khanid
+        case 500014: return .red       // Sisters of EVE
+        case 500016: return .blue      // Mordu's Legion
+        default:     return .secondary
+        }
+    }
+
+    // MARK: Portrait URL
+
+    private func characterPortraitURL(_ id: Int) -> URL? {
+        URL(string: "https://images.evetech.net/characters/\(id)/portrait?size=64")
+    }
+
+    // MARK: Data Loading
+
+    private func startDatabase() async {
+        dbLoading = true
+        await AgentDataManager.shared.ensureLoaded()
+        let loaded   = await AgentDataManager.shared.isLoaded
+        let error    = await AgentDataManager.shared.loadError
+        let divs     = await AgentDataManager.shared.availableBasicDivisions()
+        let factions = await AgentDataManager.shared.availableFactions()
+        dbLoaded           = loaded
+        dbError            = error
+        dbLoading          = false
+        availableDivisions = divs
+        availableFactions  = factions
+        if loaded {
+            triggerSearch()
+            Task { await loadFactionImages() }
+        }
+    }
+
+    private func loadFactionImages() async {
+        // ESI /universe/factions/ gives each faction's corporation_id,
+        // which is the correct key for the EVE image server logo.
+        guard let esiFactions: [ESIFaction] = try? await ESIClient.shared.fetch("/universe/factions/") else { return }
+        let corpByFaction = esiFactions.reduce(into: [Int: Int]()) { dict, f in
+            if let cid = f.corporationId { dict[f.factionId] = cid }
         }
 
-        var systemsResult: [String: ResolvedCareerSystem] = [:]
-        var systemsError: String? = nil
-        var descriptionsResult: [Int: String] = [:]
-
-        await withTaskGroup(of: FetchResult.self) { group in
-            // Resolve career system IDs + security status
-            group.addTask {
-                do {
-                    let response: ESIIDsResponse = try await ESIClient.shared.post(
-                        "/universe/ids/",
-                        body: allNames
-                    )
-                    let esiSystems = response.solarSystems ?? []
-                    var resolved: [String: ResolvedCareerSystem] = [:]
-
-                    await withTaskGroup(of: (String, ResolvedCareerSystem)?.self) { inner in
-                        for esiSystem in esiSystems {
-                            inner.addTask {
-                                guard let details = await UniverseCache.shared.solarSystem(id: esiSystem.id) else { return nil }
-                                return (esiSystem.name, ResolvedCareerSystem(
-                                    systemID: esiSystem.id,
-                                    securityStatus: details.securityStatus,
-                                    securityClass: details.securityClass
-                                ))
-                            }
-                        }
-                        for await result in inner {
-                            if let (name, system) = result {
-                                resolved[name] = system
-                            }
-                        }
-                    }
-                    return .systems(resolved, nil)
-                } catch {
-                    return .systems([:], "Could not resolve system locations: \(error.localizedDescription)")
+        await withTaskGroup(of: (Int, NSImage?).self) { group in
+            for faction in availableFactions where factionImages[faction.id] == nil {
+                let fid = faction.id
+                guard let corpID = corpByFaction[fid],
+                      let url   = EVEImageURL.corporationLogo(corpID, size: 32)
+                else { continue }
+                group.addTask {
+                    guard let (data, response) = try? await URLSession.shared.data(from: url),
+                          (response as? HTTPURLResponse)?.statusCode == 200,
+                          let image = NSImage(data: data)
+                    else { return (fid, nil) }
+                    return (fid, image)
                 }
             }
-
-            // Fetch ESI faction descriptions
-            group.addTask {
-                var descriptions: [Int: String] = [:]
-                if let factions: [ESIFaction] = try? await ESIClient.shared.fetch("/universe/factions/") {
-                    let ids = Set(allFactions.map(\.factionID))
-                    for faction in factions where ids.contains(faction.factionId) {
-                        descriptions[faction.factionId] = faction.description
-                    }
-                }
-                return .descriptions(descriptions)
+            for await (fid, image) in group {
+                if let image { factionImages[fid] = image }
             }
+        }
+    }
 
-            for await result in group {
-                switch result {
-                case .systems(let s, let err):
-                    systemsResult = s
-                    systemsError = err
-                case .descriptions(let d):
-                    descriptionsResult = d
+    private func triggerSearch() {
+        searchTask?.cancel()
+        searchTask = Task {
+            await runSearch()
+        }
+    }
+
+    private func runSearch() async {
+        guard dbLoaded else { return }
+        isResolvingResults = true
+        defer { isResolvingResults = false }
+
+        // 1. Filter in memory
+        let filtered = await AgentDataManager.shared.filteredAgents(
+            typeID: typeFilter.agentTypeID,
+            divisionID: divisionFilter,
+            level: levelFilter,
+            factionID: factionFilter,
+            locatorOnly: typeFilter.isLocatorMode
+        )
+        totalFiltered = filtered.count
+
+        // Take top 50 by level descending (highest quality first before jump sort)
+        let candidates = Array(filtered.sorted { $0.level > $1.level }.prefix(50))
+        var working = candidates.map { ResolvedAgent(agent: $0) }
+        resolvedAgents = working
+
+        // 2. Resolve station → system in parallel
+        await withTaskGroup(of: (Int, Int?).self) { group in
+            for a in candidates {
+                group.addTask {
+                    let station = await UniverseCache.shared.station(id: a.locationID)
+                    return (a.agentID, station?.systemId)
+                }
+            }
+            for await (aid, sysID) in group {
+                if let i = working.firstIndex(where: { $0.id == aid }) {
+                    working[i].systemID = sysID
                 }
             }
         }
+        if Task.isCancelled { return }
+        resolvedAgents = working
 
-        resolvedSystems = systemsResult
-        if let err = systemsError { loadError = err }
-        factionDescriptions = descriptionsResult
+        // 3a. Resolve system details — each task returns its result; mutations happen
+        //     only in the sequential for-await loop, eliminating the data race.
+        struct SysInfo { let sysID: Int; let name: String; let sec: Double; let con: String?; let reg: String? }
+        let systemIDs = Set(working.compactMap(\.systemID))
+        await withTaskGroup(of: SysInfo?.self) { group in
+            for sysID in systemIDs {
+                group.addTask {
+                    guard let sys = await UniverseCache.shared.solarSystem(id: sysID) else { return nil }
+                    var con: String? = nil
+                    var reg: String? = nil
+                    if let c = await UniverseCache.shared.constellation(id: sys.constellationId) {
+                        con = c.name
+                        if let r = await UniverseCache.shared.region(id: c.regionId) { reg = r.name }
+                    }
+                    return SysInfo(sysID: sysID, name: sys.name, sec: sys.securityStatus, con: con, reg: reg)
+                }
+            }
+            for await info in group {
+                guard let info else { continue }
+                for i in working.indices where working[i].systemID == info.sysID {
+                    working[i].systemName        = info.name
+                    working[i].securityStatus    = info.sec
+                    working[i].constellationName = info.con
+                    working[i].regionName        = info.reg
+                }
+            }
+        }
+        if Task.isCancelled { return }
+
+        // 3b. Resolve agent + corp names concurrently, then apply sequentially.
+        let agentIDs = candidates.map(\.agentID)
+        let corpIDs  = Array(Set(candidates.map(\.corporationID)))
+        async let agentNamesFetch = NameResolver.shared.resolve(ids: agentIDs)
+        async let corpNamesFetch  = NameResolver.shared.resolve(ids: corpIDs)
+        let (aN, cN) = await (agentNamesFetch, corpNamesFetch)
+        for i in working.indices {
+            working[i].name     = aN[working[i].agent.agentID]
+            working[i].corpName = cN[working[i].agent.corporationID]
+        }
+        if Task.isCancelled { return }
+
+        // 4. Apply security filter now that we have security status
+        working = working.filter { secFilter.matches($0.securityStatus) }
+        totalFiltered = secFilter == .any ? filtered.count : working.count
+        resolvedAgents = working
+
+        // 5. Calculate jump counts
+        guard let account = accountManager.selectedAccount,
+              let token = try? await accountManager.validToken(for: account),
+              let location: ESICharacterLocation = try? await ESIClient.shared.fetch(
+                  "/characters/\(account.characterID)/location/", token: token
+              )
+        else {
+            resolvedAgents = working.sorted { ($0.systemName ?? "") < ($1.systemName ?? "") }
+            return
+        }
+
+        let fromID = location.solarSystemId
+        await withTaskGroup(of: (Int, Int?).self) { group in
+            for a in working {
+                guard let destID = a.systemID else { continue }
+                let aid = a.id
+                group.addTask {
+                    if fromID == destID { return (aid, 0) }
+                    guard let route: [Int] = try? await ESIClient.shared.fetch(
+                        "/route/\(fromID)/\(destID)/",
+                        queryItems: [URLQueryItem(name: "flag", value: "shortest")]
+                    ) else { return (aid, nil) }
+                    return (aid, max(0, route.count - 1))
+                }
+            }
+            for await (aid, jumps) in group {
+                if let i = working.firstIndex(where: { $0.id == aid }) {
+                    working[i].jumpCount = jumps
+                }
+            }
+        }
+        if Task.isCancelled { return }
+
+        // Sort: by jump count ascending, nulls last; ties broken by level descending
+        working.sort {
+            switch ($0.jumpCount, $1.jumpCount) {
+            case (nil, nil):   return $0.agent.level > $1.agent.level
+            case (nil, _):     return false
+            case (_, nil):     return true
+            case (let a?, let b?):
+                return a == b ? $0.agent.level > $1.agent.level : a < b
+            }
+        }
+
+        resolvedAgents = working
+
+        // Refresh selected agent detail if it's in the updated list
+        if let sel = selectedAgent, let updated = working.first(where: { $0.id == sel.id }) {
+            selectedAgent = updated
+        }
     }
 }
 
-// MARK:  Career Agent Detail View
+// MARK:  Agent Detail View
 
-struct CareerAgentDetailView: View {
-    let faction: CareerFactionData
-    let agentType: CareerAgentType
-    let systemName: String
-    let resolved: ResolvedCareerSystem?
-    var factionDescription: String? = nil
+struct AgentDetailView: View {
+    let agent: ResolvedAgent
+    var onDestinationSet: (String) -> Void = { _ in }
 
     @Environment(AccountManager.self) private var accountManager
-    @Environment(DashboardPrefetcher.self) private var prefetcher
 
-    @State private var constellationName: String?
-    @State private var regionName: String?
-    @State private var jumpCount: Int?
-    @State private var autopilotMessage: String?
-    @State private var isSetting = false
-    @State private var lpBalance: Int?
-    @State private var lpOffers: [ESILPStoreOffer] = []
-    @State private var offerTypeNames: [Int: String] = [:]
-    @State private var resolvedSkillInfo: [String: ResolvedSkillInfo] = [:]
-
-    private struct ResolvedSkillInfo {
-        let skillId: Int
-        let currentLevel: Int  // 0 = not injected
-    }
+    @State private var isSetting        = false
+    @State private var autopilotMessage: String? = nil
 
     var body: some View {
         ScrollView {
@@ -470,100 +666,41 @@ struct CareerAgentDetailView: View {
                 Divider()
                 actionBar
                 Divider()
-                VStack(alignment: .leading, spacing: 20) {
-                    descriptionSection
-                    Divider()
-                    recommendedSkillsSection
-                    if factionDescription != nil {
-                        Divider()
-                        factionLoreSection
-                    }
-                    Divider()
-                    locationSection
-                    if !lpOffers.isEmpty || lpBalance != nil {
-                        Divider()
-                        lpStoreSection
-                    }
-                }
-                .padding(16)
+                infoSection
+                    .padding(16)
             }
         }
         .background(.regularMaterial)
-        .task(id: systemName) {
-            constellationName = nil
-            regionName = nil
-            jumpCount = nil
-            autopilotMessage = nil
-            lpBalance = nil
-            lpOffers = []
-            offerTypeNames = [:]
-            resolvedSkillInfo = [:]
-            await withTaskGroup(of: Void.self) { group in
-                group.addTask { await loadLocationDetails() }
-                group.addTask { await loadLPStore() }
-                group.addTask { await loadRecommendedSkills() }
-            }
-        }
     }
 
-    // MARK:  Header
+    // MARK: Header
 
     private var header: some View {
         ZStack(alignment: .bottomLeading) {
-            // Faction-colored gradient banner
             LinearGradient(
-                colors: [faction.factionColor.opacity(0.5), faction.factionColor.opacity(0.15)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
+                colors: [Color.blue.opacity(0.4), Color.blue.opacity(0.1)],
+                startPoint: .topLeading, endPoint: .bottomTrailing
             )
-            .frame(height: 100)
+            .frame(height: 90)
 
-            // Faction logo watermark
-            AsyncImage(url: EVEImageURL.corporationLogo(faction.factionCorpID, size: 256)) { phase in
-                if let image = phase.image {
-                    image.resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 80, height: 80)
-                        .opacity(0.15)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                        .padding(.trailing, 12)
-                } else {
-                    EmptyView()
-                }
-            }
-
-            // Title overlay
             HStack(spacing: 10) {
-                AsyncImage(url: EVEImageURL.corporationLogo(faction.factionCorpID, size: 64)) { phase in
-                    if let image = phase.image {
-                        image.resizable()
-                            .frame(width: 40, height: 40)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                AsyncImage(url: URL(string: "https://images.evetech.net/characters/\(agent.agent.agentID)/portrait?size=64")) { phase in
+                    if let img = phase.image {
+                        img.resizable().frame(width: 64, height: 64).clipShape(RoundedRectangle(cornerRadius: 8))
                     } else {
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(faction.factionColor.opacity(0.4))
-                            .frame(width: 40, height: 40)
-                            .overlay {
-                                Image(systemName: agentType.iconName)
-                                    .foregroundStyle(faction.factionColor)
-                            }
+                        RoundedRectangle(cornerRadius: 8).fill(.blue.opacity(0.3)).frame(width: 64, height: 64)
                     }
                 }
-
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(agentType.rawValue)
-                        .font(.headline)
-                        .foregroundStyle(.primary)
-                    Text(faction.name)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    Text(agent.displayName).font(.headline).foregroundStyle(.primary)
+                    Text(agent.displayCorp).font(.caption).foregroundStyle(.secondary)
                 }
             }
             .padding(12)
         }
     }
 
-    // MARK:  Action Bar
+    // MARK: Action Bar
 
     private var actionBar: some View {
         HStack(spacing: 8) {
@@ -576,498 +713,73 @@ struct CareerAgentDetailView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.small)
-                .disabled(resolved == nil || isSetting)
+                .disabled(agent.systemID == nil || isSetting)
             }
-
             Spacer()
-
             if let msg = autopilotMessage {
-                Label(
-                    msg,
-                    systemImage: msg.hasPrefix("Destination") ? "checkmark.circle.fill" : "exclamationmark.triangle.fill"
-                )
-                .font(.caption)
-                .foregroundStyle(msg.hasPrefix("Destination") ? .green : .orange)
-                .lineLimit(1)
+                Label(msg, systemImage: msg.hasPrefix("Destination") ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(msg.hasPrefix("Destination") ? .green : .orange)
+                    .lineLimit(1)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 12).padding(.vertical, 8)
         .background(.bar)
     }
 
-    // MARK:  Description
+    // MARK: Info
 
-    private var descriptionSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label(agentType.rawValue, systemImage: agentType.iconName)
+    private var infoSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Label("Details", systemImage: "person.text.rectangle.fill")
                 .font(.subheadline.bold())
-                .foregroundStyle(agentType.color)
 
-            Text(agentType.description)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
+            infoRow("Level",       "L\(agent.agent.level)")
+            infoRow("Agent ID",    "\(agent.agent.agentID)")
+            infoRow("Corp ID",     "\(agent.agent.corporationID)")
 
-    // MARK:  Faction Lore
-
-    private var factionLoreSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label(faction.name, systemImage: "shield.fill")
-                .font(.subheadline.bold())
-                .foregroundStyle(faction.factionColor)
-
-            if let desc = factionDescription {
-                Text(desc)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-    }
-
-    // MARK:  Location
-
-    private var locationSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+            Divider()
             Label("Location", systemImage: "location.fill")
-                .font(.subheadline.bold())
-                .foregroundStyle(.blue)
+                .font(.subheadline.bold()).foregroundStyle(.blue)
 
-            VStack(alignment: .leading, spacing: 6) {
-                // System + security
-                HStack(spacing: 6) {
-                    if let resolved {
-                        Circle()
-                            .fill(careerSecColor(resolved.securityStatus))
-                            .frame(width: 8, height: 8)
-                    }
-                    Text(systemName)
-                        .font(.body.bold())
-
-                    if let resolved {
-                        Text(String(format: "%.1f", max(0.0, resolved.securityStatus)))
-                            .font(.caption.bold().monospacedDigit())
-                            .foregroundStyle(careerSecColor(resolved.securityStatus))
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 2)
-                            .background(careerSecColor(resolved.securityStatus).opacity(0.15), in: Capsule())
-
-                        if let cls = resolved.securityClass {
-                            Text(cls)
-                                .font(.caption2.bold())
-                                .foregroundStyle(.secondary)
-                                .padding(.horizontal, 5)
-                                .padding(.vertical, 2)
-                                .background(.secondary.opacity(0.1), in: Capsule())
-                        }
-                    }
-
-                    if let jumps = jumpCount {
-                        jumpBadge(jumps)
-                    }
+            HStack(spacing: 6) {
+                if let sec = agent.securityStatus {
+                    Circle().fill(agentSecColor(sec)).frame(width: 8, height: 8)
                 }
-
-                if let constellation = constellationName {
-                    infoRow("Constellation", constellation)
+                Text(agent.displaySystem).font(.body.bold())
+                if let sec = agent.securityStatus {
+                    agentSecBadge(sec)
                 }
-                if let region = regionName {
-                    infoRow("Region", region)
-                }
-
-                if resolved == nil {
-                    HStack(spacing: 6) {
-                        ProgressView().scaleEffect(0.7)
-                        Text("Resolving…").font(.caption).foregroundStyle(.secondary)
-                    }
-                }
+                if let j = agent.jumpCount { agentJumpBadge(j) }
             }
-        }
-    }
-
-    private func jumpBadge(_ jumps: Int) -> some View {
-        Group {
-            if jumps == 0 {
-                Text("current system")
-                    .font(.caption.bold())
-                    .foregroundStyle(.green)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(.green.opacity(0.12), in: Capsule())
-            } else {
-                Text("\(jumps) jump\(jumps == 1 ? "" : "s")")
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(.secondary.opacity(0.1), in: Capsule())
-            }
+            if let c = agent.constellationName { infoRow("Constellation", c) }
+            if let r = agent.regionName        { infoRow("Region", r) }
         }
     }
 
     private func infoRow(_ label: String, _ value: String) -> some View {
         HStack(spacing: 6) {
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-                .frame(width: 80, alignment: .trailing)
-            Text(value)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            Text(label).font(.caption).foregroundStyle(.tertiary).frame(width: 90, alignment: .trailing)
+            Text(value).font(.caption).foregroundStyle(.secondary)
         }
     }
 
-    // MARK:  LP Store Section
-
-    private var lpStoreSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Label("Loyalty Store", systemImage: "star.fill")
-                    .font(.subheadline.bold())
-                    .foregroundStyle(.yellow)
-                Spacer()
-                if let lp = lpBalance {
-                    HStack(spacing: 4) {
-                        Image(systemName: "star.circle.fill")
-                            .foregroundStyle(.yellow)
-                            .font(.caption)
-                        Text("\(lp.formatted()) LP")
-                            .font(.caption.bold().monospacedDigit())
-                            .foregroundStyle(.yellow)
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(.yellow.opacity(0.12), in: Capsule())
-                }
-            }
-
-            if lpOffers.isEmpty {
-                HStack(spacing: 6) {
-                    ProgressView().scaleEffect(0.7)
-                    Text("Loading offers…").font(.caption).foregroundStyle(.secondary)
-                }
-            } else {
-                VStack(spacing: 4) {
-                    ForEach(lpOffers.prefix(10)) { offer in
-                        lpOfferRow(offer)
-                    }
-                    if lpOffers.count > 10 {
-                        Text("…and \(lpOffers.count - 10) more offers")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                            .padding(.top, 2)
-                    }
-                }
-            }
-        }
-    }
-
-    private func lpOfferRow(_ offer: ESILPStoreOffer) -> some View {
-        let name = offerTypeNames[offer.typeId] ?? "Type \(offer.typeId)"
-        let canAfford = lpBalance.map { $0 >= offer.lpCost } ?? false
-
-        return HStack(spacing: 8) {
-            AsyncImage(url: EVEImageURL.typeIcon(offer.typeId, size: 64)) { phase in
-                if let image = phase.image {
-                    image.resizable()
-                        .frame(width: 28, height: 28)
-                        .clipShape(RoundedRectangle(cornerRadius: 5))
-                } else {
-                    RoundedRectangle(cornerRadius: 5)
-                        .fill(.quaternary)
-                        .frame(width: 28, height: 28)
-                }
-            }
-
-            VStack(alignment: .leading, spacing: 1) {
-                HStack(spacing: 4) {
-                    Text(name)
-                        .font(.caption)
-                        .lineLimit(1)
-                    if offer.quantity > 1 {
-                        Text("×\(offer.quantity)")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                HStack(spacing: 6) {
-                    Text("\(offer.lpCost.formatted()) LP")
-                        .font(.caption2.monospacedDigit())
-                        .foregroundStyle(canAfford ? .yellow : .secondary)
-                    if offer.iskCost > 0 {
-                        Text("+ \(formatISK(Double(offer.iskCost))) ISK")
-                            .font(.caption2.monospacedDigit())
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-
-            Spacer()
-        }
-        .padding(.vertical, 3)
-        .padding(.horizontal, 4)
-        .background(canAfford ? Color.yellow.opacity(0.04) : Color.clear, in: RoundedRectangle(cornerRadius: 6))
-    }
-
-    private func formatISK(_ value: Double) -> String {
-        if value >= 1_000_000_000 { return String(format: "%.1fB", value / 1_000_000_000) }
-        if value >= 1_000_000     { return String(format: "%.1fM", value / 1_000_000) }
-        if value >= 1_000         { return String(format: "%.0fK", value / 1_000) }
-        return String(format: "%.0f", value)
-    }
-
-    // MARK: Recommended Skills
-
-    private var recommendedSkillsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label("Recommended Skills", systemImage: "graduationcap.fill")
-                .font(.subheadline.bold())
-                .foregroundStyle(agentType.color)
-
-            if resolvedSkillInfo.isEmpty {
-                HStack(spacing: 6) {
-                    ProgressView().scaleEffect(0.7)
-                    Text("Loading skill data…")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            } else {
-                VStack(spacing: 2) {
-                    ForEach(agentType.recommendedSkills, id: \.name) { rec in
-                        if let info = resolvedSkillInfo[rec.name] {
-                            recommendedSkillRow(rec, info: info)
-                            if rec.name != agentType.recommendedSkills.last?.name {
-                                Divider().padding(.leading, 40)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private func recommendedSkillRow(_ rec: (name: String, reason: String), info: ResolvedSkillInfo) -> some View {
-        HStack(spacing: 10) {
-            AsyncImage(url: EVEImageURL.typeIcon(info.skillId, size: 64)) { phase in
-                if let image = phase.image {
-                    image.resizable()
-                        .frame(width: 28, height: 28)
-                        .clipShape(RoundedRectangle(cornerRadius: 5))
-                } else {
-                    RoundedRectangle(cornerRadius: 5)
-                        .fill(.quaternary)
-                        .frame(width: 28, height: 28)
-                }
-            }
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(rec.name)
-                    .font(.caption.bold())
-                    .lineLimit(1)
-                Text(rec.reason)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-
-            Spacer()
-
-            // Current level badge
-            skillLevelBadge(info.currentLevel)
-
-            // Add to plan button
-            if info.currentLevel < 5 {
-                let nextLevel = info.currentLevel + 1
-                Menu {
-                    ForEach(nextLevel...5, id: \.self) { level in
-                        Button("Plan to L\(level)") {
-                            addSkillToPlan(skillId: info.skillId, skillName: rec.name, fromLevel: info.currentLevel, targetLevel: level)
-                        }
-                    }
-                } label: {
-                    Image(systemName: "plus.circle")
-                        .font(.callout)
-                        .foregroundStyle(agentType.color)
-                }
-                .menuStyle(.button)
-                .buttonStyle(.plain)
-            } else {
-                Text("Maxed")
-                    .font(.caption2.bold())
-                    .foregroundStyle(.orange)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(.orange.opacity(0.12), in: Capsule())
-            }
-        }
-        .padding(.vertical, 5)
-    }
-
-    private func skillLevelBadge(_ level: Int) -> some View {
-        let color: Color = switch level {
-        case 0: .secondary
-        case 1: .gray
-        case 2: .blue
-        case 3: .green
-        case 4: .purple
-        default: .orange
-        }
-        return Text(level == 0 ? "—" : "L\(level)")
-            .font(.caption2.bold().monospacedDigit())
-            .foregroundStyle(color)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(color.opacity(0.15), in: Capsule())
-    }
-
-    // MARK: Plan Integration
-
-    private func planKey(for characterID: Int) -> String {
-        "skillPlan-\(characterID)"
-    }
-
-    private func addSkillToPlan(skillId: Int, skillName: String, fromLevel: Int, targetLevel: Int) {
-        guard let account = accountManager.selectedAccount else { return }
-        let key = planKey(for: account.characterID)
-        var items = (try? JSONDecoder().decode([SkillPlanItem].self, from: UserDefaults.standard.data(forKey: key) ?? Data())) ?? []
-        items.removeAll { $0.skillId == skillId }
-        items.append(SkillPlanItem(skillId: skillId, skillName: skillName, fromLevel: fromLevel, targetLevel: targetLevel))
-        if let data = try? JSONEncoder().encode(items) {
-            UserDefaults.standard.set(data, forKey: key)
-        }
-    }
-
-    // MARK: Skill Data Loading
-
-    private func loadRecommendedSkills() async {
-        let names = agentType.recommendedSkills.map(\.name)
-        guard !names.isEmpty else { return }
-
-        // Build name → current level from prefetcher (fast path)
-        var charSkillByName: [String: Int] = [:]  // name → trained level
-        var nameToID: [String: Int] = [:]
-
-        if let account = accountManager.selectedAccount,
-           let charData = prefetcher.data(for: account.characterID) {
-            for skill in charData.skills.skills {
-                if let name = prefetcher.resolvedName(skill.skillId) {
-                    charSkillByName[name] = skill.trainedSkillLevel
-                    if names.contains(name) {
-                        nameToID[name] = skill.skillId
-                    }
-                }
-            }
-        }
-
-        // Resolve any skill IDs not yet known via /universe/ids/
-        let unknownNames = names.filter { nameToID[$0] == nil }
-        if !unknownNames.isEmpty,
-           let response: ESIIDsResponse = try? await ESIClient.shared.post("/universe/ids/", body: unknownNames) {
-            for item in response.inventoryTypes ?? [] {
-                nameToID[item.name] = item.id
-            }
-        }
-
-        // Build final resolved info
-        var result: [String: ResolvedSkillInfo] = [:]
-        for name in names {
-            guard let skillId = nameToID[name] else { continue }
-            result[name] = ResolvedSkillInfo(skillId: skillId, currentLevel: charSkillByName[name] ?? 0)
-        }
-        resolvedSkillInfo = result
-    }
-
-    // MARK:  Data Loading
-
-    private func loadLocationDetails() async {
-        guard let resolved else { return }
-
-        async let systemTask = UniverseCache.shared.solarSystem(id: resolved.systemID)
-
-        if let system = await systemTask {
-            async let constellationTask = UniverseCache.shared.constellation(id: system.constellationId)
-
-            if let constellation = await constellationTask {
-                constellationName = constellation.name
-                async let regionTask = UniverseCache.shared.region(id: constellation.regionId)
-                if let region = await regionTask {
-                    regionName = region.name
-                }
-            }
-        }
-
-        await loadJumpCount(to: resolved.systemID)
-    }
-
-    private func loadLPStore() async {
-        // Fetch LP store offers (public endpoint — no auth required)
-        let offers: [ESILPStoreOffer] = (try? await ESIClient.shared.fetch(
-            "/loyalty/stores/\(faction.factionCorpID)/offers/"
-        )) ?? []
-
-        // Sort by LP cost ascending so cheapest (most accessible) appear first
-        let sorted = offers.sorted { $0.lpCost < $1.lpCost }
-        lpOffers = sorted
-
-        // Resolve type names for top 10 displayed offers
-        let topIDs = sorted.prefix(10).map(\.typeId)
-        let resolved = await NameResolver.shared.resolve(ids: Array(topIDs))
-        offerTypeNames = resolved
-
-        // Fetch character's LP balance with this corp (requires auth)
-        guard let account = accountManager.selectedAccount else { return }
-        if let token = try? await accountManager.validToken(for: account) {
-            let allLP: [ESILoyaltyPoints] = (try? await ESIClient.shared.fetch(
-                "/characters/\(account.characterID)/loyalty/points/",
-                token: token
-            )) ?? []
-            lpBalance = allLP.first(where: { $0.corporationId == faction.factionCorpID })?.loyaltyPoints
-        }
-    }
-
-    private func loadJumpCount(to destinationSystemID: Int) async {
-        guard let account = accountManager.selectedAccount else { return }
-        do {
-            let token = try await accountManager.validToken(for: account)
-            let location: ESICharacterLocation = try await ESIClient.shared.fetch(
-                "/characters/\(account.characterID)/location/",
-                token: token
-            )
-            if location.solarSystemId == destinationSystemID {
-                jumpCount = 0
-            } else {
-                let route: [Int] = try await ESIClient.shared.fetch(
-                    "/route/\(location.solarSystemId)/\(destinationSystemID)/",
-                    queryItems: [URLQueryItem(name: "flag", value: "shortest")]
-                )
-                jumpCount = max(0, route.count - 1)
-            }
-        } catch {
-            // Jump count is optional context — silently skip
-        }
-    }
-
-    // MARK:  Autopilot
+    // MARK: Autopilot
 
     private func setDestination() async {
-        guard let account = accountManager.selectedAccount,
-              let resolved else { return }
-        isSetting = true
-        autopilotMessage = nil
+        guard let account = accountManager.selectedAccount, let sysID = agent.systemID else { return }
+        isSetting = true; autopilotMessage = nil
         do {
             let token = try await accountManager.validToken(for: account)
             try await ESIClient.shared.postAction(
-                "/ui/autopilot/waypoint/",
-                token: token,
+                "/ui/autopilot/waypoint/", token: token,
                 queryItems: [
-                    URLQueryItem(name: "add_to_beginning", value: "false"),
+                    URLQueryItem(name: "add_to_beginning",      value: "false"),
                     URLQueryItem(name: "clear_other_waypoints", value: "true"),
-                    URLQueryItem(name: "destination_id", value: "\(resolved.systemID)")
+                    URLQueryItem(name: "destination_id",        value: "\(sysID)"),
                 ]
             )
-            autopilotMessage = "Destination set to \(systemName)."
+            autopilotMessage = "Destination set to \(agent.displaySystem)."
         } catch ESIError.unauthorized {
             autopilotMessage = "Needs esi-ui.write_waypoint.v1 scope."
         } catch {
@@ -1077,11 +789,33 @@ struct CareerAgentDetailView: View {
     }
 }
 
-// MARK:  Security Color
+// MARK:  Shared Badges
 
-private func careerSecColor(_ status: Double) -> Color {
+func agentSecBadge(_ status: Double) -> some View {
+    Text(String(format: "%.1f", max(0.0, status)))
+        .font(.caption.bold().monospacedDigit())
+        .foregroundStyle(agentSecColor(status))
+        .padding(.horizontal, 7).padding(.vertical, 3)
+        .background(agentSecColor(status).opacity(0.15), in: Capsule())
+}
+
+func agentJumpBadge(_ jumps: Int) -> some View {
+    Group {
+        if jumps == 0 {
+            Text("here").font(.caption.bold()).foregroundStyle(.green)
+                .padding(.horizontal, 6).padding(.vertical, 2)
+                .background(.green.opacity(0.12), in: Capsule())
+        } else {
+            Text("\(jumps)j").font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                .padding(.horizontal, 6).padding(.vertical, 2)
+                .background(.secondary.opacity(0.1), in: Capsule())
+        }
+    }
+}
+
+func agentSecColor(_ status: Double) -> Color {
     switch status {
-    case 0.9...: return Color(red: 0.3, green: 0.9, blue: 1.0)
+    case 0.9...:    return Color(red: 0.3, green: 0.9, blue: 1.0)
     case 0.8..<0.9: return Color(red: 0.0, green: 0.9, blue: 0.8)
     case 0.7..<0.8: return Color(red: 0.0, green: 0.9, blue: 0.4)
     case 0.6..<0.7: return Color(red: 0.4, green: 0.9, blue: 0.0)
@@ -1090,6 +824,6 @@ private func careerSecColor(_ status: Double) -> Color {
     case 0.3..<0.4: return Color(red: 1.0, green: 0.4, blue: 0.0)
     case 0.2..<0.3: return Color(red: 1.0, green: 0.2, blue: 0.0)
     case 0.1..<0.2: return Color(red: 0.9, green: 0.0, blue: 0.0)
-    default: return Color(red: 0.6, green: 0.0, blue: 0.0)
+    default:        return Color(red: 0.6, green: 0.0, blue: 0.0)
     }
 }

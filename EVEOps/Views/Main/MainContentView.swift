@@ -137,7 +137,7 @@ struct MainContentView: View {
             case .galaxyMap:
                 GalaxyMapView()
             case .careerAgents:
-                CareerAgentsView()
+                AgentFinderView()
             case .fleetManager:
                 FleetManagerView()
             case .market:
