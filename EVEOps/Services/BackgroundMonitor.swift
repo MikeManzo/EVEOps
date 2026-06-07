@@ -71,9 +71,11 @@ final class BackgroundMonitor {
                 Logger.prefetch.info("BackgroundMonitor: Poll cycle — refreshing \(accountManager.accounts.count) account(s)")
                 await accountManager.refreshPublicInfo()
                 let accounts = accountManager.accounts
-                await NotificationService.shared.checkForUpdates(accounts: accounts) { account in
-                    try await accountManager.validToken(for: account)
-                }
+                await NotificationService.shared.checkForUpdates(
+                    accounts: accounts,
+                    getToken: { account in try await accountManager.validToken(for: account) },
+                    onUnauthorized: { account in await accountManager.handleUnauthorized(for: account) }
+                )
             }
         }
     }

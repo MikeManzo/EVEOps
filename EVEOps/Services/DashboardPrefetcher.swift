@@ -179,6 +179,10 @@ final class DashboardPrefetcher {
                 allianceName: allianceName,
                 fetchedAt: Date()
             )
+        } catch ESIError.unauthorized {
+            await accountManager.handleUnauthorized(for: account)
+            await Logger.prefetch.error("Prefetcher: ESI 401 for \(account.characterName) — reauth required")
+            return nil
         } catch {
             await Logger.prefetch.error("Prefetcher: Failed to prefetch \(account.characterName) — \(error.localizedDescription)")
             return nil

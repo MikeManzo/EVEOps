@@ -172,6 +172,27 @@ final class AccountManager {
         }
     }
 
+    /// Called when ESI rejects a locally-valid token with 401 (e.g. server-side revocation).
+    /// Attempts an immediate forced refresh; if that also fails, marks the account for reauth
+    /// so the ReauthBanner surfaces to the user.
+    func handleUnauthorized(for account: StoredAccount) async {
+        Logger.auth.warning("Auth: ESI 401 for \(account.characterName) — attempting forced refresh")
+        do {
+            let tokenResponse = try await authenticator.refreshToken(account.refreshToken)
+            account.accessToken = tokenResponse.accessToken
+            account.refreshToken = tokenResponse.refreshToken
+            account.tokenExpiry = Date().addingTimeInterval(TimeInterval(tokenResponse.expiresIn))
+            account.needsReauth = false
+            tokenVersion += 1
+            try? modelContext.save()
+            Logger.auth.info("Auth: Forced refresh succeeded for \(account.characterName) after ESI 401")
+        } catch {
+            account.needsReauth = true
+            try? modelContext.save()
+            Logger.auth.error("Auth: Could not recover from ESI 401 for \(account.characterName) — reauth required")
+        }
+    }
+
     /// Re-runs the full SSO browser flow for an account whose refresh token has expired.
     /// On success clears needsReauth and updates all tokens. On wrong character, sets error.
     func reauthorize(_ account: StoredAccount) async {

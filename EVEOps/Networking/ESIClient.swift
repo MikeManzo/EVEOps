@@ -357,8 +357,22 @@ actor ESIClient {
         }
 
         let (data, response) = try await session.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+        guard let httpResponse = response as? HTTPURLResponse else {
             throw ESIError.noData
+        }
+        switch httpResponse.statusCode {
+        case 200...299: break
+        case 401:
+            await Logger.network.error("ESI 401 Unauthorized: \(endpoint)")
+            throw ESIError.unauthorized
+        case 403:
+            throw ESIError.forbidden
+        case 420:
+            let retryAfter = Int(httpResponse.value(forHTTPHeaderField: "Retry-After") ?? "60") ?? 60
+            throw ESIError.rateLimited(retryAfter: retryAfter)
+        default:
+            let body = String(data: data, encoding: .utf8) ?? "Unknown error"
+            throw ESIError.serverError(statusCode: httpResponse.statusCode, message: body)
         }
 
         var results: [T] = try decoder.decode([T].self, from: data)
@@ -385,7 +399,13 @@ actor ESIClient {
                         if let token = token {
                             req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
                         }
-                        let (pageData, _) = try await self.session.data(for: req)
+                        let (pageData, pageResponse) = try await self.session.data(for: req)
+                        guard let pageHTTP = pageResponse as? HTTPURLResponse, pageHTTP.statusCode == 200 else {
+                            if let pageHTTP = pageResponse as? HTTPURLResponse, pageHTTP.statusCode == 401 {
+                                throw ESIError.unauthorized
+                            }
+                            throw ESIError.noData
+                        }
                         return try self.decoder.decode([T].self, from: pageData)
                     }
                 }

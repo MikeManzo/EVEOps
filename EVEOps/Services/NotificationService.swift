@@ -22,21 +22,27 @@ actor NotificationService {
         _ = try? await center.requestAuthorization(options: [.alert, .sound, .badge])
     }
 
-    func checkForUpdates(accounts: [StoredAccount], getToken: @Sendable (StoredAccount) async throws -> String) async {
+    func checkForUpdates(
+        accounts: [StoredAccount],
+        getToken: @Sendable (StoredAccount) async throws -> String,
+        onUnauthorized: @Sendable (StoredAccount) async -> Void = { _ in }
+    ) async {
         for account in accounts {
             do {
                 let token = try await getToken(account)
-                await checkSkillQueue(for: account, token: token)
-                await checkNotifications(for: account, token: token)
-                await checkContracts(for: account, token: token)
-                await checkIndustryJobs(for: account, token: token)
+                try await checkSkillQueue(for: account, token: token)
+                try await checkNotifications(for: account, token: token)
+                try await checkContracts(for: account, token: token)
+                try await checkIndustryJobs(for: account, token: token)
+            } catch ESIError.unauthorized {
+                await onUnauthorized(account)
             } catch {
                 // Skip this character
             }
         }
     }
 
-    private func checkSkillQueue(for account: StoredAccount, token: String) async {
+    private func checkSkillQueue(for account: StoredAccount, token: String) async throws {
         guard UserDefaults.standard.object(forKey: "notificationsEnabled") as? Bool ?? true,
               UserDefaults.standard.object(forKey: "notifySkillQueueEmpty") as? Bool ?? true else { return }
         do {
@@ -55,12 +61,14 @@ actor NotificationService {
                 )
             }
             lastCheckedSkillQueues[account.characterID] = isEmpty
+        } catch ESIError.unauthorized {
+            throw ESIError.unauthorized
         } catch {
             // Skip
         }
     }
 
-    private func checkNotifications(for account: StoredAccount, token: String) async {
+    private func checkNotifications(for account: StoredAccount, token: String) async throws {
         guard UserDefaults.standard.object(forKey: "notificationsEnabled") as? Bool ?? true else { return }
         let structureAlertsOn = UserDefaults.standard.object(forKey: "notifyStructureAlerts") as? Bool ?? true
         let warAlertsOn = UserDefaults.standard.object(forKey: "notifyWarAlerts") as? Bool ?? true
@@ -92,12 +100,14 @@ actor NotificationService {
             }
 
             lastCheckedNotifications[account.characterID] = latest.notificationId
+        } catch ESIError.unauthorized {
+            throw ESIError.unauthorized
         } catch {
             // Skip
         }
     }
 
-    private func checkIndustryJobs(for account: StoredAccount, token: String) async {
+    private func checkIndustryJobs(for account: StoredAccount, token: String) async throws {
         guard UserDefaults.standard.object(forKey: "notificationsEnabled") as? Bool ?? true,
               UserDefaults.standard.object(forKey: "notifyIndustryFinished") as? Bool ?? true else { return }
         do {
@@ -119,6 +129,8 @@ actor NotificationService {
 
             let currentIDs = justCompleted.map { $0.jobId }
             UserDefaults.standard.set(currentIDs, forKey: key)
+        } catch ESIError.unauthorized {
+            throw ESIError.unauthorized
         } catch {
             // Skip
         }
@@ -139,7 +151,7 @@ actor NotificationService {
         )
     }
 
-    private func checkContracts(for account: StoredAccount, token: String) async {
+    private func checkContracts(for account: StoredAccount, token: String) async throws {
         guard UserDefaults.standard.object(forKey: "notificationsEnabled") as? Bool ?? true,
               UserDefaults.standard.object(forKey: "notifyContractsUpdated") as? Bool ?? true else { return }
         do {
@@ -167,6 +179,8 @@ actor NotificationService {
             }
 
             lastCheckedContracts[account.characterID] = currentStatuses
+        } catch ESIError.unauthorized {
+            throw ESIError.unauthorized
         } catch {
             // Skip
         }

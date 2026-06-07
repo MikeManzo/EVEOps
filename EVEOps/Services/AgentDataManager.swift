@@ -21,7 +21,7 @@ import OSLog
 actor AgentDataManager {
     static let shared = AgentDataManager()
 
-    private static let baseURL  = "https://www.fuzzwork.co.uk/dump/latest/"
+    private static let baseURL  = "https://www.fuzzwork.co.uk/dump/latest/csv/"
     private static let cacheTTL: TimeInterval = 7 * 24 * 3600
 
     private static let cacheDir: URL = {
@@ -198,14 +198,14 @@ actor AgentDataManager {
         for line in text.components(separatedBy: "\n").dropFirst() {
             let f = line.trimmingCharacters(in: .whitespaces).components(separatedBy: ",")
             guard f.count >= 8,
-                  let agentID       = Int(f[0]),
-                  let divisionID    = Int(f[1]),
-                  let corporationID = Int(f[2]),
-                  let locationID    = Int(f[3]),
-                  let level         = Int(f[4]),
-                  let agentTypeID   = Int(f[6])   // f[5] = quality (deprecated "None")
+                  let agentID       = Int(unquote(f[0])),
+                  let divisionID    = Int(unquote(f[1])),
+                  let corporationID = Int(unquote(f[2])),
+                  let locationID    = Int(unquote(f[3])),
+                  let level         = Int(unquote(f[4])),
+                  let agentTypeID   = Int(unquote(f[6]))   // f[5] = quality (deprecated)
             else { continue }
-            let isLocator = f[7].trimmingCharacters(in: .whitespaces) == "1"
+            let isLocator = unquote(f[7]) == "1"
             result.append(SDEAgent(
                 agentID: agentID, divisionID: divisionID,
                 corporationID: corporationID, locationID: locationID,
@@ -215,14 +215,14 @@ actor AgentDataManager {
         return result
     }
 
-    /// Parses a two-column CSV (id, name) → Int→String.
+    /// Parses a CSV where column 0 = id and column 1 = name → Int→String.
     private func parseKV(_ data: Data) -> [Int: String] {
         guard let text = String(data: data, encoding: .utf8) else { return [:] }
         var result: [Int: String] = [:]
         for line in text.components(separatedBy: "\n").dropFirst() {
             let f = line.trimmingCharacters(in: .whitespaces).components(separatedBy: ",")
-            guard f.count >= 2, let id = Int(f[0]) else { continue }
-            result[id] = f[1...].joined(separator: ",").trimmingCharacters(in: .whitespaces)
+            guard f.count >= 2, let id = Int(unquote(f[0])) else { continue }
+            result[id] = unquote(f[1])
         }
         return result
     }
@@ -234,17 +234,23 @@ actor AgentDataManager {
         for line in text.components(separatedBy: "\n").dropFirst() {
             let f = line.trimmingCharacters(in: .whitespaces).components(separatedBy: ",")
             guard f.count > 22,
-                  let corpID    = Int(f[0]),
-                  let factionID = Int(f[22])
+                  let corpID    = Int(unquote(f[0])),
+                  let factionID = Int(unquote(f[22]))
             else { continue }
             result[corpID] = factionID
         }
         return result
     }
 
-    // MARK:  Cache (v2 — added corpFactions)
+    private func unquote(_ s: String) -> String {
+        let t = s.trimmingCharacters(in: .whitespaces)
+        guard t.count >= 2, t.hasPrefix("\""), t.hasSuffix("\"") else { return t }
+        return String(t.dropFirst().dropLast())
+    }
 
-    private static var cacheFile: URL { cacheDir.appendingPathComponent("agents-v2.json") }
+    // MARK:  Cache (v3 — csv/ subdirectory, quoted field parsing)
+
+    private static var cacheFile: URL { cacheDir.appendingPathComponent("agents-v3.json") }
 
     private func loadFromDisk() -> CachedData? {
         guard let data = try? Data(contentsOf: Self.cacheFile) else { return nil }
