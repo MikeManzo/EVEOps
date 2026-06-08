@@ -148,6 +148,10 @@ struct MainContentView: View {
                 AttributeRemapView()
             case .research:
                 CharacterResearchAgentsView()
+            case .medals:
+                CharacterMedalsView()
+            case .factionWarfare:
+                CharacterFWStatsView()
             case .corpWars:
                 CorporationWarsView()
             case .corpMoonExtractions:

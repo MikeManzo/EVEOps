@@ -1191,6 +1191,45 @@ nonisolated struct ESIYearStatsTravel: Codable, Sendable {
     let accelerationGateActivations: Int?
 }
 
+// MARK:  Medals
+
+nonisolated struct ESIMedal: Codable, Sendable, Identifiable {
+    let medalId: Int
+    let title: String
+    let description: String
+    let corporationId: Int
+    let issuerId: Int
+    let date: Date
+    let reason: String
+    let status: String   // "public" | "private"
+    let graphics: [ESIMedalGraphic]
+    var id: Int { medalId }
+}
+
+nonisolated struct ESIMedalGraphic: Codable, Sendable {
+    let color: Int?
+    let graphic: String
+    let layer: Int
+    let part: Int
+}
+
+// MARK:  Faction Warfare
+
+nonisolated struct ESIFWCharacterStats: Codable, Sendable {
+    let enlistedOn: Date?
+    let factionId: Int?
+    let currentRank: Int?
+    let highestRank: Int?
+    let kills: ESIFWStatPeriod
+    let victoryPoints: ESIFWStatPeriod
+}
+
+nonisolated struct ESIFWStatPeriod: Codable, Sendable {
+    let yesterday: Int
+    let lastWeek: Int
+    let total: Int
+}
+
 // MARK:  Moon Extractions
 
 nonisolated struct ESIMoonExtraction: Codable, Sendable, Identifiable {

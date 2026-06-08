@@ -61,12 +61,24 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         }
     }
 
-    func userNotificationCenter(
+    // nonisolated: notification center calls this from its own private queue.
+    // Without this, the @MainActor dispatch introduced by NSApplicationDelegate
+    // conformance causes an async hop that races against the system's completion-
+    // handler deadline, silently suppressing the banner on LSUIElement apps.
+    nonisolated func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
         completionHandler([.banner, .sound, .list])
+    }
+
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        completionHandler()
     }
 }
 

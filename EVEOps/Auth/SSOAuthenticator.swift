@@ -77,7 +77,9 @@ struct SSOConfiguration: Sendable {
             "esi-search.search_structures.v1",
             "esi-characters.read_agents_research.v1",
             "esi-characters.read_loyalty.v1",
-            "esi-markets.read_character_orders.v1"
+            "esi-markets.read_character_orders.v1",
+            "esi-characters.read_medals.v1",
+            "esi-characters.read_fw_stats.v1"
         ]
     )
 

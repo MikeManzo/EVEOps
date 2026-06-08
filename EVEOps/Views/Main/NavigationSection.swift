@@ -39,6 +39,9 @@ enum NavigationSection: String, CaseIterable, Identifiable {
     // Character — tools
     case remapAdvisor = "Remap Advisor"
     case research = "Research Agents"
+    // Character — progression
+    case medals = "Medals"
+    case factionWarfare = "Faction Warfare"
     // Corporation
     case corpAssets = "Corp Assets"
     case corpHangars = "Corp Hangars"
@@ -93,13 +96,15 @@ enum NavigationSection: String, CaseIterable, Identifiable {
         case .skillPlanner: return "checklist"
         case .remapAdvisor: return "brain.filled.head.profile"
         case .research: return "atom"
+        case .medals: return "rosette"
+        case .factionWarfare: return "shield.fill"
         case .corpMoonExtractions: return "moon.fill"
         case .diagnosticLogs: return "terminal"
         }
     }
 
     static var pilotSections: [NavigationSection] {
-        [.location, .training, .skillPlanner, .clones, .research, .remapAdvisor]
+        [.location, .training, .skillPlanner, .clones, .research, .remapAdvisor, .medals]
     }
 
     static var economySections: [NavigationSection] {
@@ -107,7 +112,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
     }
 
     static var combatSections: [NavigationSection] {
-        [.fittings, .killmails, .fleetManager]
+        [.fittings, .killmails, .fleetManager, .factionWarfare]
     }
 
     static var socialSections: [NavigationSection] {
