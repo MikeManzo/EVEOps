@@ -160,7 +160,7 @@ private struct MedalRow: View {
             Divider()
 
             if !medal.description.isEmpty {
-                Text(medal.description)
+                Text(medal.description.strippingEVEMarkup)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)

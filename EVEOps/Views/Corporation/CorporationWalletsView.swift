@@ -158,7 +158,7 @@ struct CorporationWalletsView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(entry.refType.replacingOccurrences(of: "_", with: " ").capitalized)
                         .font(.subheadline)
-                    Text(entry.description)
+                    Text(entry.description.strippingEVEMarkup)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -212,7 +212,7 @@ struct CorporationWalletsView: View {
                         ForEach(group.entries) { entry in
                             HStack {
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(entry.description)
+                                    Text(entry.description.strippingEVEMarkup)
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                         .lineLimit(2)

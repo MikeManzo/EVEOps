@@ -205,7 +205,7 @@ struct FactionPopoverView: View {
 
                 // Description
                 if !faction.description.isEmpty {
-                    Text(faction.description)
+                    Text(faction.description.strippingEVEMarkup)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         //.lineLimit(6)
@@ -282,7 +282,7 @@ struct NpcCorpPopoverView: View {
                 Divider()
 
                 if let desc = corp.description, !desc.isEmpty {
-                    Text(desc)
+                    Text(desc.strippingEVEMarkup)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)

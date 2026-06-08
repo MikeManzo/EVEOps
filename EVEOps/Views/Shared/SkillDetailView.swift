@@ -269,7 +269,7 @@ struct SkillDetailView: View {
                 Text("Description")
                     .font(.subheadline.bold())
                     .foregroundStyle(.secondary)
-                Text(stripHTML(desc))
+                Text(desc.strippingEVEMarkup)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)
@@ -357,17 +357,6 @@ struct SkillDetailView: View {
         let elapsed = now.timeIntervalSince(start)
         let fraction = min(max(elapsed / totalDuration, 0), 1)
         return startSP + Int(Double(endSP - startSP) * fraction)
-    }
-
-    private func stripHTML(_ html: String) -> String {
-        var text = html
-        text = text.replacingOccurrences(of: "<br>", with: "\n", options: .caseInsensitive)
-        text = text.replacingOccurrences(of: "<br/>", with: "\n", options: .caseInsensitive)
-        text = text.replacingOccurrences(of: "<br />", with: "\n", options: .caseInsensitive)
-        while let start = text.range(of: "<"), let end = text.range(of: ">", range: start.upperBound..<text.endIndex) {
-            text.removeSubrange(start.lowerBound...end.lowerBound)
-        }
-        return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     // MARK:  Data Loading

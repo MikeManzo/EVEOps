@@ -493,6 +493,7 @@ private struct GeneralTab: View {
     @Environment(AppUpdater.self) private var appUpdater
     @AppStorage("backgroundPollInterval") private var pollInterval: Double = 300
     @AppStorage("defaultCharacterMode") private var defaultCharacterMode: String = "last"
+    @AppStorage("showDockIcon") private var showDockIcon: Bool = false
     @State private var launchAtLogin = false
     @State private var isRefreshing = false
 
@@ -507,6 +508,13 @@ private struct GeneralTab: View {
                             try? SMAppService.mainApp.unregister()
                         }
                     }
+                Toggle("Show Dock Icon", isOn: $showDockIcon)
+                    .onChange(of: showDockIcon) { _, newValue in
+                        NSApp.setActivationPolicy(newValue ? .regular : .accessory)
+                    }
+                Text("Allows switching to EVEOps via Cmd-Tab and the Dock. Takes effect immediately.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             Section("Background Refresh") {

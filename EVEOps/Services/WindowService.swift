@@ -62,7 +62,7 @@ final class WindowService: NSObject {
         if let window = mainWindow {
             if window.isMiniaturized { window.deminiaturize(nil) }
             window.makeKeyAndOrderFront(nil)
-            NSApp.setActivationPolicy(.accessory)
+            applyActivationPolicy()
             return
         }
 
@@ -93,7 +93,12 @@ final class WindowService: NSObject {
 
         mainWindow = window
         window.makeKeyAndOrderFront(nil)
-        NSApp.setActivationPolicy(.accessory)
+        applyActivationPolicy()
+    }
+
+    func showMainIfNeeded() {
+        guard mainWindow == nil || mainWindow?.isVisible == false else { return }
+        showMain()
     }
 
     // MARK: Galaxy Market Search
@@ -102,7 +107,7 @@ final class WindowService: NSObject {
         if let window = galaxySearchWindow {
             if window.isMiniaturized { window.deminiaturize(nil) }
             window.makeKeyAndOrderFront(nil)
-            NSApp.setActivationPolicy(.accessory)
+            applyActivationPolicy()
             return
         }
 
@@ -125,7 +130,7 @@ final class WindowService: NSObject {
 
         galaxySearchWindow = window
         window.makeKeyAndOrderFront(nil)
-        NSApp.setActivationPolicy(.accessory)
+        applyActivationPolicy()
     }
 
     // MARK: Settings
@@ -134,7 +139,7 @@ final class WindowService: NSObject {
         if let window = settingsWindow {
             if window.isMiniaturized { window.deminiaturize(nil) }
             window.makeKeyAndOrderFront(nil)
-            NSApp.setActivationPolicy(.accessory)
+            applyActivationPolicy()
             return
         }
 
@@ -157,7 +162,7 @@ final class WindowService: NSObject {
 
         settingsWindow = window
         window.makeKeyAndOrderFront(nil)
-        NSApp.setActivationPolicy(.accessory)
+        applyActivationPolicy()
     }
 
     // MARK: Helpers
@@ -167,6 +172,11 @@ final class WindowService: NSObject {
         mainWindow?.appearance = appearance
         galaxySearchWindow?.appearance = appearance
         settingsWindow?.appearance = appearance
+    }
+
+    func applyActivationPolicy() {
+        let showDock = UserDefaults.standard.bool(forKey: "showDockIcon")
+        NSApp.setActivationPolicy(showDock ? .regular : .accessory)
     }
 
     private var resolvedNSAppearance: NSAppearance? {

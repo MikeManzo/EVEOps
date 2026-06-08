@@ -1305,7 +1305,7 @@ struct CalendarEventDetailPanel: View {
 
                 if !detail.text.isEmpty {
                     GroupBox {
-                        Text(detail.text)
+                        Text(detail.text.strippingEVEMarkup)
                             .font(.subheadline)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     } label: {

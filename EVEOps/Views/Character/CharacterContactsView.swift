@@ -321,12 +321,12 @@ struct CharacterContactsView: View {
             if let desc = info.description, !desc.isEmpty {
                 Divider()
                 Text("Bio")
+                    .font(.headline)
+//                    .foregroundStyle(.primary)
+                Text(desc.strippingEVEMarkup)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Text(stripHTML(desc))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(5)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -449,16 +449,6 @@ struct CharacterContactsView: View {
         case 14: return "Vherokior"
         default: return "Unknown"
         }
-    }
-
-    private func stripHTML(_ html: String) -> String {
-        html.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
-            .replacingOccurrences(of: "&amp;", with: "&")
-            .replacingOccurrences(of: "&lt;", with: "<")
-            .replacingOccurrences(of: "&gt;", with: ">")
-            .replacingOccurrences(of: "&#39;", with: "'")
-            .replacingOccurrences(of: "&quot;", with: "\"")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     // MARK: Data Loading
@@ -591,12 +581,13 @@ struct CharacterContactsView: View {
         guard let account = accountManager.selectedAccount else { return }
         do {
             let token = try await accountManager.validToken(for: account)
-            let _: [Int] = try await ESIClient.shared.post(
+            try await ESIClient.shared.postVoid(
                 "/characters/\(account.characterID)/contacts/",
                 body: [contactId],
                 token: token,
                 queryItems: [URLQueryItem(name: "standing", value: "\(standing)")]
             )
+            await ESIClient.shared.evictCache(matching: "contacts")
             await load()
         } catch {
             self.error = error.localizedDescription

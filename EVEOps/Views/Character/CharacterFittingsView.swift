@@ -1489,7 +1489,7 @@ struct ModuleDetailPopover: View {
 
                 if let desc = type.description, !desc.isEmpty {
                     ScrollView {
-                        Text(desc)
+                        Text(desc.strippingEVEMarkup)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity, alignment: .leading)

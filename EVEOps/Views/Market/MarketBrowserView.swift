@@ -688,7 +688,7 @@ struct MarketBrowserView: View {
                         }
                     }
                     if let desc = info.description, !desc.isEmpty {
-                        Text(desc)
+                        Text(desc.strippingEVEMarkup)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .lineLimit(4)

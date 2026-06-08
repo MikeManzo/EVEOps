@@ -377,7 +377,7 @@ struct FinancesView: View {
                 Text(formatRefType(entry.refType))
                     .font(.subheadline)
                 if !entry.description.isEmpty {
-                    Text(entry.description)
+                    Text(entry.description.strippingEVEMarkup)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(2)

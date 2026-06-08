@@ -29,12 +29,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
     func applicationWillFinishLaunching(_ notification: Notification) {
         // Lock the activation policy before SwiftUI scenes (Settings) can promote the app
         // to .regular. Calling this in didFinishLaunching is too late — scenes init first.
-        NSApp.setActivationPolicy(.accessory)
+        let showDock = UserDefaults.standard.bool(forKey: "showDockIcon")
+        NSApp.setActivationPolicy(showDock ? .regular : .accessory)
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        
-        NSApp.setActivationPolicy(.accessory)
+        let showDock = UserDefaults.standard.bool(forKey: "showDockIcon")
+        NSApp.setActivationPolicy(showDock ? .regular : .accessory)
         
         // Set the delegate to handle foreground notifications
         UNUserNotificationCenter.current().delegate = self
@@ -49,6 +50,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         // Re-register UTIs (including the .eft document type icon) with Launch Services
         // on every launch so Finder always shows the correct icon without manual lsregister.
         LSRegisterURL(Bundle.main.bundleURL as CFURL, true)
+    }
+
+    func applicationDidBecomeActive(_ notification: Notification) {
+        guard UserDefaults.standard.bool(forKey: "showDockIcon") else { return }
+        WindowService.shared.showMainIfNeeded()
     }
 
     func applicationWillTerminate(_ notification: Notification) {

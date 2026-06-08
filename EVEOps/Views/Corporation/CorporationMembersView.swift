@@ -291,7 +291,7 @@ struct CorporationMembersView: View {
                         Text("Bio")
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                        Text(stripHTML(desc))
+                        Text(desc.strippingEVEMarkup)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .lineLimit(4)
@@ -480,16 +480,6 @@ struct CorporationMembersView: View {
         case 14: return "Vherokior"
         default: return "Unknown"
         }
-    }
-
-    private func stripHTML(_ html: String) -> String {
-        html.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
-            .replacingOccurrences(of: "&amp;", with: "&")
-            .replacingOccurrences(of: "&lt;", with: "<")
-            .replacingOccurrences(of: "&gt;", with: ">")
-            .replacingOccurrences(of: "&#39;", with: "'")
-            .replacingOccurrences(of: "&quot;", with: "\"")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private var sortedFilteredMembers: [ResolvedMember] {

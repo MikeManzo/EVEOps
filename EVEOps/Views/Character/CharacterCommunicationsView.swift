@@ -88,7 +88,7 @@ struct CharacterCommunicationsView: View {
                     }
                 }
                 if let text = notification.text {
-                    Text(text.prefix(200))
+                    Text(text.strippingEVEMarkup.prefix(200))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(3)
@@ -179,7 +179,7 @@ struct NotificationDetailView: View {
                                 .font(.subheadline.bold())
                                 .foregroundStyle(.secondary)
 
-                            Text(text)
+                            Text(text.strippingEVEMarkup)
                                 .font(.caption.monospaced())
                                 .foregroundStyle(.primary)
                                 .textSelection(.enabled)

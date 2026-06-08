@@ -146,7 +146,7 @@ struct CharacterMailsView: View {
                     Divider()
 
                     if let body = mailBody {
-                        Text(stripHTMLTags(body))
+                        Text(body.strippingEVEMarkup)
                             .font(.body)
                             .textSelection(.enabled)
                     } else {
@@ -170,15 +170,6 @@ struct CharacterMailsView: View {
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-    }
-
-    private func stripHTMLTags(_ html: String) -> String {
-        var result = html
-        result = result.replacingOccurrences(of: "<br>", with: "\n", options: .caseInsensitive)
-        result = result.replacingOccurrences(of: "<br/>", with: "\n", options: .caseInsensitive)
-        result = result.replacingOccurrences(of: "<br />", with: "\n", options: .caseInsensitive)
-        result = result.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
-        return result
     }
 
     private func loadMails() async {

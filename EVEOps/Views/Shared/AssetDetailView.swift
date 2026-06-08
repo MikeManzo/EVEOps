@@ -244,7 +244,7 @@ struct AssetDetailView: View {
                 .font(.subheadline.bold())
                 .foregroundStyle(.secondary)
 
-            Text(stripHTML(description))
+            Text(description.strippingEVEMarkup)
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .textSelection(.enabled)
@@ -502,18 +502,6 @@ struct AssetDetailView: View {
         }
     }
 
-    private func stripHTML(_ html: String) -> String {
-        var text = html
-        // Replace <br> and <br/> with newlines
-        text = text.replacingOccurrences(of: "<br>", with: "\n", options: .caseInsensitive)
-        text = text.replacingOccurrences(of: "<br/>", with: "\n", options: .caseInsensitive)
-        text = text.replacingOccurrences(of: "<br />", with: "\n", options: .caseInsensitive)
-        // Strip remaining tags
-        while let start = text.range(of: "<"), let end = text.range(of: ">", range: start.upperBound..<text.endIndex) {
-            text.removeSubrange(start.lowerBound...end.lowerBound)
-        }
-        return text.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
 
     // MARK:  Data Loading
 

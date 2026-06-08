@@ -107,7 +107,7 @@ struct ImplantDetailView: View {
                 .font(.subheadline.bold())
                 .foregroundStyle(.secondary)
 
-            Text(stripHTML(description))
+            Text(description.strippingEVEMarkup)
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .textSelection(.enabled)
@@ -138,17 +138,6 @@ struct ImplantDetailView: View {
             return String(format: "%.1fK", value / 1_000)
         }
         return String(format: "%.0f", value)
-    }
-
-    private func stripHTML(_ html: String) -> String {
-        var text = html
-        text = text.replacingOccurrences(of: "<br>", with: "\n", options: .caseInsensitive)
-        text = text.replacingOccurrences(of: "<br/>", with: "\n", options: .caseInsensitive)
-        text = text.replacingOccurrences(of: "<br />", with: "\n", options: .caseInsensitive)
-        while let start = text.range(of: "<"), let end = text.range(of: ">", range: start.upperBound..<text.endIndex) {
-            text.removeSubrange(start.lowerBound...end.lowerBound)
-        }
-        return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     // MARK:  Data Loading
