@@ -127,10 +127,27 @@ final class PresenceTracker {
 
         let engine = PresenceEngine.shared
 
-        // Step 1 — Ingest ESI signals for own characters from prefetcher snapshot.
+        // Step 1 — Fetch online status directly from ESI for own characters.
+        // The prefetcher has a 2-min freshness window, so its snapshot is always stale
+        // by the time this 5-min cycle runs — meaning onlineNow was never re-recorded
+        // after startup. Fetch it directly here so it stays current every poll cycle.
         for account in accountManager.accounts {
-            if let data = prefetcher.data(for: account.characterID) {
-                await engine.ingestPrefetchedData(data, for: account.characterID)
+            guard !Task.isCancelled else { break }
+            guard let token = try? await accountManager.validToken(for: account) else { continue }
+            let charID = account.characterID
+
+            if let online: ESICharacterOnline = try? await ESIClient.shared.fetch(
+                "/characters/\(charID)/online/", token: token
+            ), online.online {
+                await engine.record(ActivityEvent(characterID: charID, signalID: "onlineNow", occurredAt: .now))
+            }
+
+            // Also ingest remaining signals (location, transactions, market, industry)
+            // from the prefetcher snapshot if still fresh (e.g. right after app launch
+            // or a manual refresh). These signals have longer half-lives so the 2-min
+            // window is less critical for them.
+            if let data = prefetcher.data(for: charID) {
+                await engine.ingestPrefetchedData(data, for: charID)
             }
         }
 
