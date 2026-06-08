@@ -129,6 +129,7 @@ struct GalaxyMarketSearchView: View {
     @State private var itemSearchTask: Task<Void, Never>?
     @State private var selectedTypeId: Int?
     @State private var selectedTypeName = ""
+    @State private var selectedTypeInfo: ESIType?
 
     // Persisted filter preferences
     @AppStorage("galaxySearch.highSecOnly") private var highSecOnly = false
@@ -158,6 +159,11 @@ struct GalaxyMarketSearchView: View {
 
     private var hasLocation: Bool { characterSystemId != nil }
     private var canSearch: Bool { selectedTypeId != nil && !isSearching }
+    private var characterSkillMap: [Int: Int]? {
+        guard let account = accountManager.selectedAccount else { return nil }
+        return prefetcher.data(for: account.characterID)
+            .map { Dictionary(uniqueKeysWithValues: $0.skills.skills.map { ($0.skillId, $0.activeSkillLevel) }) }
+    }
 
     private var filteredOrders: [GalaxyOrder] {
         switch orderTypeFilter {
@@ -208,7 +214,12 @@ struct GalaxyMarketSearchView: View {
                 selectedTypeId = id
                 selectedTypeName = initialTypeName
                 itemSearchText = initialTypeName
-                Task { await performGalaxySearch() }
+                Task {
+                    async let search: Void = performGalaxySearch()
+                    async let info = UniverseCache.shared.type(id: id)
+                    await search
+                    selectedTypeInfo = await info
+                }
             }
             loadCharacterLocation()
         }
@@ -287,6 +298,10 @@ struct GalaxyMarketSearchView: View {
                 .buttonStyle(.borderedProminent)
                 .disabled(!canSearch)
                 .help(selectedTypeId == nil ? "Select an item first" : "Search all k-space regions")
+            }
+
+            if selectedTypeId != nil {
+                SkillRequirementsView(typeId: selectedTypeId, typeInfo: selectedTypeInfo, characterSkills: characterSkillMap)
             }
 
             // Filters row
@@ -395,6 +410,9 @@ struct GalaxyMarketSearchView: View {
                 selectedTypeName = result.name
                 itemSearchText = result.name
                 itemSearchResults = []
+                Task {
+                    selectedTypeInfo = await UniverseCache.shared.type(id: result.typeId)
+                }
             } label: {
                 HStack(spacing: 14) {
                     TypeImage(typeId: result.typeId, size: 48, cornerRadius: 6)
@@ -681,6 +699,7 @@ struct GalaxyMarketSearchView: View {
     private func clearItemSelection() {
         selectedTypeId = nil
         selectedTypeName = ""
+        selectedTypeInfo = nil
         itemSearchText = ""
         itemSearchResults = []
         orders = []

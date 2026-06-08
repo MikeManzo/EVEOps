@@ -22,6 +22,13 @@ struct SidebarView: View {
     @AppStorage("sidebar.universeExpanded") private var universeExpanded = true
     @AppStorage("sidebar.corpExpanded") private var corpExpanded = true
     @AppStorage("sidebar.utilityExpanded") private var utilityExpanded = true
+
+    @AppStorage("sidebar.showPilot") private var showPilotSection = true
+    @AppStorage("sidebar.showEconomy") private var showEconomySection = true
+    @AppStorage("sidebar.showCombat") private var showCombatSection = true
+    @AppStorage("sidebar.showSocial") private var showSocialSection = true
+    @AppStorage("sidebar.showUniverse") private var showUniverseSection = true
+    @AppStorage("sidebar.showCorp") private var showCorpSection = true
     @AppStorage("sidebar.showUtility") private var showUtilitySection = true
     @State private var todayEventCount = 0
 
@@ -46,20 +53,22 @@ struct SidebarView: View {
 //                        }
 //                    }
 
-                    Section(
-                        isExpanded: $pilotExpanded,
-                        content: {
-                            ForEach(NavigationSection.pilotSections) { section in
-                                Label(section.rawValue, systemImage: section.iconName)
-                                    .tag(section)
+                    if showPilotSection {
+                        Section(
+                            isExpanded: $pilotExpanded,
+                            content: {
+                                ForEach(NavigationSection.pilotSections) { section in
+                                    Label(section.rawValue, systemImage: section.iconName)
+                                        .tag(section)
+                                }
+                            },
+                            header: {
+                                Text("Pilot — \(account.characterName)")
+                                    .font(.title3)
+                                    .textCase(.none)
                             }
-                        },
-                        header: {
-                            Text("Pilot — \(account.characterName)")
-                                .font(.title3) // Adjust size here
-                                .textCase(.none) // Optional: prevents default uppercase styling
-                        }
-                    )
+                        )
+                    }
                     
 //                    Section("Economy", isExpanded: $economyExpanded) {
 //                        ForEach(NavigationSection.economySections) { section in
@@ -68,20 +77,22 @@ struct SidebarView: View {
 //                        }
 //                    }
 
-                    Section(
-                        isExpanded: $economyExpanded,
-                        content: {
-                            ForEach(NavigationSection.economySections) { section in
-                                Label(section.rawValue, systemImage: section.iconName)
-                                    .tag(section)
+                    if showEconomySection {
+                        Section(
+                            isExpanded: $economyExpanded,
+                            content: {
+                                ForEach(NavigationSection.economySections) { section in
+                                    Label(section.rawValue, systemImage: section.iconName)
+                                        .tag(section)
+                                }
+                            },
+                            header: {
+                                Text("Economy")
+                                    .font(.title3)
+                                    .textCase(.none)
                             }
-                        },
-                        header: {
-                            Text("Economy")
-                                .font(.title3) // Adjust size here
-                                .textCase(.none) // Optional: prevents default uppercase styling
-                        }
-                    )
+                        )
+                    }
 
                     
 //                   Section("Combat & Fleet", isExpanded: $combatExpanded) {
@@ -91,20 +102,22 @@ struct SidebarView: View {
 //                        }
 //                    }
 
-                    Section(
-                        isExpanded: $combatExpanded,
-                        content: {
-                            ForEach(NavigationSection.combatSections) { section in
-                                Label(section.rawValue, systemImage: section.iconName)
-                                    .tag(section)
+                    if showCombatSection {
+                        Section(
+                            isExpanded: $combatExpanded,
+                            content: {
+                                ForEach(NavigationSection.combatSections) { section in
+                                    Label(section.rawValue, systemImage: section.iconName)
+                                        .tag(section)
+                                }
+                            },
+                            header: {
+                                Text("Combat & Fleet")
+                                    .font(.title3)
+                                    .textCase(.none)
                             }
-                        },
-                        header: {
-                            Text("Combat & Fleet")
-                                .font(.title3) // Adjust size here
-                                .textCase(.none) // Optional: prevents default uppercase styling
-                        }
-                    )
+                        )
+                    }
 
 /*
                     Section("Social & Comms", isExpanded: $socialExpanded) {
@@ -123,28 +136,30 @@ struct SidebarView: View {
                     }
 */
                     
-                    Section (
-                        isExpanded: $socialExpanded,
-                        content: {
-                            ForEach(NavigationSection.socialSections) { section in
-                                Label(section.rawValue, systemImage: section.iconName)
-                                    .tag(section)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .overlay(alignment: .trailing) {
-                                        if section == .calendar && todayEventCount > 0 {
-                                            Circle()
-                                                .fill(Color.blue)
-                                                .frame(width: 7, height: 7)
+                    if showSocialSection {
+                        Section(
+                            isExpanded: $socialExpanded,
+                            content: {
+                                ForEach(NavigationSection.socialSections) { section in
+                                    Label(section.rawValue, systemImage: section.iconName)
+                                        .tag(section)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .overlay(alignment: .trailing) {
+                                            if section == .calendar && todayEventCount > 0 {
+                                                Circle()
+                                                    .fill(Color.blue)
+                                                    .frame(width: 7, height: 7)
+                                            }
                                         }
-                                    }
+                                }
+                            },
+                            header: {
+                                Text("Social & Comms")
+                                    .font(.title3)
+                                    .textCase(.none)
                             }
-                        },
-                        header: {
-                            Text("Social & Comms")
-                                .font(.title3) // Adjust size here
-                                .textCase(.none) // Optional: prevents default uppercase styling
-                        }
-                    )
+                        )
+                    }
                     
 //                    Section("Universe", isExpanded: $universeExpanded) {
 //                        ForEach(NavigationSection.universeSections) { section in
@@ -153,20 +168,22 @@ struct SidebarView: View {
 //                        }
 //                    }
 
-                    Section(
-                        isExpanded: $universeExpanded,
-                        content: {
-                            ForEach(NavigationSection.universeSections) { section in
-                                Label(section.rawValue, systemImage: section.iconName)
-                                    .tag(section)
+                    if showUniverseSection {
+                        Section(
+                            isExpanded: $universeExpanded,
+                            content: {
+                                ForEach(NavigationSection.universeSections) { section in
+                                    Label(section.rawValue, systemImage: section.iconName)
+                                        .tag(section)
+                                }
+                            },
+                            header: {
+                                Text("Universe")
+                                    .font(.title3)
+                                    .textCase(.none)
                             }
-                        },
-                        header: {
-                            Text("Universe")
-                                .font(.title3) // Adjust size here
-                                .textCase(.none) // Optional: prevents default uppercase styling
-                        }
-                    )
+                        )
+                    }
 
                     
 //                   Section("Corporation — \(account.corporationName)", isExpanded: $corpExpanded) {
@@ -176,20 +193,22 @@ struct SidebarView: View {
 //                        }
 //                    }
                     
-                    Section(
-                        isExpanded: $corpExpanded,
-                        content: {
-                            ForEach(NavigationSection.corporationSections) { section in
-                                Label(section.rawValue, systemImage: section.iconName)
-                                    .tag(section)
+                    if showCorpSection {
+                        Section(
+                            isExpanded: $corpExpanded,
+                            content: {
+                                ForEach(NavigationSection.corporationSections) { section in
+                                    Label(section.rawValue, systemImage: section.iconName)
+                                        .tag(section)
+                                }
+                            },
+                            header: {
+                                Text("Corp: \(account.corporationName)")
+                                    .font(.title3)
+                                    .textCase(.none)
                             }
-                        },
-                        header: {
-                            Text("Corp: \(account.corporationName)")
-                                .font(.title3) // Adjust size here
-                                .textCase(.none) // Optional: prevents default uppercase styling
-                        }
-                    )
+                        )
+                    }
                 }
 
                 if showUtilitySection {

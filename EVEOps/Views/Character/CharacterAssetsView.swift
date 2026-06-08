@@ -152,12 +152,13 @@ struct CharacterAssetsView: View {
                             .font(.title3.bold())
                         Spacer()
                         Text("\(items.count)")
-                            .font(.caption.monospacedDigit())
+                            .font(.title3.bold())
                             .foregroundStyle(.secondary)
                     }
                 }
             }
         }
+        .listStyle(.sidebar)
         .frame(maxHeight: .infinity)
     }
 

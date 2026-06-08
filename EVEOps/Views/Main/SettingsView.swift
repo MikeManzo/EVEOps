@@ -603,6 +603,14 @@ private struct AppearanceTab: View {
     @AppStorage("menuBarShowShip") private var menuBarShowShip = true
     @AppStorage("menuBarCompact") private var menuBarCompact = false
 
+    @AppStorage("sidebar.showPilot") private var showPilot = true
+    @AppStorage("sidebar.showEconomy") private var showEconomy = true
+    @AppStorage("sidebar.showCombat") private var showCombat = true
+    @AppStorage("sidebar.showSocial") private var showSocial = true
+    @AppStorage("sidebar.showUniverse") private var showUniverse = true
+    @AppStorage("sidebar.showCorp") private var showCorp = true
+    @AppStorage("sidebar.showUtility") private var showUtility = true
+
     var body: some View {
         Form {
             Section("Theme") {
@@ -621,6 +629,16 @@ private struct AppearanceTab: View {
                 Toggle("Show current ship", isOn: $menuBarShowShip)
 //                Divider()
 //                Toggle("Compact layout", isOn: $menuBarCompact)
+            }
+
+            Section("View / Hide Sidebar Sections") {
+                Toggle("Pilot", isOn: $showPilot)
+                Toggle("Economy", isOn: $showEconomy)
+                Toggle("Combat & Fleet", isOn: $showCombat)
+                Toggle("Social & Comms", isOn: $showSocial)
+                Toggle("Universe", isOn: $showUniverse)
+                Toggle("Corporation", isOn: $showCorp)
+                Toggle("Utility", isOn: $showUtility)
             }
         }
         .formStyle(.grouped)

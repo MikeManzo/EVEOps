@@ -18,6 +18,7 @@ struct CorporationAssetsView: View {
     @State private var searchText = ""
     @State private var groupMode: AssetGroupMode = .station
     @State private var selectedAsset: ResolvedAsset?
+    @State private var collapsedSections: Set<String> = Self.loadCollapsedSections()
 
     var body: some View {
         LoadingStateView(isLoading: isLoading, error: error, isEmpty: assets.isEmpty, emptyMessage: "No corporation assets found or insufficient permissions") {
@@ -29,6 +30,18 @@ struct CorporationAssetsView: View {
                         TextField("Search corporation assets...", text: $searchText)
                             .textFieldStyle(.plain)
                         Spacer()
+                        Button(collapsedSections.isEmpty ? "Collapse All" : "Expand All") {
+                            if collapsedSections.isEmpty {
+                                let keyPath: (ResolvedAsset) -> String = groupMode == .station ? \.locationName : \.typeName
+                                collapsedSections = Set(filteredAssets.map(keyPath))
+                            } else {
+                                collapsedSections = []
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.secondary)
+                        .font(.caption)
+                        Divider().frame(height: 14)
                         Picker("Group by", selection: $groupMode) {
                             ForEach(AssetGroupMode.allCases, id: \.self) { mode in
                                 Text(mode.label).tag(mode)
@@ -44,8 +57,19 @@ struct CorporationAssetsView: View {
                         let keyPath: (ResolvedAsset) -> String = groupMode == .station ? \.locationName : \.typeName
                         let grouped = Dictionary(grouping: filteredAssets, by: keyPath)
                         ForEach(grouped.keys.sorted(), id: \.self) { sectionKey in
-                            Section(sectionKey) {
-                                ForEach(grouped[sectionKey] ?? []) { asset in
+                            let items = grouped[sectionKey] ?? []
+                            let isExpanded = Binding<Bool>(
+                                get: { !collapsedSections.contains(sectionKey) },
+                                set: { expanded in
+                                    if expanded {
+                                        collapsedSections.remove(sectionKey)
+                                    } else {
+                                        collapsedSections.insert(sectionKey)
+                                    }
+                                }
+                            )
+                            Section(isExpanded: isExpanded) {
+                                ForEach(items) { asset in
                                     HStack(spacing: 8) {
                                         AsyncImage(url: EVEImageURL.typeIcon(asset.typeId, size: 256)) { phase in
                                             if let image = phase.image {
@@ -85,9 +109,19 @@ struct CorporationAssetsView: View {
                                     }
                                     .tag(asset)
                                 }
+                            } header: {
+                                HStack {
+                                    Text(sectionKey)
+                                        .font(.title3.bold())
+                                    Spacer()
+                                    Text("\(items.count)")
+                                        .font(.title3.bold())
+                                        .foregroundStyle(.secondary)
+                                }
                             }
                         }
                     }
+                    .listStyle(.sidebar)
                 }
                 .frame(maxWidth: .infinity)
 
@@ -114,6 +148,21 @@ struct CorporationAssetsView: View {
             selectedAsset = nil
             isLoading = true
             await loadAssets()
+        }
+        .onChange(of: collapsedSections) { saveCollapsedSections() }
+        .onChange(of: groupMode) { collapsedSections = [] }
+    }
+
+    private static func loadCollapsedSections() -> Set<String> {
+        guard let data = UserDefaults.standard.data(forKey: "corpAssetCollapsedSections"),
+              let decoded = try? JSONDecoder().decode(Set<String>.self, from: data)
+        else { return [] }
+        return decoded
+    }
+
+    private func saveCollapsedSections() {
+        if let data = try? JSONEncoder().encode(collapsedSections) {
+            UserDefaults.standard.set(data, forKey: "corpAssetCollapsedSections")
         }
     }
 

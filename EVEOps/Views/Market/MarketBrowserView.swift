@@ -694,6 +694,7 @@ struct MarketBrowserView: View {
                             .lineLimit(4)
                     }
                 }
+                SkillRequirementsView(typeId: typeId, typeInfo: selectedTypeInfo, characterSkills: characterSkillMap)
             }
 
             Spacer()
@@ -1377,6 +1378,12 @@ struct MarketBrowserView: View {
     }
 
     // MARK:  Computed Helpers
+
+    private var characterSkillMap: [Int: Int]? {
+        guard let account = accountManager.selectedAccount else { return nil }
+        return prefetcher.data(for: account.characterID)
+            .map { Dictionary(uniqueKeysWithValues: $0.skills.skills.map { ($0.skillId, $0.activeSkillLevel) }) }
+    }
 
     private var filteredHistory: [ESIMarketHistory] {
         guard let cutoff = Calendar.current.date(byAdding: .day, value: -historyDays, to: Date()) else {
