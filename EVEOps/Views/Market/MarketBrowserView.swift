@@ -367,6 +367,17 @@ struct MarketBrowserView: View {
         }
         .navigationTitle("")
         .task { await loadInitialData() }
+        .onChange(of: prefetcher.lastRefresh) { _, _ in
+            // Prefetch completed after the view loaded — pick up the fresh location
+            // and patch jump counts into any orders that are already on screen.
+            guard let account = accountManager.selectedAccount,
+                  let data = prefetcher.data(for: account.characterID) else { return }
+            let wasNil = characterSystemId == nil
+            characterSystemId = data.location.solarSystemId
+            if wasNil && (!sellOrders.isEmpty || !buyOrders.isEmpty) {
+                Task { await recalculateJumps() }
+            }
+        }
 
     }
 
@@ -1226,6 +1237,12 @@ struct MarketBrowserView: View {
             characterSystemId = data.location.solarSystemId
         }
 
+        // Prefetcher data may not be ready yet (race at app launch) or may be stale.
+        // Fall back to a direct ESI location fetch so jump distances always resolve.
+        if characterSystemId == nil {
+            await fetchCharacterLocation()
+        }
+
         await withTaskGroup(of: Void.self) { group in
             group.addTask { await self.loadRegions() }
             group.addTask { await self.loadMarketGroups() }
@@ -1256,6 +1273,32 @@ struct MarketBrowserView: View {
                 group.addTask { await self.loadPriceHistory(typeId: typeId) }
             }
             insightResetKey = "\(typeId)-\(selectedRegionId)"
+        }
+    }
+
+    private func fetchCharacterLocation() async {
+        guard let account = accountManager.selectedAccount,
+              let token = try? await accountManager.validToken(for: account) else { return }
+        let loc: ESICharacterLocation? = try? await ESIClient.shared.fetch(
+            "/characters/\(account.characterID)/location/", token: token
+        )
+        if let sysId = loc?.solarSystemId {
+            characterSystemId = sysId
+        }
+    }
+
+    private func recalculateJumps() async {
+        guard let origin = characterSystemId else { return }
+        let allOrders = sellOrders + buyOrders
+        guard !allOrders.isEmpty else { return }
+        let systemIds = Set(allOrders.map { $0.order.systemId })
+        let jumps = await resolveJumps(systemIds: systemIds, originId: origin)
+        for (sysId, count) in jumps { jumpCache[sysId] = count }
+        sellOrders = sellOrders.map {
+            var o = $0; o.jumps = jumps[o.order.systemId] ?? o.jumps; return o
+        }
+        buyOrders = buyOrders.map {
+            var o = $0; o.jumps = jumps[o.order.systemId] ?? o.jumps; return o
         }
     }
 
