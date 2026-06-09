@@ -35,6 +35,10 @@ private struct ResolvedOrder: Identifiable {
     var id: Int { order.orderId }
 }
 
+private enum OrderSortKey: Equatable {
+    case price, quantity, minVolume, location, security, jumps, range
+}
+
 // MARK:  SplitDivider (NSView-backed for jitter-free dragging)
 //
 // SwiftUI's DragGesture can lose its internal translation state when the parent
@@ -263,6 +267,12 @@ struct MarketBrowserView: View {
     @State private var openInEVEMessage: String?
     @State private var insightResetKey = ""
     @State private var hoveredHistoryDate: Date?
+
+    // Order sort state (sell defaults: price asc; buy defaults: price desc)
+    @State private var sellSortKey: OrderSortKey = .price
+    @State private var sellSortAsc = true
+    @State private var buySortKey:  OrderSortKey = .price
+    @State private var buySortAsc  = false
 
     // Persisted pane sizes — written only on drag end to avoid UserDefaults
     // writes at 60 Hz, which would cause re-render jitter during dragging.
@@ -795,36 +805,29 @@ struct MarketBrowserView: View {
     // MARK:  Orders Table
 
     private func ordersTable(orders: [ResolvedOrder], isBuy: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
+        let sortKey = isBuy ? buySortKey : sellSortKey
+        let ascending = isBuy ? buySortAsc : sellSortAsc
+        let sorted = sortedOrders(orders, key: sortKey, ascending: ascending)
+
+        return VStack(alignment: .leading, spacing: 0) {
+            // Sortable column headers
             HStack(spacing: 0) {
-                Text("Price")
-                    .frame(width: 120, alignment: .trailing)
-                Text("Qty")
-                    .frame(width: 80, alignment: .trailing)
-                    .padding(.leading, 12)
-                Text("Min")
-                    .frame(width: 60, alignment: .trailing)
-                    .padding(.leading, 12)
-                Text("Location")
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.leading, 12)
-                Text("Sec")
-                    .frame(width: 36, alignment: .center)
-                Text("Jumps")
-                    .frame(width: 48, alignment: .center)
+                sortableColumn("Price",    key: .price,     isBuy: isBuy, width: 120, alignment: .trailing)
+                sortableColumn("Qty",      key: .quantity,  isBuy: isBuy, width: 80,  alignment: .trailing, leadingPad: 12)
+                sortableColumn("Min",      key: .minVolume, isBuy: isBuy, width: 60,  alignment: .trailing, leadingPad: 12)
+                sortableColumn("Location", key: .location,  isBuy: isBuy, width: nil, alignment: .leading,  leadingPad: 12)
+                sortableColumn("Sec",      key: .security,  isBuy: isBuy, width: 36,  alignment: .center)
+                sortableColumn("Jumps",    key: .jumps,     isBuy: isBuy, width: 48,  alignment: .center)
                 if isBuy {
-                    Text("Range")
-                        .frame(width: 80, alignment: .leading)
-                        .padding(.leading, 8)
+                    sortableColumn("Range", key: .range, isBuy: isBuy, width: 80, alignment: .leading, leadingPad: 8)
                 }
             }
             .font(.caption.bold())
-            .foregroundStyle(.secondary)
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
             .background(Color(NSColor.separatorColor).opacity(0.15))
 
-            if orders.isEmpty {
+            if sorted.isEmpty {
                 Text("No \(isBuy ? "buy" : "sell") orders in this region")
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, minHeight: 80)
@@ -832,7 +835,7 @@ struct MarketBrowserView: View {
                     .padding()
             } else {
                 LazyVStack(spacing: 0) {
-                    ForEach(Array(orders.enumerated()), id: \.element.id) { index, resolved in
+                    ForEach(Array(sorted.enumerated()), id: \.element.id) { index, resolved in
                         orderRow(resolved, isBuy: isBuy, isEven: index % 2 == 0)
                         Divider()
                             .padding(.leading, 15)
@@ -842,6 +845,72 @@ struct MarketBrowserView: View {
         }
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
         .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func sortableColumn(_ title: String, key: OrderSortKey, isBuy: Bool,
+                                 width: CGFloat?, alignment: Alignment,
+                                 leadingPad: CGFloat = 0) -> some View {
+        let isActive = (isBuy ? buySortKey : sellSortKey) == key
+        let asc      = isBuy ? buySortAsc : sellSortAsc
+        return Button {
+            if isBuy {
+                if buySortKey == key { buySortAsc.toggle() } else { buySortKey = key; buySortAsc = true }
+            } else {
+                if sellSortKey == key { sellSortAsc.toggle() } else { sellSortKey = key; sellSortAsc = true }
+            }
+        } label: {
+            HStack(spacing: 2) {
+                Text(title)
+                if isActive {
+                    Image(systemName: asc ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 7, weight: .bold))
+                }
+            }
+            .frame(minWidth: width, idealWidth: width, maxWidth: width ?? .infinity, alignment: alignment)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(isActive ? .primary : .secondary)
+        .padding(.leading, leadingPad)
+    }
+
+    private func sortedOrders(_ orders: [ResolvedOrder], key: OrderSortKey, ascending: Bool) -> [ResolvedOrder] {
+        orders.sorted { a, b in
+            let less: Bool
+            switch key {
+            case .price:     less = a.order.price < b.order.price
+            case .quantity:  less = a.order.volumeRemain < b.order.volumeRemain
+            case .minVolume: less = a.order.minVolume < b.order.minVolume
+            case .location:  less = a.locationName.localizedCompare(b.locationName) == .orderedAscending
+            case .security:  less = a.securityStatus < b.securityStatus
+            case .jumps:
+                switch (a.jumps, b.jumps) {
+                case (.some(let aj), .some(let bj)): less = aj < bj
+                case (.some, .none):                 less = true
+                case (.none, .some):                 less = false
+                case (.none, .none):                 less = false
+                }
+            case .range: less = rangeOrder(a.order.range) < rangeOrder(b.order.range)
+            }
+            return ascending ? less : !less
+        }
+    }
+
+    private func rangeOrder(_ range: String) -> Int {
+        switch range {
+        case "station":     return 0
+        case "solarsystem": return 1
+        case "1":           return 2
+        case "2":           return 3
+        case "3":           return 4
+        case "4":           return 5
+        case "5":           return 6
+        case "10":          return 7
+        case "20":          return 8
+        case "30":          return 9
+        case "40":          return 10
+        case "region":      return 11
+        default:            return 12
+        }
     }
 
     private func orderRow(_ resolved: ResolvedOrder, isBuy: Bool, isEven: Bool) -> some View {
