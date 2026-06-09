@@ -262,6 +262,7 @@ struct MarketBrowserView: View {
     @State private var historyDays = 90
     @State private var openInEVEMessage: String?
     @State private var insightResetKey = ""
+    @State private var hoveredHistoryDate: Date?
 
     // Persisted pane sizes — written only on drag end to avoid UserDefaults
     // writes at 60 Hz, which would cause re-render jitter during dragging.
@@ -763,6 +764,14 @@ struct MarketBrowserView: View {
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
     }
 
+    private func legendItem(color: Color, symbol: String, label: String) -> some View {
+        HStack(spacing: 3) {
+            Image(systemName: symbol)
+                .foregroundStyle(color)
+            Text(label)
+        }
+    }
+
     private func statCard(_ title: String, value: String, color: Color) -> some View {
         VStack(spacing: 0) {
             Rectangle()
@@ -937,19 +946,36 @@ struct MarketBrowserView: View {
     @ViewBuilder
     private var priceHistoryView: some View {
         let history = filteredHistory
+        let eveTeal = Color(red: 0.2, green: 0.75, blue: 0.8)
+        let volumeColor = Color(red: 0.15, green: 0.55, blue: 0.4)
+        let hoveredEntry = hoveredHistoryDate.flatMap { closestHistoryEntry(to: $0) }
 
         VStack(alignment: .leading, spacing: 16) {
-            HStack {
+            HStack(spacing: 12) {
                 Text("Price History")
                     .font(.headline)
+
+                // Legend
+                HStack(spacing: 10) {
+                    legendItem(color: eveTeal, symbol: "line.diagonal", label: "Avg")
+                    legendItem(color: eveTeal.opacity(0.5), symbol: "rectangle.fill", label: "Hi/Lo")
+                    legendItem(color: volumeColor, symbol: "chart.bar.fill", label: "Vol")
+                }
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+
                 Spacer()
-                Picker("Range", selection: $historyDays) {
+
+                Picker(selection: $historyDays) {
                     Text("30d").tag(30)
                     Text("90d").tag(90)
                     Text("1y").tag(365)
+                } label: {
+                    EmptyView()
                 }
+                .labelsHidden()
                 .pickerStyle(.segmented)
-                .frame(width: 160)
+                .frame(width: 130)
             }
 
             if history.isEmpty {
@@ -957,64 +983,112 @@ struct MarketBrowserView: View {
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, minHeight: 200)
             } else {
-                // Price chart — low/high band + average line
-                let eveTeal = Color(red: 0.2, green: 0.75, blue: 0.8)
-                Chart(history) { entry in
-                    if let date = parseHistoryDate(entry.date) {
-                        RectangleMark(
-                            x: .value("Date", date),
-                            yStart: .value("Low", entry.lowest),
-                            yEnd: .value("High", entry.highest),
-                            width: 4
-                        )
-                        .foregroundStyle(eveTeal.opacity(0.4))
+                // ── Single unified chart (price + volume) ─────────────
+                // Volume bars are plotted in a "virtual zone" below the price
+                // data using the same ISK coordinate space. One x-axis means
+                // the crosshair is always pixel-perfect across both datasets.
+                let allPrices = history.flatMap { [$0.lowest, $0.highest] }
+                let rawPMin   = allPrices.min() ?? 0
+                let rawPMax   = allPrices.max() ?? 1
+                let pSpan     = max(rawPMax - rawPMin, 1)
+                let pMax      = rawPMax + pSpan * 0.04
+                let pMin      = rawPMin - pSpan * 0.02
+                // Volume zone: 28% of price span, placed below price data with a gap
+                let volZone   = pSpan * 0.28
+                let volBase   = pMin - volZone * 1.22   // gap = 22% of volZone
+                let yMin      = volBase - volZone * 0.08
+                let maxVol    = Double(history.map(\.volume).max() ?? 1)
 
-                        LineMark(
+                Chart {
+                    // ── Volume bars (lower zone) ──────────────────────
+                    ForEach(history) { entry in
+                        if let date = parseHistoryDate(entry.date) {
+                            let barTop = volBase + Double(entry.volume) / maxVol * volZone
+                            BarMark(
+                                x: .value("Date", date),
+                                yStart: .value("VolBase", volBase),
+                                yEnd: .value("VolTop", barTop)
+                            )
+                            .foregroundStyle(
+                                hoveredEntry?.date == entry.date
+                                    ? volumeColor
+                                    : volumeColor.opacity(0.5)
+                            )
+                        }
+                    }
+
+                    // ── Thin separator between the two zones ──────────
+                    RuleMark(y: .value("Sep", pMin - pSpan * 0.01))
+                        .foregroundStyle(Color.secondary.opacity(0.18))
+                        .lineStyle(StrokeStyle(lineWidth: 0.5))
+
+                    // ── Price high/low range bands ─────────────────────
+                    ForEach(history) { entry in
+                        if let date = parseHistoryDate(entry.date) {
+                            RectangleMark(
+                                x: .value("Date", date),
+                                yStart: .value("Low", entry.lowest),
+                                yEnd: .value("High", entry.highest),
+                                width: 4
+                            )
+                            .foregroundStyle(eveTeal.opacity(0.4))
+                        }
+                    }
+
+                    // ── Average price: area fill then line on top ──────
+                    ForEach(history) { entry in
+                        if let date = parseHistoryDate(entry.date) {
+                            AreaMark(
+                                x: .value("Date", date),
+                                yStart: .value("AreaFloor", pMin),
+                                yEnd: .value("Average", entry.average)
+                            )
+                            .foregroundStyle(eveTeal.opacity(0.10))
+
+                            LineMark(
+                                x: .value("Date", date),
+                                y: .value("Average", entry.average)
+                            )
+                            .foregroundStyle(eveTeal)
+                            .lineStyle(StrokeStyle(lineWidth: 1.5))
+                        }
+                    }
+
+                    // ── Hover crosshair + tooltip ─────────────────────
+                    if let entry = hoveredEntry, let date = parseHistoryDate(entry.date) {
+                        RuleMark(x: .value("Hover", date))
+                            .foregroundStyle(Color.secondary.opacity(0.45))
+                            .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 2]))
+                            .annotation(
+                                position: .top, spacing: 4,
+                                overflowResolution: .init(x: .fit(to: .chart), y: .disabled)
+                            ) {
+                                historyTooltip(entry: entry, eveTeal: eveTeal)
+                            }
+
+                        PointMark(
                             x: .value("Date", date),
                             y: .value("Average", entry.average)
                         )
                         .foregroundStyle(eveTeal)
-                        .lineStyle(StrokeStyle(lineWidth: 1.5))
-
-                        AreaMark(
-                            x: .value("Date", date),
-                            y: .value("Average", entry.average)
-                        )
-                        .foregroundStyle(eveTeal.opacity(0.12))
+                        .symbolSize(36)
                     }
                 }
+                .chartYScale(domain: yMin...pMax)
                 .chartYAxis {
+                    // Only show grid lines + labels for the price zone
                     AxisMarks { value in
-                        AxisGridLine()
-                        if let v = value.as(Double.self) {
-                            AxisValueLabel { Text(EVEFormatters.formatISKShort(v)).font(.caption2) }
+                        if let v = value.as(Double.self), v >= pMin {
+                            AxisGridLine()
+                            AxisValueLabel {
+                                Text(EVEFormatters.formatISKShort(v)).font(.caption2)
+                            }
                         }
                     }
                 }
-                .frame(height: 200)
-                .padding()
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-
-                // Volume bars
-                Chart(history) { entry in
-                    if let date = parseHistoryDate(entry.date) {
-                        BarMark(
-                            x: .value("Date", date),
-                            y: .value("Volume", entry.volume)
-                        )
-                        .foregroundStyle(Color(red: 0.15, green: 0.55, blue: 0.4).opacity(0.85))
-                    }
-                }
-                .chartYAxis {
-                    AxisMarks(values: .automatic(desiredCount: 3)) { value in
-                        AxisGridLine()
-                        if let v = value.as(Int.self) {
-                            AxisValueLabel { Text(formatCount(v)).font(.caption2) }
-                        }
-                    }
-                }
-                .frame(height: 70)
-                .padding()
+                .chartXSelection(value: $hoveredHistoryDate)
+                .frame(height: 270)
+                .padding(12)
                 .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
 
                 // History summary stats
@@ -1034,6 +1108,45 @@ struct MarketBrowserView: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private func historyTooltip(entry: ESIMarketHistory, eveTeal: Color) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(entry.date)
+                .font(.caption2.bold())
+                .foregroundStyle(.secondary)
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.up").font(.system(size: 9)).foregroundStyle(.green)
+                        Text(EVEFormatters.formatISKShort(entry.highest)).font(.caption2)
+                    }
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.down").font(.system(size: 9)).foregroundStyle(.red)
+                        Text(EVEFormatters.formatISKShort(entry.lowest)).font(.caption2)
+                    }
+                    HStack(spacing: 4) {
+                        Image(systemName: "minus").font(.system(size: 9)).foregroundStyle(eveTeal)
+                        Text(EVEFormatters.formatISKShort(entry.average)).font(.caption2).foregroundStyle(eveTeal)
+                    }
+                }
+                Divider()
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "shippingbox").font(.system(size: 9)).foregroundStyle(.secondary)
+                        Text(formatCount(entry.volume)).font(.caption2)
+                    }
+                    HStack(spacing: 4) {
+                        Image(systemName: "list.bullet").font(.system(size: 9)).foregroundStyle(.secondary)
+                        Text("\(entry.orderCount) orders").font(.caption2)
+                    }
+                }
+            }
+        }
+        .padding(8)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+        .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
     }
 
     // MARK:  Data Loading
@@ -1414,6 +1527,13 @@ struct MarketBrowserView: View {
         guard !recent.isEmpty else { return "—" }
         let avg = recent.map { Double($0.volume) }.reduce(0, +) / Double(recent.count)
         return formatCount(Int(avg))
+    }
+
+    private func closestHistoryEntry(to date: Date) -> ESIMarketHistory? {
+        filteredHistory.compactMap { entry -> (ESIMarketHistory, TimeInterval)? in
+            guard let d = parseHistoryDate(entry.date) else { return nil }
+            return (entry, abs(d.timeIntervalSince(date)))
+        }.min(by: { $0.1 < $1.1 })?.0
     }
 
     /// Maps top-level market group names to EVE-relevant SF Symbols and accent colors.
