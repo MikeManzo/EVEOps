@@ -61,8 +61,7 @@ final class WindowService: NSObject {
     func showMain() {
         if let window = mainWindow {
             if window.isMiniaturized { window.deminiaturize(nil) }
-            window.makeKeyAndOrderFront(nil)
-            applyActivationPolicy()
+            bringToFront(window)
             return
         }
 
@@ -92,8 +91,7 @@ final class WindowService: NSObject {
         }
 
         mainWindow = window
-        window.makeKeyAndOrderFront(nil)
-        applyActivationPolicy()
+        bringToFront(window)
     }
 
     func showMainIfNeeded() {
@@ -138,8 +136,7 @@ final class WindowService: NSObject {
     func showSettings() {
         if let window = settingsWindow {
             if window.isMiniaturized { window.deminiaturize(nil) }
-            window.makeKeyAndOrderFront(nil)
-            applyActivationPolicy()
+            bringToFront(window)
             return
         }
 
@@ -161,11 +158,26 @@ final class WindowService: NSObject {
         window.center()
 
         settingsWindow = window
-        window.makeKeyAndOrderFront(nil)
-        applyActivationPolicy()
+        bringToFront(window)
     }
 
     // MARK: Helpers
+
+    // MenuBarExtra popovers dismiss *after* the button action returns, so
+    // activate/makeKeyAndOrderFront called synchronously get overridden when
+    // MenuBarExtra popovers dismiss after the button action returns, and macOS
+    // then restores focus to the previously active app — sending our window to
+    // the bottom. A short asyncAfter clears that focus-restoration cycle, and
+    // orderFrontRegardless() bypasses app-activation checks entirely so the
+    // window lands on top regardless of which app holds focus.
+    private func bringToFront(_ window: NSWindow) {
+        applyActivationPolicy()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            NSApp.activate(ignoringOtherApps: true)
+            window.makeKeyAndOrderFront(nil)
+            window.orderFrontRegardless()
+        }
+    }
 
     func updateAppearance() {
         let appearance = resolvedNSAppearance

@@ -15,6 +15,7 @@ struct MenuBarView: View {
     @Environment(DashboardPrefetcher.self) private var prefetcher
     @Environment(APIStatusMonitor.self) private var apiStatus
     @Environment(AppUpdater.self) private var appUpdater
+    @Environment(\.dismiss) private var dismiss
     @AppStorage("backgroundPollInterval") private var pollInterval: Double = 300
     @State private var summaries: [Int: CharacterSummary] = [:]
     @State private var isLoading = false
@@ -110,9 +111,8 @@ struct MenuBarView: View {
             ZStack {
                 HStack {
                     Button {
-                        NSApplication.shared.keyWindow?.close()
+                        dismiss()
                         WindowService.shared.showMain()
-                        NSApplication.shared.activate(ignoringOtherApps: true)
                     } label: {
                         Label("EVEOps", systemImage: "macwindow")
                     }
@@ -130,9 +130,8 @@ struct MenuBarView: View {
                 }
 
                 Button {
-                    NSApplication.shared.keyWindow?.close()
+                    dismiss()
                     WindowService.shared.showSettings()
-                    NSApplication.shared.activate(ignoringOtherApps: true)
                 } label: {
                     Label("Settings", systemImage: "gear")
                 }

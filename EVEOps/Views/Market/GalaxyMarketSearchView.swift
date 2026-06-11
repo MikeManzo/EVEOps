@@ -158,10 +158,12 @@ struct GalaxyMarketSearchView: View {
     @State private var waypointMessage: String?
 
     private var hasLocation: Bool { characterSystemId != nil }
-    private var canSearch: Bool { selectedTypeId != nil && !isSearching }
+    private var canSearch: Bool { selectedTypeId != nil }
     private var characterSkillMap: [Int: Int]? {
         guard let account = accountManager.selectedAccount else { return nil }
-        return prefetcher.data(for: account.characterID)
+        // Access characterData directly (no 2-min freshness check) — skills change rarely
+        // and the freshness window is too short for a market session.
+        return prefetcher.characterData[account.characterID]
             .map { Dictionary(uniqueKeysWithValues: $0.skills.skills.map { ($0.skillId, $0.activeSkillLevel) }) }
     }
 
@@ -224,10 +226,9 @@ struct GalaxyMarketSearchView: View {
             loadCharacterLocation()
         }
         .task {
-            // Fallback: if prefetcher had stale/missing data, fetch location directly
-            if characterSystemId == nil {
-                await fetchLocationFallback()
-            }
+            // Always fetch a fresh location on appear — the prefetcher value may be
+            // stale if the character has moved since the last background refresh.
+            await fetchCurrentLocation()
         }
         .onChange(of: prefetcher.lastRefresh) { _, _ in
             loadCharacterLocation()
@@ -935,12 +936,11 @@ struct GalaxyMarketSearchView: View {
         }
     }
 
-    private func fetchLocationFallback() async {
-        guard characterSystemId == nil,
-              let account = accountManager.selectedAccount,
+    private func fetchCurrentLocation() async {
+        guard let account = accountManager.selectedAccount,
               let token = try? await accountManager.validToken(for: account) else { return }
         let loc: ESICharacterLocation? = try? await ESIClient.shared.fetch(
-            "/characters/\(account.characterID)/location/", token: token
+            "/characters/\(account.characterID)/location/", token: token, bypassCache: true
         )
         if let sysId = loc?.solarSystemId {
             characterSystemId = sysId

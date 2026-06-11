@@ -301,7 +301,7 @@ struct MarketBrowserView: View {
                 } label: {
                     Label("Galaxy Search", systemImage: "globe.europe.africa.fill")
                 }
-                .buttonStyle(.borderless)
+                .buttonStyle(.bordered)
                 .help("Search cheapest sell orders across all k-space regions")
                 Menu {
                     ForEach(availableRegions, id: \.id) { region in
@@ -362,7 +362,7 @@ struct MarketBrowserView: View {
                 Spacer()
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+//            .padding(.vertical, 12)
             .background(.background)
         }
         .navigationTitle("")
@@ -378,7 +378,6 @@ struct MarketBrowserView: View {
                 Task { await recalculateJumps() }
             }
         }
-
     }
 
     private func onRegionChanged() {
@@ -1606,7 +1605,9 @@ struct MarketBrowserView: View {
 
     private var characterSkillMap: [Int: Int]? {
         guard let account = accountManager.selectedAccount else { return nil }
-        return prefetcher.data(for: account.characterID)
+        // Access characterData directly (no 2-min freshness check) — skills change rarely
+        // and the freshness window is too short for a market session.
+        return prefetcher.characterData[account.characterID]
             .map { Dictionary(uniqueKeysWithValues: $0.skills.skills.map { ($0.skillId, $0.activeSkillLevel) }) }
     }
 
