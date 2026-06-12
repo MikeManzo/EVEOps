@@ -16,6 +16,7 @@ struct DashboardView: View {
     @Environment(APIStatusMonitor.self) private var apiStatus
     @State private var summaries: [CharacterSummary] = []
     @State private var isLoading = false
+    @AppStorage("backgroundPollInterval") private var pollInterval: Double = 300
     @State private var contactSummaries: [ContactSummary] = []
     @AppStorage("dashboard.contacts.playersExpanded") private var playersExpanded = true
     @AppStorage("dashboard.contacts.npcsExpanded")    private var npcsExpanded = true
@@ -108,8 +109,15 @@ struct DashboardView: View {
                 isLoading = true
                 await loadAllSummaries()
             }
+            await refreshQueueFromESI()
             await loadContacts()
             await loadNews()
+        }
+        .task(id: "queuePoll") {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(pollInterval))
+                await refreshQueueFromESI()
+            }
         }
     }
 
@@ -173,14 +181,18 @@ struct DashboardView: View {
             s.ship = prefetched.ship
             s.location = prefetched.location
 
-            let activeQueue = prefetched.skillQueue.filter { $0.finishDate ?? .distantPast > Date() }
+            let sortedQueue = prefetched.skillQueue.sorted { $0.queuePosition < $1.queuePosition }
+            let activeQueue = sortedQueue.filter { $0.finishDate ?? .distantPast > Date() }
+            let currentlyTraining = activeQueue.first {
+                ($0.startDate ?? .distantFuture) <= Date() && ($0.finishDate ?? .distantPast) > Date()
+            } ?? activeQueue.first
             s.skillQueueCount = activeQueue.count
-            s.currentSkillFinish = activeQueue.first?.finishDate
-            s.currentSkillStart = activeQueue.first?.startDate
+            s.currentSkillFinish = currentlyTraining?.finishDate
+            s.currentSkillStart = currentlyTraining?.startDate
             s.queueEnd = activeQueue.last?.finishDate
-            if let first = activeQueue.first {
-                s.trainingSkillID = first.skillId
-                s.trainingSkillLevel = first.finishedLevel
+            if let current = currentlyTraining {
+                s.trainingSkillID = current.skillId
+                s.trainingSkillLevel = current.finishedLevel
             }
             s.isQueueEmpty = activeQueue.isEmpty
 
@@ -281,14 +293,18 @@ struct DashboardView: View {
             summary.ship = ship
             summary.location = loc
 
-            let activeQueue = queue.filter { $0.finishDate ?? .distantPast > Date() }
+            let sortedQueue = queue.sorted { $0.queuePosition < $1.queuePosition }
+            let activeQueue = sortedQueue.filter { $0.finishDate ?? .distantPast > Date() }
+            let currentlyTraining = activeQueue.first {
+                ($0.startDate ?? .distantFuture) <= Date() && ($0.finishDate ?? .distantPast) > Date()
+            } ?? activeQueue.first
             summary.skillQueueCount = activeQueue.count
-            summary.currentSkillFinish = activeQueue.first?.finishDate
-            summary.currentSkillStart = activeQueue.first?.startDate
+            summary.currentSkillFinish = currentlyTraining?.finishDate
+            summary.currentSkillStart = currentlyTraining?.startDate
             summary.queueEnd = activeQueue.last?.finishDate
-            if let first = activeQueue.first {
-                summary.trainingSkillID = first.skillId
-                summary.trainingSkillLevel = first.finishedLevel
+            if let current = currentlyTraining {
+                summary.trainingSkillID = current.skillId
+                summary.trainingSkillLevel = current.finishedLevel
             }
             summary.isQueueEmpty = activeQueue.isEmpty
 
@@ -430,6 +446,62 @@ struct DashboardView: View {
         newsIsLoading = false
     }
 
+    /// Fetches the skill queue directly from ESI (bypassing the prefetcher cache) and patches
+    /// the training fields in each summary — exactly the way TrainingOverviewView.loadTraining() works.
+    private func refreshQueueFromESI() async {
+        await withTaskGroup(of: (Int, ESISkillQueue?, Date?, Date?, Date?, Int, Int?, String?, Bool).self) { group in
+            for account in accountManager.accounts {
+                group.addTask {
+                    guard let token = try? await self.accountManager.validToken(for: account),
+                          let queue: [ESISkillQueue] = try? await ESIClient.shared.fetch(
+                              "/characters/\(account.characterID)/skillqueue/",
+                              token: token,
+                              bypassCache: true
+                          )
+                    else {
+                        return (account.characterID, nil, nil, nil, nil, 0, nil, nil, true)
+                    }
+
+                    let sorted = queue.sorted { $0.queuePosition < $1.queuePosition }
+                    let active = sorted.filter { $0.finishDate ?? .distantPast > Date() }
+                    let current = active.first {
+                        ($0.startDate ?? .distantFuture) <= Date() && ($0.finishDate ?? .distantPast) > Date()
+                    } ?? active.first
+
+                    var skillName: String? = nil
+                    if let skillID = current?.skillId {
+                        let resolved = await NameResolver.shared.resolve(ids: [skillID])
+                        skillName = resolved[skillID]
+                    }
+
+                    return (
+                        account.characterID,
+                        current,
+                        current?.startDate,
+                        current?.finishDate,
+                        active.last?.finishDate,
+                        active.count,
+                        current?.finishedLevel,
+                        skillName,
+                        active.isEmpty
+                    )
+                }
+            }
+
+            for await (charID, current, start, finish, queueEnd, count, level, name, isEmpty) in group {
+                guard let idx = summaries.firstIndex(where: { $0.characterID == charID }) else { continue }
+                summaries[idx].trainingSkillID = current?.skillId
+                summaries[idx].trainingSkillName = name
+                summaries[idx].trainingSkillLevel = level
+                summaries[idx].currentSkillStart = start
+                summaries[idx].currentSkillFinish = finish
+                summaries[idx].queueEnd = queueEnd
+                summaries[idx].skillQueueCount = count
+                summaries[idx].isQueueEmpty = isEmpty
+            }
+        }
+    }
+
     private nonisolated func buildSummary(from prefetched: DashboardPrefetcher.PrefetchedCharacterData, for account: StoredAccount) async -> CharacterSummary {
         var summary = CharacterSummary(characterID: account.characterID)
         summary.wallet = prefetched.wallet
@@ -438,14 +510,18 @@ struct DashboardView: View {
         summary.ship = prefetched.ship
         summary.location = prefetched.location
 
-        let activeQueue = prefetched.skillQueue.filter { $0.finishDate ?? .distantPast > Date() }
+        let sortedQueue = prefetched.skillQueue.sorted { $0.queuePosition < $1.queuePosition }
+        let activeQueue = sortedQueue.filter { $0.finishDate ?? .distantPast > Date() }
+        let currentlyTraining = activeQueue.first {
+            ($0.startDate ?? .distantFuture) <= Date() && ($0.finishDate ?? .distantPast) > Date()
+        } ?? activeQueue.first
         summary.skillQueueCount = activeQueue.count
-        summary.currentSkillFinish = activeQueue.first?.finishDate
-        summary.currentSkillStart = activeQueue.first?.startDate
+        summary.currentSkillFinish = currentlyTraining?.finishDate
+        summary.currentSkillStart = currentlyTraining?.startDate
         summary.queueEnd = activeQueue.last?.finishDate
-        if let first = activeQueue.first {
-            summary.trainingSkillID = first.skillId
-            summary.trainingSkillLevel = first.finishedLevel
+        if let current = currentlyTraining {
+            summary.trainingSkillID = current.skillId
+            summary.trainingSkillLevel = current.finishedLevel
         }
         summary.isQueueEmpty = activeQueue.isEmpty
 
@@ -738,7 +814,43 @@ struct CharacterCardView: View {
 
     @State private var liveCorpName: String?
     @State private var liveAllianceName: String?
-    @State private var pulsing = false  // #4: drives the online pulse animation
+    @State private var pulsing = false
+    @State private var now = Date()
+    @AppStorage("backgroundPollInterval") private var pollInterval: Double = 300
+
+    // Live training data — same pattern as CharacterHeroView
+    @State private var liveSkillName: String?
+    @State private var liveSkillLevel: Int?
+    @State private var liveSkillStart: Date?
+    @State private var liveSkillFinish: Date?
+    @State private var liveLevelStartSP: Int?
+    @State private var liveLevelEndSP: Int?
+    @State private var liveTrainingStartSP: Int?
+    @State private var liveQueueCount: Int = 0
+    @State private var liveQueueEnd: Date?
+    @State private var liveQueueEmpty: Bool = true
+    @State private var liveQueueLoaded = false
+
+    private var queueIsEmpty: Bool      { liveQueueLoaded ? liveQueueEmpty  : (summary?.isQueueEmpty    ?? true) }
+    private var queueSkillName: String? { liveQueueLoaded ? liveSkillName   : summary?.trainingSkillName }
+    private var queueSkillLevel: Int?   { liveQueueLoaded ? liveSkillLevel  : summary?.trainingSkillLevel }
+    private var queueSkillStart: Date?  { liveQueueLoaded ? liveSkillStart  : summary?.currentSkillStart }
+    private var queueSkillFinish: Date? { liveQueueLoaded ? liveSkillFinish : summary?.currentSkillFinish }
+    private var queueCount: Int         { liveQueueLoaded ? liveQueueCount  : (summary?.skillQueueCount ?? 0) }
+    private var queueEndDate: Date?     { liveQueueLoaded ? liveQueueEnd    : summary?.queueEnd }
+
+    private var trainingProgress: Double {
+        guard let start = queueSkillStart, let finish = queueSkillFinish,
+              let startSP = liveLevelStartSP, let endSP = liveLevelEndSP, endSP > startSP
+        else { return 0 }
+        let totalDuration = finish.timeIntervalSince(start)
+        guard totalDuration > 0 else { return 1 }
+        let elapsed = now.timeIntervalSince(start)
+        let fraction = min(max(elapsed / totalDuration, 0), 1)
+        let trainingStart = liveTrainingStartSP ?? startSP
+        let currentSP = trainingStart + Int(Double(endSP - trainingStart) * fraction)
+        return min(max(Double(currentSP - startSP) / Double(endSP - startSP), 0), 1)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -1029,6 +1141,50 @@ struct CharacterCardView: View {
                 withAnimation(.default) { pulsing = false }
             }
         }
+        .task(id: "timer") {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(1))
+                now = Date()
+            }
+        }
+        .task(id: "skillQueue") {
+            await fetchSkillQueue()
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(pollInterval))
+                await fetchSkillQueue()
+            }
+        }
+    }
+
+    private func fetchSkillQueue() async {
+        guard let token = try? await accountManager.validToken(for: account),
+              let queue: [ESISkillQueue] = try? await ESIClient.shared.fetch(
+                  "/characters/\(account.characterID)/skillqueue/",
+                  token: token,
+                  bypassCache: true
+              )
+        else { return }
+        let sorted = queue.sorted { $0.queuePosition < $1.queuePosition }
+        let active = sorted.filter { $0.finishDate ?? .distantPast > Date() }
+        let current = active.first {
+            ($0.startDate ?? .distantFuture) <= Date() && ($0.finishDate ?? .distantPast) > Date()
+        } ?? active.first
+        var skillName: String?
+        if let skillID = current?.skillId {
+            let resolved = await NameResolver.shared.resolve(ids: [skillID])
+            skillName = resolved[skillID]
+        }
+        liveSkillName        = skillName
+        liveSkillLevel       = current?.finishedLevel
+        liveSkillStart       = current?.startDate
+        liveSkillFinish      = current?.finishDate
+        liveLevelStartSP     = current?.levelStartSp
+        liveLevelEndSP       = current?.levelEndSp
+        liveTrainingStartSP  = current?.trainingStartSp
+        liveQueueCount       = active.count
+        liveQueueEnd         = active.last?.finishDate
+        liveQueueEmpty       = active.isEmpty
+        liveQueueLoaded      = true
     }
 
     // #3: Accent stripe color based on most critical state
@@ -1101,60 +1257,51 @@ struct CharacterCardView: View {
     // #5: Skill queue row with training progress bar
     @ViewBuilder
     private var skillQueueRow: some View {
-        if let s = summary {
-            if s.isQueueEmpty {
-                Label {
-                    Text("Training Queue empty!")
-                        .font(.caption.bold())
-                        .foregroundStyle(.orange)
-                } icon: {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
-                        .font(.caption)
-                }
-            } else {
-                Label {
-                    VStack(alignment: .leading, spacing: 3) {
-                        HStack(spacing: 4) {
-                            Text(s.trainingSkillName ?? "Training...")
-                                .font(.caption)
-                                .lineLimit(1)
-                            if let finish = s.currentSkillFinish {
-                                Spacer()
-                                Text(EVEFormatters.timeUntil(finish))
-                                    .font(.caption2.monospacedDigit())
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-
-                        // #5: Training progress bar
-                        if let start = s.currentSkillStart, let finish = s.currentSkillFinish {
-                            let total = finish.timeIntervalSince(start)
-                            let progress = total > 0
-                                ? min(1.0, max(0.0, Date().timeIntervalSince(start) / total))
-                                : 0.0
-                            ProgressView(value: progress)
-                                .tint(.blue)
-                                .frame(height: 3)
-                        }
-
-                        HStack(spacing: 4) {
-                            Text("\(s.skillQueueCount) skill\(s.skillQueueCount == 1 ? "" : "s") in queue")
-                                .font(.caption2)
+        if queueIsEmpty {
+            Label {
+                Text("Training Queue empty!")
+                    .font(.caption.bold())
+                    .foregroundStyle(.orange)
+            } icon: {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+                    .font(.caption)
+            }
+        } else {
+            Label {
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 4) {
+                        Text(queueSkillName ?? "Training...")
+                            .font(.caption)
+                            .lineLimit(1)
+                        if let finish = queueSkillFinish {
+                            Spacer()
+                            Text(timeUntil(finish))
+                                .font(.caption2.monospacedDigit())
                                 .foregroundStyle(.secondary)
-                            if let end = s.queueEnd {
-                                Spacer()
-                                Text("Ends: \(EVEFormatters.timeUntil(end))")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                            }
                         }
                     }
-                } icon: {
-                    Image(systemName: "graduationcap.fill")
-                        .foregroundStyle(.blue)
-                        .font(.caption)
+
+                    ProgressView(value: trainingProgress)
+                        .tint(.blue)
+                        .frame(height: 3)
+
+                    HStack(spacing: 4) {
+                        Text("\(queueCount) skill\(queueCount == 1 ? "" : "s") in queue")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        if let end = queueEndDate {
+                            Spacer()
+                            Text("Ends: \(timeUntil(end))")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                 }
+            } icon: {
+                Image(systemName: "graduationcap.fill")
+                    .foregroundStyle(.blue)
+                    .font(.caption)
             }
         }
     }
@@ -1209,6 +1356,12 @@ struct CharacterCardView: View {
         if sp >= 1_000 { return String(format: "%.0fK SP", Double(sp) / 1_000) }
         return "\(sp) SP"
     }
+
+    private func timeUntil(_ date: Date) -> String {
+        let interval = date.timeIntervalSince(now)
+        if interval <= 0 { return "Done" }
+        return EVEFormatters.formatDuration(Int(interval))
+    }
 }
 
 // MARK: Character Hero Card
@@ -1231,6 +1384,43 @@ struct CharacterHeroView: View {
     @State private var liveCloneJumpReadyAt: Date?
     @State private var liveStationName: String?
     @State private var pulsing = false
+    @State private var now = Date()
+    @AppStorage("backgroundPollInterval") private var pollInterval: Double = 300
+
+    // Live training data fetched directly from ESI (same pattern as TrainingOverviewView)
+    @State private var liveSkillName: String?
+    @State private var liveSkillLevel: Int?
+    @State private var liveSkillStart: Date?
+    @State private var liveSkillFinish: Date?
+    @State private var liveLevelStartSP: Int?
+    @State private var liveLevelEndSP: Int?
+    @State private var liveTrainingStartSP: Int?
+    @State private var liveQueueCount: Int = 0
+    @State private var liveQueueEnd: Date?
+    @State private var liveQueueEmpty: Bool = true
+    @State private var liveQueueLoaded = false
+
+    private var queueIsEmpty: Bool      { liveQueueLoaded ? liveQueueEmpty  : (summary?.isQueueEmpty    ?? true) }
+    private var queueSkillName: String? { liveQueueLoaded ? liveSkillName   : summary?.trainingSkillName }
+    private var queueSkillLevel: Int?   { liveQueueLoaded ? liveSkillLevel  : summary?.trainingSkillLevel }
+    private var queueSkillStart: Date?  { liveQueueLoaded ? liveSkillStart  : summary?.currentSkillStart }
+    private var queueSkillFinish: Date? { liveQueueLoaded ? liveSkillFinish : summary?.currentSkillFinish }
+    private var queueCount: Int         { liveQueueLoaded ? liveQueueCount  : (summary?.skillQueueCount ?? 0) }
+    private var queueEndDate: Date?     { liveQueueLoaded ? liveQueueEnd    : summary?.queueEnd }
+
+    // SP-based progress — matches TrainingOverviewView.estimateCurrentSP exactly
+    private var trainingProgress: Double {
+        guard let start = queueSkillStart, let finish = queueSkillFinish,
+              let startSP = liveLevelStartSP, let endSP = liveLevelEndSP, endSP > startSP
+        else { return 0 }
+        let totalDuration = finish.timeIntervalSince(start)
+        guard totalDuration > 0 else { return 1 }
+        let elapsed = now.timeIntervalSince(start)
+        let fraction = min(max(elapsed / totalDuration, 0), 1)
+        let trainingStart = liveTrainingStartSP ?? startSP
+        let currentSP = trainingStart + Int(Double(endSP - trainingStart) * fraction)
+        return min(max(Double(currentSP - startSP) / Double(endSP - startSP), 0), 1)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -1272,6 +1462,19 @@ struct CharacterHeroView: View {
             }
         }
         .task(id: locationTaskID) { await fetchStationName() }
+        .task(id: "timer") {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(1))
+                now = Date()
+            }
+        }
+        .task(id: "skillQueue") {
+            await fetchSkillQueue()
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(pollInterval))
+                await fetchSkillQueue()
+            }
+        }
     }
 
     private var locationTaskID: String {
@@ -1299,6 +1502,40 @@ struct CharacterHeroView: View {
         } else {
             liveStationName = nil
         }
+    }
+
+    private func fetchSkillQueue() async {
+        guard let token = try? await accountManager.validToken(for: account),
+              let queue: [ESISkillQueue] = try? await ESIClient.shared.fetch(
+                  "/characters/\(account.characterID)/skillqueue/",
+                  token: token,
+                  bypassCache: true
+              )
+        else { return }
+
+        let sorted = queue.sorted { $0.queuePosition < $1.queuePosition }
+        let active = sorted.filter { $0.finishDate ?? .distantPast > Date() }
+        let current = active.first {
+            ($0.startDate ?? .distantFuture) <= Date() && ($0.finishDate ?? .distantPast) > Date()
+        } ?? active.first
+
+        var skillName: String?
+        if let skillID = current?.skillId {
+            let resolved = await NameResolver.shared.resolve(ids: [skillID])
+            skillName = resolved[skillID]
+        }
+
+        liveSkillName        = skillName
+        liveSkillLevel       = current?.finishedLevel
+        liveSkillStart       = current?.startDate
+        liveSkillFinish      = current?.finishDate
+        liveLevelStartSP     = current?.levelStartSp
+        liveLevelEndSP       = current?.levelEndSp
+        liveTrainingStartSP  = current?.trainingStartSp
+        liveQueueCount       = active.count
+        liveQueueEnd         = active.last?.finishDate
+        liveQueueEmpty       = active.isEmpty
+        liveQueueLoaded      = true
     }
 
     @ViewBuilder
@@ -1527,56 +1764,52 @@ struct CharacterHeroView: View {
 
     @ViewBuilder
     private var trainingProgressBlock: some View {
-        if let s = summary {
-            if s.isQueueEmpty {
+        if queueIsEmpty {
+            HStack(spacing: 6) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+                    .font(.caption)
+                Text("Training queue is empty")
+                    .font(.caption.bold())
+                    .foregroundStyle(.orange)
+            }
+        } else {
+            VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
+                    Image(systemName: "graduationcap.fill")
+                        .foregroundStyle(.blue)
                         .font(.caption)
-                    Text("Training queue is empty")
-                        .font(.caption.bold())
-                        .foregroundStyle(.orange)
-                }
-            } else {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "graduationcap.fill")
-                            .foregroundStyle(.blue)
+                    HStack(spacing: 3) {
+                        Text(queueSkillName ?? "Training...")
                             .font(.caption)
-                        HStack(spacing: 3) {
-                            Text(s.trainingSkillName ?? "Training...")
-                                .font(.caption)
-                                .lineLimit(1)
-                            if let level = s.trainingSkillLevel {
-                                Text("→ \(romanNumeral(level))")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        Spacer()
-                        if let finish = s.currentSkillFinish {
-                            Text(EVEFormatters.timeUntil(finish))
-                                .font(.caption2.monospacedDigit())
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    if let start = s.currentSkillStart, let finish = s.currentSkillFinish {
-                        let total = finish.timeIntervalSince(start)
-                        let progress = total > 0 ? min(1.0, max(0.0, Date().timeIntervalSince(start) / total)) : 0.0
-                        ProgressView(value: progress)
-                            .tint(.blue)
-                            .frame(height: 3)
-                    }
-                    HStack(spacing: 4) {
-                        Text("\(s.skillQueueCount) skill\(s.skillQueueCount == 1 ? "" : "s") queued")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                        if let end = s.queueEnd {
-                            Spacer()
-                            Text("Ends \(EVEFormatters.timeUntil(end))")
+                            .lineLimit(1)
+                        if let level = queueSkillLevel {
+                            Text("→ \(romanNumeral(level))")
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
                         }
+                    }
+                    Spacer()
+                    if let finish = queueSkillFinish {
+                        Text(timeUntil(finish))
+                            .font(.caption2.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                if liveLevelStartSP != nil || queueSkillStart != nil {
+                    ProgressView(value: trainingProgress)
+                        .tint(.blue)
+                        .frame(height: 3)
+                }
+                HStack(spacing: 4) {
+                    Text("\(queueCount) skill\(queueCount == 1 ? "" : "s") queued")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    if let end = queueEndDate {
+                        Spacer()
+                        Text("Ends \(timeUntil(end))")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
                     }
                 }
             }
@@ -1652,12 +1885,12 @@ struct CharacterHeroView: View {
 
     @ViewBuilder
     private func cloneJumpRow(readyAt: Date) -> some View {
-        let isReady = readyAt <= Date()
+        let isReady = readyAt <= now
         HStack(spacing: 6) {
             Image(systemName: isReady ? "figure.walk.arrival" : "clock")
                 .foregroundStyle(isReady ? .green : .orange)
                 .font(.caption)
-            Text(isReady ? "Clone jump available" : "Clone jump in \(EVEFormatters.timeUntil(readyAt))")
+            Text(isReady ? "Clone jump available" : "Clone jump in \(timeUntil(readyAt))")
                 .font(.caption)
                 .foregroundStyle(isReady ? .green : .orange)
             Spacer()
@@ -1666,6 +1899,12 @@ struct CharacterHeroView: View {
 
     private func romanNumeral(_ level: Int) -> String {
         ["I", "II", "III", "IV", "V"][max(0, min(4, level - 1))]
+    }
+
+    private func timeUntil(_ date: Date) -> String {
+        let interval = date.timeIntervalSince(now)
+        if interval <= 0 { return "Done" }
+        return EVEFormatters.formatDuration(Int(interval))
     }
 
     @ViewBuilder
@@ -1694,26 +1933,22 @@ struct CharacterHeroView: View {
 
     @ViewBuilder
     private var trainingTile: some View {
-        if let s = summary {
-            if s.isQueueEmpty {
-                MetricTileView(
-                    icon: "exclamationmark.triangle.fill", color: .orange,
-                    value: "Queue empty",
-                    label: "Training",
-                    isAlert: true
-                )
-            } else if let finish = s.currentSkillFinish {
-                MetricTileView(
-                    icon: "graduationcap.fill", color: .blue,
-                    value: EVEFormatters.timeUntil(finish),
-                    label: s.trainingSkillName ?? "Training",
-                    subLabel: "\(s.skillQueueCount) in queue"
-                )
-            } else {
-                MetricTileView(icon: "graduationcap.fill", color: .blue, value: "Active", label: "Training")
-            }
+        if queueIsEmpty {
+            MetricTileView(
+                icon: "exclamationmark.triangle.fill", color: .orange,
+                value: "Queue empty",
+                label: "Training",
+                isAlert: true
+            )
+        } else if let finish = queueSkillFinish {
+            MetricTileView(
+                icon: "graduationcap.fill", color: .blue,
+                value: timeUntil(finish),
+                label: queueSkillName ?? "Training",
+                subLabel: "\(queueCount) in queue"
+            )
         } else {
-            MetricTileView(icon: "graduationcap.fill", color: .blue, value: "---", label: "Training")
+            MetricTileView(icon: "graduationcap.fill", color: .blue, value: "Active", label: "Training")
         }
     }
 
@@ -1724,7 +1959,7 @@ struct CharacterHeroView: View {
                 icon: "hammer.fill", color: .purple,
                 value: "\(s.activeIndustryJobCount) active",
                 label: "Industry",
-                subLabel: s.nextJobFinish.map { EVEFormatters.timeUntil($0) }
+                subLabel: s.nextJobFinish.map { timeUntil($0) }
             )
         } else {
             MetricTileView(icon: "hammer.fill", color: .secondary, value: "None active", label: "Industry")

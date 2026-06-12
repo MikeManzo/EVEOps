@@ -284,11 +284,16 @@ final class DashboardPrefetcher {
             s.ship = prefetched.ship
             s.location = prefetched.location
 
-            let activeQueue = prefetched.skillQueue.filter { $0.finishDate ?? .distantPast > Date() }
+            let sortedQueue = prefetched.skillQueue.sorted { $0.queuePosition < $1.queuePosition }
+            let activeQueue = sortedQueue.filter { $0.finishDate ?? .distantPast > Date() }
+            let currentlyTraining = activeQueue.first {
+                ($0.startDate ?? .distantFuture) <= Date() && ($0.finishDate ?? .distantPast) > Date()
+            } ?? activeQueue.first
             s.skillQueueCount = activeQueue.count
-            s.currentSkillFinish = activeQueue.first?.finishDate
+            s.currentSkillFinish = currentlyTraining?.finishDate
+            s.currentSkillStart = currentlyTraining?.startDate
             s.queueEnd = activeQueue.last?.finishDate
-            if let first = activeQueue.first { s.trainingSkillID = first.skillId }
+            if let current = currentlyTraining { s.trainingSkillID = current.skillId }
             s.isQueueEmpty = activeQueue.isEmpty
 
             s.activeContractCount = prefetched.contracts.filter { $0.status == "outstanding" || $0.status == "in_progress" }.count
