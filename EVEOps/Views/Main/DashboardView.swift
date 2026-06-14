@@ -1147,7 +1147,8 @@ struct CharacterCardView: View {
                 now = Date()
             }
         }
-        .task(id: "skillQueue") {
+        .task(id: account.characterID) {
+            liveQueueLoaded = false
             await fetchSkillQueue()
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(pollInterval))
