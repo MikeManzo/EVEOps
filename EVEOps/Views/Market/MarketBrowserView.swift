@@ -712,7 +712,7 @@ struct MarketBrowserView: View {
                         Text(desc.strippingEVEMarkup)
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                            .lineLimit(4)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
                 SkillRequirementsView(typeId: typeId, typeInfo: selectedTypeInfo, characterSkills: characterSkillMap)
