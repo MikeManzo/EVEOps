@@ -681,7 +681,14 @@ struct ShipDetailPane: View {
     var onFittingSaved: (() -> Void)? = nil
 
     @Environment(AccountManager.self) private var accountManager
+    @Environment(DashboardPrefetcher.self) private var prefetcher
     @State private var showSaveSheet = false
+
+    private var characterSkills: [Int: Int]? {
+        guard let account = accountManager.selectedAccount else { return nil }
+        return prefetcher.characterData[account.characterID]
+            .map { Dictionary(uniqueKeysWithValues: $0.skills.skills.map { ($0.skillId, $0.activeSkillLevel) }) }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -723,6 +730,7 @@ struct ShipDetailPane: View {
                             .font(.caption)
                             .foregroundStyle(.white.opacity(0.75))
                             .lineLimit(1)
+                        SkillRequirementsView(typeId: ship.typeId, typeInfo: nil, characterSkills: characterSkills)
                     }
                     Spacer()
                     if ship.isSingleton && !modules.isEmpty {
@@ -962,7 +970,15 @@ struct SavedFittingDetailPane: View {
     let fitting: SavedFittingEntry
     let typeNames: [Int: String]
 
+    @Environment(AccountManager.self) private var accountManager
+    @Environment(DashboardPrefetcher.self) private var prefetcher
     @State private var showExporter = false
+
+    private var characterSkills: [Int: Int]? {
+        guard let account = accountManager.selectedAccount else { return nil }
+        return prefetcher.characterData[account.characterID]
+            .map { Dictionary(uniqueKeysWithValues: $0.skills.skills.map { ($0.skillId, $0.activeSkillLevel) }) }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -1004,6 +1020,7 @@ struct SavedFittingDetailPane: View {
                                 .foregroundStyle(.white.opacity(0.5))
                                 .lineLimit(1)
                         }
+                        SkillRequirementsView(typeId: fitting.shipTypeId, typeInfo: nil, characterSkills: characterSkills)
                     }
                     Spacer()
                     Button { showExporter = true } label: {
@@ -1142,6 +1159,14 @@ struct SavedModuleCell: View {
     let item: ESIFittingItem
     let name: String?
     @State private var showPopover = false
+    @Environment(AccountManager.self) private var accountManager
+    @Environment(DashboardPrefetcher.self) private var prefetcher
+
+    private var characterSkills: [Int: Int]? {
+        guard let account = accountManager.selectedAccount else { return nil }
+        return prefetcher.characterData[account.characterID]
+            .map { Dictionary(uniqueKeysWithValues: $0.skills.skills.map { ($0.skillId, $0.activeSkillLevel) }) }
+    }
 
     var body: some View {
         Button { showPopover = true } label: {
@@ -1176,6 +1201,10 @@ struct SavedModuleCell: View {
             .contentShape(RoundedRectangle(cornerRadius: 7))
         }
         .buttonStyle(.plain)
+        .overlay(alignment: .topTrailing) {
+            SkillStatusDot(typeId: item.typeId, characterSkills: characterSkills)
+                .padding(4)
+        }
         .popover(isPresented: $showPopover, arrowEdge: .trailing) {
             ModuleDetailPopover(typeId: item.typeId, name: name, quantity: item.quantity)
         }
@@ -1278,6 +1307,14 @@ struct ModuleCell: View {
     let module: ESIAsset
     let name: String?
     @State private var showPopover = false
+    @Environment(AccountManager.self) private var accountManager
+    @Environment(DashboardPrefetcher.self) private var prefetcher
+
+    private var characterSkills: [Int: Int]? {
+        guard let account = accountManager.selectedAccount else { return nil }
+        return prefetcher.characterData[account.characterID]
+            .map { Dictionary(uniqueKeysWithValues: $0.skills.skills.map { ($0.skillId, $0.activeSkillLevel) }) }
+    }
 
     var body: some View {
         Button { showPopover = true } label: {
@@ -1312,6 +1349,10 @@ struct ModuleCell: View {
             .contentShape(RoundedRectangle(cornerRadius: 7))
         }
         .buttonStyle(.plain)
+        .overlay(alignment: .topTrailing) {
+            SkillStatusDot(typeId: module.typeId, characterSkills: characterSkills)
+                .padding(4)
+        }
         .popover(isPresented: $showPopover, arrowEdge: .trailing) {
             ModuleDetailPopover(typeId: module.typeId, name: name, quantity: module.quantity)
         }
@@ -1416,8 +1457,16 @@ struct ModuleDetailPopover: View {
     let name: String?
     let quantity: Int
 
+    @Environment(AccountManager.self) private var accountManager
+    @Environment(DashboardPrefetcher.self) private var prefetcher
     @State private var esiType: ESIType?
     @State private var groupName: String?
+
+    private var characterSkills: [Int: Int]? {
+        guard let account = accountManager.selectedAccount else { return nil }
+        return prefetcher.characterData[account.characterID]
+            .map { Dictionary(uniqueKeysWithValues: $0.skills.skills.map { ($0.skillId, $0.activeSkillLevel) }) }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -1505,6 +1554,10 @@ struct ModuleDetailPopover: View {
                 .padding(16)
             }
         }
+
+        SkillRequirementsView(typeId: typeId, typeInfo: esiType, characterSkills: characterSkills)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
 
         Divider()
 

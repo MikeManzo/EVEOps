@@ -161,3 +161,71 @@ struct SkillRequirementsView: View {
         return level < table.count ? table[level] : "\(level)"
     }
 }
+
+// MARK: - Skill Status Dot
+
+/// A small colored circle summarising overall training status for one item type.
+/// Green = all skill requirements met, Orange = partially trained, Red = at least one skill untrained.
+/// Invisible when the item has no skill requirements or no character is logged in.
+struct SkillStatusDot: View {
+    let typeId: Int
+    /// Pass nil when no character is logged in — the dot will not appear.
+    let characterSkills: [Int: Int]?
+
+    @State private var dotColor: Color? = nil
+
+    var body: some View {
+        Group {
+            if let color = dotColor {
+                Circle()
+                    .fill(color)
+                    .frame(width: 7, height: 7)
+                    .shadow(color: .black.opacity(0.5), radius: 1.5, x: 0, y: 0.5)
+            }
+        }
+        .task(id: typeId) { await resolve() }
+    }
+
+    private func resolve() async {
+        dotColor = nil
+        guard let characterSkills else { return }
+
+        // Try cache; fall back to a full ESI fetch that includes dogmaAttributes.
+        let attrs: [ESIDogmaAttribute]
+        let cached = await UniverseCache.shared.types(ids: [typeId])
+        if let a = cached[typeId]?.dogmaAttributes, !a.isEmpty {
+            attrs = a
+        } else if let fetched: ESIType = try? await ESIClient.shared.fetch(
+            "/universe/types/\(typeId)/", bypassCache: true),
+                  let a = fetched.dogmaAttributes {
+            attrs = a
+        } else {
+            return
+        }
+
+        guard !Task.isCancelled else { return }
+
+        let attrMap = Dictionary(attrs.map { ($0.attributeId, $0.value) },
+                                  uniquingKeysWith: { a, _ in a })
+        var allMet = true
+        var anyUnmet = false
+        var hasRequirements = false
+
+        for pair in skillAttrPairs {
+            guard let rawSkill = attrMap[pair.skillAttr],
+                  let rawLevel = attrMap[pair.levelAttr] else { continue }
+            let skillId = Int(rawSkill)
+            let required = Int(rawLevel)
+            guard skillId > 0, required > 0 else { continue }
+            hasRequirements = true
+            let have = characterSkills[skillId] ?? 0
+            if have < required {
+                allMet = false
+                if have == 0 { anyUnmet = true }
+            }
+        }
+
+        guard !Task.isCancelled, hasRequirements else { return }
+        dotColor = allMet ? .green : anyUnmet ? .red : .orange
+    }
+}

@@ -84,6 +84,11 @@ struct SimFittingDiagram: View {
                             Text(simState.shipClassName)
                                 .font(.subheadline).foregroundStyle(.white.opacity(0.6))
                         }
+                        SkillRequirementsView(
+                            typeId: simState.shipTypeId,
+                            typeInfo: simState.shipType,
+                            characterSkills: simState.characterSkills.isEmpty ? nil : simState.characterSkills
+                        )
                     }
                 }
                 Spacer()
@@ -344,6 +349,15 @@ struct SimSlotSocketView: View {
                 SimModulePopover(slot: slot)
                     .environment(simState)
             }
+            .overlay(alignment: .topTrailing) {
+                if let typeId = currentModuleTypeId {
+                    SkillStatusDot(
+                        typeId: typeId,
+                        characterSkills: simState.characterSkills.isEmpty ? nil : simState.characterSkills
+                    )
+                    .padding(3)
+                }
+            }
 
             // Hover × badge — shown only when a module is fitted and the slot is hovered.
             if isHovered && currentModuleTypeId != nil {
@@ -397,6 +411,7 @@ struct SimModuleDragPreview: View {
 struct SimModulePopover: View {
     let slot: SimSlot
     @Environment(SimulatorState.self) private var simState
+    @Environment(AccountManager.self) private var accountManager
 
     // Always read live from simState — the `slot` parameter is a frozen value-type copy.
     private var liveTypeId: Int? {
@@ -460,6 +475,14 @@ struct SimModulePopover: View {
                 let attrVal: (Int) -> Double? = { id in attrs.first { $0.attributeId == id }?.value }
 
                 SimModuleStatsSections(attrVal: attrVal, category: slot.category)
+
+                SkillRequirementsView(
+                    typeId: typeId,
+                    typeInfo: t,
+                    characterSkills: accountManager.selectedAccount != nil ? simState.characterSkills : nil
+                )
+                .padding(.horizontal, 14)
+                .padding(.vertical, 6)
 
                 // ── Footer actions ────────────────────────────────────────
                 Divider()
