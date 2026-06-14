@@ -73,6 +73,7 @@ struct TrainingOverviewView: View {
         .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) {
             trainingData = []
+            selectedSkill = nil
             if buildFromPrefetcher() { return }
             isLoading = true
             await loadTraining()
