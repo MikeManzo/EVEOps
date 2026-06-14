@@ -9,6 +9,7 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct TrainingOverviewView: View {
     @Environment(AccountManager.self) private var accountManager
@@ -20,6 +21,7 @@ struct TrainingOverviewView: View {
     @State private var now = Date()
     @AppStorage("collapsedSkillCharacters") private var collapsedSkillCharactersRaw: String = ""
     @State private var selectedSkill: SkillSelection?
+    @State private var skillSearchText: String = ""
 
     private struct SkillSelection: Equatable {
         let skillId: Int
@@ -61,13 +63,48 @@ struct TrainingOverviewView: View {
             }
         }
         .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
-                Text("Training Overview")
-                    .font(.largeTitle.bold())
-                Spacer()
+            VStack(spacing: 0) {
+                HStack {
+                    Text("Training Overview")
+                        .font(.largeTitle.bold())
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+                .padding(.bottom, 8)
+
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(.secondary)
+                    TextField("Search known skills...", text: $skillSearchText)
+                        .textFieldStyle(.plain)
+                    if !skillSearchText.isEmpty {
+                        Button {
+                            skillSearchText = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    if !trainingData.isEmpty {
+                        Divider()
+                            .frame(height: 16)
+                        Button(action: exportSkillsToCSV) {
+                            Label("Export CSV", systemImage: "square.and.arrow.up")
+                                .font(.caption)
+                        }
+                        .buttonStyle(.borderless)
+                    }
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 7)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+                .padding(.horizontal, 16)
+                .padding(.bottom, 8)
+
+                Divider()
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
             .background(.background)
         }
         .navigationTitle("")
@@ -432,12 +469,17 @@ struct TrainingOverviewView: View {
     }
 
     private func knownSkillsSection(_ info: CharacterTrainingInfo) -> some View {
-        let isExpanded = !collapsedSkillCharacters.contains(info.characterID)
+        let isSearching = !skillSearchText.trimmingCharacters(in: .whitespaces).isEmpty
+        let isExpanded = isSearching || !collapsedSkillCharacters.contains(info.characterID)
+        let displayGroups = filteredSkillGroups(info.skillGroups)
+        let matchedCount = displayGroups.reduce(0) { $0 + $1.skills.count }
 
         return VStack(alignment: .leading, spacing: 0) {
             Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    toggleSkillExpansion(for: info.characterID)
+                if !isSearching {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        toggleSkillExpansion(for: info.characterID)
+                    }
                 }
             } label: {
                 HStack {
@@ -447,8 +489,13 @@ struct TrainingOverviewView: View {
                         .frame(width: 16)
                     Image(systemName: "book.closed.fill")
                         .foregroundStyle(.blue)
-                    Text("Known Skills (\(info.knownSkillCount))")
-                        .font(.subheadline.bold())
+                    if isSearching {
+                        Text("Known Skills (\(matchedCount) of \(info.knownSkillCount))")
+                            .font(.subheadline.bold())
+                    } else {
+                        Text("Known Skills (\(info.knownSkillCount))")
+                            .font(.subheadline.bold())
+                    }
                     Spacer()
                     Text("\(info.totalSP.formatted()) SP")
                         .font(.caption.monospacedDigit())
@@ -462,13 +509,20 @@ struct TrainingOverviewView: View {
             if isExpanded {
                 Divider().padding(.horizontal, 12)
 
-                VStack(alignment: .leading, spacing: 0) {
-                    ForEach(info.skillGroups.sorted(by: { $0.groupName < $1.groupName }), id: \.groupName) { group in
-                        skillGroupSection(group)
+                if displayGroups.isEmpty {
+                    Text("No skills match \"\(skillSearchText)\"")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(12)
+                } else {
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(displayGroups.sorted(by: { $0.groupName < $1.groupName }), id: \.groupName) { group in
+                            skillGroupSection(group)
+                        }
                     }
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 12)
                 }
-                .padding(.horizontal, 12)
-                .padding(.bottom, 12)
             }
         }
     }
@@ -661,6 +715,45 @@ struct TrainingOverviewView: View {
             return String(format: "%.0fK", Double(sp) / 1_000)
         }
         return "\(sp)"
+    }
+
+    private func filteredSkillGroups(_ groups: [KnownSkillGroup]) -> [KnownSkillGroup] {
+        let query = skillSearchText.trimmingCharacters(in: .whitespaces)
+        guard !query.isEmpty else { return groups }
+        let lower = query.lowercased()
+        return groups.compactMap { group in
+            if group.groupName.lowercased().contains(lower) {
+                return group
+            }
+            let matched = group.skills.filter { $0.name.lowercased().contains(lower) }
+            guard !matched.isEmpty else { return nil }
+            return KnownSkillGroup(groupId: group.groupId, groupName: group.groupName, skills: matched)
+        }
+    }
+
+    private func exportSkillsToCSV() {
+        let panel = NSSavePanel()
+        panel.title = "Export Known Skills"
+        let baseName = trainingData.count == 1
+            ? trainingData[0].characterName.replacingOccurrences(of: " ", with: "_")
+            : "eve_skills"
+        panel.nameFieldStringValue = "\(baseName)_skills.csv"
+        panel.allowedContentTypes = [UTType.commaSeparatedText]
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else { return }
+            var lines = ["Character,Group,Skill Name,Trained Level,Active Level,Skillpoints"]
+            for info in trainingData {
+                for group in info.skillGroups.sorted(by: { $0.groupName < $1.groupName }) {
+                    for skill in group.skills.sorted(by: { $0.name < $1.name }) {
+                        let char = info.characterName.replacingOccurrences(of: "\"", with: "\"\"")
+                        let grp = group.groupName.replacingOccurrences(of: "\"", with: "\"\"")
+                        let sName = skill.name.replacingOccurrences(of: "\"", with: "\"\"")
+                        lines.append("\"\(char)\",\"\(grp)\",\"\(sName)\",\(skill.trainedLevel),\(skill.activeLevel),\(skill.skillpoints)")
+                    }
+                }
+            }
+            try? lines.joined(separator: "\n").write(to: url, atomically: true, encoding: .utf8)
+        }
     }
 
     // MARK:  Prefetcher Fast Path
