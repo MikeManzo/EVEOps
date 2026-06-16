@@ -683,6 +683,7 @@ struct ShipDetailPane: View {
     @Environment(AccountManager.self) private var accountManager
     @Environment(DashboardPrefetcher.self) private var prefetcher
     @State private var showSaveSheet = false
+    @State private var showModelViewer = false
 
     private var characterSkills: [Int: Int]? {
         guard let account = accountManager.selectedAccount else { return nil }
@@ -733,6 +734,15 @@ struct ShipDetailPane: View {
                         SkillRequirementsView(typeId: ship.typeId, typeInfo: nil, characterSkills: characterSkills)
                     }
                     Spacer()
+                    Button { showModelViewer = true } label: {
+                        Label("View 3D", systemImage: "cube.transparent")
+                            .font(.caption.bold())
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+                            .foregroundStyle(.white)
+                    }
+                    .buttonStyle(.plain)
                     if ship.isSingleton && !modules.isEmpty {
                         Button { showSaveSheet = true } label: {
                             Label("Save Fitting", systemImage: "bookmark.fill")
@@ -784,6 +794,9 @@ struct ShipDetailPane: View {
             } else {
                 CurrentFittingPane(modules: modules, typeNames: typeNames, shipName: ship.typeName, shipClass: ship.shipClassName)
             }
+        }
+        .sheet(isPresented: $showModelViewer) {
+            ShipModelSheet(shipName: ship.typeName)
         }
         .sheet(isPresented: $showSaveSheet) {
             SaveFittingSheet(ship: ship, modules: modules, onSaved: onFittingSaved)
@@ -973,6 +986,7 @@ struct SavedFittingDetailPane: View {
     @Environment(AccountManager.self) private var accountManager
     @Environment(DashboardPrefetcher.self) private var prefetcher
     @State private var showExporter = false
+    @State private var showModelViewer = false
 
     private var characterSkills: [Int: Int]? {
         guard let account = accountManager.selectedAccount else { return nil }
@@ -1023,6 +1037,15 @@ struct SavedFittingDetailPane: View {
                         SkillRequirementsView(typeId: fitting.shipTypeId, typeInfo: nil, characterSkills: characterSkills)
                     }
                     Spacer()
+                    Button { showModelViewer = true } label: {
+                        Label("View 3D", systemImage: "cube.transparent")
+                            .font(.caption.bold())
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+                            .foregroundStyle(.white)
+                    }
+                    .buttonStyle(.plain)
                     Button { showExporter = true } label: {
                         Label("Export…", systemImage: "arrow.down.doc")
                             .font(.caption.bold())
@@ -1053,6 +1076,9 @@ struct SavedFittingDetailPane: View {
             } else {
                 SavedFittingSlotPane(items: fitting.items, typeNames: typeNames, shipName: fitting.shipTypeName, shipClass: fitting.shipClassName)
             }
+        }
+        .sheet(isPresented: $showModelViewer) {
+            ShipModelSheet(shipName: fitting.shipTypeName)
         }
         .fileExporter(
             isPresented: $showExporter,

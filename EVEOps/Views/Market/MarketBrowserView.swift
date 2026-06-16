@@ -268,6 +268,7 @@ struct MarketBrowserView: View {
     @State private var waypointMessage: String?
     @State private var insightResetKey = ""
     @State private var hoveredHistoryDate: Date?
+    @State private var showModelViewer = false
 
     // Order sort state (sell defaults: price asc; buy defaults: price desc)
     @State private var sellSortKey: OrderSortKey = .price
@@ -378,6 +379,9 @@ struct MarketBrowserView: View {
             if wasNil && (!sellOrders.isEmpty || !buyOrders.isEmpty) {
                 Task { await recalculateJumps() }
             }
+        }
+        .sheet(isPresented: $showModelViewer) {
+            ShipModelSheet(shipName: selectedTypeName)
         }
     }
 
@@ -735,6 +739,13 @@ struct MarketBrowserView: View {
             }
 
             Spacer()
+
+            if let info = selectedTypeInfo, CharacterFittingsView.eveShipGroupIds.contains(info.groupId) {
+                Button { showModelViewer = true } label: {
+                    Label("View 3D", systemImage: "cube.transparent")
+                }
+                .buttonStyle(.bordered)
+            }
 
             if let account = accountManager.selectedAccount, !account.isTokenExpired {
                 let token = account.accessToken

@@ -162,7 +162,7 @@ struct SkillRequirementsView: View {
     }
 }
 
-// MARK: - Skill Status Dot
+// MARK:  Skill Status Dot
 
 /// A small colored circle summarising overall training status for one item type.
 /// Green = all skill requirements met, Orange = partially trained, Red = at least one skill untrained.

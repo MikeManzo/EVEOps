@@ -17,6 +17,7 @@ import SwiftUI
 
 struct SimFittingDiagram: View {
     @Environment(SimulatorState.self) private var simState
+    @State private var showModelViewer = false
 
     private var highSlots: [SimSlot] { simState.slots.filter { $0.category == .high } }
     private var medSlots:  [SimSlot] { simState.slots.filter { $0.category == .medium } }
@@ -35,6 +36,9 @@ struct SimFittingDiagram: View {
                     slotGrid
                         .padding(16)
                 }
+            }
+            .sheet(isPresented: $showModelViewer) {
+                ShipModelSheet(shipName: simState.shipType?.name ?? simState.shipName)
             }
         }
     }
@@ -92,6 +96,14 @@ struct SimFittingDiagram: View {
                     }
                 }
                 Spacer()
+                Button { showModelViewer = true } label: {
+                    Label("View 3D", systemImage: "cube.transparent")
+                        .font(.caption.bold())
+                        .padding(.horizontal, 10).padding(.vertical, 6)
+                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+                        .foregroundStyle(.white)
+                }
+                .buttonStyle(.plain)
                 if simState.slots.contains(where: { !$0.isEmpty }) {
                     Button { simState.clearAll() } label: {
                         Label("Clear Fit", systemImage: "trash")
