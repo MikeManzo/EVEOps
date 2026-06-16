@@ -265,6 +265,7 @@ struct MarketBrowserView: View {
     @State private var selectedOrderTab = 0   // 0 = sell, 1 = buy, 2 = history
     @State private var historyDays = 90
     @State private var openInEVEMessage: String?
+    @State private var waypointMessage: String?
     @State private var insightResetKey = ""
     @State private var hoveredHistoryDate: Date?
 
@@ -648,13 +649,28 @@ struct MarketBrowserView: View {
                     )
                 }
 
-                Picker("View", selection: $selectedOrderTab) {
-                    Text("Sell Orders (\(sellOrders.count))").tag(0)
-                    Text("Buy Orders (\(buyOrders.count))").tag(1)
-                    Text("Price History").tag(2)
+                HStack(spacing: 12) {
+                    Picker("View", selection: $selectedOrderTab) {
+                        Text("Sell Orders (\(sellOrders.count))").tag(0)
+                        Text("Buy Orders (\(buyOrders.count))").tag(1)
+                        Text("Price History").tag(2)
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(maxWidth: 500)
+
+                    if let msg = waypointMessage {
+                        HStack(spacing: 5) {
+                            Image(systemName: msg.hasPrefix("Destination") || msg.hasPrefix("Waypoint")
+                                  ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                                .foregroundStyle(msg.hasPrefix("Destination") || msg.hasPrefix("Waypoint")
+                                                 ? .green : .orange)
+                            Text(msg)
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .transition(.opacity)
+                    }
                 }
-                .pickerStyle(.segmented)
-                .frame(maxWidth: 500)
 
                 if isLoadingOrders {
                     ProgressView("Loading market data...")
@@ -847,6 +863,20 @@ struct MarketBrowserView: View {
                 LazyVStack(spacing: 0) {
                     ForEach(Array(sorted.enumerated()), id: \.element.id) { index, resolved in
                         orderRow(resolved, isBuy: isBuy, isEven: index % 2 == 0)
+                            .contextMenu {
+                                let destId = resolved.order.locationId
+                                let name = resolved.locationName
+                                Button {
+                                    Task { await setWaypoint(destinationId: destId, clear: true) }
+                                } label: {
+                                    Label("Set Destination: \(name)", systemImage: "location.fill")
+                                }
+                                Button {
+                                    Task { await setWaypoint(destinationId: destId, clear: false) }
+                                } label: {
+                                    Label("Add Waypoint: \(name)", systemImage: "plus.circle")
+                                }
+                            }
                         Divider()
                             .padding(.leading, 15)
                     }
@@ -1598,6 +1628,31 @@ struct MarketBrowserView: View {
             openInEVEMessage = "Needs esi-ui.open_window.v1 scope — re-add your character."
         } catch {
             openInEVEMessage = error.localizedDescription
+        }
+    }
+
+    private func setWaypoint(destinationId: Int, clear: Bool) async {
+        guard let account = accountManager.selectedAccount else {
+            waypointMessage = "No character logged in."
+            return
+        }
+        waypointMessage = nil
+        do {
+            let token = try await accountManager.validToken(for: account)
+            try await ESIClient.shared.postAction(
+                "/ui/autopilot/waypoint/",
+                token: token,
+                queryItems: [
+                    URLQueryItem(name: "add_to_beginning", value: "false"),
+                    URLQueryItem(name: "clear_other_waypoints", value: clear ? "true" : "false"),
+                    URLQueryItem(name: "destination_id", value: "\(destinationId)")
+                ]
+            )
+            waypointMessage = clear ? "Destination set in EVE client." : "Waypoint added in EVE client."
+        } catch ESIError.unauthorized {
+            waypointMessage = "Requires esi-ui.write_waypoint.v1 scope — re-add your character to grant autopilot access."
+        } catch {
+            waypointMessage = error.localizedDescription
         }
     }
 
