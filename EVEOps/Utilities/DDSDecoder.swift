@@ -29,7 +29,7 @@ import Metal
 /// 'u_diffuseTexture' GLSL uniform only for image types, not for MTLTexture objects.
 enum DDSDecoder {
 
-    // MARK: - Public: software decode (BC1/BC3)
+    // MARK:  Public: software decode (BC1/BC3)
 
     static func decode(_ data: Data) -> CGImage? {
         guard data.count >= 128,
@@ -50,7 +50,7 @@ enum DDSDecoder {
         }
     }
 
-    // MARK: - Public: Metal path (BC7/DX10) → CGImage
+    // MARK:  Public: Metal path (BC7/DX10) → CGImage
 
     /// Uploads a BC7 DX10 DDS file to Metal, transcodes it to RGBA8 via a render
     /// pass, then reads the result back to a CGImage via CIContext.
@@ -67,7 +67,7 @@ enum DDSDecoder {
         return ctx.createCGImage(ci, from: extent)
     }
 
-    // MARK: - BC7 → RGBA8 MTLTexture (internal)
+    // MARK:  BC7 → RGBA8 MTLTexture (internal)
 
     private static func rgbaTexture(from data: Data, device: MTLDevice) -> MTLTexture? {
         guard data.count >= 148,
@@ -166,7 +166,7 @@ enum DDSDecoder {
         return cmdbuf.error == nil ? dstTex : nil
     }
 
-    // MARK: - BC1 (DXT1)
+    // MARK:  BC1 (DXT1)
 
     private static func decodeBC1(_ src: Data, w: Int, h: Int) -> CGImage? {
         var out = [UInt8](repeating: 255, count: w * h * 4)
@@ -184,7 +184,7 @@ enum DDSDecoder {
         return makeImage(out, w: w, h: h)
     }
 
-    // MARK: - BC3 (DXT5)
+    // MARK:  BC3 (DXT5)
 
     private static func decodeBC3(_ src: Data, w: Int, h: Int) -> CGImage? {
         var out = [UInt8](repeating: 255, count: w * h * 4)
@@ -206,7 +206,7 @@ enum DDSDecoder {
         return makeImage(out, w: w, h: h)
     }
 
-    // MARK: - Shared helpers
+    // MARK:  Shared helpers
 
     private struct RGBA { var r, g, b, a: UInt8 }
 
@@ -278,7 +278,7 @@ enum DDSDecoder {
     }
 }
 
-// MARK: - Data helpers
+// MARK:  Data helpers
 
 private extension Data {
     func le16(at i: Int) -> UInt16 {

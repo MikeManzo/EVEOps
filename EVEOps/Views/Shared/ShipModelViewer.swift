@@ -13,7 +13,7 @@
 import SwiftUI
 import SceneKit
 
-// MARK: - SceneKit View
+// MARK:  SceneKit View
 
 /// Renders a ship .obj model in a SceneKit view with optional albedo texture.
 ///
@@ -35,7 +35,7 @@ struct ShipSceneKitView: NSViewRepresentable {
 
     func makeNSView(context: Context) -> SCNView {
         let v = SCNView()
-        v.backgroundColor = NSColor(red: 0.04, green: 0.04, blue: 0.08, alpha: 1)
+        v.backgroundColor = NSColor(red: 0.01, green: 0.01, blue: 0.02, alpha: 1)
         v.allowsCameraControl = true
         v.autoenablesDefaultLighting = false
         v.antialiasingMode = .multisampling4X
@@ -43,6 +43,7 @@ struct ShipSceneKitView: NSViewRepresentable {
 
         if let scene = try? SCNScene(url: objURL, options: [.checkConsistency: false]) {
             addLighting(to: scene)
+            scene.background.contents = makeStarfieldBackground()
             let mat = buildMaterial(for: scene)
             apply(mat, to: scene.rootNode)
             v.scene = scene
@@ -72,6 +73,80 @@ struct ShipSceneKitView: NSViewRepresentable {
         ambient.light!.type = .ambient
         ambient.light!.color = NSColor(calibratedWhite: 0.1, alpha: 1)
         scene.rootNode.addChildNode(ambient)
+    }
+
+    // MARK: Starfield
+
+    /// Generates a 2048×1024 equirectangular star-field image used as the scene skybox.
+    ///
+    /// SceneKit maps a single CGImage assigned to scene.background.contents as a
+    /// spherical panorama, so the starfield rotates correctly as the camera orbits.
+    /// Stars are drawn at three sizes driven by a power-law luminosity distribution
+    /// (many dim, few bright) and coloured across four rough spectral classes. Two
+    /// faint radial gradients add nebula-like colour variation to the void.
+    private func makeStarfieldBackground() -> CGImage? {
+        let W = 2048, H = 1024
+        let cs = CGColorSpaceCreateDeviceRGB()
+        guard let ctx = CGContext(
+            data: nil, width: W, height: H,
+            bitsPerComponent: 8, bytesPerRow: W * 4,
+            space: cs,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+
+        // Deep space base
+        ctx.setFillColor(CGColor(colorSpace: cs, components: [0.008, 0.008, 0.022, 1])!)
+        ctx.fill(CGRect(x: 0, y: 0, width: W, height: H))
+
+        // Nebula 1 — faint blue-violet glow, upper-right
+        let n1Colors = [CGColor(colorSpace: cs, components: [0.05, 0.10, 0.35, 0.18])!,
+                        CGColor(colorSpace: cs, components: [0.00, 0.00, 0.00, 0.00])!] as CFArray
+        if let grad = CGGradient(colorsSpace: cs, colors: n1Colors, locations: [0, 1]) {
+            let cx = CGFloat(W) * 0.72, cy = CGFloat(H) * 0.62
+            ctx.drawRadialGradient(grad,
+                startCenter: CGPoint(x: cx, y: cy), startRadius: 0,
+                endCenter:   CGPoint(x: cx, y: cy), endRadius: CGFloat(W) * 0.42,
+                options: .drawsAfterEndLocation)
+        }
+
+        // Nebula 2 — warm purple, lower-left
+        let n2Colors = [CGColor(colorSpace: cs, components: [0.20, 0.04, 0.24, 0.13])!,
+                        CGColor(colorSpace: cs, components: [0.00, 0.00, 0.00, 0.00])!] as CFArray
+        if let grad = CGGradient(colorsSpace: cs, colors: n2Colors, locations: [0, 1]) {
+            let cx = CGFloat(W) * 0.26, cy = CGFloat(H) * 0.35
+            ctx.drawRadialGradient(grad,
+                startCenter: CGPoint(x: cx, y: cy), startRadius: 0,
+                endCenter:   CGPoint(x: cx, y: cy), endRadius: CGFloat(W) * 0.28,
+                options: .drawsAfterEndLocation)
+        }
+
+        // Stars — power-law luminosity so dim stars vastly outnumber bright ones
+        for _ in 0 ..< 3200 {
+            let x   = CGFloat.random(in: 0 ..< CGFloat(W))
+            let y   = CGFloat.random(in: 0 ..< CGFloat(H))
+            let lum = pow(CGFloat.random(in: 0...1), 2.2)   // steep → mostly faint
+            let vis = 0.15 + lum * 0.85
+            let sz: CGFloat = lum < 0.45 ? 1.0 : lum < 0.78 ? 1.5 : 2.5
+
+            let t = CGFloat.random(in: 0...1)
+            let (r, g, b): (CGFloat, CGFloat, CGFloat)
+            if      t < 0.55 { (r, g, b) = (vis,        vis,        vis        ) } // white
+            else if t < 0.78 { (r, g, b) = (vis * 0.85, vis * 0.91, vis        ) } // blue-white
+            else if t < 0.90 { (r, g, b) = (vis,        vis * 0.96, vis * 0.82 ) } // yellow-white
+            else             { (r, g, b) = (vis,        vis * 0.78, vis * 0.58 ) } // orange-red
+
+            ctx.setFillColor(CGColor(colorSpace: cs, components: [r, g, b, 1])!)
+            ctx.fillEllipse(in: CGRect(x: x - sz/2, y: y - sz/2, width: sz, height: sz))
+
+            // Soft diffraction glow on the brightest stars
+            if lum > 0.82 {
+                ctx.setFillColor(CGColor(colorSpace: cs, components: [r, g, b, 0.10])!)
+                let gr = sz * 5
+                ctx.fillEllipse(in: CGRect(x: x - gr/2, y: y - gr/2, width: gr, height: gr))
+            }
+        }
+
+        return ctx.makeImage()
     }
 
     // MARK: Material
@@ -119,7 +194,7 @@ struct ShipSceneKitView: NSViewRepresentable {
     }
 }
 
-// MARK: - Ship Model Sheet
+// MARK:  Ship Model Sheet
 
 struct ShipModelSheet: View {
     let shipName: String

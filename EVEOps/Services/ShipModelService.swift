@@ -12,7 +12,7 @@
 
 import Foundation
 
-// MARK: - ShipModelService
+// MARK:  ShipModelService
 
 /// On-demand downloader and disk cache for EVE ship 3D models and albedo textures.
 ///
@@ -62,14 +62,14 @@ actor ShipModelService {
 
     private init() {}
 
-    // MARK: - Public: model
+    // MARK:  Public: model
 
     func modelURL(for shipName: String) async throws -> URL? {
         guard let filename = try await resolveModelFilename(for: shipName) else { return nil }
         return try await ensureModelCached(filename: filename)
     }
 
-    // MARK: - Public: texture
+    // MARK:  Public: texture
 
     /// Returns raw DDS bytes for the ship's albedo texture, decompressing any HTTP
     /// zlib layer if present. The caller (ShipSceneKitView) passes these to
@@ -115,7 +115,7 @@ actor ShipModelService {
         return cachedDDS
     }
 
-    // MARK: - Model index
+    // MARK:  Model index
 
     private func resolveModelFilename(for shipName: String) async throws -> String? {
         let index  = try await ensureModelIndex()
@@ -168,7 +168,7 @@ actor ShipModelService {
         return dest
     }
 
-    // MARK: - Texture lookup
+    // MARK:  Texture lookup
 
     private func resolveAlbedoHash(for shipName: String) async throws -> String {
         let nameMap = try await ensureNameToId()
@@ -312,7 +312,7 @@ actor ShipModelService {
         return result
     }
 
-    // MARK: - Disk helpers
+    // MARK:  Disk helpers
 
     private func loadLines(from url: URL) -> [String]? {
         guard let text = loadText(from: url) else { return nil }
@@ -331,7 +331,7 @@ actor ShipModelService {
     }
 }
 
-// MARK: - Errors
+// MARK:  Errors
 
 enum ShipModelError: LocalizedError {
     case badURL, http(Int), parseFailure
