@@ -22,6 +22,66 @@ enum LightingPreset: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+// MARK: SCNView subclass — physical scroll wheel zoom
+
+// SCNView's built-in camera controller uses scroll events for orbit (rotation) and
+// pinch gestures for zoom. Pinch doesn't exist on a physical mouse, so we intercept
+// non-precise scroll events (hasPreciseScrollingDeltas == false → physical wheel) and
+// drive the camera FOV directly. Trackpad scroll events (hasPreciseScrollingDeltas ==
+// true) pass through to SceneKit for normal orbit behaviour.
+private final class ShipSCNView: SCNView {
+
+    // MARK: Scroll wheel zoom (physical mouse)
+    // SceneKit zooms via pinch (trackpad magnification gesture). Physical mouse wheels
+    // generate scroll events that SceneKit routes to orbit instead, so we intercept
+    // non-precise scroll events and adjust FOV directly.
+    override func scrollWheel(with event: NSEvent) {
+        guard !event.hasPreciseScrollingDeltas,
+              let camera = defaultCameraController.pointOfView?.camera else {
+            super.scrollWheel(with: event)
+            return
+        }
+        let delta = event.scrollingDeltaY
+        camera.fieldOfView = max(10, min(120, camera.fieldOfView - delta * 1.5))
+    }
+
+    // MARK: ⌘-drag pan (physical mouse)
+    // SceneKit pans via two-finger trackpad gesture. On a physical mouse ⌘+drag never
+    // triggers that gesture recognizer, so we intercept it and call translateInCameraSpaceBy
+    // directly. Pan speed is scaled by camera distance so it feels consistent at any zoom.
+    private var lastDragLocation: CGPoint = .zero
+
+    override func mouseDown(with event: NSEvent) {
+        lastDragLocation = convert(event.locationInWindow, from: nil)
+        super.mouseDown(with: event)
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        let loc = convert(event.locationInWindow, from: nil)
+        defer { lastDragLocation = loc }
+
+        guard event.modifierFlags.contains(.command) else {
+            super.mouseDragged(with: event)
+            return
+        }
+
+        let dx = Float(loc.x - lastDragLocation.x)
+        let dy = Float(loc.y - lastDragLocation.y)
+
+        let dist: Float
+        if let pov = defaultCameraController.pointOfView {
+            let p = pov.position
+            let px = Float(p.x), py = Float(p.y), pz = Float(p.z)
+            dist = max(1, sqrt(px * px + py * py + pz * pz))
+        } else {
+            dist = 1
+        }
+
+        let scale = dist * 0.0015
+        defaultCameraController.translateInCameraSpaceBy(x: -dx * scale, y: -dy * scale, z: 0)
+    }
+}
+
 // MARK:  SceneKit View
 
 /// Renders a ship .obj model in a SceneKit view with optional albedo texture.
@@ -46,7 +106,7 @@ struct ShipSceneKitView: NSViewRepresentable {
     var lightingPreset:  LightingPreset = .deepSpace
 
     func makeNSView(context: Context) -> SCNView {
-        let v = SCNView()
+        let v = ShipSCNView()
         v.backgroundColor = NSColor(red: 0.01, green: 0.01, blue: 0.02, alpha: 1)
         v.allowsCameraControl = true
         v.autoenablesDefaultLighting = false
