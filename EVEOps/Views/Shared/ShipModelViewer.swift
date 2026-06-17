@@ -13,6 +13,15 @@
 import SwiftUI
 import SceneKit
 
+// MARK: Lighting Preset
+
+enum LightingPreset: String, CaseIterable, Identifiable {
+    case deepSpace = "Deep Space"
+    case hangar    = "Hangar"
+    case combat    = "Combat"
+    var id: String { rawValue }
+}
+
 // MARK:  SceneKit View
 
 /// Renders a ship .obj model in a SceneKit view with optional albedo texture.
@@ -30,8 +39,11 @@ import SceneKit
 /// locked to the hull as the camera orbits. Falls back to a PBR metallic material
 /// when no texture is available.
 struct ShipSceneKitView: NSViewRepresentable {
-    let objURL:       URL
-    var albedoDDSURL: URL? = nil
+    let objURL:          URL
+    var albedoDDSURL:    URL? = nil
+    var normalDDSURL:    URL? = nil
+    var roughnessDDSURL: URL? = nil
+    var lightingPreset:  LightingPreset = .deepSpace
 
     func makeNSView(context: Context) -> SCNView {
         let v = SCNView()
@@ -52,38 +64,66 @@ struct ShipSceneKitView: NSViewRepresentable {
         return v
     }
 
-    func updateNSView(_ v: SCNView, context: Context) {}
+    func updateNSView(_ v: SCNView, context: Context) {
+        guard let scene = v.scene else { return }
+        applyLightingPreset(lightingPreset, to: scene)
+    }
 
     // MARK: Lighting
 
     private func addLighting(to scene: SCNScene) {
-        let key = SCNNode(); key.light = SCNLight()
-        key.light!.type = .directional; key.light!.intensity = 900
-        key.light!.color = NSColor.white
-        key.eulerAngles = SCNVector3(-0.7, 0.8, 0)
+        let key = SCNNode(); key.name = "keyLight"; key.light = SCNLight()
+        key.light!.type = .directional
         scene.rootNode.addChildNode(key)
 
-        let fill = SCNNode(); fill.light = SCNLight()
-        fill.light!.type = .directional; fill.light!.intensity = 350
-        fill.light!.color = NSColor(calibratedRed: 0.35, green: 0.45, blue: 0.75, alpha: 1)
-        fill.eulerAngles = SCNVector3(0.5, -1.1, 0)
+        let fill = SCNNode(); fill.name = "fillLight"; fill.light = SCNLight()
+        fill.light!.type = .directional
         scene.rootNode.addChildNode(fill)
 
-        let ambient = SCNNode(); ambient.light = SCNLight()
+        let ambient = SCNNode(); ambient.name = "ambientLight"; ambient.light = SCNLight()
         ambient.light!.type = .ambient
-        ambient.light!.color = NSColor(calibratedWhite: 0.1, alpha: 1)
         scene.rootNode.addChildNode(ambient)
+
+        applyLightingPreset(lightingPreset, to: scene)
+    }
+
+    private func applyLightingPreset(_ preset: LightingPreset, to scene: SCNScene) {
+        guard let keyNode = scene.rootNode.childNode(withName: "keyLight",     recursively: false),
+              let fillNode = scene.rootNode.childNode(withName: "fillLight",   recursively: false),
+              let ambNode  = scene.rootNode.childNode(withName: "ambientLight", recursively: false),
+              let key = keyNode.light, let fill = fillNode.light, let amb = ambNode.light
+        else { return }
+
+        switch preset {
+        case .deepSpace:
+            key.intensity  = 900;  key.color  = NSColor.white
+            keyNode.eulerAngles  = SCNVector3(-0.7,  0.8,  0)
+            fill.intensity = 350;  fill.color = NSColor(calibratedRed: 0.35, green: 0.45, blue: 0.75, alpha: 1)
+            fillNode.eulerAngles = SCNVector3( 0.5, -1.1,  0)
+            amb.color = NSColor(calibratedWhite: 0.10, alpha: 1)
+
+        case .hangar:
+            key.intensity  = 1100; key.color  = NSColor(calibratedRed: 1.00, green: 0.92, blue: 0.78, alpha: 1)
+            keyNode.eulerAngles  = SCNVector3(-1.2,  0.3,  0)
+            fill.intensity = 450;  fill.color = NSColor(calibratedRed: 0.72, green: 0.68, blue: 0.62, alpha: 1)
+            fillNode.eulerAngles = SCNVector3( 0.4, -0.8,  0)
+            amb.color = NSColor(calibratedWhite: 0.18, alpha: 1)
+
+        case .combat:
+            key.intensity  = 900;  key.color  = NSColor(calibratedRed: 1.00, green: 0.35, blue: 0.15, alpha: 1)
+            keyNode.eulerAngles  = SCNVector3(-0.5,  0.9,  0.2)
+            fill.intensity = 200;  fill.color = NSColor(calibratedRed: 0.40, green: 0.12, blue: 0.05, alpha: 1)
+            fillNode.eulerAngles = SCNVector3( 0.6, -1.0, -0.3)
+            amb.color = NSColor(calibratedRed: 0.15, green: 0.02, blue: 0.02, alpha: 1)
+        }
     }
 
     // MARK: Starfield
 
-    /// Generates a 2048×1024 equirectangular star-field image used as the scene skybox.
-    ///
-    /// SceneKit maps a single CGImage assigned to scene.background.contents as a
-    /// spherical panorama, so the starfield rotates correctly as the camera orbits.
-    /// Stars are drawn at three sizes driven by a power-law luminosity distribution
-    /// (many dim, few bright) and coloured across four rough spectral classes. Two
-    /// faint radial gradients add nebula-like colour variation to the void.
+    /// Generates a 2048×1024 equirectangular star-field used as the scene skybox.
+    /// Simple approach: uniform deep-black base + 5 500 stars with realistic spectral
+    /// colours + a barely-visible centred depth glow. Centred-only gradients mean the
+    /// equirectangular wrap seam is completely invisible.
     private func makeStarfieldBackground() -> CGImage? {
         let W = 2048, H = 1024
         let cs = CGColorSpaceCreateDeviceRGB()
@@ -94,55 +134,49 @@ struct ShipSceneKitView: NSViewRepresentable {
             bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
         ) else { return nil }
 
-        // Deep space base
-        ctx.setFillColor(CGColor(colorSpace: cs, components: [0.008, 0.008, 0.022, 1])!)
+        let FW = CGFloat(W), FH = CGFloat(H)
+
+        // ── 1. Pure deep-space black (very slight blue tint) ─────────────────────────
+        ctx.setFillColor(CGColor(colorSpace: cs, components: [0.005, 0.006, 0.014, 1])!)
         ctx.fill(CGRect(x: 0, y: 0, width: W, height: H))
 
-        // Nebula 1 — faint blue-violet glow, upper-right
-        let n1Colors = [CGColor(colorSpace: cs, components: [0.05, 0.10, 0.35, 0.18])!,
-                        CGColor(colorSpace: cs, components: [0.00, 0.00, 0.00, 0.00])!] as CFArray
-        if let grad = CGGradient(colorsSpace: cs, colors: n1Colors, locations: [0, 1]) {
-            let cx = CGFloat(W) * 0.72, cy = CGFloat(H) * 0.62
-            ctx.drawRadialGradient(grad,
-                startCenter: CGPoint(x: cx, y: cy), startRadius: 0,
-                endCenter:   CGPoint(x: cx, y: cy), endRadius: CGFloat(W) * 0.42,
-                options: .drawsAfterEndLocation)
+        // ── 2. One faint centred depth glow — symmetric so the wrap seam is invisible ─
+        if let grad = CGGradient(
+            colorsSpace: cs,
+            colors: [CGColor(colorSpace: cs, components: [0.02, 0.03, 0.10, 0.14])!,
+                     CGColor(colorSpace: cs, components: [0,    0,    0,    0   ])!] as CFArray,
+            locations: [0, 1])
+        {
+            let c = CGPoint(x: FW * 0.5, y: FH * 0.5)
+            ctx.drawRadialGradient(grad, startCenter: c, startRadius: 0,
+                                   endCenter: c, endRadius: FW * 0.55,
+                                   options: .drawsAfterEndLocation)
         }
 
-        // Nebula 2 — warm purple, lower-left
-        let n2Colors = [CGColor(colorSpace: cs, components: [0.20, 0.04, 0.24, 0.13])!,
-                        CGColor(colorSpace: cs, components: [0.00, 0.00, 0.00, 0.00])!] as CFArray
-        if let grad = CGGradient(colorsSpace: cs, colors: n2Colors, locations: [0, 1]) {
-            let cx = CGFloat(W) * 0.26, cy = CGFloat(H) * 0.35
-            ctx.drawRadialGradient(grad,
-                startCenter: CGPoint(x: cx, y: cy), startRadius: 0,
-                endCenter:   CGPoint(x: cx, y: cy), endRadius: CGFloat(W) * 0.28,
-                options: .drawsAfterEndLocation)
-        }
-
-        // Stars — power-law luminosity so dim stars vastly outnumber bright ones
-        for _ in 0 ..< 3200 {
-            let x   = CGFloat.random(in: 0 ..< CGFloat(W))
-            let y   = CGFloat.random(in: 0 ..< CGFloat(H))
-            let lum = pow(CGFloat.random(in: 0...1), 2.2)   // steep → mostly faint
-            let vis = 0.15 + lum * 0.85
-            let sz: CGFloat = lum < 0.45 ? 1.0 : lum < 0.78 ? 1.5 : 2.5
+        // ── 3. Stars ─────────────────────────────────────────────────────────────────
+        for _ in 0 ..< 5500 {
+            let sx  = CGFloat.random(in: 0 ..< FW)
+            let sy  = CGFloat.random(in: 0 ..< FH)
+            let lum = pow(CGFloat.random(in: 0...1), 2.4)  // steep power-law → mostly dim
+            let vis = 0.35 + lum * 0.65
 
             let t = CGFloat.random(in: 0...1)
             let (r, g, b): (CGFloat, CGFloat, CGFloat)
-            if      t < 0.55 { (r, g, b) = (vis,        vis,        vis        ) } // white
-            else if t < 0.78 { (r, g, b) = (vis * 0.85, vis * 0.91, vis        ) } // blue-white
-            else if t < 0.90 { (r, g, b) = (vis,        vis * 0.96, vis * 0.82 ) } // yellow-white
-            else             { (r, g, b) = (vis,        vis * 0.78, vis * 0.58 ) } // orange-red
+            if      t < 0.55 { (r, g, b) = (vis,        vis,        vis       ) } // white
+            else if t < 0.75 { (r, g, b) = (vis * 0.82, vis * 0.91, vis       ) } // blue-white
+            else if t < 0.88 { (r, g, b) = (vis,        vis * 0.94, vis * 0.76) } // yellow-white
+            else             { (r, g, b) = (vis,        vis * 0.72, vis * 0.50) } // orange
+
+            let sz: CGFloat = lum < 0.50 ? 1.0 : lum < 0.80 ? 1.5 : 2.5
 
             ctx.setFillColor(CGColor(colorSpace: cs, components: [r, g, b, 1])!)
-            ctx.fillEllipse(in: CGRect(x: x - sz/2, y: y - sz/2, width: sz, height: sz))
+            ctx.fillEllipse(in: CGRect(x: sx - sz/2, y: sy - sz/2, width: sz, height: sz))
 
-            // Soft diffraction glow on the brightest stars
-            if lum > 0.82 {
-                ctx.setFillColor(CGColor(colorSpace: cs, components: [r, g, b, 0.10])!)
-                let gr = sz * 5
-                ctx.fillEllipse(in: CGRect(x: x - gr/2, y: y - gr/2, width: gr, height: gr))
+            // Very subtle bloom on only the very brightest stars
+            if lum > 0.92 {
+                ctx.setFillColor(CGColor(colorSpace: cs, components: [r, g, b, 0.04])!)
+                let gr = sz * 3
+                ctx.fillEllipse(in: CGRect(x: sx - gr/2, y: sy - gr/2, width: gr, height: gr))
             }
         }
 
@@ -152,39 +186,43 @@ struct ShipSceneKitView: NSViewRepresentable {
     // MARK: Material
 
     private func buildMaterial(for scene: SCNScene) -> SCNMaterial {
-        let mat = SCNMaterial()
+        let mat    = SCNMaterial()
         mat.lightingModel = .physicallyBased
+        let device = MTLCreateSystemDefaultDevice()
 
-        if let ddsURL = albedoDDSURL,
-           let ddsData = try? Data(contentsOf: ddsURL),
-           let device  = MTLCreateSystemDefaultDevice() {
-
-            // BC1/BC3: software CPU decode → CGImage
-            // BC7/DX10: Metal render pass → CIContext readback → CGImage
-            // CGImage (not MTLTexture) is required because SceneKit only auto-generates
-            // the 'u_diffuseTexture' GLSL uniform for image-typed contents; MTLTexture
-            // contents skip that step and the shader modifier can't find the sampler.
-            var albedo: CGImage? = DDSDecoder.decode(ddsData)
-            if albedo == nil {
-                albedo = DDSDecoder.cgImage(from: ddsData, device: device)
-            }
-
-            if let img = albedo {
-                // The .obj files from GetEveModels have UV coordinates, so the texture
-                // maps correctly using SceneKit's standard diffuse channel — no shader
-                // modifier needed. (Triplanar GLSL/MSL shader modifiers consistently
-                // fail on modern SceneKit/Metal; the UV path looks correct anyway.)
-                mat.diffuse.contents   = img
-                mat.metalness.contents = NSNumber(value: 0.55)
-                mat.roughness.contents = NSNumber(value: 0.45)
-                return mat
-            }
+        // Albedo (BC1/BC3 software path or BC7 Metal path)
+        if let url = albedoDDSURL, let data = try? Data(contentsOf: url), let dev = device {
+            var img: CGImage? = DDSDecoder.decode(data)
+            if img == nil { img = DDSDecoder.cgImage(from: data, device: dev) }
+            mat.diffuse.contents = img ?? NSColor(calibratedRed: 0.55, green: 0.58, blue: 0.62, alpha: 1)
+        } else {
+            mat.diffuse.contents = NSColor(calibratedRed: 0.55, green: 0.58, blue: 0.62, alpha: 1)
         }
 
-        // Fallback: flat metallic grey
-        mat.diffuse.contents   = NSColor(calibratedRed: 0.55, green: 0.58, blue: 0.62, alpha: 1)
-        mat.metalness.contents = NSNumber(value: 0.75)
-        mat.roughness.contents = NSNumber(value: 0.35)
+        // Normal map (BC5/ATI2 → Z-reconstructed RGBA, or BC7/BC1 fallback)
+        if let url = normalDDSURL, let data = try? Data(contentsOf: url), let dev = device {
+            var img: CGImage? = DDSDecoder.decode(data)
+            if img == nil { img = DDSDecoder.cgImage(from: data, device: dev) }
+            if img == nil { img = DDSDecoder.cgImageNormal(from: data, device: dev) }
+            if let img { mat.normal.contents = img }
+        }
+
+        // Roughness map (R channel = roughness; metalness from fixed value)
+        if let url = roughnessDDSURL, let data = try? Data(contentsOf: url), let dev = device {
+            var img: CGImage? = DDSDecoder.decode(data)
+            if img == nil { img = DDSDecoder.cgImage(from: data, device: dev) }
+            if let img {
+                mat.roughness.contents = img
+                mat.metalness.contents = NSNumber(value: 0.65)
+            } else {
+                mat.metalness.contents = NSNumber(value: 0.55)
+                mat.roughness.contents = NSNumber(value: 0.45)
+            }
+        } else {
+            mat.metalness.contents = NSNumber(value: 0.55)
+            mat.roughness.contents = NSNumber(value: 0.45)
+        }
+
         return mat
     }
 
@@ -200,11 +238,20 @@ struct ShipModelSheet: View {
     let shipName: String
     @Environment(\.dismiss) private var dismiss
 
-    @State private var phase: Phase = .loading
+    @State private var phase:          Phase          = .loading
+    @State private var lightingPreset: LightingPreset = .deepSpace
+
+    private struct ReadyPayload {
+        let objURL:      URL
+        let albedoURL:   URL?
+        let normalURL:   URL?
+        let roughURL:    URL?
+        let warning:     String?
+    }
 
     private enum Phase {
         case loading
-        case ready(URL, URL?, String?)  // obj URL, DDS file URL, optional texture warning
+        case ready(ReadyPayload)
         case unavailable
         case failed(String)
     }
@@ -228,6 +275,17 @@ struct ShipModelSheet: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(shipName).font(.headline)
                 Text("3D Ship Model").font(.caption).foregroundStyle(.secondary)
+            }
+            Spacer()
+            if case .ready = phase {
+                Picker("", selection: $lightingPreset) {
+                    ForEach(LightingPreset.allCases) { preset in
+                        Text(preset.rawValue).tag(preset)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .frame(width: 220)
             }
             Spacer()
             Button { dismiss() } label: {
@@ -255,12 +313,18 @@ struct ShipModelSheet: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-        case .ready(let url, let ddsURL, let textureWarning):
+        case .ready(let p):
             ZStack(alignment: .bottom) {
-                ShipSceneKitView(objURL: url, albedoDDSURL: ddsURL)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                ShipSceneKitView(
+                    objURL:          p.objURL,
+                    albedoDDSURL:    p.albedoURL,
+                    normalDDSURL:    p.normalURL,
+                    roughnessDDSURL: p.roughURL,
+                    lightingPreset:  lightingPreset
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 VStack(spacing: 4) {
-                    if let warning = textureWarning {
+                    if let warning = p.warning {
                         Label(warning, systemImage: "exclamationmark.triangle.fill")
                             .font(.caption2)
                             .foregroundStyle(.orange)
@@ -306,12 +370,27 @@ struct ShipModelSheet: View {
                 phase = .unavailable
                 return
             }
-            do {
-                let ddsURL = try await ShipModelService.shared.localAlbedoURL(for: shipName)
-                phase = .ready(objURL, ddsURL, nil)
-            } catch {
-                phase = .ready(objURL, nil, error.localizedDescription)
-            }
+            var albedoURL: URL?
+            var normalURL: URL?
+            var roughURL:  URL?
+            var warning:   String?
+
+            do    { albedoURL = try await ShipModelService.shared.localAlbedoURL(for: shipName) }
+            catch { warning = error.localizedDescription }
+
+            do    { normalURL = try await ShipModelService.shared.localNormalURL(for: shipName) }
+            catch { }
+
+            do    { roughURL = try await ShipModelService.shared.localRoughnessURL(for: shipName) }
+            catch { }
+
+            phase = .ready(ReadyPayload(
+                objURL:    objURL,
+                albedoURL: albedoURL,
+                normalURL: normalURL,
+                roughURL:  roughURL,
+                warning:   warning
+            ))
         } catch {
             phase = .failed(error.localizedDescription)
         }

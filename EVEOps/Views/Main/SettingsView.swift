@@ -659,58 +659,45 @@ private struct CacheTab: View {
     @Environment(AccountManager.self) private var accountManager
     @Environment(DashboardPrefetcher.self) private var prefetcher
 
-    @State private var universeCacheSize: String = "Calculating\u{2026}"
-    @State private var nameCacheSize: String = "Calculating\u{2026}"
-    @State private var isClearingUniverse = false
-    @State private var isClearingNames = false
-    @State private var isClearingESI = false
+    @State private var appCacheSize: String = "Calculating\u{2026}"
+    @State private var modelCacheSize: String = "Calculating\u{2026}"
+    @State private var isClearingAppCache = false
+    @State private var isClearingModels = false
     @State private var isRefreshing = false
     @State private var sdeTag: String?
 
     var body: some View {
         Form {
-            Section("Universe Cache") {
-                LabeledContent("Size", value: universeCacheSize)
-                Button(isClearingUniverse ? "Clearing\u{2026}" : "Clear Universe Cache") {
+            Section("App Caches") {
+                LabeledContent("Size", value: appCacheSize)
+                Button(isClearingAppCache ? "Clearing\u{2026}" : "Clear Caches") {
                     Task {
-                        isClearingUniverse = true
+                        isClearingAppCache = true
                         await UniverseCache.shared.clearDiskCache()
-                        isClearingUniverse = false
-                        await recalculateSizes()
-                    }
-                }
-                .disabled(isClearingUniverse)
-                Text("Stores solar system, type, group, constellation, and region data. Auto-expires after 7 days.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Section("Name Cache") {
-                LabeledContent("Size", value: nameCacheSize)
-                Button(isClearingNames ? "Clearing\u{2026}" : "Clear Name Cache") {
-                    Task {
-                        isClearingNames = true
                         await NameResolver.shared.clearCache()
-                        isClearingNames = false
+                        await ESIClient.shared.clearAllCaches()
+                        isClearingAppCache = false
                         await recalculateSizes()
                     }
                 }
-                .disabled(isClearingNames)
-                Text("Stores resolved names for characters, corporations, systems, and skills.")
+                .disabled(isClearingAppCache)
+                Text("Includes universe data, resolved names, and ESI responses. All data re-fetches automatically.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
-            Section("ESI Response Cache") {
-                Button(isClearingESI ? "Clearing…" : "Clear ESI Cache") {
+            Section("3D Ship Models") {
+                LabeledContent("Size", value: modelCacheSize)
+                Button(isClearingModels ? "Clearing\u{2026}" : "Clear Model Cache") {
                     Task {
-                        isClearingESI = true
-                        await ESIClient.shared.clearAllCaches()
-                        isClearingESI = false
+                        isClearingModels = true
+                        await ShipModelService.shared.clearCache()
+                        isClearingModels = false
+                        await recalculateSizes()
                     }
                 }
-                .disabled(isClearingESI)
-                Text("Clears cached ESI responses so the next load fetches live data. Useful when assets or locations appear out of date.")
+                .disabled(isClearingModels)
+                Text("Downloaded ship meshes and DDS textures. Re-downloaded on demand when viewing ships.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -756,11 +743,12 @@ private struct CacheTab: View {
     }
 
     private func recalculateSizes() async {
-        let base = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
-        let universeDir = base.appendingPathComponent("EVEOps/universe")
-        let nameCacheURL = base.appendingPathComponent("EVEOps/name_cache.json")
-        universeCacheSize = formatBytes(directorySize(universeDir))
-        nameCacheSize = formatBytes(fileSize(nameCacheURL))
+        let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let appBytes = directorySize(caches.appendingPathComponent("EVEOps/universe"))
+                     + fileSize(caches.appendingPathComponent("EVEOps/name_cache.json"))
+        appCacheSize = formatBytes(appBytes)
+        modelCacheSize = formatBytes(directorySize(appSupport.appendingPathComponent("EVEOps/ModelCache")))
     }
 
     private func directorySize(_ url: URL) -> Int64 {
@@ -1020,6 +1008,10 @@ private struct AboutTab: View {
                     eveRefCard
                         .padding(.top, 8)
 
+                    // GetEveModels attribution card
+                    getEveModelsCard
+                        .padding(.top, 8)
+
                     // Sparkle attribution card
                     sparkleCard
                         .padding(.top, 8)
@@ -1047,6 +1039,7 @@ private struct AboutTab: View {
                             Text("EVEScout and the EVEScout logo/name are trademarks and/or service marks of EVEScout.")
                             Text("EVEShip.fit and its Dogma Engine are copyright EVEShipFit contributors. Used under open-source license terms.")
                             Text("Claude and Claude Code are trademarks of Anthropic, PBC. Used for AI-assisted development. No user data is transmitted to Anthropic by EVEOps.")
+                            Text("GetEveModels provides 3D ship model data for EVE Online. Used in accordance with the GetEveModels public API terms of service.")
                             Text("Anoik.is is a third-party wormhole system database for EVE Online. Used in accordance with the Anoik.is public API terms of service.")
                             Text("EVE Buddy is acknowledged as an inspiration for EVEOps and is not affiliated with or endorsed by this application.")
                         }
@@ -1656,6 +1649,57 @@ private struct AboutTab: View {
                         colors: [
                             Color.teal.opacity(0.30),
                             Color.teal.opacity(0.08)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        )
+        .padding(.horizontal, 44)
+    }
+
+    // Mark:  GetEveModels attribution card
+
+    private var getEveModelsCard: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(Color.indigo.opacity(0.12))
+                    .frame(width: 38, height: 38)
+                Image(systemName: "cube.fill")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.indigo)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("GetEveModels")
+                    .font(.system(size: 13, weight: .semibold))
+                Text("3D SHIP MODEL DATA SOURCE")
+                    .font(.system(size: 9, weight: .bold))
+                    .tracking(1.2)
+                    .foregroundStyle(.tertiary)
+            }
+
+            Spacer()
+
+            Button("getevemodels") {
+                if let url = URL(string: "https://github.com/puffingprie/GetEveModels") {
+                    NSWorkspace.shared.open(url)
+                }
+            }
+            .buttonStyle(.link)
+            .font(.system(size: 11, weight: .medium))
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 11)
+        .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [
+                            Color.indigo.opacity(0.30),
+                            Color.indigo.opacity(0.08)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing

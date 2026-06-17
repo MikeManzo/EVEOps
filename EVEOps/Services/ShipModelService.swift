@@ -51,16 +51,36 @@ actor ShipModelService {
 
     private static let modelIndexFile = cacheDir.appendingPathComponent(".model_index")
     private static let assocFile      = cacheDir.appendingPathComponent(".assoc_names")
-    private static let resIndexFile   = cacheDir.appendingPathComponent(".res_index_v2")
-    private static let resBuildFile   = cacheDir.appendingPathComponent(".res_build")
+    private static let resIndexFile    = cacheDir.appendingPathComponent(".res_index_v2")
+    private static let resNormalsFile  = cacheDir.appendingPathComponent(".res_normals")
+    private static let resRoughFile    = cacheDir.appendingPathComponent(".res_roughness")
+    private static let resBuildFile    = cacheDir.appendingPathComponent(".res_build")
 
     // MARK: In-memory caches
 
-    private var modelIndex: [String]?
-    private var nameToId:   [String: String]?
-    private var idToHash:   [String: String]?
+    private var modelIndex:        [String]?
+    private var nameToId:          [String: String]?
+    private var idToHash:          [String: String]?
+    private var idToNormalHash:    [String: String]?
+    private var idToRoughnessHash: [String: String]?
 
     private init() {}
+
+    // MARK:  Public: clear cache
+
+    func clearCache() {
+        let files = (try? FileManager.default.contentsOfDirectory(
+            at: Self.cacheDir, includingPropertiesForKeys: nil
+        )) ?? []
+        for file in files {
+            try? FileManager.default.removeItem(at: file)
+        }
+        modelIndex        = nil
+        nameToId          = nil
+        idToHash          = nil
+        idToNormalHash    = nil
+        idToRoughnessHash = nil
+    }
 
     // MARK:  Public: model
 
@@ -71,31 +91,45 @@ actor ShipModelService {
 
     // MARK:  Public: texture
 
-    /// Returns raw DDS bytes for the ship's albedo texture, decompressing any HTTP
-    /// zlib layer if present. The caller (ShipSceneKitView) passes these to
-    /// MTKTextureLoader, which natively decodes BC1–BC7.
-    /// Throws `AlbedoError` with a human-readable reason on failure.
     /// Downloads and caches the ship's albedo DDS texture, then returns the local file URL.
-    /// MTKTextureLoader.newTexture(URL:) uses ModelIO which decodes BC1–BC7 natively;
-    /// passing raw Data via newTexture(data:) routes through ImageIO which doesn't support DDS.
     func localAlbedoURL(for shipName: String) async throws -> URL {
-        let cacheKey  = shipName.filter { $0.isLetter || $0.isNumber }
-        let cachedDDS = Self.cacheDir.appendingPathComponent(cacheKey + "_albedo.dds")
-
-        if FileManager.default.fileExists(atPath: cachedDDS.path) { return cachedDDS }
-
+        let cacheKey = shipName.filter { $0.isLetter || $0.isNumber }
+        let dest     = Self.cacheDir.appendingPathComponent(cacheKey + "_albedo.dds")
+        if FileManager.default.fileExists(atPath: dest.path) { return dest }
         let hashPath = try await resolveAlbedoHash(for: shipName)
+        return try await downloadAndCacheDDS(hashPath: hashPath, to: dest)
+    }
+
+    /// Downloads and caches the ship's normal DDS texture (_n.dds), returns the local URL.
+    func localNormalURL(for shipName: String) async throws -> URL {
+        let cacheKey = shipName.filter { $0.isLetter || $0.isNumber }
+        let dest     = Self.cacheDir.appendingPathComponent(cacheKey + "_normal.dds")
+        if FileManager.default.fileExists(atPath: dest.path) { return dest }
+        let hashPath = try await resolveNormalHash(for: shipName)
+        return try await downloadAndCacheDDS(hashPath: hashPath, to: dest)
+    }
+
+    /// Downloads and caches the ship's roughness DDS texture (_r.dds), returns the local URL.
+    func localRoughnessURL(for shipName: String) async throws -> URL {
+        let cacheKey = shipName.filter { $0.isLetter || $0.isNumber }
+        let dest     = Self.cacheDir.appendingPathComponent(cacheKey + "_roughness.dds")
+        if FileManager.default.fileExists(atPath: dest.path) { return dest }
+        let hashPath = try await resolveRoughnessHash(for: shipName)
+        return try await downloadAndCacheDDS(hashPath: hashPath, to: dest)
+    }
+
+    // MARK: Shared DDS download helper
+
+    private func downloadAndCacheDDS(hashPath: String, to dest: URL) async throws -> URL {
         guard let cdnURL = URL(string: Self.resourceBase + hashPath) else {
             throw AlbedoError.downloadFailed(0)
         }
-
         var req = URLRequest(url: cdnURL)
         req.setValue("EVEOps macOS", forHTTPHeaderField: "User-Agent")
         let (rawData, resp) = try await URLSession.shared.data(for: req)
         guard let http = resp as? HTTPURLResponse, http.statusCode == 200 else {
             throw AlbedoError.downloadFailed((resp as? HTTPURLResponse)?.statusCode ?? -1)
         }
-
         // CCP CDN may serve an extra zlib layer on top of BC compression.
         var ddsData = rawData
         let isDDS = rawData.count >= 4
@@ -104,15 +138,13 @@ actor ShipModelService {
         if !isDDS, let decompressed = try? (rawData as NSData).decompressed(using: .zlib) {
             ddsData = decompressed as Data
         }
-
         guard ddsData.count >= 4,
               ddsData[0] == 0x44, ddsData[1] == 0x44,
               ddsData[2] == 0x53, ddsData[3] == 0x20 else {
             throw AlbedoError.decodeFailed
         }
-
-        try ddsData.write(to: cachedDDS, options: .atomic)
-        return cachedDDS
+        try ddsData.write(to: dest, options: .atomic)
+        return dest
     }
 
     // MARK:  Model index
@@ -182,6 +214,30 @@ actor ShipModelService {
         throw AlbedoError.notInTextureIndex(id)
     }
 
+    private func resolveNormalHash(for shipName: String) async throws -> String {
+        let nameMap = try await ensureNameToId()
+        let hashMap = try await ensureIdToNormalHash()
+        let key     = shipName.lowercased()
+        guard let id = nameMap[key] else { throw AlbedoError.notInNameIndex }
+        if let hash = hashMap[id] { return hash }
+        let baseParts = id.components(separatedBy: "_")
+        if baseParts.count >= 2,
+           let hash = hashMap[baseParts.dropLast().joined(separator: "_") + "_t1"] { return hash }
+        throw AlbedoError.notInTextureIndex(id)
+    }
+
+    private func resolveRoughnessHash(for shipName: String) async throws -> String {
+        let nameMap = try await ensureNameToId()
+        let hashMap = try await ensureIdToRoughnessHash()
+        let key     = shipName.lowercased()
+        guard let id = nameMap[key] else { throw AlbedoError.notInNameIndex }
+        if let hash = hashMap[id] { return hash }
+        let baseParts = id.components(separatedBy: "_")
+        if baseParts.count >= 2,
+           let hash = hashMap[baseParts.dropLast().joined(separator: "_") + "_t1"] { return hash }
+        throw AlbedoError.notInTextureIndex(id)
+    }
+
     // MARK: associated_file_names.txt
 
     private func ensureNameToId() async throws -> [String: String] {
@@ -227,12 +283,31 @@ actor ShipModelService {
            let cachedBuild = loadText(from: Self.resBuildFile)?.trimmingCharacters(in: .whitespacesAndNewlines),
            currentBuild == nil || cachedBuild == currentBuild {
             let map = parseResCache(disk)
-            if !map.isEmpty { idToHash = map; return map }
+            if !map.isEmpty {
+                idToHash = map
+                if idToNormalHash    == nil { idToNormalHash    = loadText(from: Self.resNormalsFile).map { parseResCache($0) } ?? [:] }
+                if idToRoughnessHash == nil { idToRoughnessHash = loadText(from: Self.resRoughFile).map  { parseResCache($0) } ?? [:] }
+                return map
+            }
         }
         guard currentBuild != nil else { throw AlbedoError.downloadFailed(0) }
-        let map = try await fetchLiveResIndex()
-        idToHash = map
-        return map
+        let maps = try await fetchLiveResIndex()
+        idToHash          = maps.albedo
+        idToNormalHash    = maps.normal
+        idToRoughnessHash = maps.roughness
+        return maps.albedo
+    }
+
+    private func ensureIdToNormalHash() async throws -> [String: String] {
+        if let c = idToNormalHash { return c }
+        _ = try await ensureIdToHash()
+        return idToNormalHash ?? [:]
+    }
+
+    private func ensureIdToRoughnessHash() async throws -> [String: String] {
+        if let c = idToRoughnessHash { return c }
+        _ = try await ensureIdToHash()
+        return idToRoughnessHash ?? [:]
     }
 
     private func fetchCurrentBuild() async throws -> String {
@@ -250,7 +325,7 @@ actor ShipModelService {
         throw ShipModelError.parseFailure
     }
 
-    private func fetchLiveResIndex() async throws -> [String: String] {
+    private func fetchLiveResIndex() async throws -> (albedo: [String: String], normal: [String: String], roughness: [String: String]) {
         let build = try await fetchCurrentBuild()
 
         guard let manifestURL = URL(string: Self.buildManifestBase + build + ".txt") else {
@@ -280,25 +355,41 @@ actor ShipModelService {
             throw AlbedoError.downloadFailed((resResp as? HTTPURLResponse)?.statusCode ?? -1)
         }
 
-        var result:     [String: String] = [:]
-        var cacheLines: [String]         = []
+        var albedo:        [String: String] = [:]
+        var normal:        [String: String] = [:]
+        var roughness:     [String: String] = [:]
+        var albedoLines:   [String]         = []
+        var normalLines:   [String]         = []
+        var roughnessLines:[String]         = []
+
         for try await line in bytes.lines {
             guard line.contains("/model/ship/"),
-                  line.contains("_a.dds,") || line.hasSuffix("_a.dds") else { continue }
+                  line.contains("_a.dds") || line.contains("_n.dds") || line.contains("_r.dds")
+            else { continue }
             let fields   = line.components(separatedBy: ",")
             guard fields.count >= 2 else { continue }
             let filename = fields[0].components(separatedBy: "/").last ?? ""
-            guard filename.hasSuffix("_a.dds") else { continue }
-            let id = String(filename.dropLast("_a.dds".count))
-            guard !id.isEmpty else { continue }
-            result[id] = fields[1]
-            cacheLines.append("\(id)=\(fields[1])")
+            let hash     = fields[1]
+            if filename.hasSuffix("_a.dds") {
+                let id = String(filename.dropLast("_a.dds".count))
+                guard !id.isEmpty else { continue }
+                albedo[id] = hash; albedoLines.append("\(id)=\(hash)")
+            } else if filename.hasSuffix("_n.dds") {
+                let id = String(filename.dropLast("_n.dds".count))
+                guard !id.isEmpty else { continue }
+                normal[id] = hash; normalLines.append("\(id)=\(hash)")
+            } else if filename.hasSuffix("_r.dds") {
+                let id = String(filename.dropLast("_r.dds".count))
+                guard !id.isEmpty else { continue }
+                roughness[id] = hash; roughnessLines.append("\(id)=\(hash)")
+            }
         }
 
-        let cacheText = cacheLines.joined(separator: "\n")
-        try? cacheText.data(using: .utf8)?.write(to: Self.resIndexFile, options: .atomic)
+        saveLines(albedoLines,    to: Self.resIndexFile)
+        saveLines(normalLines,    to: Self.resNormalsFile)
+        saveLines(roughnessLines, to: Self.resRoughFile)
         try? build.data(using: .utf8)?.write(to: Self.resBuildFile, options: .atomic)
-        return result
+        return (albedo, normal, roughness)
     }
 
     private func parseResCache(_ text: String) -> [String: String] {

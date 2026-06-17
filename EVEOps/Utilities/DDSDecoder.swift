@@ -67,6 +67,129 @@ enum DDSDecoder {
         return ctx.createCGImage(ci, from: extent)
     }
 
+    // MARK: Public: Metal path for BC5 normal maps → RGBA CGImage
+
+    /// Decodes a BC5 (ATI2 legacy or DX10 BC5_UNORM/BC5_SNORM) DDS normal map to an
+    /// RGBA8 CGImage with Z reconstructed in a Metal shader from the stored XY, producing
+    /// a standard tangent-space normal map (blue-dominant) ready for SceneKit's mat.normal.
+    static func cgImageNormal(from data: Data, device: MTLDevice) -> CGImage? {
+        guard let rgba = bc5NormalTexture(from: data, device: device) else { return nil }
+        guard let ci = CIImage(mtlTexture: rgba,
+                               options: [.colorSpace: CGColorSpaceCreateDeviceRGB()])
+        else { return nil }
+        let ctx = CIContext(mtlDevice: device)
+        let extent = CGRect(x: 0, y: 0, width: rgba.width, height: rgba.height)
+        return ctx.createCGImage(ci, from: extent)
+    }
+
+    // MARK: BC5 normal → RGBA8 MTLTexture (internal)
+
+    private static func bc5NormalTexture(from data: Data, device: MTLDevice) -> MTLTexture? {
+        guard data.count >= 128,
+              data[0] == 0x44, data[1] == 0x44, data[2] == 0x53, data[3] == 0x20
+        else { return nil }
+
+        let fourCC = data.le32(at: 84)
+        let isATI2 = (fourCC == 0x32495441)  // "ATI2" — legacy BC5 UNORM
+        let isDX10 = (fourCC == 0x30315844)  // "DX10"
+        let isSnorm: Bool
+        let dataOffset: Int
+
+        if isATI2 {
+            isSnorm = false; dataOffset = 128
+        } else if isDX10, data.count >= 148 {
+            let dxgi = data.le32(at: 128)
+            guard dxgi == 82 || dxgi == 83 || dxgi == 84 else { return nil }  // BC5_TYPELESS/UNORM/SNORM
+            isSnorm = (dxgi == 84); dataOffset = 148
+        } else {
+            return nil
+        }
+
+        let w = Int(data.le32(at: 16))
+        let h = Int(data.le32(at: 12))
+        guard w > 0, h > 0 else { return nil }
+
+        let srcFmt: MTLPixelFormat = isSnorm ? .bc5_rgSnorm : .bc5_rgUnorm
+        let srcDesc = MTLTextureDescriptor.texture2DDescriptor(
+            pixelFormat: srcFmt, width: w, height: h, mipmapped: false)
+        srcDesc.usage       = .shaderRead
+        srcDesc.storageMode = device.hasUnifiedMemory ? .shared : .managed
+        guard let srcTex = device.makeTexture(descriptor: srcDesc) else { return nil }
+
+        let blocksW     = (w + 3) / 4
+        let blocksH     = (h + 3) / 4
+        let bytesPerRow = blocksW * 16  // two BC4 sub-blocks per BC5 4×4 block
+        guard dataOffset + bytesPerRow * blocksH <= data.count else { return nil }
+
+        data.withUnsafeBytes { raw in
+            guard let base = raw.baseAddress else { return }
+            srcTex.replace(
+                region: MTLRegion(origin: MTLOrigin(x: 0, y: 0, z: 0),
+                                  size:   MTLSize(width: w, height: h, depth: 1)),
+                mipmapLevel: 0,
+                withBytes:   base.advanced(by: dataOffset),
+                bytesPerRow: bytesPerRow)
+        }
+
+        let dstDesc = MTLTextureDescriptor.texture2DDescriptor(
+            pixelFormat: .rgba8Unorm, width: w, height: h, mipmapped: false)
+        dstDesc.usage       = [.renderTarget, .shaderRead]
+        dstDesc.storageMode = .private
+        guard let dstTex = device.makeTexture(descriptor: dstDesc) else { return nil }
+
+        // UNORM sampling → [0,1]; decode XY to [-1,1] (passthrough for output), rebuild Z.
+        // SNORM sampling → [-1,1] directly; remap to [0,1] for output, rebuild Z.
+        let fragBody = isSnorm
+            ? "float2 rg=src.sample(s,in.uv).rg; float nz=sqrt(max(0.0,1.0-dot(rg,rg))); return float4(rg.x*0.5+0.5,rg.y*0.5+0.5,nz*0.5+0.5,1.0);"
+            : "float2 rg=src.sample(s,in.uv).rg; float nx=rg.x*2.0-1.0,ny=rg.y*2.0-1.0; float nz=sqrt(max(0.0,1.0-nx*nx-ny*ny)); return float4(rg.x,rg.y,nz*0.5+0.5,1.0);"
+        let shaderSrc = """
+        #include <metal_stdlib>
+        using namespace metal;
+        struct V2F { float4 pos [[position]]; float2 uv; };
+        vertex V2F bc5v(uint i [[vertex_id]]) {
+            const float2 p[4]={float2(-1,-1),float2(1,-1),float2(-1,1),float2(1,1)};
+            const float2 t[4]={float2(0,1),  float2(1,1), float2(0,0), float2(1,0)};
+            V2F o; o.pos=float4(p[i],0,1); o.uv=t[i]; return o;
+        }
+        fragment float4 bc5f(V2F in [[stage_in]], texture2d<float> src [[texture(0)]]) {
+            constexpr sampler s(filter::linear, address::clamp_to_edge);
+            \(fragBody)
+        }
+        """
+        guard let lib  = try? device.makeLibrary(source: shaderSrc, options: nil),
+              let vfn  = lib.makeFunction(name: "bc5v"),
+              let ffn  = lib.makeFunction(name: "bc5f") else { return nil }
+
+        let pipeDesc = MTLRenderPipelineDescriptor()
+        pipeDesc.vertexFunction   = vfn
+        pipeDesc.fragmentFunction = ffn
+        pipeDesc.colorAttachments[0].pixelFormat = .rgba8Unorm
+        guard let pipe = try? device.makeRenderPipelineState(descriptor: pipeDesc) else { return nil }
+
+        guard let queue  = device.makeCommandQueue(),
+              let cmdbuf = queue.makeCommandBuffer() else { return nil }
+
+        if srcTex.storageMode == .managed,
+           let blitSync = cmdbuf.makeBlitCommandEncoder() {
+            blitSync.synchronize(resource: srcTex)
+            blitSync.endEncoding()
+        }
+
+        let rpd = MTLRenderPassDescriptor()
+        rpd.colorAttachments[0].texture     = dstTex
+        rpd.colorAttachments[0].loadAction  = .dontCare
+        rpd.colorAttachments[0].storeAction = .store
+        guard let enc = cmdbuf.makeRenderCommandEncoder(descriptor: rpd) else { return nil }
+        enc.setRenderPipelineState(pipe)
+        enc.setFragmentTexture(srcTex, index: 0)
+        enc.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
+        enc.endEncoding()
+
+        cmdbuf.commit()
+        cmdbuf.waitUntilCompleted()
+        return cmdbuf.error == nil ? dstTex : nil
+    }
+
     // MARK:  BC7 → RGBA8 MTLTexture (internal)
 
     private static func rgbaTexture(from data: Data, device: MTLDevice) -> MTLTexture? {
