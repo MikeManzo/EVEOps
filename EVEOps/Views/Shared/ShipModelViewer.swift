@@ -12,6 +12,7 @@
 
 import SwiftUI
 import SceneKit
+import ModelIO
 
 // MARK: Lighting Preset
 
@@ -105,6 +106,28 @@ struct ShipSceneKitView: NSViewRepresentable {
     var roughnessDDSURL: URL? = nil
     var lightingPreset:  LightingPreset = .deepSpace
 
+    // MARK: Coordinator — fixes z-clipping via SCNSceneRendererDelegate
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    /// SceneKit creates the default camera lazily on the first render frame, so neither
+    /// makeNSView nor the first updateNSView can access it. The delegate fires after that
+    /// first frame and is the earliest reliable place to configure the camera.
+    final class Coordinator: NSObject, SCNSceneRendererDelegate {
+        private var configured = false
+
+        func renderer(_ renderer: SCNSceneRenderer, didRenderScene scene: SCNScene, atTime time: TimeInterval) {
+            guard !configured else { return }
+            configured = true
+            // automaticallyAdjustsZRange recomputes zNear/zFar each frame from the scene
+            // bounds, preventing the near plane from slicing through large ship hulls and
+            // creating the hard fixed line visible in the viewport.
+            DispatchQueue.main.async {
+                renderer.pointOfView?.camera?.automaticallyAdjustsZRange = true
+            }
+        }
+    }
+
     func makeNSView(context: Context) -> SCNView {
         let v = ShipSCNView()
         v.backgroundColor = NSColor(red: 0.01, green: 0.01, blue: 0.02, alpha: 1)
@@ -112,8 +135,9 @@ struct ShipSceneKitView: NSViewRepresentable {
         v.autoenablesDefaultLighting = false
         v.antialiasingMode = .multisampling4X
         v.showsStatistics  = false
+        v.delegate = context.coordinator
 
-        if let scene = try? SCNScene(url: objURL, options: [.checkConsistency: false]) {
+        if let scene = loadScene(from: objURL) {
             addLighting(to: scene)
             scene.background.contents = makeStarfieldBackground()
             let mat = buildMaterial(for: scene)
@@ -129,6 +153,156 @@ struct ShipSceneKitView: NSViewRepresentable {
         applyLightingPreset(lightingPreset, to: scene)
     }
 
+    // MARK: Scene loading
+
+    /// Loads the OBJ via ModelIO, generates smooth normals with crease-threshold
+    /// quality, fixes any inward-pointing normals directly in the MDLMesh vertex
+    /// buffer, then converts to SceneKit in one step — no OBJ export/import round-
+    /// trip. The round-trip was the root cause of the dark-half bug on symmetric
+    /// ships: it remapped vertices, split edges, and gave SceneKit stale per-vertex
+    /// normals that post-load geometry surgery couldn't reliably fix.
+    private func loadScene(from url: URL) -> SCNScene? {
+        let asset = MDLAsset(url: url, vertexDescriptor: nil, bufferAllocator: nil)
+
+        // Collect every mesh so we can compute the global centre before touching normals.
+        var meshes = [MDLMesh]()
+        func collect(_ obj: MDLObject) {
+            if let m = obj as? MDLMesh { meshes.append(m) }
+            for child in obj.children.objects { collect(child) }
+        }
+        for i in 0 ..< asset.count { collect(asset.object(at: i)) }
+        guard !meshes.isEmpty else { return nil }
+
+        // Global bounding-box centre — stable outward-direction reference for all meshes.
+        var gMin = SIMD3<Float>(repeating:  Float.infinity)
+        var gMax = SIMD3<Float>(repeating: -Float.infinity)
+        for m in meshes {
+            let bb = m.boundingBox
+            gMin = min(gMin, SIMD3<Float>(bb.minBounds.x, bb.minBounds.y, bb.minBounds.z))
+            gMax = max(gMax, SIMD3<Float>(bb.maxBounds.x, bb.maxBounds.y, bb.maxBounds.z))
+        }
+        let centre = (gMin + gMax) * 0.5
+
+        // Build the SceneKit scene directly from the MDL vertex buffers — no
+        // OBJ export/import round-trip. Confirmed root cause: asset.export(to:)
+        // re-derives normals from face winding, discarding our corrected buffer.
+        let scene = SCNScene()
+        for m in meshes {
+            m.addNormals(withAttributeNamed: MDLVertexAttributeNormal, creaseThreshold: 0.5)
+            Self.fixInwardNormals(in: m, centre: centre)
+            if let node = Self.makeSCNNode(from: m) {
+                scene.rootNode.addChildNode(node)
+            }
+        }
+        return scene.rootNode.childNodes.isEmpty ? nil : scene
+    }
+
+    /// Iterates every vertex in `mesh` and negates any normal whose dot product
+    /// with the outward direction (vertex − centre) is negative — i.e. points
+    /// toward the hull interior. Operates on the raw MDLMesh vertex buffer so the
+    /// fix is permanent before SceneKit ever reads the data. Returns the number
+    /// of normals that were flipped.
+    @discardableResult
+    private static func fixInwardNormals(in mesh: MDLMesh, centre: SIMD3<Float>) -> Int {
+        guard let normData = mesh.vertexAttributeData(forAttributeNamed: MDLVertexAttributeNormal),
+              let posData  = mesh.vertexAttributeData(forAttributeNamed: MDLVertexAttributePosition)
+        else {
+            print("[ShipModelViewer] fixInwardNormals: missing attribute data (norm=\(mesh.vertexAttributeData(forAttributeNamed: MDLVertexAttributeNormal) != nil) pos=\(mesh.vertexAttributeData(forAttributeNamed: MDLVertexAttributePosition) != nil))")
+            return 0
+        }
+
+        var flipped = 0
+        let count = mesh.vertexCount
+        for i in 0 ..< count {
+            let pBase = posData.dataStart.advanced(by:  i * posData.stride)
+            let nBase = normData.dataStart.advanced(by: i * normData.stride)
+
+            let pos = SIMD3<Float>(
+                pBase.load(fromByteOffset: 0, as: Float.self),
+                pBase.load(fromByteOffset: 4, as: Float.self),
+                pBase.load(fromByteOffset: 8, as: Float.self)
+            )
+            let n = SIMD3<Float>(
+                nBase.load(fromByteOffset: 0, as: Float.self),
+                nBase.load(fromByteOffset: 4, as: Float.self),
+                nBase.load(fromByteOffset: 8, as: Float.self)
+            )
+
+            let outward = pos - centre
+            let olen = sqrt(dot(outward, outward))
+            guard olen > 1e-3 else { continue }
+
+            if dot(n, outward) < 0 {
+                nBase.storeBytes(of: -n.x, toByteOffset: 0, as: Float.self)
+                nBase.storeBytes(of: -n.y, toByteOffset: 4, as: Float.self)
+                nBase.storeBytes(of: -n.z, toByteOffset: 8, as: Float.self)
+                flipped += 1
+            }
+        }
+        return flipped
+    }
+
+    /// Builds an SCNNode directly from the MDLMesh vertex and index buffers,
+    /// bypassing ModelIO's OBJ export which re-computes normals from face winding
+    /// and discards any manual corrections we've applied to the vertex buffer.
+    private static func makeSCNNode(from mesh: MDLMesh) -> SCNNode? {
+        guard let posAttr  = mesh.vertexAttributeData(forAttributeNamed: MDLVertexAttributePosition),
+              let normAttr = mesh.vertexAttributeData(forAttributeNamed: MDLVertexAttributeNormal),
+              let submeshes = mesh.submeshes, submeshes.count > 0
+        else { return nil }
+
+        let count = mesh.vertexCount
+        var posFlat  = [Float](); posFlat.reserveCapacity(count * 3)
+        var normFlat = [Float](); normFlat.reserveCapacity(count * 3)
+
+        for i in 0..<count {
+            let p = posAttr.dataStart.advanced(by:  i * posAttr.stride)
+            let n = normAttr.dataStart.advanced(by: i * normAttr.stride)
+            posFlat.append(contentsOf: [
+                p.load(fromByteOffset: 0, as: Float.self),
+                p.load(fromByteOffset: 4, as: Float.self),
+                p.load(fromByteOffset: 8, as: Float.self)
+            ])
+            normFlat.append(contentsOf: [
+                n.load(fromByteOffset: 0, as: Float.self),
+                n.load(fromByteOffset: 4, as: Float.self),
+                n.load(fromByteOffset: 8, as: Float.self)
+            ])
+        }
+
+        let posSrc = SCNGeometrySource(
+            data: posFlat.withUnsafeBytes { Data($0) }, semantic: .vertex,
+            vectorCount: count, usesFloatComponents: true, componentsPerVector: 3,
+            bytesPerComponent: 4, dataOffset: 0, dataStride: 12)
+        let normSrc = SCNGeometrySource(
+            data: normFlat.withUnsafeBytes { Data($0) }, semantic: .normal,
+            vectorCount: count, usesFloatComponents: true, componentsPerVector: 3,
+            bytesPerComponent: 4, dataOffset: 0, dataStride: 12)
+
+        var elements = [SCNGeometryElement]()
+        for case let sub as MDLSubmesh in submeshes {
+            guard sub.geometryType == .triangles, sub.indexCount > 0 else { continue }
+            let bpi: Int
+            switch sub.indexType {
+            case .uint8:  bpi = 1
+            case .uint16: bpi = 2
+            case .uint32: bpi = 4
+            default:      continue
+            }
+            let map = sub.indexBuffer.map()
+            let indexData = Data(bytes: map.bytes, count: sub.indexCount * bpi)
+            elements.append(SCNGeometryElement(
+                data: indexData, primitiveType: .triangles,
+                primitiveCount: sub.indexCount / 3, bytesPerIndex: bpi))
+        }
+        guard !elements.isEmpty else { return nil }
+
+        let geo = SCNGeometry(sources: [posSrc, normSrc], elements: elements)
+        let node = SCNNode()
+        node.geometry = geo
+        return node
+    }
+
     // MARK: Lighting
 
     private func addLighting(to scene: SCNScene) {
@@ -140,6 +314,11 @@ struct ShipSceneKitView: NSViewRepresentable {
         fill.light!.type = .directional
         scene.rootNode.addChildNode(fill)
 
+        // Rim light aimed from the opposite hemisphere to the key — lifts the hard shadow terminator
+        let rim = SCNNode(); rim.name = "rimLight"; rim.light = SCNLight()
+        rim.light!.type = .directional
+        scene.rootNode.addChildNode(rim)
+
         let ambient = SCNNode(); ambient.name = "ambientLight"; ambient.light = SCNLight()
         ambient.light!.type = .ambient
         scene.rootNode.addChildNode(ambient)
@@ -148,10 +327,12 @@ struct ShipSceneKitView: NSViewRepresentable {
     }
 
     private func applyLightingPreset(_ preset: LightingPreset, to scene: SCNScene) {
-        guard let keyNode = scene.rootNode.childNode(withName: "keyLight",     recursively: false),
-              let fillNode = scene.rootNode.childNode(withName: "fillLight",   recursively: false),
+        guard let keyNode  = scene.rootNode.childNode(withName: "keyLight",     recursively: false),
+              let fillNode = scene.rootNode.childNode(withName: "fillLight",    recursively: false),
+              let rimNode  = scene.rootNode.childNode(withName: "rimLight",     recursively: false),
               let ambNode  = scene.rootNode.childNode(withName: "ambientLight", recursively: false),
-              let key = keyNode.light, let fill = fillNode.light, let amb = ambNode.light
+              let key = keyNode.light, let fill = fillNode.light,
+              let rim = rimNode.light, let amb = ambNode.light
         else { return }
 
         switch preset {
@@ -160,13 +341,18 @@ struct ShipSceneKitView: NSViewRepresentable {
             keyNode.eulerAngles  = SCNVector3(-0.7,  0.8,  0)
             fill.intensity = 350;  fill.color = NSColor(calibratedRed: 0.35, green: 0.45, blue: 0.75, alpha: 1)
             fillNode.eulerAngles = SCNVector3( 0.5, -1.1,  0)
-            amb.color = NSColor(calibratedWhite: 0.10, alpha: 1)
+            // Rim from the opposite hemisphere of the key (yaw ≈ key + π) to light the shadow side
+            rim.intensity  = 220;  rim.color  = NSColor(calibratedRed: 0.40, green: 0.50, blue: 0.90, alpha: 1)
+            rimNode.eulerAngles  = SCNVector3( 0.3, -2.34, 0)
+            amb.intensity  = 1000; amb.color  = NSColor(calibratedWhite: 0.25, alpha: 1)
 
         case .hangar:
             key.intensity  = 1100; key.color  = NSColor(calibratedRed: 1.00, green: 0.92, blue: 0.78, alpha: 1)
             keyNode.eulerAngles  = SCNVector3(-1.2,  0.3,  0)
             fill.intensity = 450;  fill.color = NSColor(calibratedRed: 0.72, green: 0.68, blue: 0.62, alpha: 1)
             fillNode.eulerAngles = SCNVector3( 0.4, -0.8,  0)
+            rim.intensity  = 200;  rim.color  = NSColor(calibratedRed: 0.80, green: 0.75, blue: 0.68, alpha: 1)
+            rimNode.eulerAngles  = SCNVector3( 0.3, -2.7,  0)
             amb.color = NSColor(calibratedWhite: 0.18, alpha: 1)
 
         case .combat:
@@ -174,6 +360,8 @@ struct ShipSceneKitView: NSViewRepresentable {
             keyNode.eulerAngles  = SCNVector3(-0.5,  0.9,  0.2)
             fill.intensity = 200;  fill.color = NSColor(calibratedRed: 0.40, green: 0.12, blue: 0.05, alpha: 1)
             fillNode.eulerAngles = SCNVector3( 0.6, -1.0, -0.3)
+            rim.intensity  = 100;  rim.color  = NSColor(calibratedRed: 0.60, green: 0.10, blue: 0.05, alpha: 1)
+            rimNode.eulerAngles  = SCNVector3( 0.4, -2.5,  0.3)
             amb.color = NSColor(calibratedRed: 0.15, green: 0.02, blue: 0.02, alpha: 1)
         }
     }
@@ -282,6 +470,18 @@ struct ShipSceneKitView: NSViewRepresentable {
             mat.metalness.contents = NSNumber(value: 0.55)
             mat.roughness.contents = NSNumber(value: 0.45)
         }
+
+        // isDoubleSided renders both faces so the hull is visible regardless of winding.
+        // The surface modifier is the definitive fix: SceneKit's physicallyBased renderer
+        // does NOT automatically flip vertex normals for back-facing fragments even when
+        // isDoubleSided is true. gl_FrontFacing is false when the face winding is inverted
+        // (the mirrored half of the hull viewed from outside), so we negate the normal
+        // there before PBR lighting runs. This works even when the geometry-side repair
+        // fails to detect or correct the inverted winding in the index buffer.
+        mat.isDoubleSided = true
+        mat.shaderModifiers = [
+            .surface: "if (!gl_FrontFacing) { _surface.normal = -_surface.normal; }"
+        ]
 
         return mat
     }
