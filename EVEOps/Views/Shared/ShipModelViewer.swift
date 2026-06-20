@@ -199,19 +199,13 @@ struct ShipSceneKitView: NSViewRepresentable {
 
     /// Iterates every vertex in `mesh` and negates any normal whose dot product
     /// with the outward direction (vertex − centre) is negative — i.e. points
-    /// toward the hull interior. Operates on the raw MDLMesh vertex buffer so the
-    /// fix is permanent before SceneKit ever reads the data. Returns the number
-    /// of normals that were flipped.
-    @discardableResult
-    private static func fixInwardNormals(in mesh: MDLMesh, centre: SIMD3<Float>) -> Int {
+    /// toward the hull interior. Operates directly on the MDLMesh vertex buffer
+    /// so the fix is in place before `makeSCNNode` reads the data.
+    private static func fixInwardNormals(in mesh: MDLMesh, centre: SIMD3<Float>) {
         guard let normData = mesh.vertexAttributeData(forAttributeNamed: MDLVertexAttributeNormal),
               let posData  = mesh.vertexAttributeData(forAttributeNamed: MDLVertexAttributePosition)
-        else {
-            print("[ShipModelViewer] fixInwardNormals: missing attribute data (norm=\(mesh.vertexAttributeData(forAttributeNamed: MDLVertexAttributeNormal) != nil) pos=\(mesh.vertexAttributeData(forAttributeNamed: MDLVertexAttributePosition) != nil))")
-            return 0
-        }
+        else { return }
 
-        var flipped = 0
         let count = mesh.vertexCount
         for i in 0 ..< count {
             let pBase = posData.dataStart.advanced(by:  i * posData.stride)
@@ -236,10 +230,8 @@ struct ShipSceneKitView: NSViewRepresentable {
                 nBase.storeBytes(of: -n.x, toByteOffset: 0, as: Float.self)
                 nBase.storeBytes(of: -n.y, toByteOffset: 4, as: Float.self)
                 nBase.storeBytes(of: -n.z, toByteOffset: 8, as: Float.self)
-                flipped += 1
             }
         }
-        return flipped
     }
 
     /// Builds an SCNNode directly from the MDLMesh vertex and index buffers,
@@ -455,20 +447,22 @@ struct ShipSceneKitView: NSViewRepresentable {
             if let img { mat.normal.contents = img }
         }
 
-        // Roughness map (R channel = roughness; metalness from fixed value)
+        // Roughness map (R channel = roughness; metalness from fixed value).
+        // Metalness kept moderate — battle-worn hulls are still metal but with
+        // accumulated wear that diffuses specular. Roughness biased toward matte.
         if let url = roughnessDDSURL, let data = try? Data(contentsOf: url), let dev = device {
             var img: CGImage? = DDSDecoder.decode(data)
             if img == nil { img = DDSDecoder.cgImage(from: data, device: dev) }
             if let img {
                 mat.roughness.contents = img
-                mat.metalness.contents = NSNumber(value: 0.65)
+                mat.metalness.contents = NSNumber(value: 0.30)
             } else {
-                mat.metalness.contents = NSNumber(value: 0.55)
-                mat.roughness.contents = NSNumber(value: 0.45)
+                mat.metalness.contents = NSNumber(value: 0.25)
+                mat.roughness.contents = NSNumber(value: 0.88)
             }
         } else {
-            mat.metalness.contents = NSNumber(value: 0.55)
-            mat.roughness.contents = NSNumber(value: 0.45)
+            mat.metalness.contents = NSNumber(value: 0.25)
+            mat.roughness.contents = NSNumber(value: 0.88)
         }
 
         // isDoubleSided renders both faces so the hull is visible regardless of winding.
