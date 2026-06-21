@@ -54,6 +54,7 @@ actor ShipModelService {
     private static let resIndexFile    = cacheDir.appendingPathComponent(".res_index_v2")
     private static let resNormalsFile  = cacheDir.appendingPathComponent(".res_normals")
     private static let resRoughFile    = cacheDir.appendingPathComponent(".res_roughness")
+    private static let resEmissiveFile = cacheDir.appendingPathComponent(".res_emissive")
     private static let resBuildFile    = cacheDir.appendingPathComponent(".res_build")
 
     // MARK: In-memory caches
@@ -63,6 +64,7 @@ actor ShipModelService {
     private var idToHash:          [String: String]?
     private var idToNormalHash:    [String: String]?
     private var idToRoughnessHash: [String: String]?
+    private var idToEmissiveHash:  [String: String]?
 
     private init() {}
 
@@ -80,6 +82,7 @@ actor ShipModelService {
         idToHash          = nil
         idToNormalHash    = nil
         idToRoughnessHash = nil
+        idToEmissiveHash  = nil
     }
 
     // MARK:  Public: model
@@ -115,6 +118,15 @@ actor ShipModelService {
         let dest     = Self.cacheDir.appendingPathComponent(cacheKey + "_roughness.dds")
         if FileManager.default.fileExists(atPath: dest.path) { return dest }
         let hashPath = try await resolveRoughnessHash(for: shipName)
+        return try await downloadAndCacheDDS(hashPath: hashPath, to: dest)
+    }
+
+    /// Downloads and caches the ship's emissive DDS texture (_e.dds), returns the local URL.
+    func localEmissiveURL(for shipName: String) async throws -> URL {
+        let cacheKey = shipName.filter { $0.isLetter || $0.isNumber }
+        let dest     = Self.cacheDir.appendingPathComponent(cacheKey + "_emissive.dds")
+        if FileManager.default.fileExists(atPath: dest.path) { return dest }
+        let hashPath = try await resolveEmissiveHash(for: shipName)
         return try await downloadAndCacheDDS(hashPath: hashPath, to: dest)
     }
 
@@ -238,6 +250,18 @@ actor ShipModelService {
         throw AlbedoError.notInTextureIndex(id)
     }
 
+    private func resolveEmissiveHash(for shipName: String) async throws -> String {
+        let nameMap = try await ensureNameToId()
+        let hashMap = try await ensureIdToEmissiveHash()
+        let key     = shipName.lowercased()
+        guard let id = nameMap[key] else { throw AlbedoError.notInNameIndex }
+        if let hash = hashMap[id] { return hash }
+        let baseParts = id.components(separatedBy: "_")
+        if baseParts.count >= 2,
+           let hash = hashMap[baseParts.dropLast().joined(separator: "_") + "_t1"] { return hash }
+        throw AlbedoError.notInTextureIndex(id)
+    }
+
     // MARK: associated_file_names.txt
 
     private func ensureNameToId() async throws -> [String: String] {
@@ -285,8 +309,9 @@ actor ShipModelService {
             let map = parseResCache(disk)
             if !map.isEmpty {
                 idToHash = map
-                if idToNormalHash    == nil { idToNormalHash    = loadText(from: Self.resNormalsFile).map { parseResCache($0) } ?? [:] }
-                if idToRoughnessHash == nil { idToRoughnessHash = loadText(from: Self.resRoughFile).map  { parseResCache($0) } ?? [:] }
+                if idToNormalHash    == nil { idToNormalHash    = loadText(from: Self.resNormalsFile).map  { parseResCache($0) } ?? [:] }
+                if idToRoughnessHash == nil { idToRoughnessHash = loadText(from: Self.resRoughFile).map    { parseResCache($0) } ?? [:] }
+                if idToEmissiveHash  == nil { idToEmissiveHash  = loadText(from: Self.resEmissiveFile).map { parseResCache($0) } ?? [:] }
                 return map
             }
         }
@@ -295,6 +320,7 @@ actor ShipModelService {
         idToHash          = maps.albedo
         idToNormalHash    = maps.normal
         idToRoughnessHash = maps.roughness
+        idToEmissiveHash  = maps.emissive
         return maps.albedo
     }
 
@@ -308,6 +334,12 @@ actor ShipModelService {
         if let c = idToRoughnessHash { return c }
         _ = try await ensureIdToHash()
         return idToRoughnessHash ?? [:]
+    }
+
+    private func ensureIdToEmissiveHash() async throws -> [String: String] {
+        if let c = idToEmissiveHash { return c }
+        _ = try await ensureIdToHash()
+        return idToEmissiveHash ?? [:]
     }
 
     private func fetchCurrentBuild() async throws -> String {
@@ -325,7 +357,7 @@ actor ShipModelService {
         throw ShipModelError.parseFailure
     }
 
-    private func fetchLiveResIndex() async throws -> (albedo: [String: String], normal: [String: String], roughness: [String: String]) {
+    private func fetchLiveResIndex() async throws -> (albedo: [String: String], normal: [String: String], roughness: [String: String], emissive: [String: String]) {
         let build = try await fetchCurrentBuild()
 
         guard let manifestURL = URL(string: Self.buildManifestBase + build + ".txt") else {
@@ -358,13 +390,15 @@ actor ShipModelService {
         var albedo:        [String: String] = [:]
         var normal:        [String: String] = [:]
         var roughness:     [String: String] = [:]
+        var emissive:      [String: String] = [:]
         var albedoLines:   [String]         = []
         var normalLines:   [String]         = []
         var roughnessLines:[String]         = []
+        var emissiveLines: [String]         = []
 
         for try await line in bytes.lines {
             guard line.contains("/model/ship/"),
-                  line.contains("_a.dds") || line.contains("_n.dds") || line.contains("_r.dds")
+                  line.contains("_a.dds") || line.contains("_n.dds") || line.contains("_r.dds") || line.contains("_e.dds")
             else { continue }
             let fields   = line.components(separatedBy: ",")
             guard fields.count >= 2 else { continue }
@@ -382,14 +416,19 @@ actor ShipModelService {
                 let id = String(filename.dropLast("_r.dds".count))
                 guard !id.isEmpty else { continue }
                 roughness[id] = hash; roughnessLines.append("\(id)=\(hash)")
+            } else if filename.hasSuffix("_e.dds") {
+                let id = String(filename.dropLast("_e.dds".count))
+                guard !id.isEmpty else { continue }
+                emissive[id] = hash; emissiveLines.append("\(id)=\(hash)")
             }
         }
 
         saveLines(albedoLines,    to: Self.resIndexFile)
         saveLines(normalLines,    to: Self.resNormalsFile)
         saveLines(roughnessLines, to: Self.resRoughFile)
+        saveLines(emissiveLines,  to: Self.resEmissiveFile)
         try? build.data(using: .utf8)?.write(to: Self.resBuildFile, options: .atomic)
-        return (albedo, normal, roughness)
+        return (albedo, normal, roughness, emissive)
     }
 
     private func parseResCache(_ text: String) -> [String: String] {

@@ -82,6 +82,36 @@ enum DDSDecoder {
         return ctx.createCGImage(ci, from: extent)
     }
 
+    // MARK: Public: split packed roughness channels
+
+    /// Extracts the three PBR channels from a decoded roughness (_r.dds) CGImage.
+    ///   R → roughness,  G → metalness,  B → ambient occlusion.
+    /// SceneKit samples the R channel of each map, so each channel is placed in R.
+    /// Returns nil if CIFilter setup fails.
+    static func splitRoughnessChannels(from image: CGImage) -> (roughness: CGImage, metalness: CGImage, ao: CGImage)? {
+        let ci     = CIImage(cgImage: image)
+        let ctx    = CIContext()
+        let extent = ci.extent
+
+        func extractChannel(_ rVec: CIVector) -> CGImage? {
+            guard let filter = CIFilter(name: "CIColorMatrix") else { return nil }
+            filter.setValue(ci,                                 forKey: kCIInputImageKey)
+            filter.setValue(rVec,                               forKey: "inputRVector")
+            filter.setValue(CIVector(x: 0, y: 0, z: 0, w: 0), forKey: "inputGVector")
+            filter.setValue(CIVector(x: 0, y: 0, z: 0, w: 0), forKey: "inputBVector")
+            filter.setValue(CIVector(x: 0, y: 0, z: 0, w: 1), forKey: "inputAVector")
+            filter.setValue(CIVector(x: 0, y: 0, z: 0, w: 0), forKey: "inputBiasVector")
+            return filter.outputImage.flatMap { ctx.createCGImage($0, from: extent) }
+        }
+
+        guard let roughness = extractChannel(CIVector(x: 1, y: 0, z: 0, w: 0)),
+              let metalness = extractChannel(CIVector(x: 0, y: 1, z: 0, w: 0)),
+              let ao        = extractChannel(CIVector(x: 0, y: 0, z: 1, w: 0))
+        else { return nil }
+
+        return (roughness, metalness, ao)
+    }
+
     // MARK: BC5 normal → RGBA8 MTLTexture (internal)
 
     private static func bc5NormalTexture(from data: Data, device: MTLDevice) -> MTLTexture? {

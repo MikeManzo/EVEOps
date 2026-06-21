@@ -104,6 +104,7 @@ struct ShipSceneKitView: NSViewRepresentable {
     var albedoDDSURL:    URL? = nil
     var normalDDSURL:    URL? = nil
     var roughnessDDSURL: URL? = nil
+    var emissiveDDSURL:  URL? = nil
     var lightingPreset:  LightingPreset = .deepSpace
 
     // MARK: Coordinator — fixes z-clipping via SCNSceneRendererDelegate
@@ -139,7 +140,9 @@ struct ShipSceneKitView: NSViewRepresentable {
 
         if let scene = loadScene(from: objURL) {
             addLighting(to: scene)
-            scene.background.contents = makeStarfieldBackground()
+            scene.background.contents              = makeStarfieldBackground()
+            scene.lightingEnvironment.contents     = makeSpaceLightingEnv()
+            scene.lightingEnvironment.intensity    = 3.0
             let mat = buildMaterial(for: scene)
             apply(mat, to: scene.rootNode)
             v.scene = scene
@@ -182,6 +185,9 @@ struct ShipSceneKitView: NSViewRepresentable {
             gMax = max(gMax, SIMD3<Float>(bb.maxBounds.x, bb.maxBounds.y, bb.maxBounds.z))
         }
         let centre = (gMin + gMax) * 0.5
+        let extent = gMax - gMin
+        let maxExt = max(extent.x, max(extent.y, extent.z))
+        let tpScale: Float = maxExt > 0 ? 1.0 / maxExt : 0.001
 
         // Build the SceneKit scene directly from the MDL vertex buffers — no
         // OBJ export/import round-trip. Confirmed root cause: asset.export(to:)
@@ -190,7 +196,7 @@ struct ShipSceneKitView: NSViewRepresentable {
         for m in meshes {
             m.addNormals(withAttributeNamed: MDLVertexAttributeNormal, creaseThreshold: 0.5)
             Self.fixInwardNormals(in: m, centre: centre)
-            if let node = Self.makeSCNNode(from: m) {
+            if let node = Self.makeSCNNode(from: m, triplanarScale: tpScale) {
                 scene.rootNode.addChildNode(node)
             }
         }
@@ -237,7 +243,12 @@ struct ShipSceneKitView: NSViewRepresentable {
     /// Builds an SCNNode directly from the MDLMesh vertex and index buffers,
     /// bypassing ModelIO's OBJ export which re-computes normals from face winding
     /// and discards any manual corrections we've applied to the vertex buffer.
-    private static func makeSCNNode(from mesh: MDLMesh) -> SCNNode? {
+    ///
+    /// UV coordinates are generated via dominant-axis projection: each vertex is
+    /// assigned UVs from the world-space plane most aligned with its normal
+    /// (YZ, XZ, or XY). This lets SceneKit's standard UV pipeline map the
+    /// albedo texture onto the hull without requiring UV data from the OBJ file.
+    private static func makeSCNNode(from mesh: MDLMesh, triplanarScale: Float) -> SCNNode? {
         guard let posAttr  = mesh.vertexAttributeData(forAttributeNamed: MDLVertexAttributePosition),
               let normAttr = mesh.vertexAttributeData(forAttributeNamed: MDLVertexAttributeNormal),
               let submeshes = mesh.submeshes, submeshes.count > 0
@@ -246,20 +257,35 @@ struct ShipSceneKitView: NSViewRepresentable {
         let count = mesh.vertexCount
         var posFlat  = [Float](); posFlat.reserveCapacity(count * 3)
         var normFlat = [Float](); normFlat.reserveCapacity(count * 3)
+        var uvFlat   = [Float](); uvFlat.reserveCapacity(count * 2)
 
         for i in 0..<count {
             let p = posAttr.dataStart.advanced(by:  i * posAttr.stride)
             let n = normAttr.dataStart.advanced(by: i * normAttr.stride)
-            posFlat.append(contentsOf: [
-                p.load(fromByteOffset: 0, as: Float.self),
-                p.load(fromByteOffset: 4, as: Float.self),
-                p.load(fromByteOffset: 8, as: Float.self)
-            ])
-            normFlat.append(contentsOf: [
-                n.load(fromByteOffset: 0, as: Float.self),
-                n.load(fromByteOffset: 4, as: Float.self),
-                n.load(fromByteOffset: 8, as: Float.self)
-            ])
+            let px = p.load(fromByteOffset: 0, as: Float.self)
+            let py = p.load(fromByteOffset: 4, as: Float.self)
+            let pz = p.load(fromByteOffset: 8, as: Float.self)
+            let nx = n.load(fromByteOffset: 0, as: Float.self)
+            let ny = n.load(fromByteOffset: 4, as: Float.self)
+            let nz = n.load(fromByteOffset: 8, as: Float.self)
+            posFlat.append(contentsOf: [px, py, pz])
+            normFlat.append(contentsOf: [nx, ny, nz])
+
+            // Pick the projection plane whose axis is most aligned with this vertex normal.
+            let ax = abs(nx), ay = abs(ny), az = abs(nz)
+            let u: Float, v: Float
+            if ax >= ay && ax >= az {
+                u =  pz * triplanarScale   // YZ plane
+                v = -py * triplanarScale
+            } else if ay >= ax && ay >= az {
+                u =  px * triplanarScale   // XZ plane
+                v = -pz * triplanarScale
+            } else {
+                u =  px * triplanarScale   // XY plane
+                v = -py * triplanarScale
+            }
+            uvFlat.append(u)
+            uvFlat.append(v)
         }
 
         let posSrc = SCNGeometrySource(
@@ -270,6 +296,10 @@ struct ShipSceneKitView: NSViewRepresentable {
             data: normFlat.withUnsafeBytes { Data($0) }, semantic: .normal,
             vectorCount: count, usesFloatComponents: true, componentsPerVector: 3,
             bytesPerComponent: 4, dataOffset: 0, dataStride: 12)
+        let uvSrc = SCNGeometrySource(
+            data: uvFlat.withUnsafeBytes { Data($0) }, semantic: .texcoord,
+            vectorCount: count, usesFloatComponents: true, componentsPerVector: 2,
+            bytesPerComponent: 4, dataOffset: 0, dataStride: 8)
 
         var elements = [SCNGeometryElement]()
         for case let sub as MDLSubmesh in submeshes {
@@ -289,7 +319,7 @@ struct ShipSceneKitView: NSViewRepresentable {
         }
         guard !elements.isEmpty else { return nil }
 
-        let geo = SCNGeometry(sources: [posSrc, normSrc], elements: elements)
+        let geo = SCNGeometry(sources: [posSrc, normSrc, uvSrc], elements: elements)
         let node = SCNNode()
         node.geometry = geo
         return node
@@ -336,7 +366,8 @@ struct ShipSceneKitView: NSViewRepresentable {
             // Rim from the opposite hemisphere of the key (yaw ≈ key + π) to light the shadow side
             rim.intensity  = 220;  rim.color  = NSColor(calibratedRed: 0.40, green: 0.50, blue: 0.90, alpha: 1)
             rimNode.eulerAngles  = SCNVector3( 0.3, -2.34, 0)
-            amb.intensity  = 1000; amb.color  = NSColor(calibratedWhite: 0.25, alpha: 1)
+            // IBL via lightingEnvironment handles ambient; keep low floor for shadow lift only
+            amb.intensity  = 200;  amb.color  = NSColor(calibratedWhite: 0.25, alpha: 1)
 
         case .hangar:
             key.intensity  = 1100; key.color  = NSColor(calibratedRed: 1.00, green: 0.92, blue: 0.78, alpha: 1)
@@ -345,7 +376,7 @@ struct ShipSceneKitView: NSViewRepresentable {
             fillNode.eulerAngles = SCNVector3( 0.4, -0.8,  0)
             rim.intensity  = 200;  rim.color  = NSColor(calibratedRed: 0.80, green: 0.75, blue: 0.68, alpha: 1)
             rimNode.eulerAngles  = SCNVector3( 0.3, -2.7,  0)
-            amb.color = NSColor(calibratedWhite: 0.18, alpha: 1)
+            amb.intensity  = 200;  amb.color  = NSColor(calibratedWhite: 0.18, alpha: 1)
 
         case .combat:
             key.intensity  = 900;  key.color  = NSColor(calibratedRed: 1.00, green: 0.35, blue: 0.15, alpha: 1)
@@ -354,8 +385,62 @@ struct ShipSceneKitView: NSViewRepresentable {
             fillNode.eulerAngles = SCNVector3( 0.6, -1.0, -0.3)
             rim.intensity  = 100;  rim.color  = NSColor(calibratedRed: 0.60, green: 0.10, blue: 0.05, alpha: 1)
             rimNode.eulerAngles  = SCNVector3( 0.4, -2.5,  0.3)
-            amb.color = NSColor(calibratedRed: 0.15, green: 0.02, blue: 0.02, alpha: 1)
+            amb.intensity  = 100;  amb.color  = NSColor(calibratedRed: 0.15, green: 0.02, blue: 0.02, alpha: 1)
         }
+    }
+
+    // MARK: Space Lighting Environment
+
+    /// Dedicated IBL environment map — a small bright equirectangular with a warm
+    /// sun blob and cool blue fill, separate from the starfield background.
+    /// The starfield is ~99% near-black and contributes essentially zero IBL;
+    /// this image provides actual luminance that `lightingEnvironment.intensity`
+    /// amplifies into HDR-range values for visible metallic reflections.
+    private func makeSpaceLightingEnv() -> CGImage? {
+        let W = 512, H = 256
+        let cs = CGColorSpaceCreateDeviceRGB()
+        guard let ctx = CGContext(
+            data: nil, width: W, height: H,
+            bitsPerComponent: 8, bytesPerRow: W * 4,
+            space: cs,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+
+        let FW = CGFloat(W), FH = CGFloat(H)
+
+        // Deep space base
+        ctx.setFillColor(CGColor(colorSpace: cs, components: [0.005, 0.006, 0.016, 1])!)
+        ctx.fill(CGRect(x: 0, y: 0, width: W, height: H))
+
+        // Cool blue-violet fill — upper-left, opposing the key light
+        let fillPt = CGPoint(x: FW * 0.22, y: FH * 0.62)
+        if let grad = CGGradient(
+            colorsSpace: cs,
+            colors: [CGColor(colorSpace: cs, components: [0.07, 0.10, 0.26, 1.0])!,
+                     CGColor(colorSpace: cs, components: [0.00, 0.00, 0.00, 0.0])!] as CFArray,
+            locations: [0.0, 1.0]
+        ) {
+            ctx.drawRadialGradient(grad, startCenter: fillPt, startRadius: 0,
+                                   endCenter: fillPt, endRadius: FW * 0.55,
+                                   options: .drawsAfterEndLocation)
+        }
+
+        // Warm sun — upper-right, aligned with deep space key light euler(-0.7, 0.8, 0).
+        // Equirectangular U = 0.5 + yaw/(2π) ≈ 0.63; CGContext y from bottom ≈ 0.65·H.
+        let sunPt = CGPoint(x: FW * 0.63, y: FH * 0.65)
+        if let grad = CGGradient(
+            colorsSpace: cs,
+            colors: [CGColor(colorSpace: cs, components: [1.00, 0.97, 0.92, 1.0])!,
+                     CGColor(colorSpace: cs, components: [0.72, 0.55, 0.24, 0.7])!,
+                     CGColor(colorSpace: cs, components: [0.00, 0.00, 0.00, 0.0])!] as CFArray,
+            locations: [0.0, 0.08, 0.40]
+        ) {
+            ctx.drawRadialGradient(grad, startCenter: sunPt, startRadius: 0,
+                                   endCenter: sunPt, endRadius: FW * 0.45,
+                                   options: .drawsAfterEndLocation)
+        }
+
+        return ctx.makeImage()
     }
 
     // MARK: Starfield
@@ -431,10 +516,12 @@ struct ShipSceneKitView: NSViewRepresentable {
         let device = MTLCreateSystemDefaultDevice()
 
         // Albedo (BC1/BC3 software path or BC7 Metal path)
+        var albedoLoaded = false
         if let url = albedoDDSURL, let data = try? Data(contentsOf: url), let dev = device {
             var img: CGImage? = DDSDecoder.decode(data)
             if img == nil { img = DDSDecoder.cgImage(from: data, device: dev) }
             mat.diffuse.contents = img ?? NSColor(calibratedRed: 0.55, green: 0.58, blue: 0.62, alpha: 1)
+            albedoLoaded = img != nil
         } else {
             mat.diffuse.contents = NSColor(calibratedRed: 0.55, green: 0.58, blue: 0.62, alpha: 1)
         }
@@ -447,32 +534,45 @@ struct ShipSceneKitView: NSViewRepresentable {
             if let img { mat.normal.contents = img }
         }
 
-        // Roughness map (R channel = roughness; metalness from fixed value).
-        // Metalness kept moderate — battle-worn hulls are still metal but with
-        // accumulated wear that diffuses specular. Roughness biased toward matte.
+        // _r.dds is a packed map: R=roughness, G=metalness, B=ambient occlusion.
+        // Split channels via CIColorMatrix so each slot receives its correct data.
         if let url = roughnessDDSURL, let data = try? Data(contentsOf: url), let dev = device {
             var img: CGImage? = DDSDecoder.decode(data)
             if img == nil { img = DDSDecoder.cgImage(from: data, device: dev) }
-            if let img {
+            if let img, let split = DDSDecoder.splitRoughnessChannels(from: img) {
+                mat.roughness.contents        = split.roughness
+                mat.metalness.contents        = split.metalness
+                mat.ambientOcclusion.contents = split.ao
+            } else if let img {
                 mat.roughness.contents = img
                 mat.metalness.contents = NSNumber(value: 0.30)
             } else {
-                mat.metalness.contents = NSNumber(value: 0.25)
                 mat.roughness.contents = NSNumber(value: 0.88)
+                mat.metalness.contents = NSNumber(value: 0.25)
             }
         } else {
-            mat.metalness.contents = NSNumber(value: 0.25)
             mat.roughness.contents = NSNumber(value: 0.88)
+            mat.metalness.contents = NSNumber(value: 0.25)
         }
 
-        // isDoubleSided renders both faces so the hull is visible regardless of winding.
-        // The surface modifier is the definitive fix: SceneKit's physicallyBased renderer
-        // does NOT automatically flip vertex normals for back-facing fragments even when
-        // isDoubleSided is true. gl_FrontFacing is false when the face winding is inverted
-        // (the mirrored half of the hull viewed from outside), so we negate the normal
-        // there before PBR lighting runs. This works even when the geometry-side repair
-        // fails to detect or correct the inverted winding in the index buffer.
+        // Emissive map — engine glows, cockpit windows, nav lights.
+        if let url = emissiveDDSURL, let data = try? Data(contentsOf: url), let dev = device {
+            var img: CGImage? = DDSDecoder.decode(data)
+            if img == nil { img = DDSDecoder.cgImage(from: data, device: dev) }
+            if let img { mat.emission.contents = img }
+        }
+
         mat.isDoubleSided = true
+
+        // UV coordinates generated in makeSCNNode range [-0.5, +0.5]; repeat wrap
+        // lets them tile correctly rather than clamping to the edge pixel.
+        mat.diffuse.wrapS = .repeat
+        mat.diffuse.wrapT = .repeat
+        mat.normal.wrapS  = .repeat
+        mat.normal.wrapT  = .repeat
+
+        // physicallyBased does not auto-flip normals on back-facing fragments even
+        // with isDoubleSided = true.
         mat.shaderModifiers = [
             .surface: "if (!gl_FrontFacing) { _surface.normal = -_surface.normal; }"
         ]
@@ -500,6 +600,7 @@ struct ShipModelSheet: View {
         let albedoURL:   URL?
         let normalURL:   URL?
         let roughURL:    URL?
+        let emissiveURL: URL?
         let warning:     String?
     }
 
@@ -574,6 +675,7 @@ struct ShipModelSheet: View {
                     albedoDDSURL:    p.albedoURL,
                     normalDDSURL:    p.normalURL,
                     roughnessDDSURL: p.roughURL,
+                    emissiveDDSURL:  p.emissiveURL,
                     lightingPreset:  lightingPreset
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -624,10 +726,11 @@ struct ShipModelSheet: View {
                 phase = .unavailable
                 return
             }
-            var albedoURL: URL?
-            var normalURL: URL?
-            var roughURL:  URL?
-            var warning:   String?
+            var albedoURL:   URL?
+            var normalURL:   URL?
+            var roughURL:    URL?
+            var emissiveURL: URL?
+            var warning:     String?
 
             do    { albedoURL = try await ShipModelService.shared.localAlbedoURL(for: shipName) }
             catch { warning = error.localizedDescription }
@@ -638,12 +741,16 @@ struct ShipModelSheet: View {
             do    { roughURL = try await ShipModelService.shared.localRoughnessURL(for: shipName) }
             catch { }
 
+            do    { emissiveURL = try await ShipModelService.shared.localEmissiveURL(for: shipName) }
+            catch { }
+
             phase = .ready(ReadyPayload(
-                objURL:    objURL,
-                albedoURL: albedoURL,
-                normalURL: normalURL,
-                roughURL:  roughURL,
-                warning:   warning
+                objURL:      objURL,
+                albedoURL:   albedoURL,
+                normalURL:   normalURL,
+                roughURL:    roughURL,
+                emissiveURL: emissiveURL,
+                warning:     warning
             ))
         } catch {
             phase = .failed(error.localizedDescription)
