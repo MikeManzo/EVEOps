@@ -18,6 +18,15 @@ private enum SecurityClassFilter: String, CaseIterable {
     case lowsec   = "Lowsec"
     case nullsec  = "Null"
 
+    var title: LocalizedStringKey {
+        switch self {
+        case .all:     "All"
+        case .highsec: "Highsec"
+        case .lowsec:  "Lowsec"
+        case .nullsec: "Null"
+        }
+    }
+
     func matches(_ security: Double) -> Bool {
         switch self {
         case .all:     return true
@@ -125,7 +134,7 @@ struct RegionStationBrowserView: View {
                 // Security class filter
                 Picker("Security", selection: $securityFilter) {
                     ForEach(SecurityClassFilter.allCases, id: \.self) { filter in
-                        Text(filter.rawValue).tag(filter)
+                        Text(filter.title).tag(filter)
                     }
                 }
                 .pickerStyle(.segmented)

@@ -1,0 +1,3390 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "" : {
+
+    },
+    "—" : {
+
+    },
+    "— click the destination" : {
+
+    },
+    "…and %lld more" : {
+
+    },
+    "·" : {
+
+    },
+    "\"%@\"" : {
+
+    },
+    "\"EVE\", \"EVE Online\", \"Fenris\", and all related logos are trademarks of Fenris Creations." : {
+
+    },
+    "(%@)" : {
+
+    },
+    "(%lld constellations)" : {
+
+    },
+    "(%lld gate%@)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "(%1$lld gate%2$@)"
+          }
+        }
+      }
+    },
+    "(%lld systems)" : {
+
+    },
+    "(%lld)" : {
+
+    },
+    "(BPC)" : {
+
+    },
+    "[%@]" : {
+
+    },
+    "/" : {
+
+    },
+    "/ %@" : {
+
+    },
+    "% = this hull appeared as an attacker\nin that share of the sampled kills." : {
+
+    },
+    "%@  %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@  %2$@"
+          }
+        }
+      }
+    },
+    "%@ - %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ - %2$@"
+          }
+        }
+      }
+    },
+    "%@ - %lld run%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ - %2$lld run%3$@"
+          }
+        }
+      }
+    },
+    "%@ (%@) and %@ (%@): up to +%lld SP/min." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ (%2$@) and %3$@ (%4$@): up to +%5$lld SP/min."
+          }
+        }
+      }
+    },
+    "%@ / %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ / %2$@"
+          }
+        }
+      }
+    },
+    "%@ / %@ SP" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ / %2$@ SP"
+          }
+        }
+      }
+    },
+    "%@ → %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ → %2$@"
+          }
+        }
+      }
+    },
+    "%@ → L%lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ → L%2$lld"
+          }
+        }
+      }
+    },
+    "%@ appears to be online." : {
+
+    },
+    "%@ appears to have gone offline." : {
+
+    },
+    "%@ buy" : {
+
+    },
+    "%@ hit points" : {
+
+    },
+    "%@ ISK" : {
+
+    },
+    "%@ layer" : {
+
+    },
+    "%@ LP" : {
+
+    },
+    "%@ m³" : {
+
+    },
+    "%@ SP" : {
+
+    },
+    "%@ SP trained" : {
+
+    },
+    "%@ unallocated" : {
+
+    },
+    "%@, %lld years old" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, %2$lld years old"
+          }
+        }
+      }
+    },
+    "%@'s training queue has become empty!" : {
+
+    },
+    "%@/cycle" : {
+
+    },
+    "%@x %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@x %2$@"
+          }
+        }
+      }
+    },
+    "%lld" : {
+
+    },
+    "%lld / %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld / %2$lld"
+          }
+        }
+      }
+    },
+    "%lld active" : {
+
+    },
+    "%lld agents found" : {
+
+    },
+    "%lld attacker(s)" : {
+
+    },
+    "%lld bonus remap%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld bonus remap%2$@"
+          }
+        }
+      }
+    },
+    "%lld buy" : {
+
+    },
+    "%lld colon%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld colon%2$@"
+          }
+        }
+      }
+    },
+    "%lld constellation connection%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld constellation connection%2$@"
+          }
+        }
+      }
+    },
+    "%lld contracts" : {
+
+    },
+    "%lld days" : {
+
+    },
+    "%lld dmg" : {
+
+    },
+    "%lld external → %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld external → %2$@"
+          }
+        }
+      }
+    },
+    "%lld heads" : {
+
+    },
+    "%lld in queue" : {
+
+    },
+    "%lld industry jobs finished" : {
+
+    },
+    "%lld internal gate%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld internal gate%2$@"
+          }
+        }
+      }
+    },
+    "%lld items" : {
+
+    },
+    "%lld items in %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld items in %2$@"
+          }
+        }
+      }
+    },
+    "%lld job%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld job%2$@"
+          }
+        }
+      }
+    },
+    "%lld jobs" : {
+
+    },
+    "%lld jump%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld jump%2$@"
+          }
+        }
+      }
+    },
+    "%lld jumps" : {
+
+    },
+    "%lld jumps (last hour)" : {
+
+    },
+    "%lld kills" : {
+
+    },
+    "%lld logins" : {
+
+    },
+    "%lld losses" : {
+
+    },
+    "%lld maxed" : {
+
+    },
+    "%lld minutes" : {
+
+    },
+    "%lld modules" : {
+
+    },
+    "%lld notifications" : {
+
+    },
+    "%lld NPC kills" : {
+
+    },
+    "%lld of %lld station%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld of %2$lld station%3$@"
+          }
+        }
+      }
+    },
+    "%lld offline" : {
+
+    },
+    "%lld orders" : {
+
+    },
+    "%lld pins - Level %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld pins - Level %2$lld"
+          }
+        }
+      }
+    },
+    "%lld pod kills" : {
+
+    },
+    "%lld pts" : {
+
+    },
+    "%lld sell" : {
+
+    },
+    "%lld ship kills" : {
+
+    },
+    "%lld ships killed" : {
+
+    },
+    "%lld skill%@ in queue" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld skill%2$@ in queue"
+          }
+        }
+      }
+    },
+    "%lld skill%@ queued" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld skill%2$@ queued"
+          }
+        }
+      }
+    },
+    "%lld skills" : {
+
+    },
+    "%lld solar system%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld solar system%2$@"
+          }
+        }
+      }
+    },
+    "%lld SP/min" : {
+
+    },
+    "%lld station%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld station%2$@"
+          }
+        }
+      }
+    },
+    "%lld total" : {
+
+    },
+    "%lld unresolved" : {
+
+    },
+    "%lld/%lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld/%2$lld"
+          }
+        }
+      }
+    },
+    "%lld/%lld remaining" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld/%2$lld remaining"
+          }
+        }
+      }
+    },
+    "%lld%%" : {
+
+    },
+    "%lld%% of queue" : {
+
+    },
+    "%lld%% payout" : {
+
+    },
+    "%lld%% premium" : {
+
+    },
+    "%lldd • %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lldd • %2$@"
+          }
+        }
+      }
+    },
+    "%lldd ago" : {
+
+    },
+    "%lldh ago" : {
+
+    },
+    "%lldj" : {
+
+    },
+    "%lldm ago" : {
+
+    },
+    "%lldm cycle" : {
+
+    },
+    "%lldx" : {
+
+    },
+    "%lldx @ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lldx @ %2$@"
+          }
+        }
+      }
+    },
+    "%lldx %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lldx %2$@"
+          }
+        }
+      }
+    },
+    "•" : {
+
+    },
+    "• %@" : {
+
+    },
+    "© %@ CitizenCoder  ·  Not affiliated with Fenris Creations." : {
+
+    },
+    "→ %@" : {
+
+    },
+    "→ L%lld" : {
+
+    },
+    "+" : {
+
+    },
+    "+%lld" : {
+
+    },
+    "+%lld more…" : {
+
+    },
+    "+%lld SP/min" : {
+
+    },
+    "+5 implants" : {
+
+    },
+    "+10.0" : {
+
+    },
+    "×%lld" : {
+
+    },
+    "≈ %@" : {
+
+    },
+    "≥75% — Core to the role" : {
+
+    },
+    "1 day" : {
+
+    },
+    "1 minute" : {
+
+    },
+    "1,000" : {
+
+    },
+    "1y" : {
+
+    },
+    "2 minutes" : {
+
+    },
+    "2,500" : {
+
+    },
+    "3 days" : {
+
+    },
+    "3D Ship Model" : {
+
+    },
+    "3D SHIP MODEL DATA SOURCE" : {
+
+    },
+    "3D Ship Models" : {
+
+    },
+    "5 minutes" : {
+
+    },
+    "5,000" : {
+
+    },
+    "7 days" : {
+
+    },
+    "10 minutes" : {
+
+    },
+    "14 days" : {
+
+    },
+    "15 minutes" : {
+
+    },
+    "20–49% — Situational" : {
+
+    },
+    "30 days" : {
+
+    },
+    "30 minutes" : {
+
+    },
+    "30d" : {
+
+    },
+    "50–74% — Common" : {
+
+    },
+    "90d" : {
+
+    },
+    "250" : {
+
+    },
+    "500" : {
+
+    },
+    "A contract status changed to: %@" : {
+
+    },
+    "A new version of EVEOps is ready to install." : {
+
+    },
+    "About Remaps" : {
+
+    },
+    "Accepted" : {
+
+    },
+    "ACKNOWLEDGED INSPIRATION" : {
+
+    },
+    "across %lld region%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "across %1$lld region%2$@"
+          }
+        }
+      }
+    },
+    "Active" : {
+
+    },
+    "Active (%lld)" : {
+
+    },
+    "Active Implants" : {
+
+    },
+    "Active jobs only" : {
+
+    },
+    "Active Mode" : {
+
+    },
+    "Active Now" : {
+
+    },
+    "Activity" : {
+
+    },
+    "Add" : {
+
+    },
+    "Add Character" : {
+
+    },
+    "Add Contact" : {
+
+    },
+    "Add to skill plan" : {
+
+    },
+    "Add Waypoint" : {
+
+    },
+    "Add Waypoint: %@" : {
+
+    },
+    "Add your EVE Online characters to get started." : {
+
+    },
+    "After remap" : {
+
+    },
+    "Agent Finder" : {
+
+    },
+    "Agent Type" : {
+
+    },
+    "ago" : {
+
+    },
+    "AI DEVELOPMENT ASSISTANT" : {
+
+    },
+    "AI Implant Insight" : {
+
+    },
+    "AI Insight" : {
+
+    },
+    "All" : {
+
+    },
+    "All Divisions" : {
+
+    },
+    "All EVE Online related materials are used in accordance with the EVE Online Third-Party Developer License Agreement." : {
+
+    },
+    "All Responses" : {
+
+    },
+    "All running" : {
+
+    },
+    "All Time" : {
+
+    },
+    "Alliances" : {
+
+    },
+    "Allows switching to EVEOps via Cmd-Tab and the Dock. Takes effect immediately." : {
+
+    },
+    "Analyzing asset spread…" : {
+
+    },
+    "Analyzing combat record…" : {
+
+    },
+    "Analyzing finances…" : {
+
+    },
+    "Analyzing fitting…" : {
+
+    },
+    "Analyzing implants…" : {
+
+    },
+    "Analyzing industry data…" : {
+
+    },
+    "Analyzing market…" : {
+
+    },
+    "Analyzing recent losses…" : {
+
+    },
+    "Analyzing skills…" : {
+
+    },
+    "Annual available" : {
+
+    },
+    "Annual: %@" : {
+
+    },
+    "anoik.is" : {
+
+    },
+    "Anoik.is" : {
+
+    },
+    "Anoik.is is a third-party wormhole system database for EVE Online. Used in accordance with the Anoik.is public API terms of service." : {
+
+    },
+    "Any" : {
+
+    },
+    "App Caches" : {
+
+    },
+    "Appearance" : {
+
+    },
+    "Apple Intelligence" : {
+
+    },
+    "Apple Intelligence is not available on this device." : {
+
+    },
+    "Apple Intelligence Not Enabled" : {
+
+    },
+    "Apple Intelligence requires Apple Silicon. This Mac is not supported." : {
+
+    },
+    "Apple Intelligence requires macOS 26 or later." : {
+
+    },
+    "Appraisal (Jita)" : {
+
+    },
+    "Appraise" : {
+
+    },
+    "AreaFloor" : {
+
+    },
+    "As %@, you can invite pilots and assign their fleet role." : {
+
+    },
+    "Assembled" : {
+
+    },
+    "Asset Details" : {
+
+    },
+    "Asset values estimated using current market average prices" : {
+
+    },
+    "Assets" : {
+
+    },
+    "Attacker Frequency" : {
+
+    },
+    "Attackers (%lld)" : {
+
+    },
+    "Attributes" : {
+
+    },
+    "Authenticating with EVE SSO..." : {
+
+    },
+    "Auto-fires" : {
+
+    },
+    "Auto-scroll to latest entries" : {
+
+    },
+    "Automatically check for updates" : {
+
+    },
+    "Automatically download updates" : {
+
+    },
+    "Availability" : {
+
+    },
+    "Available %@" : {
+
+    },
+    "Available On" : {
+
+    },
+    "Available since %@" : {
+
+    },
+    "Average" : {
+
+    },
+    "Awarded" : {
+
+    },
+    "Back" : {
+
+    },
+    "Background Refresh" : {
+
+    },
+    "Balance" : {
+
+    },
+    "Balances" : {
+
+    },
+    "Base (light) plus attribute-enhancing implants (bright)." : {
+
+    },
+    "Based on %lld recent losses" : {
+
+    },
+    "Based on publicly-observable signals.\nNot an exact online indicator." : {
+
+    },
+    "Bio" : {
+
+    },
+    "Blocked" : {
+
+    },
+    "Bookmarks" : {
+
+    },
+    "Both" : {
+
+    },
+    "Bought" : {
+
+    },
+    "BPC" : {
+
+    },
+    "Browse skills on the right and tap + to add them to your plan." : {
+
+    },
+    "Browse the market registry or search by name\nto analyze orders and pricing." : {
+
+    },
+    "Buy" : {
+
+    },
+    "Buy Order" : {
+
+    },
+    "Buy Orders" : {
+
+    },
+    "Buy Orders (%lld)" : {
+
+    },
+    "Buy Orders (highest first)" : {
+
+    },
+    "Buy Value" : {
+
+    },
+    "Calculating route…" : {
+
+    },
+    "Calendar" : {
+
+    },
+    "Callback URL" : {
+
+    },
+    "Cancel" : {
+
+    },
+    "Capacitor capacity — total energy the capacitor can hold" : {
+
+    },
+    "Capacitor recharge time — time to fully recharge from empty" : {
+
+    },
+    "Categories" : {
+
+    },
+    "CEO" : {
+
+    },
+    "Changing the server requires a restart to take effect." : {
+
+    },
+    "Character" : {
+
+    },
+    "CHARACTER" : {
+
+    },
+    "Character / Corporation / Alliance" : {
+
+    },
+    "Character Info" : {
+
+    },
+    "Check for Updates…" : {
+
+    },
+    "Check interval" : {
+
+    },
+    "Choose .eft File…" : {
+
+    },
+    "Choose which order types to search for" : {
+
+    },
+    "Chunk Arrives" : {
+
+    },
+    "CLASS" : {
+
+    },
+    "Class %@" : {
+
+    },
+    "Claude and Claude Code are trademarks of Anthropic, PBC. Used for AI-assisted development. No user data is transmitted to Anthropic by EVEOps." : {
+
+    },
+    "Claude Code" : {
+
+    },
+    "claude.ai/code" : {
+
+    },
+    "Clear" : {
+
+    },
+    "Clear Caches" : {
+
+    },
+    "Clear Fit" : {
+
+    },
+    "Clear log entries" : {
+
+    },
+    "Clear Log Now" : {
+
+    },
+    "Clear Model Cache" : {
+
+    },
+    "Clearing…" : {
+
+    },
+    "Clears the local type cache and re-fetches implant data from ESI. Use this if implant bonuses appear incorrect." : {
+
+    },
+    "Click a constellation to set the route origin" : {
+
+    },
+    "Client ID" : {
+
+    },
+    "Clone jump %@ ago — times refreshed" : {
+
+    },
+    "Clone jump available" : {
+
+    },
+    "Clone jump in %@" : {
+
+    },
+    "Clone Jump Timer" : {
+
+    },
+    "Clones" : {
+
+    },
+    "Clones & Implants" : {
+
+    },
+    "Close" : {
+
+    },
+    "Closed" : {
+
+    },
+    "Collapse" : {
+
+    },
+    "Collapse All" : {
+
+    },
+    "Collateral" : {
+
+    },
+    "Colonies" : {
+
+    },
+    "Colonies Overview" : {
+
+    },
+    "Colony Info" : {
+
+    },
+    "Color Mode" : {
+
+    },
+    "Combat" : {
+
+    },
+    "Combat & Fleet" : {
+
+    },
+    "Combat Value" : {
+
+    },
+    "Command Center for New Eden" : {
+
+    },
+    "Common Attackers" : {
+
+    },
+    "Communications" : {
+
+    },
+    "COMMUNITY FIT DATA SOURCE" : {
+
+    },
+    "Community Fittings" : {
+
+    },
+    "Compatible with Pyfa, EFT, and the EVE Online fitting window" : {
+
+    },
+    "Completed" : {
+
+    },
+    "Completes" : {
+
+    },
+    "Compose" : {
+
+    },
+    "Computing jump distances…" : {
+
+    },
+    "Confidence: %lld%%" : {
+
+    },
+    "Connected Systems" : {
+
+    },
+    "Connection data provided by [EVE Scout](https://www.eve-scout.com)" : {
+
+    },
+    "Connects to: %@" : {
+
+    },
+    "Contact comes online / goes offline" : {
+
+    },
+    "Contact Offline" : {
+
+    },
+    "Contact Online" : {
+
+    },
+    "Contacts" : {
+
+    },
+    "Contract Details" : {
+
+    },
+    "Contract Update - %@" : {
+
+    },
+    "Contracts" : {
+
+    },
+    "Contracts Overview" : {
+
+    },
+    "Contracts updated" : {
+
+    },
+    "Copy %lld Entries" : {
+
+    },
+    "Copy Entry" : {
+
+    },
+    "Corp Assets" : {
+
+    },
+    "Corp Contracts" : {
+
+    },
+    "Corp Hangars" : {
+
+    },
+    "Corp Industry" : {
+
+    },
+    "Corp Kill Mails" : {
+
+    },
+    "Corp Kill/Loss Mails" : {
+
+    },
+    "Corp Market Orders" : {
+
+    },
+    "Corp Members" : {
+
+    },
+    "Corp Membership" : {
+
+    },
+    "Corp Mining" : {
+
+    },
+    "Corp Mining Ledger" : {
+
+    },
+    "Corp Moon Mining" : {
+
+    },
+    "Corp Structures" : {
+
+    },
+    "Corp Tax Activity" : {
+
+    },
+    "Corp Wallets" : {
+
+    },
+    "Corp Wars" : {
+
+    },
+    "Corp: %@" : {
+
+    },
+    "Corporation" : {
+
+    },
+    "Corporation Hangars" : {
+
+    },
+    "Corporation History" : {
+
+    },
+    "Corps" : {
+
+    },
+    "Cost" : {
+
+    },
+    "Could not load model" : {
+
+    },
+    "Coverage Tiers" : {
+
+    },
+    "current" : {
+
+    },
+    "Current" : {
+
+    },
+    "Current constellation" : {
+
+    },
+    "Current Rank" : {
+
+    },
+    "Current Ships" : {
+
+    },
+    "Current speed" : {
+
+    },
+    "Current speed: %lld SP/min • %lld SP/hr" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Current speed: %1$lld SP/min • %2$lld SP/hr"
+          }
+        }
+      }
+    },
+    "Currently Training" : {
+
+    },
+    "Custom hangar names unavailable" : {
+
+    },
+    "damage taken" : {
+
+    },
+    "Dark" : {
+
+    },
+    "Dashboard" : {
+
+    },
+    "Dashboard Data" : {
+
+    },
+    "Data Sources" : {
+
+    },
+    "Data will refresh automatically when the connection is restored." : {
+
+    },
+    "Date" : {
+
+    },
+    "Debug" : {
+
+    },
+    "Decay In" : {
+
+    },
+    "Decayed" : {
+
+    },
+    "Decays in %@" : {
+
+    },
+    "Declared %@" : {
+
+    },
+    "Declined" : {
+
+    },
+    "Deep Space" : {
+
+    },
+    "Default Character" : {
+
+    },
+    "Delete" : {
+
+    },
+    "Delete Fitting" : {
+
+    },
+    "Delete Mail" : {
+
+    },
+    "Description" : {
+
+    },
+    "DEST" : {
+
+    },
+    "Details" : {
+
+    },
+    "Device Not Eligible" : {
+
+    },
+    "Diagnostic Logs" : {
+
+    },
+    "Displays the Utility section containing the Diagnostic Logs viewer" : {
+
+    },
+    "Div %lld" : {
+
+    },
+    "Division" : {
+
+    },
+    "Division %lld" : {
+
+    },
+    "Done" : {
+
+    },
+    "Downloaded ship meshes and DDS textures. Re-downloaded on demand when viewing ships." : {
+
+    },
+    "Downloading agent database…" : {
+
+    },
+    "Downloads are cached after the first view" : {
+
+    },
+    "DPS calculation requires ammo selection" : {
+
+    },
+    "Drag to rotate  ·  Scroll to zoom  ·  ⌘-drag to pan" : {
+
+    },
+    "Duration" : {
+
+    },
+    "e.g. “Ferox”, “Ishtar”, “Muninn”" : {
+
+    },
+    "Economy" : {
+
+    },
+    "Edit Standing" : {
+
+    },
+    "Effective hit points by damage type (all layers combined)" : {
+
+    },
+    "ehp" : {
+
+    },
+    "Empty" : {
+
+    },
+    "Enable AI Insights" : {
+
+    },
+    "Enable Notifications" : {
+
+    },
+    "Ends %@" : {
+
+    },
+    "Ends: %@" : {
+
+    },
+    "Enlisted %@" : {
+
+    },
+    "Enter in EVE's Remap Screen" : {
+
+    },
+    "Error" : {
+
+    },
+    "Error: %@" : {
+
+    },
+    "Errors" : {
+
+    },
+    "ESI" : {
+
+    },
+    "ESI Server" : {
+
+    },
+    "est. buy value" : {
+
+    },
+    "Estimated Jita buy-order value · %lld run%@ · via Fuzzwork" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Estimated Jita buy-order value · %1$lld run%2$@ · via Fuzzwork"
+          }
+        }
+      }
+    },
+    "Estimates assume Omega clone. Alpha clone trains at 50% speed." : {
+
+    },
+    "EVE Buddy" : {
+
+    },
+    "EVE Buddy is acknowledged as an inspiration for EVEOps and is not affiliated with or endorsed by this application." : {
+
+    },
+    "EVE News" : {
+
+    },
+    "EVE Online and the EVE logo are registered trademarks of Fenris Creations. All rights reserved worldwide." : {
+
+    },
+    "EVE Scout" : {
+
+    },
+    "EVE: %@" : {
+
+    },
+    "Event Info" : {
+
+    },
+    "Events" : {
+
+    },
+    "EVEOps" : {
+
+    },
+    "EVEOps is an independent third-party application not affiliated with, endorsed by, or sponsored by Fenris Creations." : {
+
+    },
+    "EVERef" : {
+
+    },
+    "EVERef reference data is provided by Autonomous Logic. Used under the EVERef public API terms. Not affiliated with or endorsed by CCP." : {
+
+    },
+    "everef.net" : {
+
+    },
+    "EVEScout and the EVEScout logo/name are trademarks and/or service marks of EVEScout." : {
+
+    },
+    "EVEShip.fit" : {
+
+    },
+    "EVEShip.fit and its Dogma Engine are copyright EVEShipFit contributors. Used under open-source license terms." : {
+
+    },
+    "EVEShip.fit's Dogma Engine" : {
+
+    },
+    "Exact character name…" : {
+
+    },
+    "Exact name…" : {
+
+    },
+    "Excluded from simulation" : {
+
+    },
+    "Exp: %@" : {
+
+    },
+    "Expand" : {
+
+    },
+    "Expand All" : {
+
+    },
+    "Expired" : {
+
+    },
+    "Expires" : {
+
+    },
+    "Expires in" : {
+
+    },
+    "Export CSV" : {
+
+    },
+    "Export…" : {
+
+    },
+    "ext" : {
+
+    },
+    "Extend to L%lld" : {
+
+    },
+    "Extraction Details" : {
+
+    },
+    "Extraction may be offline" : {
+
+    },
+    "Extraction Start" : {
+
+    },
+    "Extractor %lld" : {
+
+    },
+    "Extractor Expiry" : {
+
+    },
+    "Extractors" : {
+
+    },
+    "Extractors (%lld)" : {
+
+    },
+    "Faction" : {
+
+    },
+    "Faction Warfare" : {
+
+    },
+    "Failed to load event details" : {
+
+    },
+    "Fetching appraisal…" : {
+
+    },
+    "Fetching constellation positions — cached after first load" : {
+
+    },
+    "Fetching model…" : {
+
+    },
+    "Filter" : {
+
+    },
+    "Filter by high-sec stations and jump distance from your location." : {
+
+    },
+    "Filter contacts" : {
+
+    },
+    "Final Blow" : {
+
+    },
+    "Finances" : {
+
+    },
+    "Find in Galaxy" : {
+
+    },
+    "Find My Location" : {
+
+    },
+    "Finishes" : {
+
+    },
+    "First character alphabetically" : {
+
+    },
+    "First launch only — cached for 7 days" : {
+
+    },
+    "Fitting" : {
+
+    },
+    "Fitting name" : {
+
+    },
+    "Fittings" : {
+
+    },
+    "Fix" : {
+
+    },
+    "Fleet Access Required" : {
+
+    },
+    "Fleet ID: %lld" : {
+
+    },
+    "Fleet Manager" : {
+
+    },
+    "Fleet Manager requires the **esi-fleets.read_fleet.v1** scope.\n\nPlease remove and re-add your character to grant the updated permissions." : {
+
+    },
+    "Fleet Role" : {
+
+    },
+    "Fleet Status" : {
+
+    },
+    "Floor (+0)" : {
+
+    },
+    "Floor (muted) = 17 + implants. Bright segment = remap points added." : {
+
+    },
+    "Frequency Key" : {
+
+    },
+    "From File" : {
+
+    },
+    "From: %@" : {
+
+    },
+    "Fuel expires" : {
+
+    },
+    "Fuzzwork Enterprises" : {
+
+    },
+    "Fuzzwork Enterprises market data is provided courtesy of Steve Ronuken (fuzzwork.co.uk). Used with permission under the public API terms." : {
+
+    },
+    "Fuzzwork Market" : {
+
+    },
+    "Galaxy Map" : {
+
+    },
+    "Galaxy Market Search" : {
+
+    },
+    "Galaxy Search" : {
+
+    },
+    "Generate Insight" : {
+
+    },
+    "getevemodels" : {
+
+    },
+    "GetEveModels" : {
+
+    },
+    "GetEveModels provides 3D ship model data for EVE Online. Used in accordance with the GetEveModels public API terms of service." : {
+
+    },
+    "Group" : {
+
+    },
+    "Group by" : {
+
+    },
+    "Group items by category" : {
+
+    },
+    "Hangar" : {
+
+    },
+    "Hangar is empty" : {
+
+    },
+    "here" : {
+
+    },
+    "Here" : {
+
+    },
+    "High" : {
+
+    },
+    "High Sec" : {
+
+    },
+    "High-sec route" : {
+
+    },
+    "High-sec stations only" : {
+
+    },
+    "Highest Rank" : {
+
+    },
+    "Highsec" : {
+
+    },
+    "History (%lld)" : {
+
+    },
+    "Home System" : {
+
+    },
+    "Hover" : {
+
+    },
+    "How often EVEOps checks for notifications and updates in the background." : {
+
+    },
+    "How stats are calculated" : {
+
+    },
+    "How Stats Are Calculated" : {
+
+    },
+    "How to remap when ready:" : {
+
+    },
+    "How to remap:" : {
+
+    },
+    "Idle" : {
+
+    },
+    "Implant Upgrade Potential" : {
+
+    },
+    "Implants" : {
+
+    },
+    "Implants: %@" : {
+
+    },
+    "Import a .eft fitting file" : {
+
+    },
+    "Import Fitting" : {
+
+    },
+    "In Escrow" : {
+
+    },
+    "In EVE: Character Sheet → Neural Remap → Manually Remap. Set each attribute to the value shown in the table above. EVE's remap screen shows the floor automatically — just drag each slider to the target number. This uses all 14 remap points (10 to %@, 4 to %@)." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "In EVE: Character Sheet → Neural Remap → Manually Remap. Set each attribute to the value shown in the table above. EVE's remap screen shows the floor automatically — just drag each slider to the target number. This uses all 14 remap points (10 to %1$@, 4 to %2$@)."
+          }
+        }
+      }
+    },
+    "In Fleet" : {
+
+    },
+    "In Progress" : {
+
+    },
+    "In Queue (#%lld)" : {
+
+    },
+    "In space" : {
+
+    },
+    "Inactive" : {
+
+    },
+    "Includes universe data, resolved names, and ESI responses. All data re-fetches automatically." : {
+
+    },
+    "Individual Insights" : {
+
+    },
+    "Industry" : {
+
+    },
+    "Industry Complete — %@" : {
+
+    },
+    "Industry Job" : {
+
+    },
+    "Industry jobs finished" : {
+
+    },
+    "Industry Overview" : {
+
+    },
+    "Info" : {
+
+    },
+    "Insecure (<0.5)" : {
+
+    },
+    "Install" : {
+
+    },
+    "Install Update" : {
+
+    },
+    "Insufficient fitting data" : {
+
+    },
+    "Invite Members" : {
+
+    },
+    "Invite Pilot" : {
+
+    },
+    "Invite to Fleet" : {
+
+    },
+    "ISK" : {
+
+    },
+    "ISK/wk" : {
+
+    },
+    "Issued" : {
+
+    },
+    "Issued By" : {
+
+    },
+    "Issued: %@" : {
+
+    },
+    "Item" : {
+
+    },
+    "ITEM & BLUEPRINT REFERENCE" : {
+
+    },
+    "Item Appraisal" : {
+
+    },
+    "Items Lost (%lld)" : {
+
+    },
+    "Janice Appraisal" : {
+
+    },
+    "Janice appraisal data is provided by e-351.com. Used in accordance with the Janice public API terms of service." : {
+
+    },
+    "Janice Pricing" : {
+
+    },
+    "Jita (The Forge) best orders" : {
+
+    },
+    "Jita / The Forge — Market Orders" : {
+
+    },
+    "Job Details" : {
+
+    },
+    "Join Date" : {
+
+    },
+    "Joined %@" : {
+
+    },
+    "Journal" : {
+
+    },
+    "Journal (%lld)" : {
+
+    },
+    "Jump Clone Cooldown" : {
+
+    },
+    "Jump Clones (%lld)" : {
+
+    },
+    "Jumps" : {
+
+    },
+    "Just Load" : {
+
+    },
+    "just now" : {
+
+    },
+    "Just now" : {
+
+    },
+    "Keep logs for" : {
+
+    },
+    "Kill" : {
+
+    },
+    "Kill Activity" : {
+
+    },
+    "Kill data sourced from zKillboard" : {
+
+    },
+    "Kill Mails" : {
+
+    },
+    "Kill/Loss Mails" : {
+
+    },
+    "Killmail #%lld" : {
+
+    },
+    "Kills" : {
+
+    },
+    "Known Skills (%lld of %lld)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Known Skills (%1$lld of %2$lld)"
+          }
+        }
+      }
+    },
+    "Known Skills (%lld)" : {
+
+    },
+    "L%lld" : {
+
+    },
+    "Last active character" : {
+
+    },
+    "Last Activity" : {
+
+    },
+    "Last Hour" : {
+
+    },
+    "Last refreshed" : {
+
+    },
+    "Last Seen" : {
+
+    },
+    "Last seen %@" : {
+
+    },
+    "Last seen: %@" : {
+
+    },
+    "Last Week" : {
+
+    },
+    "Launch at login" : {
+
+    },
+    "Legal Notices" : {
+
+    },
+    "Level" : {
+
+    },
+    "Liabilities" : {
+
+    },
+    "Light" : {
+
+    },
+    "Limitations" : {
+
+    },
+    "LIVE APPRAISAL DATA SOURCE" : {
+
+    },
+    "Live EVE item Apprasial" : {
+
+    },
+    "Live prices via Janice · %@" : {
+
+    },
+    "Load Fitting" : {
+
+    },
+    "Load Fitting or Ship" : {
+
+    },
+    "Loading colony…" : {
+
+    },
+    "Loading connections…" : {
+
+    },
+    "Loading contact details..." : {
+
+    },
+    "Loading dashboard..." : {
+
+    },
+    "Loading details…" : {
+
+    },
+    "Loading galaxy map…" : {
+
+    },
+    "Loading market data..." : {
+
+    },
+    "Loading market groups..." : {
+
+    },
+    "Loading member details..." : {
+
+    },
+    "Loading module database…" : {
+
+    },
+    "Loading news..." : {
+
+    },
+    "Loading recent kills…" : {
+
+    },
+    "Loading region list…" : {
+
+    },
+    "Loading ship database…" : {
+
+    },
+    "Loading star map..." : {
+
+    },
+    "Loading…" : {
+
+    },
+    "Location" : {
+
+    },
+    "Location Change" : {
+
+    },
+    "Location Overview" : {
+
+    },
+    "Log in a character to enable jump-distance filtering" : {
+
+    },
+    "Log In with EVE Online" : {
+
+    },
+    "Login:" : {
+
+    },
+    "Logout:" : {
+
+    },
+    "Loss" : {
+
+    },
+    "Losses" : {
+
+    },
+    "Low" : {
+
+    },
+    "Low Sec" : {
+
+    },
+    "Lowsec" : {
+
+    },
+    "Loyalty Points (%lld)" : {
+
+    },
+    "m³" : {
+
+    },
+    "Mail Activity" : {
+
+    },
+    "Mails" : {
+
+    },
+    "Manage all your characters and corporations.\nTrack assets, skills, industry, contracts, and more." : {
+
+    },
+    "Market" : {
+
+    },
+    "Market Activity" : {
+
+    },
+    "Market Browser" : {
+
+    },
+    "Market Orders (%lld)" : {
+
+    },
+    "MARKET PRICE DATA SOURCE" : {
+
+    },
+    "Market Value (Jita)" : {
+
+    },
+    "market.fuzzwork.co.uk" : {
+
+    },
+    "Max jumps:" : {
+
+    },
+    "Max log entries" : {
+
+    },
+    "Maxed" : {
+
+    },
+    "Measure distance only through high-sec systems" : {
+
+    },
+    "Medals" : {
+
+    },
+    "Members" : {
+
+    },
+    "Menu Bar Card" : {
+
+    },
+    "Message" : {
+
+    },
+    "Mode" : {
+
+    },
+    "Model Downloading" : {
+
+    },
+    "Modules below 20% are excluded." : {
+
+    },
+    "Moon" : {
+
+    },
+    "Name" : {
+
+    },
+    "Near end of life" : {
+
+    },
+    "Net" : {
+
+    },
+    "Net cap drain (passive recharge minus active module cost)" : {
+
+    },
+    "Net capacitor recharge at 25% charge level" : {
+
+    },
+    "Never" : {
+
+    },
+    "New Eden" : {
+
+    },
+    "New Message" : {
+
+    },
+    "Next: %@" : {
+
+    },
+    "No %@ orders in this region" : {
+
+    },
+    "No 3D model available" : {
+
+    },
+    "No active market orders" : {
+
+    },
+    "No active orders in Jita" : {
+
+    },
+    "No active Thera or Pochven connections found." : {
+
+    },
+    "No agents match the current filters." : {
+
+    },
+    "No appraisal available" : {
+
+    },
+    "No assembled ships found" : {
+
+    },
+    "No character data loaded" : {
+
+    },
+    "No characters added" : {
+
+    },
+    "No Characters Added" : {
+
+    },
+    "No contracts" : {
+
+    },
+    "No events on this day" : {
+
+    },
+    "No fitting slots detected for this ship type" : {
+
+    },
+    "No flags" : {
+
+    },
+    "No implants installed" : {
+
+    },
+    "No item selected" : {
+
+    },
+    "No jobs" : {
+
+    },
+    "No journal entries" : {
+
+    },
+    "No Liability Payments" : {
+
+    },
+    "No loyalty points" : {
+
+    },
+    "No Market Orders" : {
+
+    },
+    "No matching items" : {
+
+    },
+    "No modules fitted" : {
+
+    },
+    "No modules in this fitting" : {
+
+    },
+    "No NPC stations in this region" : {
+
+    },
+    "No office rent, sovereignty, or maintenance fees found in this division's journal." : {
+
+    },
+    "No price history available" : {
+
+    },
+    "No Results" : {
+
+    },
+    "No results for \"%@\"" : {
+
+    },
+    "No results found" : {
+
+    },
+    "No roles assigned" : {
+
+    },
+    "No saved fittings found" : {
+
+    },
+    "No Ship Selected" : {
+
+    },
+    "No ships found" : {
+
+    },
+    "No skills" : {
+
+    },
+    "No skills match \"%@\"" : {
+
+    },
+    "No skills planned" : {
+
+    },
+    "No stat data available for this ship type." : {
+
+    },
+    "No stations match your filters" : {
+
+    },
+    "No systems found" : {
+
+    },
+    "No tracking data available" : {
+
+    },
+    "No tradeable items in this group" : {
+
+    },
+    "No transactions" : {
+
+    },
+    "No upcoming events" : {
+
+    },
+    "No wealth data" : {
+
+    },
+    "None" : {
+
+    },
+    "Not Currently Enlisted" : {
+
+    },
+    "Not enough kills with recorded fitting information." : {
+
+    },
+    "not in queue" : {
+
+    },
+    "Not Responded" : {
+
+    },
+    "Note: if an implant is not detected, its floor may show slightly low. The allocations (+10 / +4 / +0) are always correct regardless." : {
+
+    },
+    "Notification" : {
+
+    },
+    "Notification Data" : {
+
+    },
+    "NPC" : {
+
+    },
+    "NPCs" : {
+
+    },
+    "Null" : {
+
+    },
+    "Null Sec" : {
+
+    },
+    "Office Rental:" : {
+
+    },
+    "Offline" : {
+
+    },
+    "On launch, select" : {
+
+    },
+    "ON ROUTE" : {
+
+    },
+    "Online" : {
+
+    },
+    "Online Status" : {
+
+    },
+    "Only hulls appearing in ≥10% of kills are shown.\nTop 10 displayed." : {
+
+    },
+    "Only show orders in systems with security status ≥ 0.5" : {
+
+    },
+    "Open in EVE" : {
+
+    },
+    "Open System Notification Settings…" : {
+
+    },
+    "Open System Settings…" : {
+
+    },
+    "Optional" : {
+
+    },
+    "Optional description" : {
+
+    },
+    "or search by name to find an item" : {
+
+    },
+    "Order Details" : {
+
+    },
+    "Order Type" : {
+
+    },
+    "Orders" : {
+
+    },
+    "Organizer" : {
+
+    },
+    "ORIGIN" : {
+
+    },
+    "Origin:" : {
+
+    },
+    "Outstanding" : {
+
+    },
+    "Packaged" : {
+
+    },
+    "Passive Mode" : {
+
+    },
+    "Passive shield recharge" : {
+
+    },
+    "Paste from EVE's show info, cargo scan, or any list.\nFormat: Item Name (tab) Quantity per line." : {
+
+    },
+    "Paste Items" : {
+
+    },
+    "Paste items on the left and tap Appraise" : {
+
+    },
+    "Peak passive shield recharge rate at 25% shield level" : {
+
+    },
+    "PI" : {
+
+    },
+    "PI extractors expired" : {
+
+    },
+    "Pilot" : {
+
+    },
+    "Pilot — %@" : {
+
+    },
+    "Pilot Name" : {
+
+    },
+    "Plan Route From Here" : {
+
+    },
+    "Plan to L%lld" : {
+
+    },
+    "Planet Type" : {
+
+    },
+    "Players" : {
+
+    },
+    "Plot Route" : {
+
+    },
+    "Powered by EVEShipFit dogma-engine" : {
+
+    },
+    "Presence Score" : {
+
+    },
+    "Price" : {
+
+    },
+    "Price History" : {
+
+    },
+    "Primary (+10)" : {
+
+    },
+    "Processors (%lld)" : {
+
+    },
+    "PvP" : {
+
+    },
+    "Qty: %@" : {
+
+    },
+    "Quantity" : {
+
+    },
+    "Quantity: %lld" : {
+
+    },
+    "Queue Attribute Demand" : {
+
+    },
+    "Queue is empty — nothing to analyze." : {
+
+    },
+    "Queue Position" : {
+
+    },
+    "Quiet" : {
+
+    },
+    "Quit" : {
+
+    },
+    "Range" : {
+
+    },
+    "Re-authenticate" : {
+
+    },
+    "Re-authenticate to grant the “esi-corporations.read_divisions.v1” scope and see your corporation’s custom division names." : {
+
+    },
+    "Re-authenticate to grant the “esi-universe.read_structures.v1” scope. Your token was issued before this scope was required." : {
+
+    },
+    "Re-authentication required: %@" : {
+
+    },
+    "Ready" : {
+
+    },
+    "Reason" : {
+
+    },
+    "Recently Active" : {
+
+    },
+    "Recently Destroyed" : {
+
+    },
+    "Recommendation" : {
+
+    },
+    "Reduce to L%lld" : {
+
+    },
+    "Reference Prices" : {
+
+    },
+    "Refresh" : {
+
+    },
+    "Refresh All Data Now" : {
+
+    },
+    "Refresh connections" : {
+
+    },
+    "Refresh Implant Data" : {
+
+    },
+    "Refresh Now" : {
+
+    },
+    "Refreshing…" : {
+
+    },
+    "Regenerate insight" : {
+
+    },
+    "Region" : {
+
+    },
+    "Reload hangar contents" : {
+
+    },
+    "Remaining" : {
+
+    },
+    "Remap" : {
+
+    },
+    "Remap Advisor" : {
+
+    },
+    "Remap Available — Recommendation" : {
+
+    },
+    "Remap Cooldown" : {
+
+    },
+    "Remap on Cooldown — Planned Recommendation" : {
+
+    },
+    "Remove" : {
+
+    },
+    "Remove %@?" : {
+
+    },
+    "Remove Contact" : {
+
+    },
+    "Research Agents" : {
+
+    },
+    "Resolving modules…" : {
+
+    },
+    "Response" : {
+
+    },
+    "Retry" : {
+
+    },
+    "Reward" : {
+
+    },
+    "Role" : {
+
+    },
+    "Roles" : {
+
+    },
+    "Route" : {
+
+    },
+    "Route Planner" : {
+
+    },
+    "Route Type" : {
+
+    },
+    "Runs" : {
+
+    },
+    "Save" : {
+
+    },
+    "Save Fitting" : {
+
+    },
+    "Save fitting as .eft file" : {
+
+    },
+    "Save to EVE" : {
+
+    },
+    "Saved fits · live ships" : {
+
+    },
+    "Saved Fittings" : {
+
+    },
+    "Schematic #%lld" : {
+
+    },
+    "Score: %@" : {
+
+    },
+    "Scout" : {
+
+    },
+    "SDE (EVEShipFit/data)" : {
+
+    },
+    "SDE updates automatically when EVEShipFit releases a new dataset. Other APIs always serve current data." : {
+
+    },
+    "Search" : {
+
+    },
+    "Search %@..." : {
+
+    },
+    "Search all k-space regions" : {
+
+    },
+    "Search assets..." : {
+
+    },
+    "Search bookmarks" : {
+
+    },
+    "Search character or corporation name…" : {
+
+    },
+    "Search cheapest sell orders across all k-space regions" : {
+
+    },
+    "Search constellation or region…" : {
+
+    },
+    "Search corporation assets..." : {
+
+    },
+    "Search Failed" : {
+
+    },
+    "Search for a ship in the left panel to begin" : {
+
+    },
+    "Search for a ship type" : {
+
+    },
+    "Search for an item…" : {
+
+    },
+    "Search Galaxy" : {
+
+    },
+    "Search items..." : {
+
+    },
+    "Search known skills..." : {
+
+    },
+    "Search members..." : {
+
+    },
+    "Search sell orders, buy orders, or both across all k-space regions." : {
+
+    },
+    "Search ship type…" : {
+
+    },
+    "Search skills..." : {
+
+    },
+    "Search stations..." : {
+
+    },
+    "Searching region %lld of %lld…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Searching region %1$lld of %2$lld…"
+          }
+        }
+      }
+    },
+    "Searching…" : {
+
+    },
+    "Secondary (+4)" : {
+
+    },
+    "Secure (0.5+)" : {
+
+    },
+    "Security" : {
+
+    },
+    "Security Status" : {
+
+    },
+    "Select a character" : {
+
+    },
+    "Select a contact to view details" : {
+
+    },
+    "Select a group from the registry" : {
+
+    },
+    "Select a mail to read" : {
+
+    },
+    "Select a member to view details" : {
+
+    },
+    "Select a ship to view\ncommunity meta fits" : {
+
+    },
+    "Select an item first" : {
+
+    },
+    "Select an item to view details" : {
+
+    },
+    "Sell" : {
+
+    },
+    "Sell Order" : {
+
+    },
+    "Sell Orders" : {
+
+    },
+    "Sell Orders (%lld)" : {
+
+    },
+    "Sell Orders (cheapest first)" : {
+
+    },
+    "Sell Value" : {
+
+    },
+    "Send" : {
+
+    },
+    "Send Invite" : {
+
+    },
+    "Send to autopilot" : {
+
+    },
+    "Sep" : {
+
+    },
+    "Server" : {
+
+    },
+    "Services" : {
+
+    },
+    "Session expired" : {
+
+    },
+    "Set as Destination" : {
+
+    },
+    "Set as Origin" : {
+
+    },
+    "Set as Route Origin" : {
+
+    },
+    "Set Autopilot" : {
+
+    },
+    "Set Destination" : {
+
+    },
+    "Set Destination: %@" : {
+
+    },
+    "Setting…" : {
+
+    },
+    "Settings" : {
+
+    },
+    "Share Fitting" : {
+
+    },
+    "Ship" : {
+
+    },
+    "SHIP FIT SIM ENGINE" : {
+
+    },
+    "Ship is packaged" : {
+
+    },
+    "Ship stats will appear here\nonce a ship is selected" : {
+
+    },
+    "Ships" : {
+
+    },
+    "Ships & Fittings" : {
+
+    },
+    "Shortest" : {
+
+    },
+    "Show current location" : {
+
+    },
+    "Show current ship" : {
+
+    },
+    "Show Dock Icon" : {
+
+    },
+    "Show skill points" : {
+
+    },
+    "Show Utility section in sidebar" : {
+
+    },
+    "Show wallet balance" : {
+
+    },
+    "Showing top %lld" : {
+
+    },
+    "Signal" : {
+
+    },
+    "Signal: %@" : {
+
+    },
+    "Singularity (Test)" : {
+
+    },
+    "Size" : {
+
+    },
+    "Skill" : {
+
+    },
+    "Skill Information" : {
+
+    },
+    "Skill Levels" : {
+
+    },
+    "Skill Planner" : {
+
+    },
+    "Skill Queue (%lld)" : {
+
+    },
+    "Skill queue becomes empty" : {
+
+    },
+    "Skill Training" : {
+
+    },
+    "Skills" : {
+
+    },
+    "Social & Comms" : {
+
+    },
+    "Software Update" : {
+
+    },
+    "SOFTWARE UPDATE FRAMEWORK" : {
+
+    },
+    "Sold" : {
+
+    },
+    "Solo" : {
+
+    },
+    "Some ships failed to load" : {
+
+    },
+    "Sort" : {
+
+    },
+    "Sort by" : {
+
+    },
+    "Sort by %@" : {
+
+    },
+    "Sort: %@" : {
+
+    },
+    "SP" : {
+
+    },
+    "SP distribution across training attribute pairs in your current queue." : {
+
+    },
+    "SP per minute = primary + floor(secondary ÷ 2). Higher is faster." : {
+
+    },
+    "Sparkle" : {
+
+    },
+    "Sparkle is copyright © Andy Matuschak and contributors. Used under the MIT License. \"Sparkle\" is a trademark of its respective authors." : {
+
+    },
+    "Squad %lld" : {
+
+    },
+    "SSO Configuration" : {
+
+    },
+    "Standing" : {
+
+    },
+    "STANDING" : {
+
+    },
+    "Standings" : {
+
+    },
+    "Star" : {
+
+    },
+    "Started" : {
+
+    },
+    "Started %@" : {
+
+    },
+    "Started %@ ago" : {
+
+    },
+    "Startup" : {
+
+    },
+    "Station" : {
+
+    },
+    "Station Browser" : {
+
+    },
+    "Station Details" : {
+
+    },
+    "Station Services" : {
+
+    },
+    "Stations" : {
+
+    },
+    "Stations in System" : {
+
+    },
+    "Status" : {
+
+    },
+    "Storage" : {
+
+    },
+    "Storage & Command (%lld)" : {
+
+    },
+    "Structure" : {
+
+    },
+    "Structure alerts" : {
+
+    },
+    "Structure names unavailable" : {
+
+    },
+    "Subject" : {
+
+    },
+    "Switch" : {
+
+    },
+    "Syncing EVE SDE data…" : {
+
+    },
+    "System" : {
+
+    },
+    "System Default" : {
+
+    },
+    "SYSTEM EFFECT" : {
+
+    },
+    "Systems w/ Stations" : {
+
+    },
+    "Targeting %@ · slot %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Targeting %1$@ · slot %2$lld"
+          }
+        }
+      }
+    },
+    "Tax Rate" : {
+
+    },
+    "Tentative" : {
+
+    },
+    "The on-device model is still initializing. Check back shortly." : {
+
+    },
+    "Theme" : {
+
+    },
+    "Thera & Pochven Connections" : {
+
+    },
+    "Thera is a wormhole system with dozens of daily connections to K-space. Pochven is Triglavian-controlled space with its own wormhole network. Both offer shortcuts across the galaxy — but wormholes are unstable and expire." : {
+
+    },
+    "This character has never used a neural remap." : {
+
+    },
+    "This ship doesn't have a model in the community library yet." : {
+
+    },
+    "This ship has no modules in its fitting slots." : {
+
+    },
+    "Time" : {
+
+    },
+    "Time Left" : {
+
+    },
+    "Time Until" : {
+
+    },
+    "Time Until Pop" : {
+
+    },
+    "Timer" : {
+
+    },
+    "Titles" : {
+
+    },
+    "To" : {
+
+    },
+    "Today" : {
+
+    },
+    "Total Corporation Balance" : {
+
+    },
+    "Total LP" : {
+
+    },
+    "Total Paid (this page)" : {
+
+    },
+    "Total SP" : {
+
+    },
+    "Total values including implants." : {
+
+    },
+    "Total:" : {
+
+    },
+    "Total: %@" : {
+
+    },
+    "Training" : {
+
+    },
+    "Training Overview" : {
+
+    },
+    "Training Queue Empty" : {
+
+    },
+    "Training Queue empty!" : {
+
+    },
+    "Training Queue Empty!" : {
+
+    },
+    "Training queue is empty" : {
+
+    },
+    "Training Required" : {
+
+    },
+    "Training Speed by Attribute Pair" : {
+
+    },
+    "Tranquility (Live)" : {
+
+    },
+    "Transactions (%lld)" : {
+
+    },
+    "Turn on Apple Intelligence in System Settings to use AI Insights." : {
+
+    },
+    "Type" : {
+
+    },
+    "Type Information" : {
+
+    },
+    "Unable to load EVE news" : {
+
+    },
+    "Universe" : {
+
+    },
+    "Unlimited" : {
+
+    },
+    "Unpackage the ship in-game to view its fitting." : {
+
+    },
+    "Unread" : {
+
+    },
+    "Unresolved (%lld)" : {
+
+    },
+    "until pop" : {
+
+    },
+    "Upcoming" : {
+
+    },
+    "Update available" : {
+
+    },
+    "Update Available" : {
+
+    },
+    "Update available — v%@" : {
+
+    },
+    "Update Standing" : {
+
+    },
+    "Updated %@ ago" : {
+
+    },
+    "Uses the on-device Apple Intelligence to analyze your financial and skill training data. All processing is local — no data leaves your Mac." : {
+
+    },
+    "Utility" : {
+
+    },
+    "v%@  ·  Build %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "v%1$@  ·  Build %2$@"
+          }
+        }
+      }
+    },
+    "Value" : {
+
+    },
+    "Valuing assets..." : {
+
+    },
+    "valuing…" : {
+
+    },
+    "via Fuzzwork · Jita buy orders" : {
+
+    },
+    "Victim" : {
+
+    },
+    "View" : {
+
+    },
+    "View / Hide Sidebar Sections" : {
+
+    },
+    "View 3D" : {
+
+    },
+    "View Constellation Map" : {
+
+    },
+    "Visibility" : {
+
+    },
+    "Vol: %@" : {
+
+    },
+    "VolBase" : {
+
+    },
+    "VolTop" : {
+
+    },
+    "Volume" : {
+
+    },
+    "Wallet Transaction" : {
+
+    },
+    "War" : {
+
+    },
+    "War declarations" : {
+
+    },
+    "Warnings" : {
+
+    },
+    "Watched" : {
+
+    },
+    "Wealth Distribution" : {
+
+    },
+    "What's Not Simulated" : {
+
+    },
+    "When the cooldown expires you can reassign your base attributes (Charisma, Intelligence, Memory, Perception, Willpower) to optimise training time for a new skill plan." : {
+
+    },
+    "Wing %lld" : {
+
+    },
+    "WORMHOLE CONNECTIONS" : {
+
+    },
+    "Wormhole Space" : {
+
+    },
+    "WORMHOLE SYSTEM DATABASE" : {
+
+    },
+    "x%lld" : {
+
+    },
+    "Yesterday" : {
+
+    },
+    "You are here" : {
+
+    },
+    "Your Assets Here (%lld type%@)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Your Assets Here (%1$lld type%2$@)"
+          }
+        }
+      }
+    },
+    "Your queue is **%lld%% %@ / %@** skills. For fastest training, remap to:" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Your queue is **%1$lld%% %2$@ / %3$@** skills. For fastest training, remap to:"
+          }
+        }
+      }
+    },
+    "Your queue is %lld%% **%@/%@** skills." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Your queue is %1$lld%% **%2$@/%3$@** skills."
+          }
+        }
+      }
+    },
+    "Your Response" : {
+
+    },
+    "zKillboard" : {
+
+    },
+    "zKillboard is a service provided by zKillboard.com. Killmail data is consumed via the public zKillboard API." : {
+
+    },
+    "zkillboard.com" : {
+
+    },
+    "Zoom to %@" : {
+
+    }
+  },
+  "version" : "1.0"
+}

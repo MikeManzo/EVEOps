@@ -28,6 +28,13 @@ struct CorporationMembersView: View {
         case name = "Name"
         case lastSeen = "Last Seen"
         case joinDate = "Join Date"
+        var title: LocalizedStringKey {
+            switch self {
+            case .name:     "Name"
+            case .lastSeen: "Last Seen"
+            case .joinDate: "Join Date"
+            }
+        }
     }
 
     var body: some View {
@@ -81,7 +88,7 @@ struct CorporationMembersView: View {
             // Sort picker
             Picker("Sort", selection: $sortOrder) {
                 ForEach(MemberSortOrder.allCases, id: \.self) { order in
-                    Text(order.rawValue).tag(order)
+                    Text(order.title).tag(order)
                 }
             }
             .pickerStyle(.segmented)

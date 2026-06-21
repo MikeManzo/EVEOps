@@ -72,6 +72,15 @@ enum SecurityRangeFilter: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    var title: LocalizedStringKey {
+        switch self {
+        case .any:  "Any"
+        case .high: "High Sec"
+        case .low:  "Low Sec"
+        case .null: "Null Sec"
+        }
+    }
+
     func matches(_ status: Double?) -> Bool {
         guard let s = status else { return self == .any }
         switch self {
@@ -89,6 +98,12 @@ enum AgentSortOrder: String, CaseIterable, Identifiable {
     case jumps = "Jumps"
     case level = "Level"
     var id: String { rawValue }
+    var title: LocalizedStringKey {
+        switch self {
+        case .jumps: "Jumps"
+        case .level: "Level"
+        }
+    }
 }
 
 // MARK:  Resolved Agent
@@ -261,7 +276,7 @@ struct AgentFinderView: View {
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                     Picker("Security", selection: $secFilter) {
-                        ForEach(SecurityRangeFilter.allCases) { s in Text(s.rawValue).tag(s) }
+                        ForEach(SecurityRangeFilter.allCases) { s in Text(s.title).tag(s) }
                     }
                     .pickerStyle(.menu)
                     .labelsHidden()
@@ -352,7 +367,7 @@ struct AgentFinderView: View {
                         }
                         Picker("Sort", selection: $sortOrder) {
                             ForEach(AgentSortOrder.allCases) { order in
-                                Text(order.rawValue).tag(order)
+                                Text(order.title).tag(order)
                             }
                         }
                         .pickerStyle(.segmented)

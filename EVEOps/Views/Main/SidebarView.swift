@@ -58,7 +58,7 @@ struct SidebarView: View {
                             isExpanded: $pilotExpanded,
                             content: {
                                 ForEach(NavigationSection.pilotSections) { section in
-                                    Label(section.rawValue, systemImage: section.iconName)
+                                    Label(section.title, systemImage: section.iconName)
                                         .tag(section)
                                 }
                             },
@@ -82,7 +82,7 @@ struct SidebarView: View {
                             isExpanded: $economyExpanded,
                             content: {
                                 ForEach(NavigationSection.economySections) { section in
-                                    Label(section.rawValue, systemImage: section.iconName)
+                                    Label(section.title, systemImage: section.iconName)
                                         .tag(section)
                                 }
                             },
@@ -107,7 +107,7 @@ struct SidebarView: View {
                             isExpanded: $combatExpanded,
                             content: {
                                 ForEach(NavigationSection.combatSections) { section in
-                                    Label(section.rawValue, systemImage: section.iconName)
+                                    Label(section.title, systemImage: section.iconName)
                                         .tag(section)
                                 }
                             },
@@ -141,7 +141,7 @@ struct SidebarView: View {
                             isExpanded: $socialExpanded,
                             content: {
                                 ForEach(NavigationSection.socialSections) { section in
-                                    Label(section.rawValue, systemImage: section.iconName)
+                                    Label(section.title, systemImage: section.iconName)
                                         .tag(section)
                                         .frame(maxWidth: .infinity, alignment: .leading)
                                         .overlay(alignment: .trailing) {
@@ -173,7 +173,7 @@ struct SidebarView: View {
                             isExpanded: $universeExpanded,
                             content: {
                                 ForEach(NavigationSection.universeSections) { section in
-                                    Label(section.rawValue, systemImage: section.iconName)
+                                    Label(section.title, systemImage: section.iconName)
                                         .tag(section)
                                 }
                             },
@@ -198,7 +198,7 @@ struct SidebarView: View {
                             isExpanded: $corpExpanded,
                             content: {
                                 ForEach(NavigationSection.corporationSections) { section in
-                                    Label(section.rawValue, systemImage: section.iconName)
+                                    Label(section.title, systemImage: section.iconName)
                                         .tag(section)
                                 }
                             },
@@ -363,20 +363,6 @@ struct SidebarView: View {
         .disabled(accountManager.isLoading)
     }
 
-    private func displayName(for section: NavigationSection) -> String {
-        switch section {
-        case .corpAssets: return "Assets"
-        case .corpIndustry: return "Industry"
-        case .corpMembers: return "Members"
-        case .corpStructures: return "Structures"
-        case .corpWallets: return "Wallets"
-        case .corpContracts: return "Contracts"
-        case .corpKillmails: return "Kill Mails"
-        case .corpMarketOrders: return "Market Orders"
-        case .corpMining: return "Mining"
-        default: return section.rawValue
-        }
-    }
 }
 
 // MARK:  NSSplitView width persistence

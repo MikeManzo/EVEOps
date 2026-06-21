@@ -55,8 +55,8 @@ actor NotificationService {
 
             if isEmpty && wasEmpty == false {
                 await sendNotification(
-                    title: "Training Queue Empty",
-                    body: "\(account.characterName)'s training queue has become empty!",
+                    title: String(localized: "Training Queue Empty"),
+                    body: String(localized: "\(account.characterName)'s training queue has become empty!"),
                     identifier: "skillqueue-\(account.characterID)"
                 )
             }
@@ -92,7 +92,7 @@ actor NotificationService {
 
                 if (structureAlertsOn && (isStructure || isPIExpiry)) || (warAlertsOn && isWar) {
                     await sendNotification(
-                        title: "EVE: \(account.characterName)",
+                        title: String(localized: "EVE: \(account.characterName)"),
                         body: formatNotificationType(notification.type),
                         identifier: "notification-\(notification.notificationId)"
                     )
@@ -121,8 +121,8 @@ actor NotificationService {
 
             if !newlyDone.isEmpty {
                 await sendNotification(
-                    title: "Industry Complete — \(account.characterName)",
-                    body: "\(newlyDone.count) job\(newlyDone.count == 1 ? "" : "s") finished",
+                    title: String(localized: "Industry Complete — \(account.characterName)"),
+                    body: String(localized: "\(newlyDone.count) industry jobs finished"),
                     identifier: "industry-\(account.characterID)-\(Date().timeIntervalSince1970)"
                 )
             }
@@ -139,10 +139,12 @@ actor NotificationService {
     func notifyPresenceChange(characterID: Int, characterName: String, cameOnline: Bool) async {
         guard UserDefaults.standard.object(forKey: "notificationsEnabled") as? Bool ?? true,
               UserDefaults.standard.object(forKey: "notifyContactPresence") as? Bool ?? true else { return }
-        let title = cameOnline ? "Contact Online" : "Contact Offline"
+        let title = cameOnline
+            ? String(localized: "Contact Online")
+            : String(localized: "Contact Offline")
         let body = cameOnline
-            ? "\(characterName) appears to be online."
-            : "\(characterName) appears to have gone offline."
+            ? String(localized: "\(characterName) appears to be online.")
+            : String(localized: "\(characterName) appears to have gone offline.")
         let suffix = cameOnline ? "online" : "offline"
         await sendNotification(
             title: title,
@@ -169,8 +171,8 @@ actor NotificationService {
                         let status = String(parts[1])
                         if ["finished", "finished_issuer", "finished_contractor", "rejected", "failed"].contains(status) {
                             await sendNotification(
-                                title: "Contract Update - \(account.characterName)",
-                                body: "A contract status changed to: \(status.replacingOccurrences(of: "_", with: " "))",
+                                title: String(localized: "Contract Update - \(account.characterName)"),
+                                body: String(localized: "A contract status changed to: \(status.replacingOccurrences(of: "_", with: " "))"),
                                 identifier: "contract-\(change)"
                             )
                         }

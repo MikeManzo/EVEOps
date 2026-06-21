@@ -21,6 +21,13 @@ enum LightingPreset: String, CaseIterable, Identifiable {
     case hangar    = "Hangar"
     case combat    = "Combat"
     var id: String { rawValue }
+    var title: LocalizedStringKey {
+        switch self {
+        case .deepSpace: "Deep Space"
+        case .hangar:    "Hangar"
+        case .combat:    "Combat"
+        }
+    }
 }
 
 // MARK: SCNView subclass — physical scroll wheel zoom
@@ -516,12 +523,10 @@ struct ShipSceneKitView: NSViewRepresentable {
         let device = MTLCreateSystemDefaultDevice()
 
         // Albedo (BC1/BC3 software path or BC7 Metal path)
-        var albedoLoaded = false
         if let url = albedoDDSURL, let data = try? Data(contentsOf: url), let dev = device {
             var img: CGImage? = DDSDecoder.decode(data)
             if img == nil { img = DDSDecoder.cgImage(from: data, device: dev) }
             mat.diffuse.contents = img ?? NSColor(calibratedRed: 0.55, green: 0.58, blue: 0.62, alpha: 1)
-            albedoLoaded = img != nil
         } else {
             mat.diffuse.contents = NSColor(calibratedRed: 0.55, green: 0.58, blue: 0.62, alpha: 1)
         }
@@ -635,7 +640,7 @@ struct ShipModelSheet: View {
             if case .ready = phase {
                 Picker("", selection: $lightingPreset) {
                     ForEach(LightingPreset.allCases) { preset in
-                        Text(preset.rawValue).tag(preset)
+                        Text(preset.title).tag(preset)
                     }
                 }
                 .pickerStyle(.segmented)

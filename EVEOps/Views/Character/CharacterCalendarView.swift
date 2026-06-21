@@ -37,6 +37,19 @@ enum CalendarItemSource: String, CaseIterable, Hashable {
         case .attributeRemap: return "slider.horizontal.3"
         }
     }
+
+    var title: LocalizedStringKey {
+        switch self {
+        case .eveEvent:       "Events"
+        case .skill:          "Skills"
+        case .industryJob:    "Industry"
+        case .piExpiry:       "PI"
+        case .moonExtract:    "Moon"
+        case .contractExpiry: "Contracts"
+        case .marketOrder:    "Market"
+        case .attributeRemap: "Remap"
+        }
+    }
 }
 
 // MARK:  Calendar Item
@@ -448,7 +461,7 @@ private struct SourceFilterPill: View {
 
     var body: some View {
         Button(action: action) {
-            Label(source.rawValue, systemImage: source.icon)
+            Label(source.title, systemImage: source.icon)
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(isOn ? source.color : .secondary)
                 .padding(.horizontal, 8)
@@ -736,7 +749,7 @@ private struct DeadlineHeader: View {
                 }
             }
             Spacer()
-            Label(source.rawValue, systemImage: source.icon)
+            Label(source.title, systemImage: source.icon)
                 .font(.caption.weight(.medium))
                 .foregroundStyle(source.color)
                 .padding(.horizontal, 8)

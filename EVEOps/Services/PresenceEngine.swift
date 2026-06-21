@@ -73,23 +73,30 @@ nonisolated struct PresenceScore: Sendable {
     let computedAt: Date
 
     var tooltipText: String {
-        var lines: [String] = [state.rawValue, String(format: "Score: %.0f%%", score * 100)]
+        let stateLabel: String = switch state {
+        case .activeNow:      String(localized: "Active Now")
+        case .recentlyActive: String(localized: "Recently Active")
+        case .idle:           String(localized: "Idle")
+        case .offline:        String(localized: "Offline")
+        }
+        let scoreText = String(format: "%.0f%%", score * 100)
+        var lines = [stateLabel, String(localized: "Score: \(scoreText)")]
         if let sig = dominantSignal {
-            lines.append("Signal: \(sig)")
+            lines.append(String(localized: "Signal: \(sig)"))
         }
         if let t = latestEventAt {
             let age = Date().timeIntervalSince(t)
-            lines.append("Last seen: \(formatAge(age))")
+            lines.append(String(localized: "Last seen: \(formatAge(age))"))
         }
         return lines.joined(separator: "\n")
     }
 
     private func formatAge(_ seconds: TimeInterval) -> String {
         switch seconds {
-        case ..<60:      return "just now"
-        case ..<3600:    return "\(Int(seconds / 60))m ago"
-        case ..<86400:   return "\(Int(seconds / 3600))h ago"
-        default:         return "\(Int(seconds / 86400))d ago"
+        case ..<60:   return String(localized: "just now")
+        case ..<3600: return String(localized: "\(Int(seconds / 60))m ago")
+        case ..<86400: return String(localized: "\(Int(seconds / 3600))h ago")
+        default:      return String(localized: "\(Int(seconds / 86400))d ago")
         }
     }
 }

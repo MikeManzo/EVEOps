@@ -10,6 +10,19 @@
 
 import SwiftUI
 
+// MARK:  PresenceState localized display (SwiftUI layer)
+
+extension PresenceState {
+    var title: LocalizedStringKey {
+        switch self {
+        case .activeNow:      "Active Now"
+        case .recentlyActive: "Recently Active"
+        case .idle:           "Idle"
+        case .offline:        "Offline"
+        }
+    }
+}
+
 // Mark:  Presence Badge
 
 /// A small colored dot that conveys a character's inferred presence state.
@@ -28,7 +41,7 @@ struct PresenceBadge: View {
             HStack(spacing: 5) {
                 presenceDot
                 if showLabel {
-                    Text(score.state.rawValue)
+                    Text(score.state.title)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
@@ -70,7 +83,7 @@ struct PresenceBadge: View {
 struct PresenceDetailPopover: View {
     let score: PresenceScore
 
-    private static let signalLabels: [String: String] = [
+    private static let signalLabels: [String: LocalizedStringKey] = [
         "onlineNow":        "Online Status",
         "kill":             "Kill Activity",
         "location":         "Location Change",
@@ -89,10 +102,10 @@ struct PresenceDetailPopover: View {
             HStack(spacing: 8) {
                 stateIcon
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(score.state.rawValue)
+                    Text(score.state.title)
                         .font(.subheadline.bold())
                         .foregroundStyle(stateColor)
-                    Text(String(format: "Confidence: %.0f%%", score.score * 100))
+                    Text("Confidence: \(Int(score.score * 100))%")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -156,13 +169,13 @@ struct PresenceDetailPopover: View {
         }
     }
 
-    private func relativeTime(_ date: Date) -> String {
+    private func relativeTime(_ date: Date) -> LocalizedStringKey {
         let age = Date().timeIntervalSince(date)
         switch age {
-        case ..<60:      return "Just now"
-        case ..<3600:    return "\(Int(age / 60))m ago"
-        case ..<86400:   return "\(Int(age / 3600))h ago"
-        default:         return "\(Int(age / 86400))d ago"
+        case ..<60:   return "Just now"
+        case ..<3600: return "\(Int(age / 60))m ago"
+        case ..<86400: return "\(Int(age / 3600))h ago"
+        default:      return "\(Int(age / 86400))d ago"
         }
     }
 }
@@ -171,8 +184,8 @@ struct PresenceDetailPopover: View {
 
 private struct LabeledRow: View {
     let icon: String
-    let label: String
-    let value: String
+    let label: LocalizedStringKey
+    let value: LocalizedStringKey
 
     var body: some View {
         HStack(spacing: 6) {

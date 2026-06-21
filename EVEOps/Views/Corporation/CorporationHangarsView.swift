@@ -16,6 +16,13 @@ enum HangarSortOrder: String, CaseIterable, Identifiable {
     case quantity = "Quantity"
     case value = "Value"
     var id: String { rawValue }
+    var title: LocalizedStringKey {
+        switch self {
+        case .name:     "Name"
+        case .quantity: "Quantity"
+        case .value:    "Value"
+        }
+    }
 }
 
 struct CorporationHangarsView: View {
@@ -141,11 +148,15 @@ struct CorporationHangarsView: View {
                 Menu {
                     Picker("Sort by", selection: $sortOrder) {
                         ForEach(HangarSortOrder.allCases) { order in
-                            Text(order.rawValue).tag(order)
+                            Text(order.title).tag(order)
                         }
                     }
                 } label: {
-                    Label("Sort: \(sortOrder.rawValue)", systemImage: "arrow.up.arrow.down")
+                    Label {
+                        Text("Sort: \(Text(sortOrder.title))")
+                    } icon: {
+                        Image(systemName: "arrow.up.arrow.down")
+                    }
                 }
 
                 Toggle(isOn: $groupByCategory) {

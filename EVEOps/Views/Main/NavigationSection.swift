@@ -8,7 +8,7 @@
 // Copyright (c) 2026 CitizenCoder
 //
 
-import Foundation
+import SwiftUI
 
 enum NavigationSection: String, CaseIterable, Identifiable {
     case dashboard = "Dashboard"
@@ -60,6 +60,52 @@ enum NavigationSection: String, CaseIterable, Identifiable {
     case diagnosticLogs = "Diagnostic Logs"
 
     var id: String { rawValue }
+
+    // String literals here so the Swift compiler extracts them into Localizable.xcstrings.
+    var title: LocalizedStringKey {
+        switch self {
+        case .dashboard: "Dashboard"
+        case .location: "Location"
+        case .training: "Training"
+        case .finances: "Finances"
+        case .assets: "Assets"
+        case .clones: "Clones"
+        case .colonies: "Colonies"
+        case .contracts: "Contracts"
+        case .industry: "Industry"
+        case .communications: "Communications"
+        case .mails: "Mails"
+        case .killmails: "Kill Mails"
+        case .fittings: "Fittings"
+        case .calendar: "Calendar"
+        case .standings: "Standings"
+        case .contacts: "Contacts"
+        case .routePlanner: "Route Planner"
+        case .galaxyMap: "Galaxy Map"
+        case .careerAgents: "Agent Finder"
+        case .fleetManager: "Fleet Manager"
+        case .market: "Market"
+        case .stationBrowser: "Station Browser"
+        case .skillPlanner: "Skill Planner"
+        case .remapAdvisor: "Remap Advisor"
+        case .research: "Research Agents"
+        case .medals: "Medals"
+        case .factionWarfare: "Faction Warfare"
+        case .corpAssets: "Corp Assets"
+        case .corpHangars: "Corp Hangars"
+        case .corpIndustry: "Corp Industry"
+        case .corpMembers: "Corp Members"
+        case .corpStructures: "Corp Structures"
+        case .corpWallets: "Corp Wallets"
+        case .corpContracts: "Corp Contracts"
+        case .corpKillmails: "Corp Kill Mails"
+        case .corpMarketOrders: "Corp Market Orders"
+        case .corpMining: "Corp Mining"
+        case .corpWars: "Corp Wars"
+        case .corpMoonExtractions: "Corp Moon Mining"
+        case .diagnosticLogs: "Diagnostic Logs"
+        }
+    }
 
     var iconName: String {
         switch self {
