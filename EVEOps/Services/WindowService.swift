@@ -30,6 +30,7 @@ final class WindowService: NSObject {
     private var mainWindow: NSWindow?
     private var galaxySearchWindow: NSWindow?
     private var settingsWindow: NSWindow?
+    private var shipModelWindows: [String: NSWindow] = [:]
     private var defaultsObserver: NSObjectProtocol?
 
     func configure(
@@ -131,6 +132,33 @@ final class WindowService: NSObject {
         applyActivationPolicy()
     }
 
+    // MARK: Ship Model Viewer
+
+    func showShipModel(shipName: String, shipClass: String = "") {
+        if let existing = shipModelWindows[shipName] {
+            if existing.isMiniaturized { existing.deminiaturize(nil) }
+            existing.makeKeyAndOrderFront(nil)
+            applyActivationPolicy()
+            return
+        }
+
+        let content = ShipModelSheet(shipName: shipName, shipClass: shipClass)
+        let controller = NSHostingController(rootView: content)
+        let window = NSWindow(contentViewController: controller)
+        window.appearance = resolvedNSAppearance
+        window.title = shipName
+        window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
+        window.minSize = NSSize(width: 680, height: 520)
+        window.setContentSize(NSSize(width: 800, height: 600))
+        window.isReleasedWhenClosed = false
+        window.setFrameAutosaveName("EVEOpsShipModel_\(shipName)")
+        window.center()
+        window.delegate = self
+
+        shipModelWindows[shipName] = window
+        bringToFront(window)
+    }
+
     // MARK: Settings
 
     func showSettings() {
@@ -184,6 +212,7 @@ final class WindowService: NSObject {
         mainWindow?.appearance = appearance
         galaxySearchWindow?.appearance = appearance
         settingsWindow?.appearance = appearance
+        shipModelWindows.values.forEach { $0.appearance = appearance }
     }
 
     func applyActivationPolicy() {
@@ -207,6 +236,7 @@ extension WindowService: NSWindowDelegate {
         guard let window = notification.object as? NSWindow else { return }
         MainActor.assumeIsolated {
             if window === settingsWindow { settingsWindow = nil }
+            shipModelWindows = shipModelWindows.filter { $0.value !== window }
         }
     }
 }

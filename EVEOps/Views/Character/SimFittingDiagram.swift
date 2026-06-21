@@ -38,7 +38,7 @@ struct SimFittingDiagram: View {
                 }
             }
             .sheet(isPresented: $showModelViewer) {
-                ShipModelSheet(shipName: simState.shipType?.name ?? simState.shipName)
+                ShipModelSheet(shipName: simState.shipType?.name ?? simState.shipName, shipClass: simState.shipClassName)
             }
         }
     }

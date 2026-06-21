@@ -796,7 +796,7 @@ struct ShipDetailPane: View {
             }
         }
         .sheet(isPresented: $showModelViewer) {
-            ShipModelSheet(shipName: ship.typeName)
+            ShipModelSheet(shipName: ship.typeName, shipClass: ship.shipClassName)
         }
         .sheet(isPresented: $showSaveSheet) {
             SaveFittingSheet(ship: ship, modules: modules, onSaved: onFittingSaved)
@@ -1078,7 +1078,7 @@ struct SavedFittingDetailPane: View {
             }
         }
         .sheet(isPresented: $showModelViewer) {
-            ShipModelSheet(shipName: fitting.shipTypeName)
+            ShipModelSheet(shipName: fitting.shipTypeName, shipClass: fitting.shipClassName)
         }
         .fileExporter(
             isPresented: $showExporter,

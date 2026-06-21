@@ -20,12 +20,14 @@ enum LightingPreset: String, CaseIterable, Identifiable {
     case deepSpace = "Deep Space"
     case hangar    = "Hangar"
     case combat    = "Combat"
+    case wormhole  = "Wormhole"
     var id: String { rawValue }
     var title: LocalizedStringKey {
         switch self {
         case .deepSpace: "Deep Space"
         case .hangar:    "Hangar"
         case .combat:    "Combat"
+        case .wormhole:  "Wormhole"
         }
     }
 }
@@ -113,8 +115,9 @@ struct ShipSceneKitView: NSViewRepresentable {
     var roughnessDDSURL: URL? = nil
     var emissiveDDSURL:  URL? = nil
     var lightingPreset:  LightingPreset = .deepSpace
+    var wireframe:       Bool = false
 
-    // MARK: Coordinator — fixes z-clipping via SCNSceneRendererDelegate
+    // MARK: Coordinator — fixes z-clipping via SCNSceneRendererDelegate + tracks texture state
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
@@ -123,6 +126,10 @@ struct ShipSceneKitView: NSViewRepresentable {
     /// first frame and is the earliest reliable place to configure the camera.
     final class Coordinator: NSObject, SCNSceneRendererDelegate {
         private var configured = false
+        var lastAlbedo:    URL? = nil
+        var lastNormal:    URL? = nil
+        var lastRoughness: URL? = nil
+        var lastEmissive:  URL? = nil
 
         func renderer(_ renderer: SCNSceneRenderer, didRenderScene scene: SCNScene, atTime time: TimeInterval) {
             guard !configured else { return }
@@ -161,6 +168,20 @@ struct ShipSceneKitView: NSViewRepresentable {
     func updateNSView(_ v: SCNView, context: Context) {
         guard let scene = v.scene else { return }
         applyLightingPreset(lightingPreset, to: scene)
+
+        // Rebuild material when any texture URL changes (progressive loading support).
+        let c = context.coordinator
+        if albedoDDSURL    != c.lastAlbedo    || normalDDSURL    != c.lastNormal  ||
+           roughnessDDSURL != c.lastRoughness || emissiveDDSURL  != c.lastEmissive {
+            c.lastAlbedo    = albedoDDSURL
+            c.lastNormal    = normalDDSURL
+            c.lastRoughness = roughnessDDSURL
+            c.lastEmissive  = emissiveDDSURL
+            let mat = buildMaterial(for: scene)
+            apply(mat, to: scene.rootNode)
+        }
+
+        applyWireframe(wireframe, to: scene.rootNode)
     }
 
     // MARK: Scene loading
@@ -393,6 +414,16 @@ struct ShipSceneKitView: NSViewRepresentable {
             rim.intensity  = 100;  rim.color  = NSColor(calibratedRed: 0.60, green: 0.10, blue: 0.05, alpha: 1)
             rimNode.eulerAngles  = SCNVector3( 0.4, -2.5,  0.3)
             amb.intensity  = 100;  amb.color  = NSColor(calibratedRed: 0.15, green: 0.02, blue: 0.02, alpha: 1)
+
+        case .wormhole:
+            // Violet key + opposing teal fill evokes the eerie dual-star lighting of J-space.
+            key.intensity  = 600;  key.color  = NSColor(calibratedRed: 0.90, green: 0.80, blue: 1.00, alpha: 1)
+            keyNode.eulerAngles  = SCNVector3(-0.5,  1.2,  0)
+            fill.intensity = 500;  fill.color = NSColor(calibratedRed: 0.10, green: 0.85, blue: 0.75, alpha: 1)
+            fillNode.eulerAngles = SCNVector3( 0.4, -0.9,  0)
+            rim.intensity  = 180;  rim.color  = NSColor(calibratedRed: 0.70, green: 0.50, blue: 1.00, alpha: 1)
+            rimNode.eulerAngles  = SCNVector3( 0.2, -2.6,  0)
+            amb.intensity  = 150;  amb.color  = NSColor(calibratedRed: 0.05, green: 0.02, blue: 0.12, alpha: 1)
         }
     }
 
@@ -589,24 +620,32 @@ struct ShipSceneKitView: NSViewRepresentable {
         node.geometry?.materials = [mat]
         node.childNodes.forEach { apply(mat, to: $0) }
     }
+
+    private func applyWireframe(_ on: Bool, to node: SCNNode) {
+        node.geometry?.materials.forEach { $0.fillMode = on ? .lines : .fill }
+        node.childNodes.forEach { applyWireframe(on, to: $0) }
+    }
 }
 
 // MARK:  Ship Model Sheet
 
 struct ShipModelSheet: View {
-    let shipName: String
+    let shipName:  String
+    var shipClass: String = ""
     @Environment(\.dismiss) private var dismiss
 
     @State private var phase:          Phase          = .loading
     @State private var lightingPreset: LightingPreset = .deepSpace
+    @State private var wireframe:      Bool           = false
 
     private struct ReadyPayload {
-        let objURL:      URL
-        let albedoURL:   URL?
-        let normalURL:   URL?
-        let roughURL:    URL?
-        let emissiveURL: URL?
-        let warning:     String?
+        let objURL:          URL
+        var albedoURL:       URL?
+        var normalURL:       URL?
+        var roughURL:        URL?
+        var emissiveURL:     URL?
+        var warning:         String?
+        var texturesLoading: Bool = false
     }
 
     private enum Phase {
@@ -622,7 +661,8 @@ struct ShipModelSheet: View {
             Divider()
             content
         }
-        .frame(width: 680, height: 560)
+        .frame(minWidth: 680, idealWidth: 800, maxWidth: .infinity,
+               minHeight: 520, idealHeight: 600, maxHeight: .infinity)
         .background(Color(.windowBackgroundColor))
         .task { await load() }
     }
@@ -643,9 +683,26 @@ struct ShipModelSheet: View {
                         Text(preset.title).tag(preset)
                     }
                 }
-                .pickerStyle(.segmented)
+                .pickerStyle(.menu)
                 .labelsHidden()
-                .frame(width: 220)
+                .frame(width: 120)
+
+                Button { wireframe.toggle() } label: {
+                    Image(systemName: wireframe ? "cube.fill" : "cube")
+                        .foregroundStyle(wireframe ? Color.accentColor : .secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Toggle wireframe")
+
+                Button {
+                    WindowService.shared.showShipModel(shipName: shipName, shipClass: shipClass)
+                    dismiss()
+                } label: {
+                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Open in dedicated window")
             }
             Spacer()
             Button { dismiss() } label: {
@@ -674,17 +731,38 @@ struct ShipModelSheet: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
         case .ready(let p):
-            ZStack(alignment: .bottom) {
-                ShipSceneKitView(
-                    objURL:          p.objURL,
-                    albedoDDSURL:    p.albedoURL,
-                    normalDDSURL:    p.normalURL,
-                    roughnessDDSURL: p.roughURL,
-                    emissiveDDSURL:  p.emissiveURL,
-                    lightingPreset:  lightingPreset
-                )
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            ShipSceneKitView(
+                objURL:          p.objURL,
+                albedoDDSURL:    p.albedoURL,
+                normalDDSURL:    p.normalURL,
+                roughnessDDSURL: p.roughURL,
+                emissiveDDSURL:  p.emissiveURL,
+                lightingPreset:  lightingPreset,
+                wireframe:       wireframe
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .overlay(alignment: .topLeading) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(shipName).font(.headline.bold()).foregroundStyle(.white)
+                    if !shipClass.isEmpty {
+                        Text(shipClass).font(.caption).foregroundStyle(.white.opacity(0.65))
+                    }
+                }
+                .padding(.horizontal, 10).padding(.vertical, 8)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+                .padding(12)
+            }
+            .overlay(alignment: .bottom) {
                 VStack(spacing: 4) {
+                    if p.texturesLoading {
+                        HStack(spacing: 6) {
+                            ProgressView().scaleEffect(0.7)
+                            Text("Loading textures…")
+                                .font(.caption2).foregroundStyle(.white.opacity(0.55))
+                        }
+                        .padding(.horizontal, 10).padding(.vertical, 5)
+                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+                    }
                     if let warning = p.warning {
                         Label(warning, systemImage: "exclamationmark.triangle.fill")
                             .font(.caption2)
@@ -731,32 +809,36 @@ struct ShipModelSheet: View {
                 phase = .unavailable
                 return
             }
-            var albedoURL:   URL?
-            var normalURL:   URL?
-            var roughURL:    URL?
-            var emissiveURL: URL?
-            var warning:     String?
+            // Show model immediately with grey PBR fallback while textures download.
+            phase = .ready(ReadyPayload(objURL: objURL, texturesLoading: true))
 
+            // Albedo first — most visible; also warms the resource-index cache.
+            var albedoURL: URL?
+            var warning:   String?
             do    { albedoURL = try await ShipModelService.shared.localAlbedoURL(for: shipName) }
             catch { warning = error.localizedDescription }
 
-            do    { normalURL = try await ShipModelService.shared.localNormalURL(for: shipName) }
-            catch { }
+            if case .ready(var p) = phase {
+                p.albedoURL = albedoURL
+                p.warning   = warning
+                phase = .ready(p)
+            }
 
-            do    { roughURL = try await ShipModelService.shared.localRoughnessURL(for: shipName) }
-            catch { }
+            // Remaining PBR maps concurrently (resource index already cached).
+            async let normalFetch   = ShipModelService.shared.localNormalURL(for: shipName)
+            async let roughFetch    = ShipModelService.shared.localRoughnessURL(for: shipName)
+            async let emissiveFetch = ShipModelService.shared.localEmissiveURL(for: shipName)
+            let normalURL   = try? await normalFetch
+            let roughURL    = try? await roughFetch
+            let emissiveURL = try? await emissiveFetch
 
-            do    { emissiveURL = try await ShipModelService.shared.localEmissiveURL(for: shipName) }
-            catch { }
-
-            phase = .ready(ReadyPayload(
-                objURL:      objURL,
-                albedoURL:   albedoURL,
-                normalURL:   normalURL,
-                roughURL:    roughURL,
-                emissiveURL: emissiveURL,
-                warning:     warning
-            ))
+            if case .ready(var p) = phase {
+                p.normalURL       = normalURL
+                p.roughURL        = roughURL
+                p.emissiveURL     = emissiveURL
+                p.texturesLoading = false
+                phase = .ready(p)
+            }
         } catch {
             phase = .failed(error.localizedDescription)
         }

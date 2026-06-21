@@ -2062,6 +2062,9 @@
     "Loading star map..." : {
 
     },
+    "Loading textures…" : {
+
+    },
     "Loading…" : {
 
     },
@@ -2396,6 +2399,9 @@
 
     },
     "Only show orders in systems with security status ≥ 0.5" : {
+
+    },
+    "Open in dedicated window" : {
 
     },
     "Open in EVE" : {
@@ -3138,6 +3144,9 @@
     "Today" : {
 
     },
+    "Toggle wireframe" : {
+
+    },
     "Total Corporation Balance" : {
 
     },
@@ -3320,6 +3329,9 @@
 
     },
     "Wing %lld" : {
+
+    },
+    "Wormhole" : {
 
     },
     "WORMHOLE CONNECTIONS" : {
