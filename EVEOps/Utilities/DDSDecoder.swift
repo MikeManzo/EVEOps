@@ -29,6 +29,29 @@ import Metal
 /// 'u_diffuseTexture' GLSL uniform only for image types, not for MTLTexture objects.
 enum DDSDecoder {
 
+    // MARK: Cached Metal resources
+
+    private nonisolated(unsafe) static var _metalDeviceID: ObjectIdentifier?
+    private nonisolated(unsafe) static var _metalCIContext: CIContext?
+    private nonisolated(unsafe) static var _metalCommandQueue: MTLCommandQueue?
+    private static let _cpuCIContext = CIContext()
+
+    private static func ciContext(for device: MTLDevice) -> CIContext {
+        let id = ObjectIdentifier(device)
+        if _metalDeviceID == id, let ctx = _metalCIContext { return ctx }
+        let ctx = CIContext(mtlDevice: device)
+        _metalCIContext = ctx; _metalDeviceID = id
+        return ctx
+    }
+
+    private static func commandQueue(for device: MTLDevice) -> MTLCommandQueue? {
+        let id = ObjectIdentifier(device)
+        if _metalDeviceID == id, let q = _metalCommandQueue { return q }
+        guard let q = device.makeCommandQueue() else { return nil }
+        _metalCommandQueue = q; _metalDeviceID = id
+        return q
+    }
+
     // MARK:  Public: software decode (BC1/BC3)
 
     static func decode(_ data: Data) -> CGImage? {
@@ -62,7 +85,7 @@ enum DDSDecoder {
         guard let ci = CIImage(mtlTexture: rgba,
                                options: [.colorSpace: CGColorSpaceCreateDeviceRGB()])
         else { return nil }
-        let ctx = CIContext(mtlDevice: device)
+        let ctx = ciContext(for: device)
         let extent = CGRect(x: 0, y: 0, width: rgba.width, height: rgba.height)
         return ctx.createCGImage(ci, from: extent)
     }
@@ -77,7 +100,7 @@ enum DDSDecoder {
         guard let ci = CIImage(mtlTexture: rgba,
                                options: [.colorSpace: CGColorSpaceCreateDeviceRGB()])
         else { return nil }
-        let ctx = CIContext(mtlDevice: device)
+        let ctx = ciContext(for: device)
         let extent = CGRect(x: 0, y: 0, width: rgba.width, height: rgba.height)
         return ctx.createCGImage(ci, from: extent)
     }
@@ -90,7 +113,7 @@ enum DDSDecoder {
     /// Returns nil if CIFilter setup fails.
     static func splitRoughnessChannels(from image: CGImage) -> (roughness: CGImage, metalness: CGImage, ao: CGImage)? {
         let ci     = CIImage(cgImage: image)
-        let ctx    = CIContext()
+        let ctx    = _cpuCIContext
         let extent = ci.extent
 
         func extractChannel(_ rVec: CIVector) -> CGImage? {
@@ -196,7 +219,7 @@ enum DDSDecoder {
         pipeDesc.colorAttachments[0].pixelFormat = .rgba8Unorm
         guard let pipe = try? device.makeRenderPipelineState(descriptor: pipeDesc) else { return nil }
 
-        guard let queue  = device.makeCommandQueue(),
+        guard let queue  = commandQueue(for: device),
               let cmdbuf = queue.makeCommandBuffer() else { return nil }
 
         if srcTex.storageMode == .managed,
@@ -294,7 +317,7 @@ enum DDSDecoder {
         pipeDesc.colorAttachments[0].pixelFormat = rgbaFmt
         guard let pipe = try? device.makeRenderPipelineState(descriptor: pipeDesc) else { return nil }
 
-        guard let queue  = device.makeCommandQueue(),
+        guard let queue  = commandQueue(for: device),
               let cmdbuf = queue.makeCommandBuffer() else { return nil }
 
         // Flush CPU writes → GPU (managed storage only; shared memory needs no sync)
