@@ -105,7 +105,7 @@ struct PresenceDetailPopover: View {
                     Text(score.state.title)
                         .font(.subheadline.bold())
                         .foregroundStyle(stateColor)
-                    Text("Confidence: \(Int(score.score * 100))%")
+                    Text("Confidence: \(score.score.formatted(.percent.precision(.fractionLength(0))))")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

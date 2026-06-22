@@ -347,7 +347,7 @@ struct SimCapBlock: View {
                     if peakRecharge > 0 {
                         let net = stats.netCapGJps
                         let pct = net / peakRecharge * 100
-                        Text(String(format: "Δ %.1f GJ/s (%.1f%%)", net, pct))
+                        Text("Δ \(net.formatted(.number.precision(.fractionLength(1)))) GJ/s (\((pct / 100).formatted(.percent.precision(.fractionLength(1)))))")
                             .font(.system(size: 11).monospacedDigit())
                             .foregroundStyle(stats.isCapStable ? Color.secondary : Color.orange)
                             .help(stats.isCapStable
@@ -591,7 +591,7 @@ private struct SimResistBadge: View {
             RoundedRectangle(cornerRadius: 3)
                 .fill(color.opacity(0.6))
                 .frame(width: blockWidth * fraction)
-            Text(String(format: "%.1f%%", value))
+            Text((value / 100).formatted(.percent.precision(.fractionLength(1))))
                 .font(.system(size: 9, weight: .semibold).monospacedDigit())
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
@@ -854,8 +854,10 @@ private struct SimImplantsBlock: View {
             if let label = pctMap[attr.attributeId], attr.value != 0 {
                 let pct = negatedAttributes.contains(attr.attributeId) ? -attr.value : attr.value
                 let sign = pct >= 0 ? "+" : ""
-                let fmt = pct == pct.rounded() ? "\(sign)%.0f%% \(label)" : "\(sign)%.1f%% \(label)"
-                return String(format: fmt, pct)
+                let pctStr = pct == pct.rounded()
+                    ? (pct / 100).formatted(.percent.precision(.fractionLength(0)))
+                    : (pct / 100).formatted(.percent.precision(.fractionLength(1)))
+                return "\(sign)\(pctStr) \(label)"
             }
         }
 

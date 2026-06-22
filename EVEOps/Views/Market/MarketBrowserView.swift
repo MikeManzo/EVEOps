@@ -805,7 +805,7 @@ struct MarketBrowserView: View {
                bestSell > 0 {
                 Divider()
                 let spread = ((bestSell - bestBuy) / bestSell) * 100
-                statCard("Spread", value: String(format: "%.1f%%", spread), color: .secondary)
+                statCard("Spread", value: (spread / 100).formatted(.percent.precision(.fractionLength(1))), color: .secondary)
             }
         }
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))

@@ -361,11 +361,14 @@ actor IntelligenceService {
     ) async throws -> MarketInsight {
         let trend: String
         if priceChange30dPercent > 5 {
-            trend = "rising (\(String(format: "+%.1f%%", priceChange30dPercent)) over 30 days)"
+            let pct = (priceChange30dPercent / 100).formatted(.percent.precision(.fractionLength(1)))
+            trend = "rising (+\(pct) over 30 days)"
         } else if priceChange30dPercent < -5 {
-            trend = "falling (\(String(format: "%.1f%%", priceChange30dPercent)) over 30 days)"
+            let pct = (priceChange30dPercent / 100).formatted(.percent.precision(.fractionLength(1)))
+            trend = "falling (\(pct) over 30 days)"
         } else {
-            trend = "stable (\(String(format: "%.1f%%", priceChange30dPercent)) over 30 days)"
+            let pct = (priceChange30dPercent / 100).formatted(.percent.precision(.fractionLength(1)))
+            trend = "stable (\(pct) over 30 days)"
         }
 
         var priceLine = ""
@@ -378,7 +381,7 @@ actor IntelligenceService {
         Region: \(regionName)
         Best sell price: \(bestSell)
         Best buy price: \(bestBuy)
-        Spread: \(String(format: "%.1f%%", spreadPercent))
+        Spread: \((spreadPercent / 100).formatted(.percent.precision(.fractionLength(1))))
         Active orders: \(sellOrderCount) sell, \(buyOrderCount) buy
         5-day average daily volume: \(avgDailyVolume > 0 ? "\(avgDailyVolume) units" : "unknown")
         30-day price trend: \(trend)

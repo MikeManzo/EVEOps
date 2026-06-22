@@ -331,7 +331,7 @@ struct AttributeRemapView: View {
                             }
                         }
                         .frame(height: 14)
-                        Text("\(Int(fraction * 100))%")
+                        Text(fraction.formatted(.percent.precision(.fractionLength(0))))
                             .font(.caption.bold().monospacedDigit())
                             .frame(width: 36, alignment: .trailing)
                     }
@@ -348,7 +348,7 @@ struct AttributeRemapView: View {
                         Image(systemName: dominant.value > (totalSP / 2) ? "lightbulb.fill" : "lightbulb")
                             .foregroundStyle(.yellow)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Your queue is \(Int(Double(dominant.value) / Double(totalSP) * 100))% **\(p)/\(s)** skills.")
+                            Text("Your queue is \((Double(dominant.value) / Double(totalSP)).formatted(.percent.precision(.fractionLength(0)))) **\(p)/\(s)** skills.")
                                 .font(.caption)
                             Text("Current speed: \(currentRate) SP/min • \(currentRate * 60) SP/hr")
                                 .font(.caption).foregroundStyle(.secondary)
@@ -415,7 +415,7 @@ struct AttributeRemapView: View {
 
             ForEach(entries) { entry in
                 let inQueue = entry.queueSP > 0
-                let queuePct = totalQueueSP > 0 ? Int(Double(entry.queueSP) / Double(totalQueueSP) * 100) : 0
+                let queueFraction = totalQueueSP > 0 ? Double(entry.queueSP) / Double(totalQueueSP) : 0
 
                 HStack(spacing: 10) {
                     VStack(alignment: .leading, spacing: 1) {
@@ -423,7 +423,7 @@ struct AttributeRemapView: View {
                             .font(.subheadline)
                             .foregroundStyle(inQueue ? .primary : .secondary)
                         if inQueue {
-                            Text("\(queuePct)% of queue")
+                            Text("\(queueFraction.formatted(.percent.precision(.fractionLength(0)))) of queue")
                                 .font(.caption2.monospacedDigit())
                                 .foregroundStyle(.secondary)
                         } else {
@@ -463,7 +463,7 @@ struct AttributeRemapView: View {
         guard let dominant = pairs.first else { return AnyView(EmptyView()) }
 
         let totalSP = pairs.reduce(0) { $0 + $1.value }
-        let dominantPct = Int(Double(dominant.value) / Double(max(totalSP, 1)) * 100)
+        let dominantPctStr = (Double(dominant.value) / Double(max(totalSP, 1))).formatted(.percent.precision(.fractionLength(0)))
         let (primary, secondary) = splitPair(dominant.key)
 
         // Recommended base values after optimal remap for this pair (base only, before implants)
@@ -503,7 +503,7 @@ struct AttributeRemapView: View {
                 }
 
                 // Summary sentence
-                Text("Your queue is **\(dominantPct)% \(primary) / \(secondary)** skills. For fastest training, remap to:")
+                Text("Your queue is **\(dominantPctStr) \(primary) / \(secondary)** skills. For fastest training, remap to:")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 

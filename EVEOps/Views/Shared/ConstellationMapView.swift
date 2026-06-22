@@ -94,7 +94,7 @@ struct ConstellationMapView: View {
                 }
                 .buttonStyle(.plain)
 
-                Text("\(Int(scale * 100))%")
+                Text(Double(scale).formatted(.percent.precision(.fractionLength(0))))
                     .font(.caption2.monospacedDigit())
                     .foregroundStyle(.secondary)
                     .frame(width: 36)

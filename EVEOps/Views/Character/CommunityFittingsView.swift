@@ -841,7 +841,7 @@ struct CommunityModuleRow: View {
 
                 Spacer(minLength: 0)
 
-                Text("\(module.frequency)%")
+                Text((Double(module.frequency) / 100).formatted(.percent.precision(.fractionLength(0))))
                     .font(.caption2.monospacedDigit())
                     .padding(.horizontal, 5)
                     .padding(.vertical, 2)
@@ -890,7 +890,7 @@ struct AttackerShipRow: View {
 
                 Spacer(minLength: 0)
 
-                Text("\(frequency)%")
+                Text((Double(frequency) / 100).formatted(.percent.precision(.fractionLength(0))))
                     .font(.caption2.monospacedDigit())
                     .padding(.horizontal, 5)
                     .padding(.vertical, 2)

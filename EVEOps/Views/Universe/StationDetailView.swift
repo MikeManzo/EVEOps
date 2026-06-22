@@ -337,7 +337,7 @@ struct StationDetailView: View {
                         icon: "arrow.3.trianglepath",
                         color: .orange,
                         label: "Reprocessing",
-                        value: String(format: "%.0f%%", efficiency * 100)
+                        value: efficiency.formatted(.percent.precision(.fractionLength(0)))
                     )
                 }
 
@@ -347,7 +347,7 @@ struct StationDetailView: View {
                         icon: "percent",
                         color: .orange,
                         label: "Station Take",
-                        value: String(format: "%.1f%%", take * 100)
+                        value: take.formatted(.percent.precision(.fractionLength(1)))
                     )
                 }
 

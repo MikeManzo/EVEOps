@@ -295,7 +295,7 @@ struct NpcCorpPopoverView: View {
                     }
                     GridRow {
                         Text("Tax Rate").font(.caption).foregroundStyle(.secondary)
-                        Text(String(format: "%.1f%%", corp.taxRate * 100)).font(.caption.bold())
+                        Text(corp.taxRate.formatted(.percent.precision(.fractionLength(1)))).font(.caption.bold())
                     }
                     if let ceoName {
                         GridRow {

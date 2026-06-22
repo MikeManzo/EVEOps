@@ -229,7 +229,7 @@ struct GalaxyMapView: View {
                         Image(systemName: "minus.magnifyingglass").font(.caption)
                     }.buttonStyle(.plain)
 
-                    Text("\(Int(scale * 100))%")
+                    Text(Double(scale).formatted(.percent.precision(.fractionLength(0))))
                         .font(.caption2.monospacedDigit()).foregroundStyle(.secondary).frame(width: 36)
 
                     Button { withAnimation { scale = min(6.0, scale + 0.3); baseScale = scale } } label: {
@@ -292,7 +292,7 @@ struct GalaxyMapView: View {
             ProgressView(value: loadingProgress) {
                 Text("Loading galaxy map…").font(.subheadline)
             } currentValueLabel: {
-                Text("\(Int(loadingProgress * 100))%")
+                Text(loadingProgress.formatted(.percent.precision(.fractionLength(0))))
                     .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
             }
             .frame(maxWidth: 320)

@@ -618,11 +618,11 @@ private struct SimModuleStatsSections: View {
         AttrSpec(id: 68,   icon: "shield",             label: "Shield Boost")    { v in v > 0 ? "\(fmtNum(v)) HP" : nil },
         AttrSpec(id: 84,   icon: "shield.lefthalf.filled", label: "Armor Repair"){ v in v > 0 ? "\(fmtNum(v)) HP" : nil },
         AttrSpec(id: 85,   icon: "shield.slash",       label: "Hull Repair")     { v in v > 0 ? "\(fmtNum(v)) HP" : nil },
-        AttrSpec(id: 984,  icon: "shield.checkered",   label: "Resist Bonus")    { v in v != 0 ? "\(String(format: "%.1f", abs(v)))%" : nil },
-        AttrSpec(id: 20,   icon: "hare",               label: "Velocity Bonus")  { v in v != 0 ? "\(String(format: "%.0f", v))%" : nil },
-        AttrSpec(id: 554,  icon: "hare",               label: "Velocity Bonus")  { v in v != 0 ? "\(String(format: "%.0f", v))%" : nil },
-        AttrSpec(id: 633,  icon: "dot.radiowaves.left.and.right", label: "Scan Res. Bonus") { v in v != 0 ? "\(String(format: "%.0f", v))%" : nil },
-        AttrSpec(id: 182,  icon: "star",               label: "Dmg. Bonus")      { v in v != 0 ? "\(String(format: "%.0f", v))%" : nil },
+        AttrSpec(id: 984,  icon: "shield.checkered",   label: "Resist Bonus")    { v in v != 0 ? (abs(v) / 100).formatted(.percent.precision(.fractionLength(1))) : nil },
+        AttrSpec(id: 20,   icon: "hare",               label: "Velocity Bonus")  { v in v != 0 ? (v / 100).formatted(.percent.precision(.fractionLength(0))) : nil },
+        AttrSpec(id: 554,  icon: "hare",               label: "Velocity Bonus")  { v in v != 0 ? (v / 100).formatted(.percent.precision(.fractionLength(0))) : nil },
+        AttrSpec(id: 633,  icon: "dot.radiowaves.left.and.right", label: "Scan Res. Bonus") { v in v != 0 ? (v / 100).formatted(.percent.precision(.fractionLength(0))) : nil },
+        AttrSpec(id: 182,  icon: "star",               label: "Dmg. Bonus")      { v in v != 0 ? (v / 100).formatted(.percent.precision(.fractionLength(0))) : nil },
     ] }
 
     private struct StatRow { let icon: String; let label: String; let value: String }

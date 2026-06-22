@@ -196,7 +196,7 @@ struct FinancesView: View {
                                         .font(.caption2.bold().monospacedDigit())
                                         .foregroundStyle(cat.color)
                                     if netWorth > 0 {
-                                        Text(String(format: "%.1f%%", (cat.value / netWorth) * 100))
+                                        Text((cat.value / netWorth).formatted(.percent.precision(.fractionLength(1))))
                                             .font(.system(size: 9))
                                             .foregroundStyle(.secondary)
                                     }

@@ -340,7 +340,7 @@ struct TrainingOverviewView: View {
                                     .font(.caption2.monospacedDigit())
                                     .foregroundStyle(.secondary)
                                 Spacer()
-                                Text("\(Int(progress * 100))%")
+                                Text(progress.formatted(.percent.precision(.fractionLength(0))))
                                     .font(.caption2.bold().monospacedDigit())
                                     .foregroundStyle(.secondary)
                             }

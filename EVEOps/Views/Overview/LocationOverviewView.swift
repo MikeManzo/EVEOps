@@ -335,7 +335,7 @@ struct LocationOverviewView: View {
                     .font(.subheadline.bold())
                 if let efficiency = station.reprocessingEfficiency, services.contains("reprocessing-plant") {
                     Spacer()
-                    Text(String(format: "Reprocessing %.0f%%", efficiency * 100))
+                    Text("Reprocessing \(efficiency.formatted(.percent.precision(.fractionLength(0))))")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -1126,10 +1126,10 @@ private struct StationServicePopover: View {
                 Divider()
                 VStack(alignment: .leading, spacing: 6) {
                     if let eff = station.reprocessingEfficiency, eff > 0 {
-                        detailRow("Base Efficiency", value: String(format: "%.1f%%", eff * 100), color: .green)
+                        detailRow("Base Efficiency", value: eff.formatted(.percent.precision(.fractionLength(1))), color: .green)
                     }
                     if let take = station.reprocessingStationsTake, take > 0 {
-                        detailRow("Station Tax", value: String(format: "%.1f%%", take * 100), color: .orange)
+                        detailRow("Station Tax", value: take.formatted(.percent.precision(.fractionLength(1))), color: .orange)
                     }
                 }
             }
@@ -1171,11 +1171,11 @@ private struct StationServicePopover: View {
             Text(name)
                 .font(.caption2)
                 .frame(width: 58, alignment: .leading)
-            Text("\(premium)% premium")
+            Text("\((Double(premium) / 100).formatted(.percent.precision(.fractionLength(0)))) premium")
                 .font(.caption2.monospacedDigit())
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            Text("\(payout)% payout")
+            Text("\((Double(payout) / 100).formatted(.percent.precision(.fractionLength(0)))) payout")
                 .font(.caption2.monospacedDigit().bold())
                 .foregroundStyle(.green)
         }

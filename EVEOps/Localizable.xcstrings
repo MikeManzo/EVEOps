@@ -163,6 +163,15 @@
     "%@ m³" : {
 
     },
+    "%@ of queue" : {
+
+    },
+    "%@ payout" : {
+
+    },
+    "%@ premium" : {
+
+    },
     "%@ SP" : {
 
     },
@@ -469,18 +478,6 @@
           }
         }
       }
-    },
-    "%lld%%" : {
-
-    },
-    "%lld%% of queue" : {
-
-    },
-    "%lld%% payout" : {
-
-    },
-    "%lld%% premium" : {
-
     },
     "%lldd • %@" : {
       "localizations" : {
@@ -1134,7 +1131,7 @@
     "Computing jump distances…" : {
 
     },
-    "Confidence: %lld%%" : {
+    "Confidence: %@" : {
 
     },
     "Connected Systems" : {
@@ -2629,6 +2626,9 @@
     "Remove Contact" : {
 
     },
+    "Reprocessing %@" : {
+
+    },
     "Research Agents" : {
 
     },
@@ -3362,22 +3362,22 @@
         }
       }
     },
-    "Your queue is **%lld%% %@ / %@** skills. For fastest training, remap to:" : {
+    "Your queue is **%@ %@ / %@** skills. For fastest training, remap to:" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Your queue is **%1$lld%% %2$@ / %3$@** skills. For fastest training, remap to:"
+            "value" : "Your queue is **%1$@ %2$@ / %3$@** skills. For fastest training, remap to:"
           }
         }
       }
     },
-    "Your queue is %lld%% **%@/%@** skills." : {
+    "Your queue is %@ **%@/%@** skills." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Your queue is %1$lld%% **%2$@/%3$@** skills."
+            "value" : "Your queue is %1$@ **%2$@/%3$@** skills."
           }
         }
       }
@@ -3396,6 +3396,16 @@
     },
     "Zoom to %@" : {
 
+    },
+    "Δ %@ GJ/s (%@)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Δ %1$@ GJ/s (%2$@)"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

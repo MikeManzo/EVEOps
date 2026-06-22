@@ -79,7 +79,7 @@ nonisolated struct PresenceScore: Sendable {
         case .idle:           String(localized: "Idle")
         case .offline:        String(localized: "Offline")
         }
-        let scoreText = String(format: "%.0f%%", score * 100)
+        let scoreText = score.formatted(.percent.precision(.fractionLength(0)))
         var lines = [stateLabel, String(localized: "Score: \(scoreText)")]
         if let sig = dominantSignal {
             lines.append(String(localized: "Signal: \(sig)"))
