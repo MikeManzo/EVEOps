@@ -1327,6 +1327,9 @@
     "Default Character" : {
 
     },
+    "Default location" : {
+
+    },
     "Delete" : {
 
     },
@@ -1455,6 +1458,9 @@
 
     },
     "EVE Buddy is acknowledged as an inspiration for EVEOps and is not affiliated with or endorsed by this application." : {
+
+    },
+    "EVE Installation" : {
 
     },
     "EVE News" : {
@@ -1686,6 +1692,9 @@
 
     },
     "GetEveModels provides 3D ship model data for EVE Online. Used in accordance with the GetEveModels public API terms of service." : {
+
+    },
+    "Grant Access…" : {
 
     },
     "Group" : {
@@ -2551,6 +2560,9 @@
     "Re-authentication required: %@" : {
 
     },
+    "Re-authorize…" : {
+
+    },
     "Ready" : {
 
     },
@@ -2621,6 +2633,9 @@
 
     },
     "Remove %@?" : {
+
+    },
+    "Remove Access" : {
 
     },
     "Remove Contact" : {
@@ -3246,6 +3261,9 @@
     "Updated %@ ago" : {
 
     },
+    "Use local textures" : {
+
+    },
     "Uses the on-device Apple Intelligence to analyze your financial and skill training data. All processing is local — no data leaves your Mac." : {
 
     },
@@ -3323,6 +3341,9 @@
 
     },
     "What's Not Simulated" : {
+
+    },
+    "When enabled, ship textures are read directly from your EVE installation instead of downloaded from the internet. 3D models always use the online source." : {
 
     },
     "When the cooldown expires you can reassign your base attributes (Charisma, Intelligence, Memory, Perception, Willpower) to optimise training time for a new skill plan." : {

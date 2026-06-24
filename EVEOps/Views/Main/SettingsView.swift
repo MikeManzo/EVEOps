@@ -665,6 +665,17 @@ private struct CacheTab: View {
     @State private var isClearingModels = false
     @State private var isRefreshing = false
     @State private var sdeTag: String?
+    @AppStorage(EVEInstallLocator.enabledKey) private var eveLocalEnabled = false
+    @State private var eveHasBookmark   = EVEInstallLocator.shared.hasBookmark
+    @State private var eveInstallStatus = EVEInstallLocator.shared.statusDescription()
+    private let eveStandardPath         = EVEInstallLocator.standardDisplayPath()
+
+    private var eveStatusColor: Color {
+        if eveInstallStatus == "Active" { return .green }
+        if eveInstallStatus.hasPrefix("Stale") ||
+           eveInstallStatus.hasPrefix("Authorized (ResFiles") { return .orange }
+        return .secondary
+    }
 
     var body: some View {
         Form {
@@ -698,6 +709,46 @@ private struct CacheTab: View {
                 }
                 .disabled(isClearingModels)
                 Text("Downloaded ship meshes and DDS textures. Re-downloaded on demand when viewing ships.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section("EVE Installation") {
+                LabeledContent("Status") {
+                    Text(eveInstallStatus)
+                        .foregroundStyle(eveStatusColor)
+                }
+                if !eveHasBookmark {
+                    LabeledContent("Default location") {
+                        Text(eveStandardPath)
+                            .font(.system(.caption, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                            .textSelection(.enabled)
+                    }
+                }
+                if eveHasBookmark {
+                    Toggle("Use local textures", isOn: $eveLocalEnabled)
+                        .onChange(of: eveLocalEnabled) { _, v in
+                            EVEInstallLocator.shared.isEnabled = v
+                            refreshEVEStatus()
+                        }
+                }
+                Button(eveHasBookmark ? "Re-authorize\u{2026}" : "Grant Access\u{2026}") {
+                    Task { @MainActor in
+                        await EVEInstallLocator.shared.presentPicker(in: NSApp.keyWindow)
+                        eveLocalEnabled = EVEInstallLocator.shared.isEnabled
+                        refreshEVEStatus()
+                    }
+                }
+                if eveHasBookmark {
+                    Button("Remove Access") {
+                        EVEInstallLocator.shared.clearBookmark()
+                        eveLocalEnabled = false
+                        refreshEVEStatus()
+                    }
+                    .foregroundStyle(.red)
+                }
+                Text("When enabled, ship textures are read directly from your EVE installation instead of downloaded from the internet. 3D models always use the online source.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -739,6 +790,7 @@ private struct CacheTab: View {
         .task {
             sdeTag = SDEDataManager.shared.cachedTag()
             await recalculateSizes()
+            refreshEVEStatus()
         }
     }
 
@@ -772,6 +824,11 @@ private struct CacheTab: View {
         let formatter = ByteCountFormatter()
         formatter.countStyle = .file
         return formatter.string(fromByteCount: bytes)
+    }
+
+    private func refreshEVEStatus() {
+        eveHasBookmark   = EVEInstallLocator.shared.hasBookmark
+        eveInstallStatus = EVEInstallLocator.shared.statusDescription()
     }
 }
 

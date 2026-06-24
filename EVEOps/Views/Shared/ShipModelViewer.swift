@@ -570,17 +570,20 @@ struct ShipSceneKitView: NSViewRepresentable {
             if let img { mat.normal.contents = img }
         }
 
-        // _r.dds is a packed map: R=roughness, G=metalness, B=ambient occlusion.
-        // Split channels via CIColorMatrix so each slot receives its correct data.
+        // _r.dds: packed map (BC1/BC3/BC7 → R=roughness, G=metalness, B=AO)
+        // or single-channel BC4/ATI1 (on-disk EVE assets) → R=roughness only.
         if let url = roughnessDDSURL, let data = try? Data(contentsOf: url), let dev = device {
-            var img: CGImage? = DDSDecoder.decode(data)
-            if img == nil { img = DDSDecoder.cgImage(from: data, device: dev) }
-            if let img, let split = DDSDecoder.splitRoughnessChannels(from: img) {
+            var packedImg: CGImage? = DDSDecoder.decode(data)
+            if packedImg == nil { packedImg = DDSDecoder.cgImage(from: data, device: dev) }
+            if let img = packedImg, let split = DDSDecoder.splitRoughnessChannels(from: img) {
                 mat.roughness.contents        = split.roughness
                 mat.metalness.contents        = split.metalness
                 mat.ambientOcclusion.contents = split.ao
-            } else if let img {
+            } else if let img = packedImg {
                 mat.roughness.contents = img
+                mat.metalness.contents = NSNumber(value: 0.30)
+            } else if let singleImg = DDSDecoder.cgImageBC4(from: data, device: dev) {
+                mat.roughness.contents = singleImg
                 mat.metalness.contents = NSNumber(value: 0.30)
             } else {
                 mat.roughness.contents = NSNumber(value: 0.88)

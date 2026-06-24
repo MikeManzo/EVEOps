@@ -105,6 +105,22 @@ enum DDSDecoder {
         return ctx.createCGImage(ci, from: extent)
     }
 
+    // MARK: Public: BC4 → RGBA8 CGImage (roughness maps)
+
+    /// Decodes a BC4 (ATI1 legacy or DX10 BC4_UNORM/TYPELESS) DDS texture to an
+    /// RGBA8 CGImage with R replicated into G/B so SceneKit's roughness sampler
+    /// (which reads the R channel) receives the correct value.
+    /// Returns nil for non-BC4 data or if Metal setup fails.
+    static func cgImageBC4(from data: Data, device: MTLDevice) -> CGImage? {
+        guard let rgba = bc4Texture(from: data, device: device) else { return nil }
+        guard let ci = CIImage(mtlTexture: rgba,
+                               options: [.colorSpace: CGColorSpaceCreateDeviceRGB()])
+        else { return nil }
+        let ctx = ciContext(for: device)
+        let extent = CGRect(x: 0, y: 0, width: rgba.width, height: rgba.height)
+        return ctx.createCGImage(ci, from: extent)
+    }
+
     // MARK: Public: split packed roughness channels
 
     /// Extracts the three PBR channels from a decoded roughness (_r.dds) CGImage.
@@ -212,6 +228,115 @@ enum DDSDecoder {
         guard let lib  = try? device.makeLibrary(source: shaderSrc, options: nil),
               let vfn  = lib.makeFunction(name: "bc5v"),
               let ffn  = lib.makeFunction(name: "bc5f") else { return nil }
+
+        let pipeDesc = MTLRenderPipelineDescriptor()
+        pipeDesc.vertexFunction   = vfn
+        pipeDesc.fragmentFunction = ffn
+        pipeDesc.colorAttachments[0].pixelFormat = .rgba8Unorm
+        guard let pipe = try? device.makeRenderPipelineState(descriptor: pipeDesc) else { return nil }
+
+        guard let queue  = commandQueue(for: device),
+              let cmdbuf = queue.makeCommandBuffer() else { return nil }
+
+        if srcTex.storageMode == .managed,
+           let blitSync = cmdbuf.makeBlitCommandEncoder() {
+            blitSync.synchronize(resource: srcTex)
+            blitSync.endEncoding()
+        }
+
+        let rpd = MTLRenderPassDescriptor()
+        rpd.colorAttachments[0].texture     = dstTex
+        rpd.colorAttachments[0].loadAction  = .dontCare
+        rpd.colorAttachments[0].storeAction = .store
+        guard let enc = cmdbuf.makeRenderCommandEncoder(descriptor: rpd) else { return nil }
+        enc.setRenderPipelineState(pipe)
+        enc.setFragmentTexture(srcTex, index: 0)
+        enc.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
+        enc.endEncoding()
+
+        cmdbuf.commit()
+        cmdbuf.waitUntilCompleted()
+        return cmdbuf.error == nil ? dstTex : nil
+    }
+
+    // MARK: BC4 → RGBA8 MTLTexture (internal)
+
+    private static func bc4Texture(from data: Data, device: MTLDevice) -> MTLTexture? {
+        guard data.count >= 128,
+              data[0] == 0x44, data[1] == 0x44, data[2] == 0x53, data[3] == 0x20
+        else { return nil }
+
+        let fourCC = data.le32(at: 84)
+        let isATI1 = (fourCC == 0x31495441)  // "ATI1" — legacy BC4 UNORM
+        let isDX10 = (fourCC == 0x30315844)  // "DX10"
+        let isSnorm: Bool
+        let dataOffset: Int
+
+        if isATI1 {
+            isSnorm = false; dataOffset = 128
+        } else if isDX10, data.count >= 148 {
+            let dxgi = data.le32(at: 128)
+            guard dxgi == 79 || dxgi == 80 || dxgi == 81 else { return nil }  // BC4_TYPELESS/UNORM/SNORM
+            isSnorm = (dxgi == 81); dataOffset = 148
+        } else {
+            return nil
+        }
+
+        let w = Int(data.le32(at: 16))
+        let h = Int(data.le32(at: 12))
+        guard w > 0, h > 0 else { return nil }
+
+        let srcFmt: MTLPixelFormat = isSnorm ? .bc4_rSnorm : .bc4_rUnorm
+        let srcDesc = MTLTextureDescriptor.texture2DDescriptor(
+            pixelFormat: srcFmt, width: w, height: h, mipmapped: false)
+        srcDesc.usage       = .shaderRead
+        srcDesc.storageMode = device.hasUnifiedMemory ? .shared : .managed
+        guard let srcTex = device.makeTexture(descriptor: srcDesc) else { return nil }
+
+        let blocksW     = (w + 3) / 4
+        let blocksH     = (h + 3) / 4
+        let bytesPerRow = blocksW * 8   // 8 bytes per BC4 4×4 block
+        guard dataOffset + bytesPerRow * blocksH <= data.count else { return nil }
+
+        data.withUnsafeBytes { raw in
+            guard let base = raw.baseAddress else { return }
+            srcTex.replace(
+                region: MTLRegion(origin: MTLOrigin(x: 0, y: 0, z: 0),
+                                  size:   MTLSize(width: w, height: h, depth: 1)),
+                mipmapLevel: 0,
+                withBytes:   base.advanced(by: dataOffset),
+                bytesPerRow: bytesPerRow)
+        }
+
+        let dstDesc = MTLTextureDescriptor.texture2DDescriptor(
+            pixelFormat: .rgba8Unorm, width: w, height: h, mipmapped: false)
+        dstDesc.usage       = [.renderTarget, .shaderRead]
+        dstDesc.storageMode = .private
+        guard let dstTex = device.makeTexture(descriptor: dstDesc) else { return nil }
+
+        // Replicate R into G/B so the resulting CGImage works regardless of which
+        // channel SceneKit samples when the image is used as roughness contents.
+        // SNORM [-1,1] is remapped to [0,1] before output.
+        let fragBody = isSnorm
+            ? "float r=src.sample(s,in.uv).r*0.5+0.5; return float4(r,r,r,1.0);"
+            : "float r=src.sample(s,in.uv).r; return float4(r,r,r,1.0);"
+        let shaderSrc = """
+        #include <metal_stdlib>
+        using namespace metal;
+        struct V2F { float4 pos [[position]]; float2 uv; };
+        vertex V2F bc4v(uint i [[vertex_id]]) {
+            const float2 p[4]={float2(-1,-1),float2(1,-1),float2(-1,1),float2(1,1)};
+            const float2 t[4]={float2(0,1),  float2(1,1), float2(0,0), float2(1,0)};
+            V2F o; o.pos=float4(p[i],0,1); o.uv=t[i]; return o;
+        }
+        fragment float4 bc4f(V2F in [[stage_in]], texture2d<float> src [[texture(0)]]) {
+            constexpr sampler s(filter::linear, address::clamp_to_edge);
+            \(fragBody)
+        }
+        """
+        guard let lib  = try? device.makeLibrary(source: shaderSrc, options: nil),
+              let vfn  = lib.makeFunction(name: "bc4v"),
+              let ffn  = lib.makeFunction(name: "bc4f") else { return nil }
 
         let pipeDesc = MTLRenderPipelineDescriptor()
         pipeDesc.vertexFunction   = vfn

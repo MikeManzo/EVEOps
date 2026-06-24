@@ -11,6 +11,7 @@
 //
 
 import Foundation
+import OSLog
 
 // MARK:  ShipModelService
 
@@ -27,6 +28,7 @@ import Foundation
 /// build number and re-fetched only when the build number changes.
 actor ShipModelService {
     static let shared = ShipModelService()
+    private static let log = Logger(subsystem: "CitizenCoder.EVEOps", category: "ShipModel")
 
     // MARK: Cache directory
 
@@ -133,6 +135,28 @@ actor ShipModelService {
     // MARK: Shared DDS download helper
 
     private func downloadAndCacheDDS(hashPath: String, to dest: URL) async throws -> URL {
+        // 1. Try the local EVE installation first — no network, instant read.
+        if let resFiles = EVEInstallLocator.shared.resFilesURL() {
+            let localURL = resFiles.appendingPathComponent(hashPath)
+            if let rawData = try? Data(contentsOf: localURL), rawData.count >= 4 {
+                var ddsData = rawData
+                let isDDS = rawData[0] == 0x44 && rawData[1] == 0x44
+                         && rawData[2] == 0x53 && rawData[3] == 0x20
+                if !isDDS, let dec = try? (rawData as NSData).decompressed(using: .zlib) {
+                    ddsData = dec as Data
+                }
+                if ddsData.count >= 4,
+                   ddsData[0] == 0x44, ddsData[1] == 0x44,
+                   ddsData[2] == 0x53, ddsData[3] == 0x20 {
+                    try ddsData.write(to: dest, options: .atomic)
+                    Self.log.info("Texture loaded from local EVE install: \(hashPath, privacy: .public)")
+                    return dest
+                }
+            }
+        }
+
+        // 2. Fall back to CCP CDN download.
+        Self.log.debug("Texture fetching from CDN: \(hashPath, privacy: .public)")
         guard let cdnURL = URL(string: Self.resourceBase + hashPath) else {
             throw AlbedoError.downloadFailed(0)
         }
