@@ -8,6 +8,9 @@
 	<true/>
 	<key>com.apple.security.files.user-selected.read-write</key>
 	<true/>
+	<!-- Required for EVEInstallLocator: persist security-scoped bookmark to EVE SharedCache across launches -->
+	<key>com.apple.security.files.bookmarks.app-scope</key>
+	<true/>
 	<!-- Sparkle: Installer Connection (-spki) and Status (-spks) IPC channels -->
 	<key>com.apple.security.temporary-exception.mach-lookup.global-name</key>
 	<array>

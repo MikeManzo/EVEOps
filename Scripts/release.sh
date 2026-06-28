@@ -4,7 +4,7 @@
 #  Usage: ./Scripts/release.sh 1.0.0
 # ============================================================
 
-set -e
+set -eo pipefail
 
 # ── Helpers ──────────────────────────────────────────────────
 GREEN='\033[0;32m'
@@ -44,7 +44,7 @@ source "$ENV_FILE"
 NOTARY_PROFILE="EVEOpsRelease"
 
 # Verify the profile exists
-xcrun notarytool info --keychain-profile "$NOTARY_PROFILE" 2>&1 | grep -q "error" && \
+xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" > /dev/null 2>&1 || \
   error "Notarization keychain profile '$NOTARY_PROFILE' not found. Run this once to set it up:
   xcrun notarytool store-credentials \"EVEOpsRelease\" --apple-id \"$APPLE_ID\" --team-id \"$TEAM_ID\""
 
@@ -54,7 +54,6 @@ ARCHIVE_PATH="$WORK_DIR/$SCHEME.xcarchive"
 EXPORT_PATH="$WORK_DIR/export"
 APP_PATH="$EXPORT_PATH/$SCHEME.app"
 DMG_PATH="$WORK_DIR/$SCHEME.dmg"
-NOTARIZE_ZIP="$WORK_DIR/$SCHEME-notarize.zip"
 APPCAST_DIR="$WORK_DIR/appcast"
 
 # ── Validate version argument ────────────────────────────────
@@ -160,19 +159,77 @@ staple_with_retry() {
   error "Stapling failed after $attempts attempts for $target"
 }
 
-# ── Notarize ─────────────────────────────────────────────────
-info "Notarizing app (this may take a few minutes)..."
+# Submits a file for notarization and polls until Apple accepts or rejects it.
+#
+# Both `--wait` and `--output-format json` crash with SIGBUS in some Xcode
+# builds — the former in the polling thread, the latter before the connection
+# even opens. Use plain-text output (the default) piped through `tee` so the
+# user sees progress, then parse the "id: <uuid>" line with grep/awk.
+notarize_and_wait() {
+  local target="$1"
+  local label="$2"
+
+  local out_tmp
+  out_tmp=$(mktemp)
+
+  info "Submitting $label for notarization..."
+  # tee lets us show live output AND capture it. Without --wait or --output-format,
+  # notarytool prints the submission ID and exits immediately after upload.
+  #
+  # notarytool crashes with SIGBUS in its own exit handler on some Xcode builds,
+  # even after the submission completes successfully. `|| true` absorbs that
+  # pipeline failure; the ID check below still catches genuine failures where
+  # no submission ID was ever printed.
+  xcrun notarytool submit "$target" \
+    --keychain-profile "$NOTARY_PROFILE" \
+    | tee "$out_tmp" || true
+
+  # Text format: "  id: <uuid>" indented under "Submission ID received"
+  local sub_id
+  sub_id=$(grep -E "^\s+id:" "$out_tmp" | awk '{print $2}' | head -1)
+  rm -f "$out_tmp"
+  [ -n "$sub_id" ] || error "Failed to parse submission ID from notarytool output above"
+
+  info "Waiting for notarization (ID: $sub_id)..."
+  local info_tmp
+  while true; do
+    info_tmp=$(mktemp)
+    # `notarytool info` doesn't poll — it just queries once and exits cleanly.
+    xcrun notarytool info "$sub_id" \
+      --keychain-profile "$NOTARY_PROFILE" \
+      | tee "$info_tmp"
+    local status
+    # Text format: "  status: Accepted"
+    status=$(grep -E "^\s+status:" "$info_tmp" | awk '{print $2}' | head -1)
+    rm -f "$info_tmp"
+    case "$status" in
+      Accepted)
+        info "$label notarized ✓"
+        return 0
+        ;;
+      Invalid|Rejected)
+        error "Notarization $status. Fetch the log with: xcrun notarytool log $sub_id --keychain-profile $NOTARY_PROFILE"
+        ;;
+      *)
+        info "  Status: ${status:-unknown} — checking again in 30s..."
+        sleep 30
+        ;;
+    esac
+  done
+}
+
+# ── Notarize .app bundle so it carries a stapled ticket ──────
+# Stapling the ticket directly to the .app means Gatekeeper can verify
+# the binary offline after the user drags it from the DMG. Without this,
+# users who are offline or behind strict firewalls get a "cannot verify"
+# block on first launch because Gatekeeper must phone home.
+NOTARIZE_ZIP="$WORK_DIR/$SCHEME-notarize.zip"
 ditto -c -k --keepParent "$APP_PATH" "$NOTARIZE_ZIP"
-
-xcrun notarytool submit "$NOTARIZE_ZIP" \
-  --keychain-profile "$NOTARY_PROFILE" \
-  --wait
-
-info "Stapling notarization ticket..."
+notarize_and_wait "$NOTARIZE_ZIP" "app bundle"
+info "Stapling notarization ticket to app bundle..."
 staple_with_retry "$APP_PATH"
-info "Notarization succeeded ✓"
 
-# ── Create DMG ───────────────────────────────────────────────
+# ── Create DMG (with already-stapled .app inside) ────────────
 info "Creating DMG..."
 hdiutil create \
   -volname "$SCHEME" \
@@ -184,11 +241,7 @@ hdiutil create \
 info "DMG created ✓"
 
 # ── Notarize DMG ─────────────────────────────────────────────
-info "Notarizing DMG..."
-xcrun notarytool submit "$DMG_PATH" \
-  --keychain-profile "$NOTARY_PROFILE" \
-  --wait
-
+notarize_and_wait "$DMG_PATH" "DMG"
 info "Stapling notarization ticket to DMG..."
 staple_with_retry "$DMG_PATH"
 info "DMG notarized ✓"
@@ -240,16 +293,54 @@ fi
 
 # ── Tag & Push ───────────────────────────────────────────────
 info "Tagging release $TAG..."
-git tag "$TAG"
-git push origin "$TAG"
+if git rev-parse "$TAG" >/dev/null 2>&1; then
+  info "Tag $TAG already exists locally — skipping"
+else
+  git tag "$TAG"
+fi
+if git ls-remote --tags origin "$TAG" | grep -q "$TAG"; then
+  info "Tag $TAG already exists on remote — skipping push"
+else
+  git push origin "$TAG"
+fi
 
 # ── Publish GitHub Release ───────────────────────────────────
 info "Publishing GitHub Release..."
-gh release create "$TAG" \
-  "$DMG_PATH" \
-  "$APPCAST_DIR/appcast.xml" \
-  --title "$TAG" \
-  --notes "Release $TAG"
+
+# Create the release without assets first so a failed upload doesn't
+# leave a half-created release that can't be retried.
+if gh release view "$TAG" &>/dev/null; then
+  info "GitHub release $TAG already exists — uploading missing assets..."
+else
+  gh release create "$TAG" \
+    --title "$TAG" \
+    --notes "Release $TAG"
+fi
+
+# Upload each asset with retry logic — large DMGs over a flaky
+# connection can hit transient TLS errors (bad record MAC) mid-stream.
+upload_asset() {
+  local file="$1"
+  local label="$(basename "$file")"
+  local attempts=5
+  local delay=15
+  for i in $(seq 1 $attempts); do
+    info "Uploading $label (attempt $i/$attempts)..."
+    if gh release upload "$TAG" "$file" --clobber; then
+      info "$label uploaded ✓"
+      return 0
+    fi
+    if [ "$i" -lt "$attempts" ]; then
+      info "Upload failed — retrying in ${delay}s..."
+      sleep "$delay"
+      delay=$((delay * 2))
+    fi
+  done
+  error "Upload of $label failed after $attempts attempts"
+}
+
+upload_asset "$DMG_PATH"
+upload_asset "$APPCAST_DIR/appcast.xml"
 
 info "Release $TAG published successfully ✓"
 

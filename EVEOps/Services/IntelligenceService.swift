@@ -9,7 +9,7 @@
 // Copyright (c) 2026 CitizenCoder
 //
 
-import Foundation
+@preconcurrency import Foundation
 import FoundationModels
 
 // MARK: Output Types
@@ -25,48 +25,104 @@ import FoundationModels
 struct FinanceInsight: Codable, Sendable {
     var summary: String
     var suggestion: String
+    private enum CodingKeys: String, CodingKey { case summary, suggestion }
+    nonisolated init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        summary    = try c.decode(String.self, forKey: .summary)
+        suggestion = try c.decode(String.self, forKey: .suggestion)
+    }
 }
 
 struct SkillRecommendation: Codable, Sendable {
     var skillName: String
     var targetLevel: Int
     var rationale: String
+    private enum CodingKeys: String, CodingKey { case skillName, targetLevel, rationale }
+    nonisolated init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        skillName   = try c.decode(String.self, forKey: .skillName)
+        targetLevel = try c.decode(Int.self,    forKey: .targetLevel)
+        rationale   = try c.decode(String.self, forKey: .rationale)
+    }
 }
 
 struct SkillTrainingRecommendation: Codable, Sendable {
     var playstyleSummary: String
     var recommendations: [SkillRecommendation]
+    private enum CodingKeys: String, CodingKey { case playstyleSummary, recommendations }
+    nonisolated init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        playstyleSummary = try c.decode(String.self,               forKey: .playstyleSummary)
+        recommendations  = try c.decode([SkillRecommendation].self, forKey: .recommendations)
+    }
 }
 
 struct CombatInsight: Codable, Sendable {
     var summary: String
     var suggestion: String
+    private enum CodingKeys: String, CodingKey { case summary, suggestion }
+    nonisolated init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        summary    = try c.decode(String.self, forKey: .summary)
+        suggestion = try c.decode(String.self, forKey: .suggestion)
+    }
 }
 
 struct IndustryInsight: Codable, Sendable {
     var summary: String
     var suggestion: String
+    private enum CodingKeys: String, CodingKey { case summary, suggestion }
+    nonisolated init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        summary    = try c.decode(String.self, forKey: .summary)
+        suggestion = try c.decode(String.self, forKey: .suggestion)
+    }
 }
 
 struct AssetInsight: Codable, Sendable {
     var summary: String
     var suggestion: String
+    private enum CodingKeys: String, CodingKey { case summary, suggestion }
+    nonisolated init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        summary    = try c.decode(String.self, forKey: .summary)
+        suggestion = try c.decode(String.self, forKey: .suggestion)
+    }
 }
 
 struct FittingInsight: Codable, Sendable {
     var roleAssessment: String
     var suggestion: String
+    private enum CodingKeys: String, CodingKey { case roleAssessment, suggestion }
+    nonisolated init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        roleAssessment = try c.decode(String.self, forKey: .roleAssessment)
+        suggestion     = try c.decode(String.self, forKey: .suggestion)
+    }
 }
 
 struct MarketInsight: Codable, Sendable {
     var summary: String
     var suggestion: String
+    private enum CodingKeys: String, CodingKey { case summary, suggestion }
+    nonisolated init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        summary    = try c.decode(String.self, forKey: .summary)
+        suggestion = try c.decode(String.self, forKey: .suggestion)
+    }
 }
 
 struct CloneInsight: Codable, Sendable {
     var setAssessment: String
     var recommendation: String
     var skillsNeeded: String
+    private enum CodingKeys: String, CodingKey { case setAssessment, recommendation, skillsNeeded }
+    nonisolated init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        setAssessment  = try c.decode(String.self, forKey: .setAssessment)
+        recommendation = try c.decode(String.self, forKey: .recommendation)
+        skillsNeeded   = try c.decode(String.self, forKey: .skillsNeeded)
+    }
 }
 
 struct IntelligenceUnavailableError: LocalizedError {
@@ -103,7 +159,7 @@ actor IntelligenceService {
     // Prompts the model with free-form text and decodes the JSON response.
     // The caller includes the exact JSON schema in the prompt so the model
     // knows what structure to produce.
-    private func generate<T: Decodable>(instructions: String, prompt: String) async throws -> T {
+    private nonisolated func generate<T: Decodable>(instructions: String, prompt: String) async throws -> T {
         let session = LanguageModelSession(instructions: instructions)
         let response = try await session.respond(to: prompt, options: Self.generationOptions)
         var raw = response.content.trimmingCharacters(in: .whitespacesAndNewlines)
