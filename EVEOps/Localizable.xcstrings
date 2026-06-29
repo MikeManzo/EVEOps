@@ -417,6 +417,16 @@
         }
       }
     },
+    "%lld skill%@ need training" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld skill%2$@ need training"
+          }
+        }
+      }
+    },
     "%lld skill%@ queued" : {
       "localizations" : {
         "en" : {
@@ -690,6 +700,19 @@
     "Add" : {
 
     },
+    "Add %@ %@ to skill plan" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Add %1$@ %2$@ to skill plan"
+          }
+        }
+      }
+    },
+    "Add All to Plan" : {
+
+    },
     "Add Character" : {
 
     },
@@ -697,6 +720,9 @@
 
     },
     "Add to skill plan" : {
+
+    },
+    "Add to Skill Plan" : {
 
     },
     "Add Waypoint" : {
@@ -1176,6 +1202,9 @@
     "Copy Entry" : {
 
     },
+    "Copy Name" : {
+
+    },
     "Corp Assets" : {
 
     },
@@ -1607,6 +1636,9 @@
     "Find My Location" : {
 
     },
+    "Find on Market" : {
+
+    },
     "Finishes" : {
 
     },
@@ -1873,6 +1905,9 @@
 
     },
     "Item Appraisal" : {
+
+    },
+    "Item Tree" : {
 
     },
     "Items Lost (%lld)" : {
@@ -2644,10 +2679,16 @@
     "Reprocessing %@" : {
 
     },
+    "Required skills" : {
+
+    },
     "Research Agents" : {
 
     },
     "Resolving modules…" : {
+
+    },
+    "Resolving skill tree…" : {
 
     },
     "Response" : {
@@ -2743,7 +2784,13 @@
     "Search for a ship in the left panel to begin" : {
 
     },
+    "Search for a ship or module…" : {
+
+    },
     "Search for a ship type" : {
+
+    },
+    "Search for an item to see its skill tree" : {
 
     },
     "Search for an item…" : {
@@ -2904,6 +2951,9 @@
 
     },
     "Ships & Fittings" : {
+
+    },
+    "Ships, modules, drones — any item with skill requirements" : {
 
     },
     "Shortest" : {

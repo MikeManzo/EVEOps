@@ -23,10 +23,16 @@ struct SkillPlannerView: View {
     @State private var selectedGroupId: Int?
     @State private var isLoading = false
     @State private var error: String?
+    @State private var browserMode: BrowserMode = .skills
 
     private var selectedCharInfo: CharacterTrainingInfo? {
         let id = accountManager.selectedAccount?.characterID ?? 0
         return trainingData.first { $0.characterID == id }
+    }
+
+    private var characterSkillMap: [Int: Int] {
+        selectedCharInfo?.skillGroups.flatMap(\.skills)
+            .reduce(into: [:]) { $0[$1.skillId] = $1.trainedLevel } ?? [:]
     }
 
     var body: some View {
@@ -271,6 +277,31 @@ struct SkillPlannerView: View {
     // MARK:  Skill Browser
 
     private var skillBrowser: some View {
+        VStack(spacing: 0) {
+            Picker("", selection: $browserMode) {
+                Label("Skills", systemImage: "list.bullet").tag(BrowserMode.skills)
+                Label("Item Tree", systemImage: "network").tag(BrowserMode.tree)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .padding(.horizontal, 12)
+            .padding(.top, 10)
+            .padding(.bottom, 8)
+
+            Divider()
+
+            if browserMode == .tree {
+                ItemSkillTreeView(
+                    characterSkills: characterSkillMap.isEmpty ? nil : characterSkillMap,
+                    onAddToPlan: addPlanItem
+                )
+            } else {
+                skillBrowserContent
+            }
+        }
+    }
+
+    private var skillBrowserContent: some View {
         VStack(spacing: 0) {
             // Search bar
             HStack(spacing: 8) {
@@ -711,6 +742,12 @@ struct SkillPlannerView: View {
         if hours > 0 { return "\(hours)h \(minutes)m" }
         return "\(minutes)m"
     }
+}
+
+// MARK:  Browser Mode
+
+private enum BrowserMode: String {
+    case skills, tree
 }
 
 // MARK:  Data Model

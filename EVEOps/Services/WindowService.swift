@@ -103,7 +103,12 @@ final class WindowService: NSObject {
     // MARK: Galaxy Market Search
 
     func showGalaxySearch(typeId: Int? = nil, typeName: String = "") {
-        if let window = galaxySearchWindow {
+        // When a specific item is requested while a window already exists,
+        // close it so it recreates with the new item preloaded.
+        if typeId != nil, let existing = galaxySearchWindow {
+            existing.close()
+            galaxySearchWindow = nil
+        } else if let window = galaxySearchWindow {
             if window.isMiniaturized { window.deminiaturize(nil) }
             window.makeKeyAndOrderFront(nil)
             applyActivationPolicy()

@@ -19,7 +19,7 @@ import AppKit
 import UniformTypeIdentifiers
 import OSLog
 
-// MARK: - LightingPreset
+// MARK:  LightingPreset
 
 enum LightingPreset: String, CaseIterable, Identifiable {
     case deepSpace = "Deep Space"
@@ -37,14 +37,14 @@ enum LightingPreset: String, CaseIterable, Identifiable {
     }
 }
 
-// MARK: - Drag state (reference type — shared between event monitor closures)
+// MARK:  Drag state (reference type — shared between event monitor closures)
 
 private final class DragState {
     var active    = false
     var lastPoint = CGPoint.zero
 }
 
-// MARK: - Applied-state tracker (reference type — mutations stay out of SwiftUI state)
+// MARK:  Applied-state tracker (reference type — mutations stay out of SwiftUI state)
 
 private final class AppliedState {
     var albedo:    URL? = nil
@@ -56,7 +56,7 @@ private final class AppliedState {
     var envRes:    EnvironmentResource? = nil
 }
 
-// MARK: - Scene entity bag
+// MARK:  Scene entity bag
 
 // Reference type so mutations don't trigger SwiftUI diff when we update
 // entity transforms directly.
@@ -71,7 +71,7 @@ private final class ShipScene {
     var iblEntity: Entity?      = nil
 }
 
-// MARK: - ShipRealityKitView
+// MARK:  ShipRealityKitView
 
 /// Renders a ship .obj model using RealityKit with PhysicallyBasedMaterial.
 /// Orbit via drag, zoom via scroll/pinch. Replaces the former SceneKit-based viewer.
@@ -193,7 +193,7 @@ struct ShipRealityKitView: View {
         monitors = []
     }
 
-    // MARK: - Environment loading
+    // MARK:  Environment loading
 
     /// Generates the nebula CGImage, converts it to a skybox TextureResource and an
     /// EnvironmentResource for IBL. Both drive the scene: the TextureResource is applied
@@ -210,7 +210,7 @@ struct ShipRealityKitView: View {
         envResource = try? await EnvironmentResource(equirectangular: img, withName: nil)
     }
 
-    // MARK: - Procedural nebula generator
+    // MARK:  Procedural nebula generator
 
     /// Generates a 2048×1024 equirectangular nebula image tuned to each lighting preset.
     /// Called on a background thread; uses only CoreGraphics (thread-safe for isolated contexts).
@@ -780,7 +780,7 @@ struct ShipRealityKitView: View {
     }
 }
 
-// MARK: - Ship Model Sheet
+// MARK:  Ship Model Sheet
 
 struct ShipModelSheet: View {
     let shipName:  String
