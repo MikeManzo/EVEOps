@@ -1381,7 +1381,7 @@
     "DPS calculation requires ammo selection" : {
 
     },
-    "Drag to rotate  ·  Scroll to zoom  ·  ⌘-drag to pan" : {
+    "Drag to rotate  ·  Scroll to zoom  ·  Pinch to zoom" : {
 
     },
     "Duration" : {
@@ -3157,9 +3157,6 @@
 
     },
     "Today" : {
-
-    },
-    "Toggle wireframe" : {
 
     },
     "Total Corporation Balance" : {

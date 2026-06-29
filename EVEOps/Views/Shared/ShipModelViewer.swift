@@ -11,10 +11,15 @@
 //
 
 import SwiftUI
-import SceneKit
+import RealityKit
 import ModelIO
+import Metal
+import CoreGraphics
+import AppKit
+import UniformTypeIdentifiers
+import OSLog
 
-// MARK: Lighting Preset
+// MARK: - LightingPreset
 
 enum LightingPreset: String, CaseIterable, Identifiable {
     case deepSpace = "Deep Space"
@@ -32,179 +37,587 @@ enum LightingPreset: String, CaseIterable, Identifiable {
     }
 }
 
-// MARK: SCNView subclass — physical scroll wheel zoom
+// MARK: - Drag state (reference type — shared between event monitor closures)
 
-// SCNView's built-in camera controller uses scroll events for orbit (rotation) and
-// pinch gestures for zoom. Pinch doesn't exist on a physical mouse, so we intercept
-// non-precise scroll events (hasPreciseScrollingDeltas == false → physical wheel) and
-// drive the camera FOV directly. Trackpad scroll events (hasPreciseScrollingDeltas ==
-// true) pass through to SceneKit for normal orbit behaviour.
-private final class ShipSCNView: SCNView {
-
-    // MARK: Scroll wheel zoom (physical mouse)
-    // SceneKit zooms via pinch (trackpad magnification gesture). Physical mouse wheels
-    // generate scroll events that SceneKit routes to orbit instead, so we intercept
-    // non-precise scroll events and adjust FOV directly.
-    override func scrollWheel(with event: NSEvent) {
-        guard !event.hasPreciseScrollingDeltas,
-              let camera = defaultCameraController.pointOfView?.camera else {
-            super.scrollWheel(with: event)
-            return
-        }
-        let delta = event.scrollingDeltaY
-        camera.fieldOfView = max(10, min(120, camera.fieldOfView - delta * 1.5))
-    }
-
-    // MARK: ⌘-drag pan (physical mouse)
-    // SceneKit pans via two-finger trackpad gesture. On a physical mouse ⌘+drag never
-    // triggers that gesture recognizer, so we intercept it and call translateInCameraSpaceBy
-    // directly. Pan speed is scaled by camera distance so it feels consistent at any zoom.
-    private var lastDragLocation: CGPoint = .zero
-
-    override func mouseDown(with event: NSEvent) {
-        lastDragLocation = convert(event.locationInWindow, from: nil)
-        super.mouseDown(with: event)
-    }
-
-    override func mouseDragged(with event: NSEvent) {
-        let loc = convert(event.locationInWindow, from: nil)
-        defer { lastDragLocation = loc }
-
-        guard event.modifierFlags.contains(.command) else {
-            super.mouseDragged(with: event)
-            return
-        }
-
-        let dx = Float(loc.x - lastDragLocation.x)
-        let dy = Float(loc.y - lastDragLocation.y)
-
-        let dist: Float
-        if let pov = defaultCameraController.pointOfView {
-            let p = pov.position
-            let px = Float(p.x), py = Float(p.y), pz = Float(p.z)
-            dist = max(1, sqrt(px * px + py * py + pz * pz))
-        } else {
-            dist = 1
-        }
-
-        let scale = dist * 0.0015
-        defaultCameraController.translateInCameraSpaceBy(x: -dx * scale, y: -dy * scale, z: 0)
-    }
+private final class DragState {
+    var active    = false
+    var lastPoint = CGPoint.zero
 }
 
-// MARK:  SceneKit View
+// MARK: - Applied-state tracker (reference type — mutations stay out of SwiftUI state)
 
-/// Renders a ship .obj model in a SceneKit view with optional albedo texture.
-///
-/// Texture loading strategy:
-///  1. MTKTextureLoader(URL:) — works for BC1/BC3 DDS (uses ModelIO under the hood).
-///  2. DDSDecoder.rgbaTexture(from:device:) — fallback for BC7/DX10 DDS files.
-///     MTKTextureLoader uses ImageIO which doesn't support BC7; instead we upload
-///     the raw compressed blocks as an MTLTexture and transcode to RGBA8 via a
-///     one-shot Metal render pass that Metal's GPU hardware can sample natively.
-///
-/// A triplanar GLSL shader projects the texture onto the geometry. Since the .obj
-/// files from GetEveModels have no UV coordinates, triplanar projection uses model-
-/// space position (recovered via u_inverseModelViewTransform) so the texture stays
-/// locked to the hull as the camera orbits. Falls back to a PBR metallic material
-/// when no texture is available.
-struct ShipSceneKitView: NSViewRepresentable {
+private final class AppliedState {
+    var albedo:    URL? = nil
+    var normal:    URL? = nil
+    var roughness: URL? = nil
+    var emissive:  URL? = nil
+    var preset:    LightingPreset? = nil
+    var skyboxTex: TextureResource?     = nil
+    var envRes:    EnvironmentResource? = nil
+}
+
+// MARK: - Scene entity bag
+
+// Reference type so mutations don't trigger SwiftUI diff when we update
+// entity transforms directly.
+private final class ShipScene {
+    var pivot:     Entity?      = nil
+    var camera:    Entity?      = nil
+    var ship:      ModelEntity? = nil
+    var keyLight:  Entity?      = nil
+    var fillLight: Entity?      = nil
+    var rimLight:  Entity?      = nil
+    var skybox:    ModelEntity? = nil
+    var iblEntity: Entity?      = nil
+}
+
+// MARK: - ShipRealityKitView
+
+/// Renders a ship .obj model using RealityKit with PhysicallyBasedMaterial.
+/// Orbit via drag, zoom via scroll/pinch. Replaces the former SceneKit-based viewer.
+struct ShipRealityKitView: View {
     let objURL:          URL
     var albedoDDSURL:    URL? = nil
     var normalDDSURL:    URL? = nil
     var roughnessDDSURL: URL? = nil
     var emissiveDDSURL:  URL? = nil
     var lightingPreset:  LightingPreset = .deepSpace
-    var wireframe:       Bool = false
+    var wireframe:       Bool = false  // reserved — not currently supported in RealityKit
 
-    // MARK: Coordinator — fixes z-clipping via SCNSceneRendererDelegate + tracks texture state
+    // MARK: Input state
+    @State private var yaw:         Float = 0.25
+    @State private var pitch:       Float = -0.15
+    @State private var cameraZ:     Float = 5.0
+    @State private var minCameraZ:  Float = 0.5     // updated after mesh loads
+    @State private var maxCameraZ:  Float = 500.0   // updated after mesh loads
+    @State private var isHovered = false
+    @State private var monitors: [Any] = []
+    private let drag = DragState()
 
-    func makeCoordinator() -> Coordinator { Coordinator() }
+    // MARK: Pre-loaded texture resources
+    @State private var albedoTex:   TextureResource? = nil
+    @State private var normalTex:   TextureResource? = nil
+    @State private var roughTex:    TextureResource? = nil
+    @State private var metalTex:    TextureResource? = nil
+    @State private var aoTex:       TextureResource? = nil
+    @State private var emissiveTex: TextureResource? = nil
 
-    /// SceneKit creates the default camera lazily on the first render frame, so neither
-    /// makeNSView nor the first updateNSView can access it. The delegate fires after that
-    /// first frame and is the earliest reliable place to configure the camera.
-    final class Coordinator: NSObject, SCNSceneRendererDelegate {
-        private var configured = false
-        var lastAlbedo:    URL? = nil
-        var lastNormal:    URL? = nil
-        var lastRoughness: URL? = nil
-        var lastEmissive:  URL? = nil
+    // MARK: Environment / skybox resources (updated per lighting preset)
+    @State private var skyboxTex:   TextureResource?    = nil
+    @State private var envResource: EnvironmentResource? = nil
 
-        func renderer(_ renderer: SCNSceneRenderer, didRenderScene scene: SCNScene, atTime time: TimeInterval) {
-            guard !configured else { return }
-            configured = true
-            // automaticallyAdjustsZRange recomputes zNear/zFar each frame from the scene
-            // bounds, preventing the near plane from slicing through large ship hulls and
-            // creating the hard fixed line visible in the viewport.
-            DispatchQueue.main.async {
-                renderer.pointOfView?.camera?.automaticallyAdjustsZRange = true
+    // MARK: Applied-state tracking (reference type — never triggers SwiftUI invalidation)
+    private let applied = AppliedState()
+
+    @State private var scene = ShipScene()
+
+    private var textureKey: String {
+        [albedoDDSURL, normalDDSURL, roughnessDDSURL, emissiveDDSURL]
+            .map { $0?.lastPathComponent ?? "-" }.joined(separator: "|")
+    }
+
+    // MARK: Body
+
+    var body: some View {
+        RealityView { content in
+            for entity in buildSceneEntities() { content.add(entity) }
+        } update: { _ in
+            updateScene()
+        }
+        .background(Color.black)
+        .onHover { isHovered = $0 }
+        .onAppear  { installMonitors() }
+        .onDisappear { removeMonitors() }
+        .task(id: lightingPreset.id) { await loadEnvironment() }
+        .task(id: textureKey) { await loadTextures() }
+    }
+
+    // MARK: Event monitors
+    //
+    // NSEvent local monitors receive all window events regardless of which NSView the
+    // cursor is over — bypassing the NSView hit-test routing that fails with RealityKit's
+    // backing view. .onHover guards them so they only fire when the cursor is over this view.
+
+    private func installMonitors() {
+        guard monitors.isEmpty else { return }
+        let drag = self.drag  // capture the reference-type DragState
+
+        let scroll = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { [self] event in
+            guard isHovered else { return event }
+            // Proportional zoom: each unit of delta scales cameraZ by a fixed percentage
+            // so feel is consistent regardless of current distance. Scroll up = zoom in.
+            let sensitivity: Float = event.hasPreciseScrollingDeltas ? 0.004 : 0.04
+            let factor = 1.0 + Float(event.scrollingDeltaY) * sensitivity
+            cameraZ = max(minCameraZ, min(maxCameraZ, cameraZ / max(0.01, factor)))
+            return event
+        }
+
+        let magnify = NSEvent.addLocalMonitorForEvents(matching: .magnify) { [self] event in
+            guard isHovered else { return event }
+            // magnification > 0 = pinch out = zoom in = camera moves closer
+            let factor = Float(1.0 + event.magnification)
+            cameraZ = max(minCameraZ, min(maxCameraZ, cameraZ / max(0.01, factor)))
+            return event
+        }
+
+        let mouse = NSEvent.addLocalMonitorForEvents(
+            matching: [.leftMouseDown, .leftMouseDragged, .leftMouseUp]
+        ) { [self] event in
+            switch event.type {
+            case .leftMouseDown:
+                if isHovered {
+                    drag.active    = true
+                    drag.lastPoint = NSEvent.mouseLocation
+                }
+            case .leftMouseDragged where drag.active:
+                let loc = NSEvent.mouseLocation
+                let dx  =  Float(loc.x - drag.lastPoint.x) * 0.005
+                // Screen Y grows upward; dragging down should pitch down, so negate.
+                let dy  = -Float(loc.y - drag.lastPoint.y) * 0.005
+                drag.lastPoint = loc
+                yaw   += dx
+                pitch  = max(-.pi / 2 + 0.05, min(.pi / 2 - 0.05, pitch + dy))
+            case .leftMouseUp:
+                drag.active = false
+            default:
+                break
+            }
+            return event
+        }
+
+        monitors = [scroll, magnify, mouse].compactMap { $0 }
+    }
+
+    private func removeMonitors() {
+        monitors.forEach { NSEvent.removeMonitor($0) }
+        monitors = []
+    }
+
+    // MARK: - Environment loading
+
+    /// Generates the nebula CGImage, converts it to a skybox TextureResource and an
+    /// EnvironmentResource for IBL. Both drive the scene: the TextureResource is applied
+    /// to the skybox sphere geometry; the EnvironmentResource provides image-based lighting
+    /// so the ship's PBR material picks up ambient color from the space environment.
+    private func loadEnvironment() async {
+        let preset = lightingPreset
+        let genTask = Task.detached(priority: .utility) {
+            ShipRealityKitView.makeNebulaImage(for: preset)
+        }
+        guard let img = await genTask.value else { return }
+
+        skyboxTex   = await cgImageToTexture(img)
+        envResource = try? await EnvironmentResource(equirectangular: img, withName: nil)
+    }
+
+    // MARK: - Procedural nebula generator
+
+    /// Generates a 2048×1024 equirectangular nebula image tuned to each lighting preset.
+    /// Called on a background thread; uses only CoreGraphics (thread-safe for isolated contexts).
+    nonisolated static func makeNebulaImage(for preset: LightingPreset) -> CGImage? {
+        let W = 2048, H = 1024
+        let cs = CGColorSpaceCreateDeviceRGB()
+        guard let ctx = CGContext(
+            data: nil, width: W, height: H,
+            bitsPerComponent: 8, bytesPerRow: W * 4,
+            space: cs, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+        let FW = CGFloat(W), FH = CGFloat(H)
+
+        struct Blob {
+            let cx, cy, radius: CGFloat
+            let r, g, b, alpha: CGFloat
+            // Emission hot spots use a steeper gradient falloff to simulate ionised gas regions.
+            var isHotSpot: Bool = false
+        }
+
+        let (baseR, baseG, baseB): (CGFloat, CGFloat, CGFloat)
+        let blobs: [Blob]
+        let starCount: Int
+        let warmBias: CGFloat
+
+        switch preset {
+        case .deepSpace:  // Caldari — cold industrial blue
+            (baseR, baseG, baseB) = (0.003, 0.005, 0.015)
+            blobs = [
+                // Wide atmospheric haze
+                Blob(cx: 0.50, cy: 0.50, radius: 0.95, r: 0.02, g: 0.05, b: 0.18, alpha: 0.20),
+                // Main nebula arms
+                Blob(cx: 0.62, cy: 0.46, radius: 0.60, r: 0.04, g: 0.14, b: 0.45, alpha: 0.38),
+                Blob(cx: 0.20, cy: 0.60, radius: 0.46, r: 0.02, g: 0.18, b: 0.32, alpha: 0.32),
+                Blob(cx: 0.82, cy: 0.32, radius: 0.42, r: 0.05, g: 0.10, b: 0.28, alpha: 0.28),
+                // Dense cores
+                Blob(cx: 0.48, cy: 0.44, radius: 0.30, r: 0.02, g: 0.08, b: 0.30, alpha: 0.35),
+                Blob(cx: 0.35, cy: 0.68, radius: 0.24, r: 0.02, g: 0.22, b: 0.38, alpha: 0.30),
+                // Emission hot spots
+                Blob(cx: 0.58, cy: 0.46, radius: 0.07, r: 0.12, g: 0.45, b: 1.00, alpha: 0.72, isHotSpot: true),
+                Blob(cx: 0.24, cy: 0.54, radius: 0.05, r: 0.08, g: 0.65, b: 0.85, alpha: 0.65, isHotSpot: true),
+                Blob(cx: 0.78, cy: 0.36, radius: 0.06, r: 0.15, g: 0.35, b: 0.75, alpha: 0.60, isHotSpot: true),
+            ]
+            starCount = 14000; warmBias = 0.10
+
+        case .hangar:  // Amarr — warm ancient gold
+            (baseR, baseG, baseB) = (0.018, 0.008, 0.002)
+            blobs = [
+                Blob(cx: 0.50, cy: 0.50, radius: 0.90, r: 0.28, g: 0.13, b: 0.02, alpha: 0.18),
+                Blob(cx: 0.56, cy: 0.46, radius: 0.58, r: 0.50, g: 0.25, b: 0.05, alpha: 0.38),
+                Blob(cx: 0.28, cy: 0.62, radius: 0.44, r: 0.32, g: 0.15, b: 0.02, alpha: 0.32),
+                Blob(cx: 0.74, cy: 0.66, radius: 0.34, r: 0.24, g: 0.14, b: 0.02, alpha: 0.28),
+                Blob(cx: 0.42, cy: 0.36, radius: 0.26, r: 0.18, g: 0.10, b: 0.01, alpha: 0.34),
+                Blob(cx: 0.65, cy: 0.54, radius: 0.18, r: 0.40, g: 0.22, b: 0.04, alpha: 0.32),
+                Blob(cx: 0.52, cy: 0.48, radius: 0.08, r: 1.00, g: 0.60, b: 0.10, alpha: 0.75, isHotSpot: true),
+                Blob(cx: 0.38, cy: 0.60, radius: 0.06, r: 0.90, g: 0.45, b: 0.08, alpha: 0.68, isHotSpot: true),
+                Blob(cx: 0.70, cy: 0.40, radius: 0.05, r: 0.80, g: 0.50, b: 0.12, alpha: 0.62, isHotSpot: true),
+            ]
+            starCount = 10000; warmBias = 0.80
+
+        case .combat:  // Minmatar — blood-red, violent
+            (baseR, baseG, baseB) = (0.014, 0.004, 0.002)
+            blobs = [
+                Blob(cx: 0.50, cy: 0.50, radius: 0.92, r: 0.22, g: 0.04, b: 0.01, alpha: 0.18),
+                Blob(cx: 0.42, cy: 0.48, radius: 0.62, r: 0.38, g: 0.08, b: 0.01, alpha: 0.38),
+                Blob(cx: 0.70, cy: 0.38, radius: 0.46, r: 0.26, g: 0.05, b: 0.00, alpha: 0.32),
+                Blob(cx: 0.22, cy: 0.64, radius: 0.40, r: 0.28, g: 0.08, b: 0.01, alpha: 0.28),
+                Blob(cx: 0.56, cy: 0.54, radius: 0.26, r: 0.16, g: 0.05, b: 0.01, alpha: 0.35),
+                Blob(cx: 0.35, cy: 0.42, radius: 0.20, r: 0.20, g: 0.07, b: 0.01, alpha: 0.32),
+                Blob(cx: 0.44, cy: 0.46, radius: 0.09, r: 1.00, g: 0.25, b: 0.02, alpha: 0.78, isHotSpot: true),
+                Blob(cx: 0.67, cy: 0.40, radius: 0.07, r: 0.90, g: 0.35, b: 0.04, alpha: 0.70, isHotSpot: true),
+                Blob(cx: 0.28, cy: 0.58, radius: 0.06, r: 0.80, g: 0.18, b: 0.02, alpha: 0.65, isHotSpot: true),
+            ]
+            starCount = 12000; warmBias = 0.58
+
+        case .wormhole:  // J-space — alien violet, eerie teal wisps
+            (baseR, baseG, baseB) = (0.006, 0.002, 0.020)
+            blobs = [
+                Blob(cx: 0.50, cy: 0.50, radius: 0.95, r: 0.12, g: 0.03, b: 0.32, alpha: 0.20),
+                Blob(cx: 0.52, cy: 0.50, radius: 0.65, r: 0.25, g: 0.06, b: 0.60, alpha: 0.38),
+                Blob(cx: 0.24, cy: 0.56, radius: 0.50, r: 0.04, g: 0.34, b: 0.30, alpha: 0.32),
+                Blob(cx: 0.78, cy: 0.60, radius: 0.44, r: 0.16, g: 0.05, b: 0.50, alpha: 0.28),
+                Blob(cx: 0.38, cy: 0.38, radius: 0.28, r: 0.03, g: 0.40, b: 0.32, alpha: 0.35),
+                Blob(cx: 0.68, cy: 0.44, radius: 0.22, r: 0.06, g: 0.28, b: 0.24, alpha: 0.30),
+                Blob(cx: 0.50, cy: 0.48, radius: 0.10, r: 0.50, g: 0.18, b: 1.00, alpha: 0.75, isHotSpot: true),
+                Blob(cx: 0.30, cy: 0.54, radius: 0.07, r: 0.05, g: 0.90, b: 0.70, alpha: 0.70, isHotSpot: true),
+                Blob(cx: 0.74, cy: 0.46, radius: 0.08, r: 0.40, g: 0.12, b: 0.85, alpha: 0.68, isHotSpot: true),
+            ]
+            starCount = 16000; warmBias = 0.05
+        }
+
+        // 1. Base fill
+        ctx.setFillColor(CGColor(colorSpace: cs, components: [baseR, baseG, baseB, 1])!)
+        ctx.fill(CGRect(x: 0, y: 0, width: W, height: H))
+
+        // 2. Nebula blobs — layered radial gradients.
+        //    Structural blobs have a gradual falloff (visible out to 55% radius).
+        //    Emission hot spots fall off steeply, simulating ionised gas pockets.
+        for b in blobs {
+            let center   = CGPoint(x: FW * b.cx, y: FH * b.cy)
+            let radius   = FW * b.radius
+            let midStop: CGFloat  = b.isHotSpot ? 0.25 : 0.55
+            let midAlpha: CGFloat = b.isHotSpot ? b.alpha * 0.80 : b.alpha * 0.45
+            let midScale: CGFloat = b.isHotSpot ? 0.90 : 0.55
+            guard let grad = CGGradient(
+                colorsSpace: cs,
+                colors: [
+                    CGColor(colorSpace: cs, components: [b.r, b.g, b.b, b.alpha])!,
+                    CGColor(colorSpace: cs, components: [b.r * midScale, b.g * midScale,
+                                                         b.b * midScale, midAlpha])!,
+                    CGColor(colorSpace: cs, components: [0, 0, 0, 0])!,
+                ] as CFArray,
+                locations: [0.0, midStop, 1.0]
+            ) else { continue }
+            ctx.drawRadialGradient(grad, startCenter: center, startRadius: 0,
+                                   endCenter: center, endRadius: radius,
+                                   options: .drawsAfterEndLocation)
+        }
+
+        // 3. Milky Way band — a horizontal elliptical glow compressed along the equator,
+        //    produced by squashing a radial gradient via a CTM scale transform.
+        ctx.saveGState()
+        ctx.translateBy(x: FW * 0.5, y: FH * 0.5)
+        ctx.scaleBy(x: 1.0, y: 0.14)
+        if let mwGrad = CGGradient(
+            colorsSpace: cs,
+            colors: [
+                CGColor(colorSpace: cs, components: [0.08, 0.09, 0.12, 0.38])!,
+                CGColor(colorSpace: cs, components: [0.04, 0.04, 0.06, 0.16])!,
+                CGColor(colorSpace: cs, components: [0,    0,    0,    0   ])!,
+            ] as CFArray,
+            locations: [0.0, 0.45, 1.0]
+        ) {
+            ctx.drawRadialGradient(mwGrad, startCenter: .zero, startRadius: 0,
+                                   endCenter: .zero, endRadius: FW * 0.58,
+                                   options: .drawsAfterEndLocation)
+        }
+        ctx.restoreGState()
+
+        // 4. Stars — power-law brightness distribution, preset-tuned spectral mix
+        for _ in 0 ..< starCount {
+            let sx  = CGFloat.random(in: 0 ..< FW)
+            let sy  = CGFloat.random(in: 0 ..< FH)
+            let lum = pow(CGFloat.random(in: 0...1), 2.4)   // steep curve: mostly dim
+            let vis = 0.35 + lum * 0.65
+
+            let t = CGFloat.random(in: 0...1)
+            let (r, g, b): (CGFloat, CGFloat, CGFloat)
+            if t < warmBias {
+                (r, g, b) = t < warmBias * 0.55
+                    ? (vis, vis * 0.75, vis * 0.50)   // orange
+                    : (vis, vis * 0.90, vis * 0.74)   // yellow-white
+            } else {
+                let t2 = (t - warmBias) / max(0.001, 1 - warmBias)
+                (r, g, b) = t2 < 0.55
+                    ? (vis, vis, vis)                   // white
+                    : (vis * 0.80, vis * 0.88, vis)     // blue-white
+            }
+
+            let sz: CGFloat = lum < 0.50 ? 1.0 : lum < 0.80 ? 1.5 : 2.0
+            ctx.setFillColor(CGColor(colorSpace: cs, components: [r, g, b, 1])!)
+            ctx.fillEllipse(in: CGRect(x: sx - sz/2, y: sy - sz/2, width: sz, height: sz))
+
+            if lum > 0.90 {
+                // Soft diffuse glow around bright stars
+                let gr = sz * 4.5
+                ctx.setFillColor(CGColor(colorSpace: cs, components: [r, g, b, 0.06])!)
+                ctx.fillEllipse(in: CGRect(x: sx - gr/2, y: sy - gr/2, width: gr, height: gr))
             }
         }
-    }
 
-    func makeNSView(context: Context) -> SCNView {
-        let v = ShipSCNView()
-        v.backgroundColor = NSColor(red: 0.01, green: 0.01, blue: 0.02, alpha: 1)
-        v.allowsCameraControl = true
-        v.autoenablesDefaultLighting = false
-        v.antialiasingMode = .multisampling4X
-        v.showsStatistics  = false
-        v.delegate = context.coordinator
-
-        if let scene = loadScene(from: objURL) {
-            addLighting(to: scene)
-            scene.background.contents              = makeStarfieldBackground()
-            scene.lightingEnvironment.contents     = makeSpaceLightingEnv()
-            scene.lightingEnvironment.intensity    = 3.0
-            let mat = buildMaterial(for: scene)
-            apply(mat, to: scene.rootNode)
-            v.scene = scene
-            v.defaultCameraController.interactionMode = .orbitTurntable
-        }
-        return v
-    }
-
-    func updateNSView(_ v: SCNView, context: Context) {
-        guard let scene = v.scene else { return }
-        applyLightingPreset(lightingPreset, to: scene)
-
-        // Rebuild material when any texture URL changes (progressive loading support).
-        let c = context.coordinator
-        if albedoDDSURL    != c.lastAlbedo    || normalDDSURL    != c.lastNormal  ||
-           roughnessDDSURL != c.lastRoughness || emissiveDDSURL  != c.lastEmissive {
-            c.lastAlbedo    = albedoDDSURL
-            c.lastNormal    = normalDDSURL
-            c.lastRoughness = roughnessDDSURL
-            c.lastEmissive  = emissiveDDSURL
-            let mat = buildMaterial(for: scene)
-            apply(mat, to: scene.rootNode)
+        // 5. Bright foreground stars — a handful of prominent nearby stars with layered halos,
+        //    placed at fixed positions so the skybox has stable landmarks.
+        let fgPositions: [(CGFloat, CGFloat)] = [
+            (0.12, 0.22), (0.88, 0.18), (0.05, 0.72), (0.93, 0.76),
+            (0.48, 0.08), (0.55, 0.91), (0.30, 0.14), (0.72, 0.86),
+        ]
+        for (fx, fy) in fgPositions {
+            let sx = FW * fx, sy = FH * fy
+            ctx.setFillColor(CGColor(colorSpace: cs, components: [0.9, 0.9, 1.0, 0.04])!)
+            ctx.fillEllipse(in: CGRect(x: sx - 22, y: sy - 22, width: 44, height: 44))
+            ctx.setFillColor(CGColor(colorSpace: cs, components: [1.0, 1.0, 1.0, 0.14])!)
+            ctx.fillEllipse(in: CGRect(x: sx - 7,  y: sy - 7,  width: 14, height: 14))
+            ctx.setFillColor(CGColor(colorSpace: cs, components: [1.0, 1.0, 1.0, 1.00])!)
+            ctx.fillEllipse(in: CGRect(x: sx - 1.5, y: sy - 1.5, width: 3, height: 3))
         }
 
-        applyWireframe(wireframe, to: scene.rootNode)
+        return ctx.makeImage()
     }
 
-    // MARK: Scene loading
+    // MARK: Scene construction
 
-    /// Loads the OBJ via ModelIO, generates smooth normals with crease-threshold
-    /// quality, fixes any inward-pointing normals directly in the MDLMesh vertex
-    /// buffer, then converts to SceneKit in one step — no OBJ export/import round-
-    /// trip. The round-trip was the root cause of the dark-half bug on symmetric
-    /// ships: it remapped vertices, split edges, and gave SceneKit stale per-vertex
-    /// normals that post-load geometry surgery couldn't reliably fix.
-    private func loadScene(from url: URL) -> SCNScene? {
+    private func buildSceneEntities() -> [Entity] {
+        var entities: [Entity] = []
+
+        // Lights
+        let key  = Entity(); key.name  = "key";  scene.keyLight  = key;  entities.append(key)
+        let fill = Entity(); fill.name = "fill"; scene.fillLight  = fill; entities.append(fill)
+        let rim  = Entity(); rim.name  = "rim";  scene.rimLight   = rim;  entities.append(rim)
+        applyPreset(lightingPreset)
+        applied.preset = lightingPreset
+
+        // Camera — PerspectiveCameraComponent makes this entity the active camera
+        let cam = Entity()
+        cam.name = "shipCamera"
+        var camComp = PerspectiveCameraComponent()
+        camComp.fieldOfViewInDegrees = 40
+        camComp.near = 0.01
+        camComp.far  = 10000
+        cam.components.set(camComp)
+        cam.position = [0, 0, cameraZ]
+        scene.camera = cam
+        entities.append(cam)
+
+        // Ship pivot — rotation is applied here so the camera stays still
+        let pivot = Entity()
+        pivot.name = "shipPivot"
+        scene.pivot = pivot
+        entities.append(pivot)
+
+        // Geometry
+        if let (mesh, shipRadius) = buildMesh(from: objURL) {
+            let shipEntity = ModelEntity(mesh: mesh, materials: [defaultMaterial()])
+            shipEntity.name = "shipModel"
+            pivot.addChild(shipEntity)
+            scene.ship = shipEntity
+            cameraZ    = shipRadius * 2.5
+            minCameraZ = shipRadius * 0.4
+            maxCameraZ = shipRadius * 12.0
+            cam.position = [0, 0, cameraZ]
+        }
+
+        // Skybox sphere — large enough to enclose the scene; rendered inside-out so
+        // the texture is visible from inside. Not parented to the pivot so it stays
+        // fixed while the ship rotates, matching EVE's fixed-sky/rotating-ship behaviour.
+        let skyMesh = MeshResource.generateSphere(radius: 9000)
+        var skyMat  = UnlitMaterial(color: .black)
+        skyMat.faceCulling = .front
+        let skyEntity = ModelEntity(mesh: skyMesh, materials: [skyMat])
+        skyEntity.name = "skybox"
+        scene.skybox = skyEntity
+        entities.append(skyEntity)
+
+        // IBL entity — receives ImageBasedLightComponent once the environment loads.
+        let iblEnt = Entity()
+        iblEnt.name = "ibl"
+        scene.iblEntity = iblEnt
+        entities.append(iblEnt)
+
+        return entities
+    }
+
+    // MARK: Scene update (called by RealityView.update)
+
+    private func updateScene() {
+        // Orbit rotation applied to the pivot; camera stays at a fixed position.
+        let q = simd_quatf(angle: yaw,   axis: [0, 1, 0]) *
+                simd_quatf(angle: pitch, axis: [1, 0, 0])
+        scene.pivot?.transform.rotation = q
+
+        // Zoom — move the camera along Z (ship stays at origin)
+        scene.camera?.position = [0, 0, cameraZ]
+
+        // Lighting preset
+        if lightingPreset != applied.preset {
+            applied.preset = lightingPreset
+            applyPreset(lightingPreset)
+        }
+
+        // Skybox sphere texture — updated whenever the environment loads for a new preset
+        if skyboxTex !== applied.skyboxTex {
+            applied.skyboxTex = skyboxTex
+            if let tex = skyboxTex, let skybox = scene.skybox {
+                var mat = UnlitMaterial()
+                mat.color      = .init(texture: .init(tex))
+                mat.faceCulling = .front
+                if var model = skybox.model {
+                    model.materials = [mat]
+                    skybox.model = model
+                }
+            }
+        }
+
+        // IBL — once the EnvironmentResource is ready, wire it up so the ship's PBR
+        // material receives ambient lighting from the space environment.
+        if envResource !== applied.envRes {
+            applied.envRes = envResource
+            if let env = envResource, let iblEnt = scene.iblEntity {
+                iblEnt.components.set(
+                    ImageBasedLightComponent(source: .single(env),
+                                            intensityExponent: 0.0)
+                )
+                scene.ship?.components.set(
+                    ImageBasedLightReceiverComponent(imageBasedLight: iblEnt)
+                )
+            }
+        }
+
+        // Material — only when texture URLs actually change
+        guard albedoDDSURL    != applied.albedo    ||
+              normalDDSURL    != applied.normal    ||
+              roughnessDDSURL != applied.roughness ||
+              emissiveDDSURL  != applied.emissive  else { return }
+        applied.albedo    = albedoDDSURL
+        applied.normal    = normalDDSURL
+        applied.roughness = roughnessDDSURL
+        applied.emissive  = emissiveDDSURL
+        applyMaterial()
+    }
+
+    // MARK: Async texture loading
+
+    private func loadTextures() async {
+        let device = MTLCreateSystemDefaultDevice()
+
+        async let a = loadOneDDS(url: albedoDDSURL,    device: device, isNormal: false)
+        async let n = loadOneDDS(url: normalDDSURL,    device: device, isNormal: true)
+        async let e = loadOneDDS(url: emissiveDDSURL,  device: device, isNormal: false)
+        albedoTex   = await a
+        normalTex   = await n
+        emissiveTex = await e
+
+        // Packed roughness map — split R/G/B channels
+        if let url = roughnessDDSURL,
+           let data = try? Data(contentsOf: url),
+           let dev  = device {
+            var img: CGImage? = DDSDecoder.decode(data)
+            if img == nil { img = DDSDecoder.cgImage(from: data, device: dev) }
+            if let img {
+                if let split = DDSDecoder.splitRoughnessChannels(from: img) {
+                    roughTex = await cgImageToTexture(split.roughness)
+                    metalTex = await cgImageToTexture(split.metalness)
+                    aoTex    = await cgImageToTexture(split.ao)
+                } else {
+                    roughTex = await cgImageToTexture(img)
+                }
+            }
+        }
+
+        applyMaterial()
+    }
+
+    private func loadOneDDS(url: URL?, device: MTLDevice?, isNormal: Bool) async -> TextureResource? {
+        guard let url, let data = try? Data(contentsOf: url), let dev = device else { return nil }
+        var img: CGImage? = DDSDecoder.decode(data)
+        if img == nil { img = DDSDecoder.cgImage(from: data, device: dev) }
+        if isNormal && img == nil { img = DDSDecoder.cgImageNormal(from: data, device: dev) }
+        guard let img else { return nil }
+        return await cgImageToTexture(img)
+    }
+
+    /// Writes a CGImage to a temp PNG file and loads it as a TextureResource.
+    /// This round-trip is the guaranteed-correct path; avoid caching the temp file.
+    private func cgImageToTexture(_ image: CGImage) async -> TextureResource? {
+        let tmp = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString + ".png")
+        guard let dest = CGImageDestinationCreateWithURL(
+            tmp as CFURL, UTType.png.identifier as CFString, 1, nil
+        ) else { return nil }
+        CGImageDestinationAddImage(dest, image, nil)
+        guard CGImageDestinationFinalize(dest) else { return nil }
+        defer { try? FileManager.default.removeItem(at: tmp) }
+        return try? await TextureResource(contentsOf: tmp, withName: nil)
+    }
+
+    // MARK: Material
+
+    private func defaultMaterial() -> PhysicallyBasedMaterial {
+        var mat = PhysicallyBasedMaterial()
+        mat.baseColor = .init(tint: NSColor(calibratedRed: 0.55, green: 0.58, blue: 0.62, alpha: 1))
+        mat.roughness = .init(floatLiteral: 0.75)
+        mat.metallic  = .init(floatLiteral: 0.30)
+        return mat
+    }
+
+    private func applyMaterial() {
+        guard let ship = scene.ship else { return }
+        var mat = PhysicallyBasedMaterial()
+        if let t = albedoTex   { mat.baseColor       = .init(texture: .init(t)) }
+        else                   { mat.baseColor       = .init(tint: NSColor(calibratedRed: 0.55, green: 0.58, blue: 0.62, alpha: 1)) }
+        if let t = normalTex   { mat.normal          = .init(texture: .init(t)) }
+        if let t = roughTex    { mat.roughness       = .init(texture: .init(t)) }
+        else                   { mat.roughness       = .init(floatLiteral: 0.75) }
+        if let t = metalTex    { mat.metallic        = .init(texture: .init(t)) }
+        else                   { mat.metallic        = .init(floatLiteral: 0.30) }
+        if let t = aoTex       { mat.ambientOcclusion = .init(texture: .init(t)) }
+        if let t = emissiveTex { mat.emissiveColor   = .init(texture: .init(t))
+                                 mat.emissiveIntensity = 1.0 }
+        if var model = ship.model {
+            model.materials = [mat]
+            ship.model = model
+        }
+    }
+
+    // MARK: Geometry
+
+    private func buildMesh(from url: URL) -> (MeshResource, Float)? {
         let asset = MDLAsset(url: url, vertexDescriptor: nil, bufferAllocator: nil)
-
-        // Collect every mesh so we can compute the global centre before touching normals.
-        var meshes = [MDLMesh]()
+        var meshes: [MDLMesh] = []
         func collect(_ obj: MDLObject) {
             if let m = obj as? MDLMesh { meshes.append(m) }
-            for child in obj.children.objects { collect(child) }
+            obj.children.objects.forEach { collect($0) }
         }
-        for i in 0 ..< asset.count { collect(asset.object(at: i)) }
+        for i in 0..<asset.count { collect(asset.object(at: i)) }
         guard !meshes.isEmpty else { return nil }
 
-        // Global bounding-box centre — stable outward-direction reference for all meshes.
+        // Global bounding box — needed for stable outward-normal reference
         var gMin = SIMD3<Float>(repeating:  Float.infinity)
         var gMax = SIMD3<Float>(repeating: -Float.infinity)
         for m in meshes {
@@ -212,55 +625,43 @@ struct ShipSceneKitView: NSViewRepresentable {
             gMin = min(gMin, SIMD3<Float>(bb.minBounds.x, bb.minBounds.y, bb.minBounds.z))
             gMax = max(gMax, SIMD3<Float>(bb.maxBounds.x, bb.maxBounds.y, bb.maxBounds.z))
         }
-        let centre = (gMin + gMax) * 0.5
-        let extent = gMax - gMin
-        let maxExt = max(extent.x, max(extent.y, extent.z))
-        let tpScale: Float = maxExt > 0 ? 1.0 / maxExt : 0.001
+        let centre  = (gMin + gMax) * 0.5
+        let extent  = gMax - gMin
+        let maxExt  = max(extent.x, max(extent.y, extent.z))
+        let tpScale = maxExt > 0 ? Float(1.0 / maxExt) : 0.001
 
-        // Build the SceneKit scene directly from the MDL vertex buffers — no
-        // OBJ export/import round-trip. Confirmed root cause: asset.export(to:)
-        // re-derives normals from face winding, discarding our corrected buffer.
-        let scene = SCNScene()
+        var descriptors: [MeshDescriptor] = []
         for m in meshes {
             m.addNormals(withAttributeNamed: MDLVertexAttributeNormal, creaseThreshold: 0.5)
-            Self.fixInwardNormals(in: m, centre: centre)
-            if let node = Self.makeSCNNode(from: m, triplanarScale: tpScale) {
-                scene.rootNode.addChildNode(node)
+            fixNormals(in: m, centre: centre)
+            if let desc = makeDescriptor(from: m, tpScale: tpScale) {
+                descriptors.append(desc)
             }
         }
-        return scene.rootNode.childNodes.isEmpty ? nil : scene
+        guard !descriptors.isEmpty,
+              let mesh = try? MeshResource.generate(from: descriptors)
+        else { return nil }
+
+        return (mesh, Float(maxExt * 0.5))
     }
 
-    /// Iterates every vertex in `mesh` and negates any normal whose dot product
-    /// with the outward direction (vertex − centre) is negative — i.e. points
-    /// toward the hull interior. Operates directly on the MDLMesh vertex buffer
-    /// so the fix is in place before `makeSCNNode` reads the data.
-    private static func fixInwardNormals(in mesh: MDLMesh, centre: SIMD3<Float>) {
+    /// Negates any vertex normal whose dot product with the outward direction is negative.
+    private func fixNormals(in mesh: MDLMesh, centre: SIMD3<Float>) {
         guard let normData = mesh.vertexAttributeData(forAttributeNamed: MDLVertexAttributeNormal),
               let posData  = mesh.vertexAttributeData(forAttributeNamed: MDLVertexAttributePosition)
         else { return }
-
-        let count = mesh.vertexCount
-        for i in 0 ..< count {
+        for i in 0..<mesh.vertexCount {
             let pBase = posData.dataStart.advanced(by:  i * posData.stride)
             let nBase = normData.dataStart.advanced(by: i * normData.stride)
-
-            let pos = SIMD3<Float>(
-                pBase.load(fromByteOffset: 0, as: Float.self),
-                pBase.load(fromByteOffset: 4, as: Float.self),
-                pBase.load(fromByteOffset: 8, as: Float.self)
-            )
-            let n = SIMD3<Float>(
-                nBase.load(fromByteOffset: 0, as: Float.self),
-                nBase.load(fromByteOffset: 4, as: Float.self),
-                nBase.load(fromByteOffset: 8, as: Float.self)
-            )
-
-            let outward = pos - centre
-            let olen = sqrt(dot(outward, outward))
+            let pos = SIMD3<Float>(pBase.load(fromByteOffset: 0, as: Float.self),
+                                   pBase.load(fromByteOffset: 4, as: Float.self),
+                                   pBase.load(fromByteOffset: 8, as: Float.self))
+            let n   = SIMD3<Float>(nBase.load(fromByteOffset: 0, as: Float.self),
+                                   nBase.load(fromByteOffset: 4, as: Float.self),
+                                   nBase.load(fromByteOffset: 8, as: Float.self))
+            let olen = simd_length(pos - centre)
             guard olen > 1e-3 else { continue }
-
-            if dot(n, outward) < 0 {
+            if dot(n, pos - centre) < 0 {
                 nBase.storeBytes(of: -n.x, toByteOffset: 0, as: Float.self)
                 nBase.storeBytes(of: -n.y, toByteOffset: 4, as: Float.self)
                 nBase.storeBytes(of: -n.z, toByteOffset: 8, as: Float.self)
@@ -268,369 +669,118 @@ struct ShipSceneKitView: NSViewRepresentable {
         }
     }
 
-    /// Builds an SCNNode directly from the MDLMesh vertex and index buffers,
-    /// bypassing ModelIO's OBJ export which re-computes normals from face winding
-    /// and discards any manual corrections we've applied to the vertex buffer.
-    ///
-    /// UV coordinates are generated via dominant-axis projection: each vertex is
-    /// assigned UVs from the world-space plane most aligned with its normal
-    /// (YZ, XZ, or XY). This lets SceneKit's standard UV pipeline map the
-    /// albedo texture onto the hull without requiring UV data from the OBJ file.
-    private static func makeSCNNode(from mesh: MDLMesh, triplanarScale: Float) -> SCNNode? {
+    /// Builds a MeshDescriptor from an MDLMesh, generating dominant-axis UV projection.
+    private func makeDescriptor(from mesh: MDLMesh, tpScale: Float) -> MeshDescriptor? {
         guard let posAttr  = mesh.vertexAttributeData(forAttributeNamed: MDLVertexAttributePosition),
               let normAttr = mesh.vertexAttributeData(forAttributeNamed: MDLVertexAttributeNormal),
               let submeshes = mesh.submeshes, submeshes.count > 0
         else { return nil }
 
         let count = mesh.vertexCount
-        var posFlat  = [Float](); posFlat.reserveCapacity(count * 3)
-        var normFlat = [Float](); normFlat.reserveCapacity(count * 3)
-        var uvFlat   = [Float](); uvFlat.reserveCapacity(count * 2)
+        var positions: [SIMD3<Float>] = []; positions.reserveCapacity(count)
+        var normals:   [SIMD3<Float>] = []; normals.reserveCapacity(count)
+        var uvs:       [SIMD2<Float>] = []; uvs.reserveCapacity(count)
 
         for i in 0..<count {
-            let p = posAttr.dataStart.advanced(by:  i * posAttr.stride)
-            let n = normAttr.dataStart.advanced(by: i * normAttr.stride)
+            let p  = posAttr.dataStart.advanced(by: i * posAttr.stride)
+            let n  = normAttr.dataStart.advanced(by: i * normAttr.stride)
             let px = p.load(fromByteOffset: 0, as: Float.self)
             let py = p.load(fromByteOffset: 4, as: Float.self)
             let pz = p.load(fromByteOffset: 8, as: Float.self)
             let nx = n.load(fromByteOffset: 0, as: Float.self)
             let ny = n.load(fromByteOffset: 4, as: Float.self)
             let nz = n.load(fromByteOffset: 8, as: Float.self)
-            posFlat.append(contentsOf: [px, py, pz])
-            normFlat.append(contentsOf: [nx, ny, nz])
-
-            // Pick the projection plane whose axis is most aligned with this vertex normal.
+            positions.append([px, py, pz])
+            normals.append([nx, ny, nz])
+            // Dominant-axis UV projection — same logic as former SceneKit path
             let ax = abs(nx), ay = abs(ny), az = abs(nz)
-            let u: Float, v: Float
             if ax >= ay && ax >= az {
-                u =  pz * triplanarScale   // YZ plane
-                v = -py * triplanarScale
+                uvs.append([ pz * tpScale, -py * tpScale])
             } else if ay >= ax && ay >= az {
-                u =  px * triplanarScale   // XZ plane
-                v = -pz * triplanarScale
+                uvs.append([ px * tpScale, -pz * tpScale])
             } else {
-                u =  px * triplanarScale   // XY plane
-                v = -py * triplanarScale
+                uvs.append([ px * tpScale, -py * tpScale])
             }
-            uvFlat.append(u)
-            uvFlat.append(v)
         }
 
-        let posSrc = SCNGeometrySource(
-            data: posFlat.withUnsafeBytes { Data($0) }, semantic: .vertex,
-            vectorCount: count, usesFloatComponents: true, componentsPerVector: 3,
-            bytesPerComponent: 4, dataOffset: 0, dataStride: 12)
-        let normSrc = SCNGeometrySource(
-            data: normFlat.withUnsafeBytes { Data($0) }, semantic: .normal,
-            vectorCount: count, usesFloatComponents: true, componentsPerVector: 3,
-            bytesPerComponent: 4, dataOffset: 0, dataStride: 12)
-        let uvSrc = SCNGeometrySource(
-            data: uvFlat.withUnsafeBytes { Data($0) }, semantic: .texcoord,
-            vectorCount: count, usesFloatComponents: true, componentsPerVector: 2,
-            bytesPerComponent: 4, dataOffset: 0, dataStride: 8)
-
-        var elements = [SCNGeometryElement]()
+        var indices: [UInt32] = []
         for case let sub as MDLSubmesh in submeshes {
             guard sub.geometryType == .triangles, sub.indexCount > 0 else { continue }
-            let bpi: Int
-            switch sub.indexType {
-            case .uint8:  bpi = 1
-            case .uint16: bpi = 2
-            case .uint32: bpi = 4
-            default:      continue
-            }
             let map = sub.indexBuffer.map()
-            let indexData = Data(bytes: map.bytes, count: sub.indexCount * bpi)
-            elements.append(SCNGeometryElement(
-                data: indexData, primitiveType: .triangles,
-                primitiveCount: sub.indexCount / 3, bytesPerIndex: bpi))
+            switch sub.indexType {
+            case .uint32:
+                let ptr = map.bytes.bindMemory(to: UInt32.self, capacity: sub.indexCount)
+                indices.append(contentsOf: UnsafeBufferPointer(start: ptr, count: sub.indexCount))
+            case .uint16:
+                let ptr = map.bytes.bindMemory(to: UInt16.self, capacity: sub.indexCount)
+                indices.append(contentsOf: UnsafeBufferPointer(start: ptr, count: sub.indexCount).map { UInt32($0) })
+            case .uint8:
+                let ptr = map.bytes.bindMemory(to: UInt8.self, capacity: sub.indexCount)
+                indices.append(contentsOf: UnsafeBufferPointer(start: ptr, count: sub.indexCount).map { UInt32($0) })
+            default:
+                continue
+            }
         }
-        guard !elements.isEmpty else { return nil }
+        guard !indices.isEmpty else { return nil }
 
-        let geo = SCNGeometry(sources: [posSrc, normSrc, uvSrc], elements: elements)
-        let node = SCNNode()
-        node.geometry = geo
-        return node
+        var desc = MeshDescriptor(name: mesh.name)
+        desc.positions          = MeshBuffer(positions)
+        desc.normals            = MeshBuffer(normals)
+        desc.textureCoordinates = MeshBuffer(uvs)
+        desc.primitives         = .triangles(indices)
+        return desc
     }
 
     // MARK: Lighting
 
-    private func addLighting(to scene: SCNScene) {
-        let key = SCNNode(); key.name = "keyLight"; key.light = SCNLight()
-        key.light!.type = .directional
-        scene.rootNode.addChildNode(key)
-
-        let fill = SCNNode(); fill.name = "fillLight"; fill.light = SCNLight()
-        fill.light!.type = .directional
-        scene.rootNode.addChildNode(fill)
-
-        // Rim light aimed from the opposite hemisphere to the key — lifts the hard shadow terminator
-        let rim = SCNNode(); rim.name = "rimLight"; rim.light = SCNLight()
-        rim.light!.type = .directional
-        scene.rootNode.addChildNode(rim)
-
-        let ambient = SCNNode(); ambient.name = "ambientLight"; ambient.light = SCNLight()
-        ambient.light!.type = .ambient
-        scene.rootNode.addChildNode(ambient)
-
-        applyLightingPreset(lightingPreset, to: scene)
-    }
-
-    private func applyLightingPreset(_ preset: LightingPreset, to scene: SCNScene) {
-        guard let keyNode  = scene.rootNode.childNode(withName: "keyLight",     recursively: false),
-              let fillNode = scene.rootNode.childNode(withName: "fillLight",    recursively: false),
-              let rimNode  = scene.rootNode.childNode(withName: "rimLight",     recursively: false),
-              let ambNode  = scene.rootNode.childNode(withName: "ambientLight", recursively: false),
-              let key = keyNode.light, let fill = fillNode.light,
-              let rim = rimNode.light, let amb = ambNode.light
-        else { return }
-
+    private func applyPreset(_ preset: LightingPreset) {
+        guard let key  = scene.keyLight,
+              let fill = scene.fillLight,
+              let rim  = scene.rimLight else { return }
         switch preset {
         case .deepSpace:
-            key.intensity  = 900;  key.color  = NSColor.white
-            keyNode.eulerAngles  = SCNVector3(-0.7,  0.8,  0)
-            fill.intensity = 350;  fill.color = NSColor(calibratedRed: 0.35, green: 0.45, blue: 0.75, alpha: 1)
-            fillNode.eulerAngles = SCNVector3( 0.5, -1.1,  0)
-            // Rim from the opposite hemisphere of the key (yaw ≈ key + π) to light the shadow side
-            rim.intensity  = 220;  rim.color  = NSColor(calibratedRed: 0.40, green: 0.50, blue: 0.90, alpha: 1)
-            rimNode.eulerAngles  = SCNVector3( 0.3, -2.34, 0)
-            // IBL via lightingEnvironment handles ambient; keep low floor for shadow lift only
-            amb.intensity  = 200;  amb.color  = NSColor(calibratedWhite: 0.25, alpha: 1)
-
+            setLight(key,  intensity: 3000, color: .white,
+                     euler: (-0.7,  0.8))
+            setLight(fill, intensity:  900, color: NSColor(calibratedRed: 0.35, green: 0.45, blue: 0.75, alpha: 1),
+                     euler: ( 0.5, -1.1))
+            setLight(rim,  intensity:  500, color: NSColor(calibratedRed: 0.40, green: 0.50, blue: 0.90, alpha: 1),
+                     euler: ( 0.3, -2.34))
         case .hangar:
-            key.intensity  = 1100; key.color  = NSColor(calibratedRed: 1.00, green: 0.92, blue: 0.78, alpha: 1)
-            keyNode.eulerAngles  = SCNVector3(-1.2,  0.3,  0)
-            fill.intensity = 450;  fill.color = NSColor(calibratedRed: 0.72, green: 0.68, blue: 0.62, alpha: 1)
-            fillNode.eulerAngles = SCNVector3( 0.4, -0.8,  0)
-            rim.intensity  = 200;  rim.color  = NSColor(calibratedRed: 0.80, green: 0.75, blue: 0.68, alpha: 1)
-            rimNode.eulerAngles  = SCNVector3( 0.3, -2.7,  0)
-            amb.intensity  = 200;  amb.color  = NSColor(calibratedWhite: 0.18, alpha: 1)
-
+            setLight(key,  intensity: 3500, color: NSColor(calibratedRed: 1.00, green: 0.92, blue: 0.78, alpha: 1),
+                     euler: (-1.2,  0.3))
+            setLight(fill, intensity: 1200, color: NSColor(calibratedRed: 0.72, green: 0.68, blue: 0.62, alpha: 1),
+                     euler: ( 0.4, -0.8))
+            setLight(rim,  intensity:  500, color: NSColor(calibratedRed: 0.80, green: 0.75, blue: 0.68, alpha: 1),
+                     euler: ( 0.3, -2.7))
         case .combat:
-            key.intensity  = 900;  key.color  = NSColor(calibratedRed: 1.00, green: 0.35, blue: 0.15, alpha: 1)
-            keyNode.eulerAngles  = SCNVector3(-0.5,  0.9,  0.2)
-            fill.intensity = 200;  fill.color = NSColor(calibratedRed: 0.40, green: 0.12, blue: 0.05, alpha: 1)
-            fillNode.eulerAngles = SCNVector3( 0.6, -1.0, -0.3)
-            rim.intensity  = 100;  rim.color  = NSColor(calibratedRed: 0.60, green: 0.10, blue: 0.05, alpha: 1)
-            rimNode.eulerAngles  = SCNVector3( 0.4, -2.5,  0.3)
-            amb.intensity  = 100;  amb.color  = NSColor(calibratedRed: 0.15, green: 0.02, blue: 0.02, alpha: 1)
-
+            setLight(key,  intensity: 2800, color: NSColor(calibratedRed: 1.00, green: 0.35, blue: 0.15, alpha: 1),
+                     euler: (-0.5,  0.9))
+            setLight(fill, intensity:  500, color: NSColor(calibratedRed: 0.40, green: 0.12, blue: 0.05, alpha: 1),
+                     euler: ( 0.6, -1.0))
+            setLight(rim,  intensity:  200, color: NSColor(calibratedRed: 0.60, green: 0.10, blue: 0.05, alpha: 1),
+                     euler: ( 0.4, -2.5))
         case .wormhole:
-            // Violet key + opposing teal fill evokes the eerie dual-star lighting of J-space.
-            key.intensity  = 600;  key.color  = NSColor(calibratedRed: 0.90, green: 0.80, blue: 1.00, alpha: 1)
-            keyNode.eulerAngles  = SCNVector3(-0.5,  1.2,  0)
-            fill.intensity = 500;  fill.color = NSColor(calibratedRed: 0.10, green: 0.85, blue: 0.75, alpha: 1)
-            fillNode.eulerAngles = SCNVector3( 0.4, -0.9,  0)
-            rim.intensity  = 180;  rim.color  = NSColor(calibratedRed: 0.70, green: 0.50, blue: 1.00, alpha: 1)
-            rimNode.eulerAngles  = SCNVector3( 0.2, -2.6,  0)
-            amb.intensity  = 150;  amb.color  = NSColor(calibratedRed: 0.05, green: 0.02, blue: 0.12, alpha: 1)
+            setLight(key,  intensity: 1800, color: NSColor(calibratedRed: 0.90, green: 0.80, blue: 1.00, alpha: 1),
+                     euler: (-0.5,  1.2))
+            setLight(fill, intensity: 1500, color: NSColor(calibratedRed: 0.10, green: 0.85, blue: 0.75, alpha: 1),
+                     euler: ( 0.4, -0.9))
+            setLight(rim,  intensity:  450, color: NSColor(calibratedRed: 0.70, green: 0.50, blue: 1.00, alpha: 1),
+                     euler: ( 0.2, -2.6))
         }
     }
 
-    // MARK: Space Lighting Environment
-
-    /// Dedicated IBL environment map — a small bright equirectangular with a warm
-    /// sun blob and cool blue fill, separate from the starfield background.
-    /// The starfield is ~99% near-black and contributes essentially zero IBL;
-    /// this image provides actual luminance that `lightingEnvironment.intensity`
-    /// amplifies into HDR-range values for visible metallic reflections.
-    private func makeSpaceLightingEnv() -> CGImage? {
-        let W = 512, H = 256
-        let cs = CGColorSpaceCreateDeviceRGB()
-        guard let ctx = CGContext(
-            data: nil, width: W, height: H,
-            bitsPerComponent: 8, bytesPerRow: W * 4,
-            space: cs,
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        ) else { return nil }
-
-        let FW = CGFloat(W), FH = CGFloat(H)
-
-        // Deep space base
-        ctx.setFillColor(CGColor(colorSpace: cs, components: [0.005, 0.006, 0.016, 1])!)
-        ctx.fill(CGRect(x: 0, y: 0, width: W, height: H))
-
-        // Cool blue-violet fill — upper-left, opposing the key light
-        let fillPt = CGPoint(x: FW * 0.22, y: FH * 0.62)
-        if let grad = CGGradient(
-            colorsSpace: cs,
-            colors: [CGColor(colorSpace: cs, components: [0.07, 0.10, 0.26, 1.0])!,
-                     CGColor(colorSpace: cs, components: [0.00, 0.00, 0.00, 0.0])!] as CFArray,
-            locations: [0.0, 1.0]
-        ) {
-            ctx.drawRadialGradient(grad, startCenter: fillPt, startRadius: 0,
-                                   endCenter: fillPt, endRadius: FW * 0.55,
-                                   options: .drawsAfterEndLocation)
-        }
-
-        // Warm sun — upper-right, aligned with deep space key light euler(-0.7, 0.8, 0).
-        // Equirectangular U = 0.5 + yaw/(2π) ≈ 0.63; CGContext y from bottom ≈ 0.65·H.
-        let sunPt = CGPoint(x: FW * 0.63, y: FH * 0.65)
-        if let grad = CGGradient(
-            colorsSpace: cs,
-            colors: [CGColor(colorSpace: cs, components: [1.00, 0.97, 0.92, 1.0])!,
-                     CGColor(colorSpace: cs, components: [0.72, 0.55, 0.24, 0.7])!,
-                     CGColor(colorSpace: cs, components: [0.00, 0.00, 0.00, 0.0])!] as CFArray,
-            locations: [0.0, 0.08, 0.40]
-        ) {
-            ctx.drawRadialGradient(grad, startCenter: sunPt, startRadius: 0,
-                                   endCenter: sunPt, endRadius: FW * 0.45,
-                                   options: .drawsAfterEndLocation)
-        }
-
-        return ctx.makeImage()
-    }
-
-    // MARK: Starfield
-
-    /// Generates a 2048×1024 equirectangular star-field used as the scene skybox.
-    /// Simple approach: uniform deep-black base + 5 500 stars with realistic spectral
-    /// colours + a barely-visible centred depth glow. Centred-only gradients mean the
-    /// equirectangular wrap seam is completely invisible.
-    private func makeStarfieldBackground() -> CGImage? {
-        let W = 2048, H = 1024
-        let cs = CGColorSpaceCreateDeviceRGB()
-        guard let ctx = CGContext(
-            data: nil, width: W, height: H,
-            bitsPerComponent: 8, bytesPerRow: W * 4,
-            space: cs,
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        ) else { return nil }
-
-        let FW = CGFloat(W), FH = CGFloat(H)
-
-        // ── 1. Pure deep-space black (very slight blue tint) ─────────────────────────
-        ctx.setFillColor(CGColor(colorSpace: cs, components: [0.005, 0.006, 0.014, 1])!)
-        ctx.fill(CGRect(x: 0, y: 0, width: W, height: H))
-
-        // ── 2. One faint centred depth glow — symmetric so the wrap seam is invisible ─
-        if let grad = CGGradient(
-            colorsSpace: cs,
-            colors: [CGColor(colorSpace: cs, components: [0.02, 0.03, 0.10, 0.14])!,
-                     CGColor(colorSpace: cs, components: [0,    0,    0,    0   ])!] as CFArray,
-            locations: [0, 1])
-        {
-            let c = CGPoint(x: FW * 0.5, y: FH * 0.5)
-            ctx.drawRadialGradient(grad, startCenter: c, startRadius: 0,
-                                   endCenter: c, endRadius: FW * 0.55,
-                                   options: .drawsAfterEndLocation)
-        }
-
-        // ── 3. Stars ─────────────────────────────────────────────────────────────────
-        for _ in 0 ..< 5500 {
-            let sx  = CGFloat.random(in: 0 ..< FW)
-            let sy  = CGFloat.random(in: 0 ..< FH)
-            let lum = pow(CGFloat.random(in: 0...1), 2.4)  // steep power-law → mostly dim
-            let vis = 0.35 + lum * 0.65
-
-            let t = CGFloat.random(in: 0...1)
-            let (r, g, b): (CGFloat, CGFloat, CGFloat)
-            if      t < 0.55 { (r, g, b) = (vis,        vis,        vis       ) } // white
-            else if t < 0.75 { (r, g, b) = (vis * 0.82, vis * 0.91, vis       ) } // blue-white
-            else if t < 0.88 { (r, g, b) = (vis,        vis * 0.94, vis * 0.76) } // yellow-white
-            else             { (r, g, b) = (vis,        vis * 0.72, vis * 0.50) } // orange
-
-            let sz: CGFloat = lum < 0.50 ? 1.0 : lum < 0.80 ? 1.5 : 2.5
-
-            ctx.setFillColor(CGColor(colorSpace: cs, components: [r, g, b, 1])!)
-            ctx.fillEllipse(in: CGRect(x: sx - sz/2, y: sy - sz/2, width: sz, height: sz))
-
-            // Very subtle bloom on only the very brightest stars
-            if lum > 0.92 {
-                ctx.setFillColor(CGColor(colorSpace: cs, components: [r, g, b, 0.04])!)
-                let gr = sz * 3
-                ctx.fillEllipse(in: CGRect(x: sx - gr/2, y: sy - gr/2, width: gr, height: gr))
-            }
-        }
-
-        return ctx.makeImage()
-    }
-
-    // MARK: Material
-
-    private func buildMaterial(for scene: SCNScene) -> SCNMaterial {
-        let mat    = SCNMaterial()
-        mat.lightingModel = .physicallyBased
-        let device = MTLCreateSystemDefaultDevice()
-
-        // Albedo (BC1/BC3 software path or BC7 Metal path)
-        if let url = albedoDDSURL, let data = try? Data(contentsOf: url), let dev = device {
-            var img: CGImage? = DDSDecoder.decode(data)
-            if img == nil { img = DDSDecoder.cgImage(from: data, device: dev) }
-            mat.diffuse.contents = img ?? NSColor(calibratedRed: 0.55, green: 0.58, blue: 0.62, alpha: 1)
-        } else {
-            mat.diffuse.contents = NSColor(calibratedRed: 0.55, green: 0.58, blue: 0.62, alpha: 1)
-        }
-
-        // Normal map (BC5/ATI2 → Z-reconstructed RGBA, or BC7/BC1 fallback)
-        if let url = normalDDSURL, let data = try? Data(contentsOf: url), let dev = device {
-            var img: CGImage? = DDSDecoder.decode(data)
-            if img == nil { img = DDSDecoder.cgImage(from: data, device: dev) }
-            if img == nil { img = DDSDecoder.cgImageNormal(from: data, device: dev) }
-            if let img { mat.normal.contents = img }
-        }
-
-        // _r.dds: packed map (BC1/BC3/BC7 → R=roughness, G=metalness, B=AO)
-        // or single-channel BC4/ATI1 (on-disk EVE assets) → R=roughness only.
-        if let url = roughnessDDSURL, let data = try? Data(contentsOf: url), let dev = device {
-            var packedImg: CGImage? = DDSDecoder.decode(data)
-            if packedImg == nil { packedImg = DDSDecoder.cgImage(from: data, device: dev) }
-            if let img = packedImg, let split = DDSDecoder.splitRoughnessChannels(from: img) {
-                mat.roughness.contents        = split.roughness
-                mat.metalness.contents        = split.metalness
-                mat.ambientOcclusion.contents = split.ao
-            } else if let img = packedImg {
-                mat.roughness.contents = img
-                mat.metalness.contents = NSNumber(value: 0.30)
-            } else if let singleImg = DDSDecoder.cgImageBC4(from: data, device: dev) {
-                mat.roughness.contents = singleImg
-                mat.metalness.contents = NSNumber(value: 0.30)
-            } else {
-                mat.roughness.contents = NSNumber(value: 0.88)
-                mat.metalness.contents = NSNumber(value: 0.25)
-            }
-        } else {
-            mat.roughness.contents = NSNumber(value: 0.88)
-            mat.metalness.contents = NSNumber(value: 0.25)
-        }
-
-        // Emissive map — engine glows, cockpit windows, nav lights.
-        if let url = emissiveDDSURL, let data = try? Data(contentsOf: url), let dev = device {
-            var img: CGImage? = DDSDecoder.decode(data)
-            if img == nil { img = DDSDecoder.cgImage(from: data, device: dev) }
-            if let img { mat.emission.contents = img }
-        }
-
-        mat.isDoubleSided = true
-
-        // UV coordinates generated in makeSCNNode range [-0.5, +0.5]; repeat wrap
-        // lets them tile correctly rather than clamping to the edge pixel.
-        mat.diffuse.wrapS = .repeat
-        mat.diffuse.wrapT = .repeat
-        mat.normal.wrapS  = .repeat
-        mat.normal.wrapT  = .repeat
-
-        // physicallyBased does not auto-flip normals on back-facing fragments even
-        // with isDoubleSided = true.
-        mat.shaderModifiers = [
-            .surface: "if (!gl_FrontFacing) { _surface.normal = -_surface.normal; }"
-        ]
-
-        return mat
-    }
-
-    private func apply(_ mat: SCNMaterial, to node: SCNNode) {
-        node.geometry?.materials = [mat]
-        node.childNodes.forEach { apply(mat, to: $0) }
-    }
-
-    private func applyWireframe(_ on: Bool, to node: SCNNode) {
-        node.geometry?.materials.forEach { $0.fillMode = on ? .lines : .fill }
-        node.childNodes.forEach { applyWireframe(on, to: $0) }
+    private func setLight(_ entity: Entity, intensity: Float, color: NSColor,
+                          euler: (Float, Float)) {
+        var comp = DirectionalLightComponent()
+        comp.intensity = intensity
+        comp.color     = color
+        entity.components.set(comp)
+        entity.orientation = simd_quatf(angle: euler.0, axis: [1, 0, 0]) *
+                             simd_quatf(angle: euler.1, axis: [0, 1, 0])
     }
 }
 
-// MARK:  Ship Model Sheet
+// MARK: - Ship Model Sheet
 
 struct ShipModelSheet: View {
     let shipName:  String
@@ -690,13 +840,6 @@ struct ShipModelSheet: View {
                 .labelsHidden()
                 .frame(width: 120)
 
-                Button { wireframe.toggle() } label: {
-                    Image(systemName: wireframe ? "cube.fill" : "cube")
-                        .foregroundStyle(wireframe ? Color.accentColor : .secondary)
-                }
-                .buttonStyle(.plain)
-                .help("Toggle wireframe")
-
                 Button {
                     WindowService.shared.showShipModel(shipName: shipName, shipClass: shipClass)
                     dismiss()
@@ -734,7 +877,7 @@ struct ShipModelSheet: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
         case .ready(let p):
-            ShipSceneKitView(
+            ShipRealityKitView(
                 objURL:          p.objURL,
                 albedoDDSURL:    p.albedoURL,
                 normalDDSURL:    p.normalURL,
@@ -770,11 +913,10 @@ struct ShipModelSheet: View {
                         Label(warning, systemImage: "exclamationmark.triangle.fill")
                             .font(.caption2)
                             .foregroundStyle(.orange)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
+                            .padding(.horizontal, 10).padding(.vertical, 5)
                             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
                     }
-                    Text("Drag to rotate  ·  Scroll to zoom  ·  ⌘-drag to pan")
+                    Text("Drag to rotate  ·  Scroll to zoom  ·  Pinch to zoom")
                         .font(.caption2)
                         .foregroundStyle(.white.opacity(0.35))
                 }
@@ -812,10 +954,8 @@ struct ShipModelSheet: View {
                 phase = .unavailable
                 return
             }
-            // Show model immediately with grey PBR fallback while textures download.
             phase = .ready(ReadyPayload(objURL: objURL, texturesLoading: true))
 
-            // Albedo first — most visible; also warms the resource-index cache.
             var albedoURL: URL?
             var warning:   String?
             do    { albedoURL = try await ShipModelService.shared.localAlbedoURL(for: shipName) }
@@ -827,7 +967,6 @@ struct ShipModelSheet: View {
                 phase = .ready(p)
             }
 
-            // Remaining PBR maps concurrently (resource index already cached).
             async let normalFetch   = ShipModelService.shared.localNormalURL(for: shipName)
             async let roughFetch    = ShipModelService.shared.localRoughnessURL(for: shipName)
             async let emissiveFetch = ShipModelService.shared.localEmissiveURL(for: shipName)
