@@ -11,16 +11,17 @@
 
 @preconcurrency import Foundation
 import FoundationModels
+import OSLog
 
 // MARK: Output Types
 //
 // Plain Codable structs — no @Generable, no @Guide.
 // @Generable bakes a reference to FoundationModels.Generable.promptRepresentation
 // into the binary at compile time. That symbol exists in the SDK the binary was
-// built with but is absent from the FoundationModels.framework shipped with other
-// OS versions, causing a dyld abort at launch. Using plain Codable structs with
-// JSON-prompted free-form generation avoids all macro-generated symbol references
-// and works on every FoundationModels version.
+// built with but is absent from the FoundationModels.framework shipped with macOS
+// 26.x, causing a dyld abort at launch on those versions. Using plain Codable
+// structs with JSON-prompted generation avoids all macro-generated symbol
+// references and works on every FoundationModels version.
 
 struct FinanceInsight: Codable, Sendable {
     var summary: String
@@ -52,7 +53,8 @@ struct SkillTrainingRecommendation: Codable, Sendable {
     private enum CodingKeys: String, CodingKey { case playstyleSummary, recommendations }
     nonisolated init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        playstyleSummary = try c.decode(String.self,               forKey: .playstyleSummary)
+        // playstyleSummary is optional: newer model versions omit it.
+        playstyleSummary = (try? c.decode(String.self, forKey: .playstyleSummary)) ?? ""
         recommendations  = try c.decode([SkillRecommendation].self, forKey: .recommendations)
     }
 }
@@ -171,17 +173,55 @@ actor IntelligenceService {
                 .joined(separator: "\n")
                 .trimmingCharacters(in: .whitespacesAndNewlines)
         }
-        // Extract the first {...} block in case the model added surrounding text
-        if let start = raw.firstIndex(of: "{"), let end = raw.lastIndex(of: "}") {
-            raw = String(raw[start...end])
-        }
+        // Extract the outermost {...} block using bracket counting, which correctly
+        // handles } characters inside string values or trailing explanation text.
+        raw = Self.extractFirstJSONObject(raw) ?? raw
 
         guard let data = raw.data(using: .utf8) else { throw IntelligenceParseError() }
         do {
             return try JSONDecoder().decode(T.self, from: data)
-        } catch {
+        } catch let decodeError {
+            let log = Logger(subsystem: "CitizenCoder.EVEOps", category: "intelligence")
+            log.error("JSON decode failed (\(String(describing: T.self))): \(decodeError.localizedDescription)")
+            log.debug("Raw model output: \(raw)")
             throw IntelligenceParseError()
         }
+    }
+
+    // Walks the string character-by-character to find the first complete top-level
+    // JSON object, correctly skipping } characters inside quoted string values.
+    private nonisolated static func extractFirstJSONObject(_ raw: String) -> String? {
+        var depth = 0
+        var inString = false
+        var escaped = false
+        var start: String.Index? = nil
+
+        for idx in raw.indices {
+            let c = raw[idx]
+            if escaped {
+                escaped = false
+                continue
+            }
+            if c == "\\" && inString {
+                escaped = true
+                continue
+            }
+            if c == "\"" {
+                inString.toggle()
+                continue
+            }
+            guard !inString else { continue }
+            if c == "{" {
+                if depth == 0 { start = idx }
+                depth += 1
+            } else if c == "}" {
+                depth -= 1
+                if depth == 0, let s = start {
+                    return String(raw[s...idx])
+                }
+            }
+        }
+        return nil
     }
 
     // MARK: Finance Analysis

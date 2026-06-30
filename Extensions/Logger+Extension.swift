@@ -20,4 +20,5 @@ extension Logger {
     static var dogmaEngine: EVELogger { EVELogger(category: "dogmaEngine") }
     static var systemSearch: EVELogger { EVELogger(category: "systemSearch") }
     static var eveRef: EVELogger { EVELogger(category: "eveRef") }
+    static var intelligence: EVELogger { EVELogger(category: "intelligence") }
 }

@@ -10,6 +10,7 @@
 
 import SwiftUI
 import FoundationModels
+import OSLog
 
 struct SkillPlannerView: View {
     @Environment(AccountManager.self) private var accountManager
@@ -810,11 +811,13 @@ struct SkillPlanAIInsightCard: View {
                     }
                 } else if let rec = recommendation {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(rec.playstyleSummary)
-                            .font(.caption)
-                            .fixedSize(horizontal: false, vertical: true)
+                        if !rec.playstyleSummary.isEmpty {
+                            Text(rec.playstyleSummary)
+                                .font(.caption)
+                                .fixedSize(horizontal: false, vertical: true)
 
-                        Divider()
+                            Divider()
+                        }
 
                         ScrollView {
                             VStack(alignment: .leading, spacing: 8) {
@@ -926,6 +929,7 @@ struct SkillPlanAIInsightCard: View {
             )
             recommendation = rec
         } catch {
+            Logger.intelligence.error("Skill insight generation failed: \(error.localizedDescription)")
             generationError = "Unable to generate insight. Try again later."
         }
     }
