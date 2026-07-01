@@ -61,6 +61,13 @@ private final class SkillTreeBuildState {
     var visited: Set<Int> = []
 }
 
+// MARK:  Shared Helpers
+
+private func skillRoman(_ n: Int) -> String {
+    let t = ["0", "I", "II", "III", "IV", "V"]
+    return n < t.count ? t[n] : "\(n)"
+}
+
 // MARK:  Layout Constants
 
 private let nodeW: CGFloat = 182
@@ -94,6 +101,9 @@ struct ItemSkillTreeView: View {
     @State private var edges: [SkillEdge] = []
     @State private var isBuilding = false
     @State private var treeMessage: String?
+
+    // Per-node NSView anchors for NSPopover (class avoids SwiftUI re-render loops)
+    @State private var nodeViewStore = NodeViewStore()
 
     private var hasChar: Bool { characterSkills != nil }
 
@@ -173,27 +183,27 @@ struct ItemSkillTreeView: View {
             LazyVStack(spacing: 0) {
                 ForEach(searchResults, id: \.id) { result in
                     Button { selectItem(result.id, name: result.name) } label: {
-                        HStack(spacing: 10) {
+                        HStack(spacing: 12) {
                             AsyncImage(url: EVEImageURL.typeIcon(result.id, size: 64)) { phase in
                                 if let img = phase.image {
                                     img.resizable()
-                                        .frame(width: 32, height: 32)
-                                        .clipShape(RoundedRectangle(cornerRadius: 5))
+                                        .frame(width: 64, height: 64)
+                                        .clipShape(RoundedRectangle(cornerRadius: 9))
                                 } else {
-                                    RoundedRectangle(cornerRadius: 5)
+                                    RoundedRectangle(cornerRadius: 9)
                                         .fill(.quaternary)
-                                        .frame(width: 32, height: 32)
+                                        .frame(width: 64, height: 64)
                                 }
                             }
                             Text(result.name)
-                                .font(.subheadline)
+                                .font(.title3)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             Image(systemName: "chevron.right")
-                                .font(.caption2)
+                                .font(.subheadline)
                                 .foregroundStyle(.tertiary)
                         }
                         .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
+                        .padding(.vertical, 10)
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
@@ -238,6 +248,7 @@ struct ItemSkillTreeView: View {
                     ForEach(nodes) { node in
                         nodeCard(for: node)
                             .frame(width: nodeW, height: nodeH)
+                            .overlay(NodeAnchorCapture(store: nodeViewStore, nodeId: node.id))
                             .position(node.position)
                     }
                 }
@@ -288,19 +299,22 @@ struct ItemSkillTreeView: View {
                 .frame(width: 4)
 
             HStack(spacing: 7) {
-                // Item render for root, skill icon for skill nodes
-                AsyncImage(url: isRoot
-                    ? EVEImageURL.typeRender(selectedTypeId ?? 0, size: 64)
-                    : EVEImageURL.typeIcon(node.id, size: 64)) { phase in
-                    if let img = phase.image {
-                        img.resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(width: isRoot ? 40 : 28, height: isRoot ? 40 : 28)
-                            .clipShape(RoundedRectangle(cornerRadius: isRoot ? 7 : 4))
-                    } else {
-                        RoundedRectangle(cornerRadius: isRoot ? 7 : 4)
-                            .fill(.quaternary)
-                            .frame(width: isRoot ? 40 : 28, height: isRoot ? 40 : 28)
+                // Item render for root (with icon fallback), skill icon for skill nodes
+                if isRoot {
+                    TypeImageView(typeId: selectedTypeId ?? 0,
+                                  size: 40, cornerRadius: 7)
+                } else {
+                    AsyncImage(url: EVEImageURL.typeIcon(node.id, size: 64)) { phase in
+                        if let img = phase.image {
+                            img.resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 28, height: 28)
+                                .clipShape(RoundedRectangle(cornerRadius: 4))
+                        } else {
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(.quaternary)
+                                .frame(width: 28, height: 28)
+                        }
                     }
                 }
 
@@ -319,7 +333,7 @@ struct ItemSkillTreeView: View {
                                           : Color.white.opacity(0.10))
                                     .frame(width: 11, height: 7)
                             }
-                            Text("→ \(roman(node.requiredLevel))")
+                            Text("→ \(skillRoman(node.requiredLevel))")
                                 .font(.system(size: 9, weight: .bold))
                                 .foregroundStyle(s.color)
                                 .padding(.leading, 2)
@@ -349,7 +363,7 @@ struct ItemSkillTreeView: View {
                     }
                     .buttonStyle(.plain)
                     .padding(.trailing, 4)
-                    .help("Add \(node.name) \(roman(node.requiredLevel)) to skill plan")
+                    .help("Add \(node.name) \(skillRoman(node.requiredLevel)) to skill plan")
                 }
             }
             .padding(.horizontal, 7)
@@ -362,6 +376,14 @@ struct ItemSkillTreeView: View {
         .contextMenu {
             let typeIdForMarket = isRoot ? (selectedTypeId ?? -1) : node.id
             let nameForMarket   = isRoot ? selectedTypeName : node.name
+
+            Button {
+                showPopover(for: node)
+            } label: {
+                Label("View Details", systemImage: "info.circle")
+            }
+
+            Divider()
 
             if typeIdForMarket > 0 {
                 Button {
@@ -461,6 +483,8 @@ struct ItemSkillTreeView: View {
         struct SearchResp: Decodable { let inventoryType: [Int]? }
         struct NameEntry: Decodable { let id: Int; let name: String }
 
+        var candidates: [(id: Int, name: String)] = []
+
         if let account = accountManager.selectedAccount,
            let token = try? await accountManager.validToken(for: account) {
             let resp: SearchResp? = try? await ESIClient.shared.fetch(
@@ -474,16 +498,29 @@ struct ItemSkillTreeView: View {
             let ids = Array((resp?.inventoryType ?? []).prefix(100))
             guard !ids.isEmpty else { searchResults = []; return }
             let names: [NameEntry] = (try? await ESIClient.shared.post("/universe/names/", body: ids)) ?? []
-            searchResults = names.map { (id: $0.id, name: $0.name) }.sorted {
-                let aL = $0.name.lowercased(), bL = $1.name.lowercased()
-                if (aL == lower) != (bL == lower) { return aL == lower }
-                if aL.hasPrefix(lower) != bL.hasPrefix(lower) { return aL.hasPrefix(lower) }
-                return aL < bL
-            }
+            candidates = names.map { (id: $0.id, name: $0.name) }
         } else {
             struct IDResp: Decodable { let inventoryTypes: [ESIIDName]? }
             let resp: IDResp? = try? await ESIClient.shared.post("/universe/ids/", body: [query])
-            searchResults = (resp?.inventoryTypes ?? []).map { (id: $0.id, name: $0.name) }
+            candidates = (resp?.inventoryTypes ?? []).map { (id: $0.id, name: $0.name) }
+        }
+
+        guard !candidates.isEmpty else { searchResults = []; return }
+
+        // Filter to only items that have at least one skill prerequisite in their dogma attributes.
+        // This definitively excludes SKINs, apparel, commodities, and anything else with no training requirements.
+        let skillAttrIds = Set(treeAttrPairs.map(\.skillAttr))
+        let typeMap = await UniverseCache.shared.types(ids: candidates.map(\.id))
+        let filtered = candidates.filter { item in
+            guard let attrs = typeMap[item.id]?.dogmaAttributes else { return false }
+            return attrs.contains { skillAttrIds.contains($0.attributeId) && $0.value > 0 }
+        }
+
+        searchResults = filtered.sorted {
+            let aL = $0.name.lowercased(), bL = $1.name.lowercased()
+            if (aL == lower) != (bL == lower) { return aL == lower }
+            if aL.hasPrefix(lower) != bL.hasPrefix(lower) { return aL.hasPrefix(lower) }
+            return aL < bL
         }
     }
 
@@ -654,10 +691,244 @@ struct ItemSkillTreeView: View {
         }
     }
 
-    // MARK:  Helpers
+    // MARK: NSPopover Presentation
 
-    private func roman(_ n: Int) -> String {
-        let t = ["0", "I", "II", "III", "IV", "V"]
-        return n < t.count ? t[n] : "\(n)"
+    private func showPopover(for node: SkillNode) {
+        // The NodeAnchorCapture overlay gives us a PassthroughNSView that sits exactly
+        // over the node card in the NSView hierarchy. AppKit's show(relativeTo:of:)
+        // converts from that view's local space to screen coords automatically —
+        // scroll offset, window position, all included for free.
+        guard let anchor = nodeViewStore.views[node.id] else { return }
+
+        let edge: NSRectEdge = node.position.x > computedCanvasSize.width / 2 ? .minX : .maxX
+        let popover = NSPopover()
+        popover.contentViewController = NSHostingController(rootView: NodeDetailView(
+            node: node,
+            isRoot: node.id == -1,
+            selectedTypeId: selectedTypeId,
+            characterSkills: characterSkills,
+            onAddToPlan: onAddToPlan
+        ))
+        popover.behavior = .transient
+        popover.show(relativeTo: anchor.bounds, of: anchor, preferredEdge: edge)
+    }
+
+}
+
+// MARK: Type Image with Render → Icon Fallback
+
+/// Shows the 3D render image for a type (ships, structures, etc.).
+/// Automatically falls back to the flat icon if the render URL returns nothing,
+/// which happens for modules, drones, and other non-rendered item types.
+private struct TypeImageView: View {
+    let typeId: Int
+    let size: CGFloat
+    let cornerRadius: CGFloat
+
+    var body: some View {
+        AsyncImage(url: EVEImageURL.typeRender(typeId, size: 256)) { phase in
+            switch phase {
+            case .success(let img):
+                img.resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: size, height: size)
+                    .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+            case .failure:
+                AsyncImage(url: EVEImageURL.typeIcon(typeId, size: 64)) { phase2 in
+                    if let img = phase2.image {
+                        img.resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: size, height: size)
+                            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+                    } else {
+                        placeholder
+                    }
+                }
+            default:
+                placeholder
+            }
+        }
+    }
+
+    private var placeholder: some View {
+        RoundedRectangle(cornerRadius: cornerRadius)
+            .fill(.quaternary)
+            .frame(width: size, height: size)
     }
 }
+
+// MAR:K NSView Anchor for NSPopover
+
+// Class store — mutating it never triggers a SwiftUI re-render.
+private final class NodeViewStore {
+    var views: [Int: NSView] = [:]
+}
+
+// Overrides hitTest so the overlay is invisible to all mouse events.
+// Right-clicks pass straight through to the SwiftUI context menu below.
+private final class PassthroughNSView: NSView {
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+}
+
+// Overlay representable — fills the node card frame, stores its NSView, passes all events.
+private struct NodeAnchorCapture: NSViewRepresentable {
+    let store: NodeViewStore
+    let nodeId: Int
+    func makeNSView(context: Context) -> PassthroughNSView { PassthroughNSView() }
+    func updateNSView(_ nsView: PassthroughNSView, context: Context) {
+        store.views[nodeId] = nsView
+    }
+}
+
+// MARK: Node Detail Popover
+
+private struct NodeDetailView: View {
+    let node: SkillNode
+    let isRoot: Bool
+    let selectedTypeId: Int?
+    let characterSkills: [Int: Int]?
+    var onAddToPlan: ((SkillPlanItem) -> Void)?
+
+    @State private var esiType: ESIType?
+    @State private var isLoading = true
+
+    private var typeId: Int { isRoot ? (selectedTypeId ?? 0) : node.id }
+    private var hasChar: Bool { characterSkills != nil }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            headerSection
+
+            if isLoading {
+                ProgressView()
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+            } else if let desc = esiType?.description, !desc.isEmpty {
+                Divider()
+                Text(desc)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(10)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(14)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            if !isRoot {
+                let s = node.status(hasChar: hasChar)
+                if (s == .partial || s == .missing), let add = onAddToPlan {
+                    Divider()
+                    HStack {
+                        Spacer()
+                        Button("Add to Skill Plan") {
+                            add(SkillPlanItem(
+                                skillId: node.id,
+                                skillName: node.name,
+                                fromLevel: node.trainedLevel,
+                                targetLevel: node.requiredLevel
+                            ))
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.regular)
+                        Spacer()
+                    }
+                    .padding(.vertical, 8)
+                }
+            }
+        }
+        .frame(minWidth: 280, maxWidth: 400)
+        .fixedSize(horizontal: false, vertical: true)
+        .task { await loadType() }
+    }
+
+    private var headerSection: some View {
+        HStack(alignment: .top, spacing: 12) {
+            if isRoot {
+                TypeImageView(typeId: typeId, size: 56, cornerRadius: 10)
+            } else {
+                AsyncImage(url: EVEImageURL.typeIcon(node.id, size: 64)) { phase in
+                    if let img = phase.image {
+                        img.resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: 56, height: 56)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                    } else {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(.quaternary)
+                            .frame(width: 56, height: 56)
+                    }
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(node.name)
+                    .font(.title3)
+                    .lineLimit(2)
+
+                if !isRoot {
+                    let s = node.status(hasChar: hasChar)
+                    HStack(spacing: 3) {
+                        ForEach(1...5, id: \.self) { lvl in
+                            RoundedRectangle(cornerRadius: 1.5)
+                                .fill(lvl <= node.trainedLevel ? s.color : Color.white.opacity(0.15))
+                                .frame(width: 16, height: 10)
+                        }
+                        Text("→ \(skillRoman(node.requiredLevel)) req.")
+                            .font(.subheadline)
+                            .foregroundStyle(s.color)
+                    }
+                    Text(statusLabel(for: s))
+                        .font(.caption)
+                        .foregroundStyle(s.color)
+                } else if let type = esiType {
+                    HStack(spacing: 10) {
+                        if let vol = type.volume {
+                            Label(formatVolume(vol), systemImage: "cube.fill")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                        if let mass = type.mass {
+                            Label(formatMass(mass), systemImage: "scalemass.fill")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(14)
+    }
+
+    private func statusLabel(for s: SkillNodeStatus) -> String {
+        switch s {
+        case .met:     return "Trained to Level \(node.trainedLevel)"
+        case .partial: return "Partial: \(node.trainedLevel) of \(node.requiredLevel) trained"
+        case .missing: return "Not trained"
+        case .noChar:  return "No character selected"
+        default:       return ""
+        }
+    }
+
+    private func formatVolume(_ v: Double) -> String {
+        if v >= 1_000_000 { return String(format: "%.2fM m³", v / 1_000_000) }
+        if v >= 1_000 { return String(format: "%.1fK m³", v / 1_000) }
+        return String(format: "%.1f m³", v)
+    }
+
+    private func formatMass(_ m: Double) -> String {
+        if m >= 1_000_000_000 { return String(format: "%.2f Tg", m / 1_000_000_000) }
+        if m >= 1_000_000 { return String(format: "%.2f Mg", m / 1_000_000) }
+        return String(format: "%.0f kg", m)
+    }
+
+    private func loadType() async {
+        isLoading = true
+        defer { isLoading = false }
+        if let cached = await UniverseCache.shared.types(ids: [typeId])[typeId],
+           cached.description != nil {
+            esiType = cached
+        } else if let fetched: ESIType = try? await ESIClient.shared.fetch(
+            "/universe/types/\(typeId)/", bypassCache: true) {
+            esiType = fetched
+        }
+    }
+}
+

@@ -549,6 +549,9 @@
     "→ %@" : {
 
     },
+    "→ %@ req." : {
+
+    },
     "→ L%lld" : {
 
     },
@@ -3352,6 +3355,9 @@
 
     },
     "View Constellation Map" : {
+
+    },
+    "View Details" : {
 
     },
     "Visibility" : {
