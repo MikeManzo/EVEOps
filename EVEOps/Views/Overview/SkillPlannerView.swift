@@ -103,15 +103,20 @@ struct SkillPlannerView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                ScrollView {
-                    LazyVStack(spacing: 1) {
-                        ForEach(planItems) { item in
-                            planRow(item)
-                            Divider().padding(.leading, 44)
-                        }
+                List {
+                    ForEach(planItems) { item in
+                        planRow(item)
+                            .listRowInsets(EdgeInsets())
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
                     }
-                    .padding(.vertical, 4)
+                    .onMove { from, to in
+                        planItems.move(fromOffsets: from, toOffset: to)
+                        savePlan()
+                    }
                 }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
                 .frame(maxHeight: .infinity)
             }
         }

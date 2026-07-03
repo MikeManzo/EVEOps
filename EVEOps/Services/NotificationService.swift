@@ -16,6 +16,7 @@ actor NotificationService {
     private var lastCheckedNotifications: [Int: Int] = [:]  // characterID: last notificationID
     private var lastCheckedSkillQueues: [Int: Bool] = [:]   // characterID: was queue empty
     private var lastCheckedContracts: [Int: Set<String>] = [:]  // characterID: contract statuses
+    private var lastQueueWarningSent: [Int: Date] = [:]     // characterID: last warning date
 
     func requestPermission() async {
         let center = UNUserNotificationCenter.current()
@@ -60,6 +61,29 @@ actor NotificationService {
                     identifier: "skillqueue-\(account.characterID)"
                 )
             }
+
+            // Proactive warning: notify when queue will run out within the configured window
+            let warningOn = UserDefaults.standard.object(forKey: "notifySkillQueueWarning") as? Bool ?? true
+            if warningOn && !isEmpty {
+                let warningHours = UserDefaults.standard.double(forKey: "skillQueueWarningHours")
+                let warningInterval: TimeInterval = (warningHours > 0 ? warningHours : 24) * 3600
+                if let queueEnd = activeSkills.compactMap(\.finishDate).max(),
+                   queueEnd.timeIntervalSinceNow > 0,
+                   queueEnd.timeIntervalSinceNow < warningInterval {
+                    let lastSent = lastQueueWarningSent[account.characterID]
+                    let cooldown: TimeInterval = 6 * 3600  // don't re-notify for 6h
+                    if lastSent == nil || Date().timeIntervalSince(lastSent!) > cooldown {
+                        let hoursLeft = Int(queueEnd.timeIntervalSinceNow / 3600) + 1
+                        await sendNotification(
+                            title: String(localized: "Skill Queue Alert — \(account.characterName)"),
+                            body: String(localized: "Training queue completes in ~\(hoursLeft)h. Add skills to keep training!"),
+                            identifier: "skillqueue-warning-\(account.characterID)-\(Int(queueEnd.timeIntervalSince1970))"
+                        )
+                        lastQueueWarningSent[account.characterID] = Date()
+                    }
+                }
+            }
+
             lastCheckedSkillQueues[account.characterID] = isEmpty
         } catch ESIError.unauthorized {
             throw ESIError.unauthorized

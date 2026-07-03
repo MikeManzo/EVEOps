@@ -178,6 +178,9 @@
     "%@ SP trained" : {
 
     },
+    "%@ total LP" : {
+
+    },
     "%@ unallocated" : {
 
     },
@@ -376,6 +379,16 @@
         }
       }
     },
+    "%lld offer%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld offer%2$@"
+          }
+        }
+      }
+    },
     "%lld offline" : {
 
     },
@@ -397,6 +410,16 @@
     },
     "%lld pts" : {
 
+    },
+    "%lld required item%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld required item%2$@"
+          }
+        }
+      }
     },
     "%lld sell" : {
 
@@ -475,6 +498,16 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$lld/%2$lld"
+          }
+        }
+      }
+    },
+    "%lld/%lld hubs…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld/%2$lld hubs…"
           }
         }
       }
@@ -577,6 +610,9 @@
 
     },
     "≈ %@" : {
+
+    },
+    "≤0" : {
 
     },
     "≥75% — Core to the role" : {
@@ -935,6 +971,12 @@
     "Based on publicly-observable signals.\nNot an exact online indicator." : {
 
     },
+    "Best Buy" : {
+
+    },
+    "Best Sell" : {
+
+    },
     "Bio" : {
 
     },
@@ -1023,6 +1065,9 @@
 
     },
     "Choose .eft File…" : {
+
+    },
+    "Choose a corporation on the left to browse their LP store offers." : {
 
     },
     "Choose which order types to search for" : {
@@ -1143,6 +1188,12 @@
 
     },
     "Community Fittings" : {
+
+    },
+    "Compare best sell and buy prices at Jita, Amarr, Dodixie, Rens, and Hek" : {
+
+    },
+    "Compare prices across trade hubs" : {
 
     },
     "Compatible with Pyfa, EFT, and the EVE Online fitting window" : {
@@ -1422,6 +1473,9 @@
     "e.g. “Ferox”, “Ishtar”, “Muninn”" : {
 
     },
+    "Earn LP by running missions for NPC corporations." : {
+
+    },
     "Economy" : {
 
     },
@@ -1618,6 +1672,9 @@
     "Fetching model…" : {
 
     },
+    "Fetching…" : {
+
+    },
     "Filter" : {
 
     },
@@ -1774,6 +1831,9 @@
     "History (%lld)" : {
 
     },
+    "Holdings" : {
+
+    },
     "Home System" : {
 
     },
@@ -1793,6 +1853,9 @@
 
     },
     "How to remap:" : {
+
+    },
+    "Hub" : {
 
     },
     "Idle" : {
@@ -1889,6 +1952,12 @@
     "ISK" : {
 
     },
+    "ISK Cost" : {
+
+    },
+    "ISK/LP" : {
+
+    },
     "ISK/wk" : {
 
     },
@@ -1929,6 +1998,9 @@
 
     },
     "Jita / The Forge — Market Orders" : {
+
+    },
+    "Jita Sell" : {
 
     },
     "Job Details" : {
@@ -2079,6 +2151,12 @@
     "Loading galaxy map…" : {
 
     },
+    "Loading LP store offers…" : {
+
+    },
+    "Loading LP…" : {
+
+    },
     "Loading market data..." : {
 
     },
@@ -2151,6 +2229,12 @@
     "Loyalty Points (%lld)" : {
 
     },
+    "LP Cost" : {
+
+    },
+    "LP Store" : {
+
+    },
     "m³" : {
 
     },
@@ -2161,6 +2245,9 @@
 
     },
     "Manage all your characters and corporations.\nTrack assets, skills, industry, contracts, and more." : {
+
+    },
+    "Margin" : {
 
     },
     "Market" : {
@@ -2247,6 +2334,9 @@
     "Next: %@" : {
 
     },
+    "No %@ orders" : {
+
+    },
     "No %@ orders in this region" : {
 
     },
@@ -2310,6 +2400,9 @@
     "No loyalty points" : {
 
     },
+    "No Loyalty Points" : {
+
+    },
     "No Market Orders" : {
 
     },
@@ -2323,6 +2416,9 @@
 
     },
     "No NPC stations in this region" : {
+
+    },
+    "No offers available" : {
 
     },
     "No office rent, sovereignty, or maintenance fees found in this division's journal." : {
@@ -2550,6 +2646,9 @@
     "Price History" : {
 
     },
+    "Prices reflect the best sell/buy orders at the hub's primary station." : {
+
+    },
     "Primary (+10)" : {
 
     },
@@ -2557,6 +2656,9 @@
 
     },
     "PvP" : {
+
+    },
+    "Qty" : {
 
     },
     "Qty: %@" : {
@@ -2793,6 +2895,9 @@
     "Search for a ship type" : {
 
     },
+    "Search for an item to see best sell and buy prices at\nJita, Amarr, Dodixie, Rens, and Hek simultaneously." : {
+
+    },
     "Search for an item to see its skill tree" : {
 
     },
@@ -2809,6 +2914,9 @@
 
     },
     "Search members..." : {
+
+    },
+    "Search offers…" : {
 
     },
     "Search sell orders, buy orders, or both across all k-space regions." : {
@@ -2852,6 +2960,9 @@
 
     },
     "Select a contact to view details" : {
+
+    },
+    "Select a Corporation" : {
 
     },
     "Select a group from the registry" : {
@@ -3010,6 +3121,9 @@
     "Skill Queue (%lld)" : {
 
     },
+    "Skill Queue Alert — %@" : {
+
+    },
     "Skill queue becomes empty" : {
 
     },
@@ -3046,6 +3160,9 @@
     "Sort by %@" : {
 
     },
+    "Sort by estimated ISK per LP or by LP cost" : {
+
+    },
     "Sort: %@" : {
 
     },
@@ -3062,6 +3179,9 @@
 
     },
     "Sparkle is copyright © Andy Matuschak and contributors. Used under the MIT License. \"Sparkle\" is a trademark of its respective authors." : {
+
+    },
+    "Spread" : {
 
     },
     "Squad %lld" : {
@@ -3233,10 +3353,19 @@
     "Total: %@" : {
 
     },
+    "Trade Hub Comparison" : {
+
+    },
+    "Trade Hubs" : {
+
+    },
     "Training" : {
 
     },
     "Training Overview" : {
+
+    },
+    "Training queue completes in ~%lldh. Add skills to keep training!" : {
 
     },
     "Training Queue Empty" : {

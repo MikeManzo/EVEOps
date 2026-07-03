@@ -90,6 +90,8 @@ struct MainContentView: View {
                 CharacterClonesView()
             case .colonies:
                 ColoniesOverviewView()
+            case .lpStore:
+                LoyaltyPointStoreView()
             case .contracts:
                 ContractsOverviewView()
             case .industry:

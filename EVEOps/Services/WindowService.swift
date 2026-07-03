@@ -29,6 +29,7 @@ final class WindowService: NSObject {
 
     private var mainWindow: NSWindow?
     private var galaxySearchWindow: NSWindow?
+    private var tradeHubWindow: NSWindow?
     private var settingsWindow: NSWindow?
     private var shipModelWindows: [String: NSWindow] = [:]
     private var defaultsObserver: NSObjectProtocol?
@@ -137,6 +138,41 @@ final class WindowService: NSObject {
         applyActivationPolicy()
     }
 
+    // MARK: Trade Hub Comparison
+
+    func showTradeHubComparison(typeId: Int? = nil, typeName: String = "") {
+        if typeId != nil, let existing = tradeHubWindow {
+            existing.close()
+            tradeHubWindow = nil
+        } else if let window = tradeHubWindow {
+            if window.isMiniaturized { window.deminiaturize(nil) }
+            window.makeKeyAndOrderFront(nil)
+            applyActivationPolicy()
+            return
+        }
+
+        guard let am = accountManager else { return }
+
+        let content = TradeHubComparisonView(initialTypeId: typeId, initialTypeName: typeName)
+            .environment(am)
+
+        let controller = NSHostingController(rootView: content)
+        let window = NSWindow(contentViewController: controller)
+        window.appearance = resolvedNSAppearance
+        window.title = "Trade Hub Comparison"
+        window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
+        window.minSize = NSSize(width: 680, height: 440)
+        window.setContentSize(NSSize(width: 780, height: 520))
+        window.isReleasedWhenClosed = false
+        window.setFrameAutosaveName("EVEOpsTradeHubWindow")
+        window.delegate = self
+        window.center()
+
+        tradeHubWindow = window
+        window.makeKeyAndOrderFront(nil)
+        applyActivationPolicy()
+    }
+
     // MARK: Ship Model Viewer
 
     func showShipModel(shipName: String, shipClass: String = "") {
@@ -216,6 +252,7 @@ final class WindowService: NSObject {
         let appearance = resolvedNSAppearance
         mainWindow?.appearance = appearance
         galaxySearchWindow?.appearance = appearance
+        tradeHubWindow?.appearance = appearance
         settingsWindow?.appearance = appearance
         shipModelWindows.values.forEach { $0.appearance = appearance }
     }
@@ -241,6 +278,7 @@ extension WindowService: NSWindowDelegate {
         guard let window = notification.object as? NSWindow else { return }
         MainActor.assumeIsolated {
             if window === settingsWindow { settingsWindow = nil }
+            if window === tradeHubWindow { tradeHubWindow = nil }
             shipModelWindows = shipModelWindows.filter { $0.value !== window }
         }
     }

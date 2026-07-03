@@ -20,6 +20,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
     case assets = "Assets"
     case clones = "Clones"
     case colonies = "Colonies"
+    case lpStore = "LP Store"
     case contracts = "Contracts"
     case industry = "Industry"
     case communications = "Communications"
@@ -71,6 +72,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
         case .assets: "Assets"
         case .clones: "Clones"
         case .colonies: "Colonies"
+        case .lpStore: "LP Store"
         case .contracts: "Contracts"
         case .industry: "Industry"
         case .communications: "Communications"
@@ -117,6 +119,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
         case .corpHangars: return "archivebox.fill"
         case .clones: return "person.2.fill"
         case .colonies: return "globe.americas.fill"
+        case .lpStore: return "medal.fill"
         case .contracts: return "doc.text.fill"
         case .industry, .corpIndustry: return "hammer.fill"
         case .communications: return "bell.fill"
@@ -154,7 +157,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
     }
 
     static var economySections: [NavigationSection] {
-        [.finances, .assets, .market, .contracts, .industry, .colonies]
+        [.finances, .assets, .market, .contracts, .industry, .colonies, .lpStore]
     }
 
     static var combatSections: [NavigationSection] {

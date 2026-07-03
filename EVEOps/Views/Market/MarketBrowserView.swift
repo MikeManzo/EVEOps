@@ -305,6 +305,13 @@ struct MarketBrowserView: View {
                 }
                 .buttonStyle(.bordered)
                 .help("Search cheapest sell orders across all k-space regions")
+                Button {
+                    WindowService.shared.showTradeHubComparison(typeId: selectedTypeId, typeName: selectedTypeName)
+                } label: {
+                    Label("Trade Hubs", systemImage: "building.2.fill")
+                }
+                .buttonStyle(.bordered)
+                .help("Compare best sell and buy prices at Jita, Amarr, Dodixie, Rens, and Hek")
                 Menu {
                     ForEach(availableRegions, id: \.id) { region in
                         Button {
