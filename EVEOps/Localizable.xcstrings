@@ -618,6 +618,9 @@
     "≥75% — Core to the role" : {
 
     },
+    "☰  →  Add skills listed in clipboard to end of queue" : {
+
+    },
     "1 day" : {
 
     },
@@ -756,6 +759,9 @@
 
     },
     "Add Contact" : {
+
+    },
+    "Add to EVE Queue" : {
 
     },
     "Add to skill plan" : {
@@ -1121,6 +1127,9 @@
     "Client ID" : {
 
     },
+    "Clipboard Import / Export" : {
+
+    },
     "Clone jump %@ ago — times refreshed" : {
 
     },
@@ -1250,6 +1259,9 @@
     "Contracts updated" : {
 
     },
+    "Copies your plan as plain text — one skill per line:" : {
+
+    },
     "Copy %lld Entries" : {
 
     },
@@ -1257,6 +1269,9 @@
 
     },
     "Copy Name" : {
+
+    },
+    "Copy plan to clipboard (EVE-compatible format)" : {
 
     },
     "Corp Assets" : {
@@ -1621,7 +1636,13 @@
     "Expires in" : {
 
     },
+    "Export" : {
+
+    },
     "Export CSV" : {
+
+    },
+    "Export your plan, switch to EVE, then open the skill queue and choose:" : {
 
     },
     "Export…" : {
@@ -1855,6 +1876,9 @@
     "How to remap:" : {
 
     },
+    "How to use clipboard import/export" : {
+
+    },
     "Hub" : {
 
     },
@@ -1870,10 +1894,16 @@
     "Implants: %@" : {
 
     },
+    "Import" : {
+
+    },
     "Import a .eft fitting file" : {
 
     },
     "Import Fitting" : {
+
+    },
+    "Import plan from clipboard" : {
 
     },
     "In Escrow" : {
@@ -2310,6 +2340,9 @@
     "Name" : {
 
     },
+    "Navigation 5\nSpaceship Command 4\nDrones 3" : {
+
+    },
     "Near end of life" : {
 
     },
@@ -2701,6 +2734,9 @@
 
     },
     "Re-authorize…" : {
+
+    },
+    "Reads the same format from your clipboard and adds skills to this plan." : {
 
     },
     "Ready" : {

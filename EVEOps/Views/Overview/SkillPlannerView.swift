@@ -25,6 +25,9 @@ struct SkillPlannerView: View {
     @State private var isLoading = false
     @State private var error: String?
     @State private var browserMode: BrowserMode = .skills
+    @State private var isImporting = false
+    @State private var importMessage: String?
+    @State private var showingClipboardHelp = false
 
     private var selectedCharInfo: CharacterTrainingInfo? {
         let id = accountManager.selectedAccount?.characterID ?? 0
@@ -78,6 +81,16 @@ struct SkillPlannerView: View {
 
             planSummaryBar
                 .padding(10)
+
+            if let msg = importMessage {
+                Text(msg)
+                    .font(.caption2)
+                    .foregroundStyle(.green)
+                    .frame(maxWidth: .infinity)
+                    .padding(.bottom, 6)
+                    .transition(.opacity)
+            }
+
             Divider()
 
             if #available(macOS 26.0, *), let info = selectedCharInfo {
@@ -188,16 +201,53 @@ struct SkillPlannerView: View {
 
             Divider().frame(height: 30)
 
-            Button(role: .destructive) {
-                planItems.removeAll()
-                savePlan()
-            } label: {
-                Image(systemName: "trash")
-                    .foregroundStyle(planItems.isEmpty ? Color.secondary : Color.red)
+            HStack(spacing: 12) {
+                Button {
+                    showingClipboardHelp.toggle()
+                } label: {
+                    Image(systemName: "info.circle")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("How to use clipboard import/export")
+                .popover(isPresented: $showingClipboardHelp, arrowEdge: .bottom) {
+                    clipboardHelpPopover
+                }
+
+                Button {
+                    exportPlan()
+                } label: {
+                    Image(systemName: "square.and.arrow.up")
+                        .foregroundStyle(planItems.isEmpty ? Color.secondary : Color.primary)
+                }
+                .buttonStyle(.plain)
+                .disabled(planItems.isEmpty)
+                .help("Copy plan to clipboard (EVE-compatible format)")
+
+                Button {
+                    Task { await importFromClipboard() }
+                } label: {
+                    if isImporting {
+                        ProgressView().controlSize(.mini).frame(width: 16, height: 16)
+                    } else {
+                        Image(systemName: "square.and.arrow.down")
+                    }
+                }
+                .buttonStyle(.plain)
+                .disabled(isImporting)
+                .help("Import plan from clipboard")
+
+                Button(role: .destructive) {
+                    planItems.removeAll()
+                    savePlan()
+                } label: {
+                    Image(systemName: "trash")
+                        .foregroundStyle(planItems.isEmpty ? Color.secondary : Color.red)
+                }
+                .buttonStyle(.plain)
+                .disabled(planItems.isEmpty)
             }
-            .buttonStyle(.plain)
-            .disabled(planItems.isEmpty)
-            .frame(width: 36)
+            .padding(.horizontal, 10)
         }
     }
 
@@ -536,6 +586,130 @@ struct SkillPlannerView: View {
         savePlan()
     }
 
+    private var clipboardHelpPopover: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Clipboard Import / Export")
+                .font(.headline)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Label("Export", systemImage: "square.and.arrow.up")
+                    .font(.subheadline.bold())
+                Text("Copies your plan as plain text — one skill per line:")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text("Navigation 5\nSpaceship Command 4\nDrones 3")
+                    .font(.caption.monospaced())
+                    .padding(8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(.quaternary, in: RoundedRectangle(cornerRadius: 6))
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Label("Import", systemImage: "square.and.arrow.down")
+                    .font(.subheadline.bold())
+                Text("Reads the same format from your clipboard and adds skills to this plan.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 4) {
+                Label("Add to EVE Queue", systemImage: "gamecontroller")
+                    .font(.subheadline.bold())
+                Text("Export your plan, switch to EVE, then open the skill queue and choose:")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text("☰  →  Add skills listed in clipboard to end of queue")
+                    .font(.caption.bold())
+                    .padding(8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(.quaternary, in: RoundedRectangle(cornerRadius: 6))
+            }
+        }
+        .padding(16)
+        .frame(width: 300)
+    }
+
+    private func exportPlan() {
+        let text = planItems.map { "\($0.skillName) \($0.targetLevel)" }.joined(separator: "\n")
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+    }
+
+    private func importFromClipboard() async {
+        guard let text = NSPasteboard.general.string(forType: .string) else { return }
+
+        var parsed: [(name: String, level: Int)] = []
+        for line in text.components(separatedBy: .newlines) {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty else { continue }
+            let parts = trimmed.components(separatedBy: " ")
+            guard parts.count >= 2, let level = Int(parts.last!), (1...5).contains(level) else { continue }
+            let name = parts.dropLast().joined(separator: " ").trimmingCharacters(in: .whitespaces)
+            guard !name.isEmpty else { continue }
+            parsed.append((name: name, level: level))
+        }
+        guard !parsed.isEmpty else { return }
+
+        isImporting = true
+
+        let allSkills = selectedCharInfo?.skillGroups.flatMap(\.skills) ?? []
+        var newItems: [SkillPlanItem] = []
+        var unknownEntries: [(name: String, level: Int)] = []
+
+        for entry in parsed {
+            if let match = allSkills.first(where: { $0.name.lowercased() == entry.name.lowercased() }) {
+                guard entry.level > match.trainedLevel else { continue }
+                newItems.append(SkillPlanItem(
+                    skillId: match.skillId, skillName: match.name,
+                    fromLevel: match.trainedLevel, targetLevel: entry.level
+                ))
+            } else {
+                unknownEntries.append(entry)
+            }
+        }
+
+        if !unknownEntries.isEmpty {
+            let names = unknownEntries.map { $0.name }
+            if let result: ESIIDsResponse = try? await ESIClient.shared.post("/universe/ids/", body: names),
+               let types = result.inventoryTypes {
+                let typeMap = Dictionary(types.map { ($0.name.lowercased(), $0) }, uniquingKeysWith: { a, _ in a })
+                for entry in unknownEntries {
+                    if let type = typeMap[entry.name.lowercased()] {
+                        newItems.append(SkillPlanItem(
+                            skillId: type.id, skillName: type.name,
+                            fromLevel: 0, targetLevel: entry.level
+                        ))
+                    }
+                }
+            }
+        }
+
+        isImporting = false
+
+        guard !newItems.isEmpty else {
+            importMessage = "No matching skills found"
+            try? await Task.sleep(for: .seconds(2))
+            importMessage = nil
+            return
+        }
+
+        for item in newItems {
+            planItems.removeAll { $0.skillId == item.skillId }
+            planItems.append(item)
+        }
+        savePlan()
+
+        let resolvedTypes = await UniverseCache.shared.types(ids: newItems.map(\.skillId))
+        skillTypes.merge(resolvedTypes) { _, new in new }
+
+        let count = newItems.count
+        importMessage = "\(count) skill\(count == 1 ? "" : "s") imported"
+        try? await Task.sleep(for: .seconds(2))
+        importMessage = nil
+    }
+
     // MARK:  SP & Time Calculations
 
     // Total SP at each level for rank-1 skills
@@ -733,8 +907,8 @@ struct SkillPlannerView: View {
     }
 
     private func formatSP(_ sp: Int) -> String {
-        if sp >= 1_000_000 { return String(format: "%.1fM SP", Double(sp) / 1_000_000) }
-        if sp >= 1_000 { return String(format: "%.0fK SP", Double(sp) / 1_000) }
+        if sp >= 1_000_000 { return String(format: "%.1fM", Double(sp) / 1_000_000) }
+        if sp >= 1_000 { return String(format: "%.0fK", Double(sp) / 1_000) }
         return "\(sp) SP"
     }
 
