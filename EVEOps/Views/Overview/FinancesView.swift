@@ -233,7 +233,7 @@ struct FinancesView: View {
         balanceHeader(finance)
 
         // AI Insight card (macOS 26+, when enabled in Settings)
-        if #available(macOS 26.0, *) {
+        if #available(macOS 26.0, *), IntelligenceService.isSupported {
             FinanceAIInsightCard(finance: finance, netWorth: netWorth)
         }
 

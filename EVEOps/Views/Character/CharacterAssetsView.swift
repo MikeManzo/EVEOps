@@ -119,7 +119,7 @@ struct CharacterAssetsView: View {
         let grouped = Dictionary(grouping: filteredAssets, by: keyPath)
         let sortedKeys = grouped.keys.sorted()
         return List(selection: $selectedAsset) {
-            if #available(macOS 26.0, *) {
+            if #available(macOS 26.0, *), IntelligenceService.isSupported {
                 AssetAIInsightCard(
                     assets: assets,
                     characterName: accountManager.selectedAccount?.characterName ?? "Character"

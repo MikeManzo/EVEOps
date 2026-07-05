@@ -31,7 +31,7 @@ struct IndustryOverviewView: View {
                 .padding(10)
                 .background(.bar)
 
-                if #available(macOS 26.0, *) {
+                if #available(macOS 26.0, *), IntelligenceService.isSupported {
                     IndustryAIInsightCard(jobs: jobs)
                         .padding(10)
                 }

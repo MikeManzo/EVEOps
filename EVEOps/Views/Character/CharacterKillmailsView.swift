@@ -30,7 +30,7 @@ struct CharacterKillmailsView: View {
         ) {
             VStack(spacing: 0) {
                 filterBar
-                if #available(macOS 26.0, *) {
+                if #available(macOS 26.0, *), IntelligenceService.isSupported {
                     CombatAIInsightCard(groups: groups)
                         .padding(10)
                 }

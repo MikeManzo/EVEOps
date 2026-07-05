@@ -1103,7 +1103,7 @@ struct SavedFittingSlotPane: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
-                if #available(macOS 26.0, *) {
+                if #available(macOS 26.0, *), IntelligenceService.isSupported {
                     FittingAIInsightCard(
                         shipName: shipName,
                         shipClass: shipClass,
@@ -1251,7 +1251,7 @@ struct CurrentFittingPane: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
-                if #available(macOS 26.0, *) {
+                if #available(macOS 26.0, *), IntelligenceService.isSupported {
                     FittingAIInsightCard(
                         shipName: shipName,
                         shipClass: shipClass,

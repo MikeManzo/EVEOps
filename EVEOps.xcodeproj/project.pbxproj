@@ -500,7 +500,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.9.9.8;
+				MARKETING_VERSION = 0.9.9.9;
 				OTHER_LDFLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = CitizenCoder.EVEOps;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -553,7 +553,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.9.9.8;
+				MARKETING_VERSION = 0.9.9.9;
 				OTHER_LDFLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = CitizenCoder.EVEOps;
 				PRODUCT_NAME = "$(TARGET_NAME)";

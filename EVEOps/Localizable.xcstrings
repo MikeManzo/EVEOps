@@ -56,6 +56,9 @@
     "/ %@" : {
 
     },
+    "/ L%lld" : {
+
+    },
     "% = this hull appeared as an attacker\nin that share of the sampled kills." : {
 
     },
@@ -95,6 +98,16 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ (%2$@) and %3$@ (%4$@): up to +%5$lld SP/min."
+          }
+        }
+      }
+    },
+    "%@ (%lld)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ (%2$lld)"
           }
         }
       }
@@ -450,6 +463,16 @@
         }
       }
     },
+    "%lld skill%@ needed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld skill%2$@ needed"
+          }
+        }
+      }
+    },
     "%lld skill%@ queued" : {
       "localizations" : {
         "en" : {
@@ -752,6 +775,9 @@
         }
       }
     },
+    "Add All" : {
+
+    },
     "Add All to Plan" : {
 
     },
@@ -800,7 +826,13 @@
     "AI Insight" : {
 
     },
+    "AI Training Advisor" : {
+
+    },
     "All" : {
+
+    },
+    "All %lld skill requirements are met." : {
 
     },
     "All Divisions" : {
@@ -822,6 +854,9 @@
 
     },
     "Allows switching to EVEOps via Cmd-Tab and the Dock. Takes effect immediately." : {
+
+    },
+    "Already Trained (%lld)" : {
 
     },
     "Analyzing asset spread…" : {
@@ -849,6 +884,9 @@
 
     },
     "Analyzing skills…" : {
+
+    },
+    "Analyzing with Apple Intelligence…" : {
 
     },
     "Annual available" : {
@@ -1005,6 +1043,9 @@
 
     },
     "Browse the market registry or search by name\nto analyze orders and pricing." : {
+
+    },
+    "Building training plan…" : {
 
     },
     "Buy" : {
@@ -1437,6 +1478,9 @@
     "Delete Mail" : {
 
     },
+    "Describe your goal… e.g. \"market trader\", \"PvP pilot\", \"miner\"" : {
+
+    },
     "Description" : {
 
     },
@@ -1723,6 +1767,9 @@
     "Finishes" : {
 
     },
+    "Finishes: %@" : {
+
+    },
     "First character alphabetically" : {
 
     },
@@ -2007,9 +2054,6 @@
 
     },
     "Item Appraisal" : {
-
-    },
-    "Item Tree" : {
 
     },
     "Items Lost (%lld)" : {
@@ -2323,6 +2367,9 @@
 
     },
     "Message" : {
+
+    },
+    "Missing skills and total training time shown at a glance" : {
 
     },
     "Mode" : {
@@ -2742,6 +2789,9 @@
     "Ready" : {
 
     },
+    "Ready to fly" : {
+
+    },
     "Reason" : {
 
     },
@@ -2752,6 +2802,9 @@
 
     },
     "Recommendation" : {
+
+    },
+    "Recommended Training" : {
 
     },
     "Reduce to L%lld" : {
@@ -2827,6 +2880,9 @@
 
     },
     "Resolving modules…" : {
+
+    },
+    "Resolving skill requirements…" : {
 
     },
     "Resolving skill tree…" : {
@@ -2922,13 +2978,22 @@
     "Search Failed" : {
 
     },
+    "Search for %@" : {
+
+    },
     "Search for a ship in the left panel to begin" : {
 
     },
     "Search for a ship or module…" : {
 
     },
+    "Search for a ship to see what skills you need" : {
+
+    },
     "Search for a ship type" : {
+
+    },
+    "Search for a ship…" : {
 
     },
     "Search for an item to see best sell and buy prices at\nJita, Amarr, Dodixie, Rens, and Hek simultaneously." : {
@@ -3589,6 +3654,9 @@
 
     },
     "You are here" : {
+
+    },
+    "You can already fly this ship!" : {
 
     },
     "Your Assets Here (%lld type%@)" : {

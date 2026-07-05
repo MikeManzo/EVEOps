@@ -661,7 +661,7 @@ struct CommunityFitDetailPane: View {
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 10) {
-                        if #available(macOS 26.0, *) {
+                        if #available(macOS 26.0, *), IntelligenceService.isSupported {
                             FittingAIInsightCard(
                                 shipName: fit.shipTypeName,
                                 shipClass: fit.shipClassName,

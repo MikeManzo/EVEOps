@@ -127,6 +127,43 @@ struct CloneInsight: Codable, Sendable {
     }
 }
 
+struct ShipGoalRecommendation: Codable, Sendable {
+    var playstyleSummary: String
+    var skillFocus: [String]
+    var shipClass: String
+    var suggestedSearch: String
+    private enum CodingKeys: String, CodingKey { case playstyleSummary, skillFocus, shipClass, suggestedSearch }
+    nonisolated init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        playstyleSummary = (try? c.decode(String.self, forKey: .playstyleSummary)) ?? ""
+        skillFocus       = (try? c.decode([String].self, forKey: .skillFocus)) ?? []
+        shipClass        = (try? c.decode(String.self, forKey: .shipClass)) ?? ""
+        suggestedSearch  = (try? c.decode(String.self, forKey: .suggestedSearch)) ?? ""
+    }
+}
+
+struct GoalTrainingSkill: Codable, Sendable {
+    var skillName: String
+    var targetLevel: Int
+    var rationale: String
+    private enum CodingKeys: String, CodingKey { case skillName, targetLevel, rationale }
+    nonisolated init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        skillName   = (try? c.decode(String.self, forKey: .skillName))   ?? ""
+        targetLevel = (try? c.decode(Int.self,    forKey: .targetLevel)) ?? 1
+        rationale   = (try? c.decode(String.self, forKey: .rationale))   ?? ""
+    }
+}
+
+struct GoalTrainingList: Codable, Sendable {
+    var skills: [GoalTrainingSkill]
+    private enum CodingKeys: String, CodingKey { case skills }
+    nonisolated init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        skills = (try? c.decode([GoalTrainingSkill].self, forKey: .skills)) ?? []
+    }
+}
+
 struct IntelligenceUnavailableError: LocalizedError {
     var errorDescription: String? {
         "Apple Intelligence insights are temporarily unavailable. Please check for an app update."
@@ -145,6 +182,11 @@ struct IntelligenceParseError: LocalizedError {
 actor IntelligenceService {
     static let shared = IntelligenceService()
 
+    static var isSupported: Bool {
+        if case .available = SystemLanguageModel.default.availability { return true }
+        return false
+    }
+
     private static let generationOptions = GenerationOptions(temperature: 0.2)
 
     private var financeCache:  [String: FinanceInsight]               = [:]
@@ -155,6 +197,8 @@ actor IntelligenceService {
     private var fittingCache:  [String: FittingInsight]               = [:]
     private var marketCache:   [String: MarketInsight]                = [:]
     private var cloneCache:    [String: CloneInsight]                 = [:]
+    private var shipGoalCache:      [String: ShipGoalRecommendation]     = [:]
+    private var skillGoalCache:     [String: GoalTrainingList]            = [:]
 
     // MARK: Generic JSON helper
 
@@ -558,6 +602,65 @@ actor IntelligenceService {
             prompt: prompt
         )
         cloneCache[prompt] = result
+        return result
+    }
+
+    // MARK: Ship Goal Recommendation
+
+    func recommendShipsForGoal(
+        goalDescription: String,
+        characterSP: Int,
+        trainedGroups: [String]
+    ) async throws -> ShipGoalRecommendation {
+        let spNote = characterSP > 0 ? "Character total SP: \(formatSP(characterSP))." : ""
+        let groupNote = trainedGroups.isEmpty ? "" : "Trained skill areas: \(trainedGroups.prefix(8).joined(separator: ", "))."
+
+        let prompt = """
+        Player goal: \(goalDescription)
+        \(spNote)
+        \(groupNote)
+
+        Respond ONLY with a JSON object in this exact structure, no other text:
+        {"playstyleSummary": "<2-3 sentences describing this playstyle and what makes it rewarding>", "skillFocus": ["<EVE skill group name>", ...3-6 items], "shipClass": "<ship class if the goal requires flying a specific ship, otherwise empty string>", "suggestedSearch": "<one specific EVE ship name if goal is ship-focused, otherwise empty string>"}
+
+        Rules: skillFocus must be real EVE Online skill group names. For non-ship goals (trading, industry, planetary interaction, hauling), leave shipClass and suggestedSearch as empty strings.
+        """
+
+        if let cached = shipGoalCache[prompt] { return cached }
+
+        let result: ShipGoalRecommendation = try await generate(
+            instructions: "You are an EVE Online advisor. Given a player's stated goal, describe the playstyle and relevant skill focus areas. Respond only with the JSON object requested — no preamble, no explanation.",
+            prompt: prompt
+        )
+        shipGoalCache[prompt] = result
+        return result
+    }
+
+    // MARK: Goal-Based Skill Recommendation
+
+    func recommendSkillsForGoal(goalDescription: String) async throws -> GoalTrainingList {
+        let prompt = """
+        Player goal: \(goalDescription)
+
+        List 8 individual EVE Online trainable skills for this goal.
+
+        CRITICAL: Use INDIVIDUAL trainable skill names exactly as they appear on a character's skill sheet — NOT skill group names.
+        Correct examples: "Astrometrics", "Navigation", "Cloaking", "CPU Management", "Archaeology", "Hacking", "Covert Ops", "Evasive Maneuvering", "Shield Management", "Hull Upgrades", "Trade", "Broker Relations", "Accounting", "Mining", "Astrogeology", "Industry", "Mass Production", "Science", "Research", "Laboratory Operation", "Planet Management", "Command Center Upgrades", "Interplanetary Consolidation".
+        Wrong examples (these are group names, not trainable skills): "Scanning", "Engineering", "Navigation Group", "Spaceship Command Group".
+
+        Respond ONLY with this exact JSON, no other text:
+        {"skills": [{"skillName": "Astrometrics", "targetLevel": 4, "rationale": "Core scanning skill for probe sites"}, {"skillName": "replace_me", "targetLevel": 3, "rationale": "replace_me"}, {"skillName": "replace_me", "targetLevel": 3, "rationale": "replace_me"}, {"skillName": "replace_me", "targetLevel": 3, "rationale": "replace_me"}, {"skillName": "replace_me", "targetLevel": 3, "rationale": "replace_me"}, {"skillName": "replace_me", "targetLevel": 3, "rationale": "replace_me"}, {"skillName": "replace_me", "targetLevel": 3, "rationale": "replace_me"}, {"skillName": "replace_me", "targetLevel": 3, "rationale": "replace_me"}]}
+
+        Replace every "replace_me" with a real individual trainable skill name and reason. Keep the exact JSON structure.
+        """
+
+        if let cached = skillGoalCache[prompt] { return cached }
+
+        let result: GoalTrainingList = try await generate(
+            instructions: "You are an EVE Online skill advisor. List individual trainable EVE skills by exact in-game name (not group names). Respond only with the JSON object — no preamble, no explanation.",
+            prompt: prompt
+        )
+        skillGoalCache[prompt] = result
         return result
     }
 

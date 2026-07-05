@@ -646,7 +646,7 @@ struct MarketBrowserView: View {
                     marketStatsBar
                 }
 
-                if #available(macOS 26.0, *) {
+                if #available(macOS 26.0, *), IntelligenceService.isSupported {
                     let regionName = availableRegions.first(where: { $0.id == selectedRegionId })?.name ?? "Unknown Region"
                     MarketAIInsightCard(
                         itemName: selectedTypeName,

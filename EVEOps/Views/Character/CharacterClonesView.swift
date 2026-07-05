@@ -28,7 +28,7 @@ struct CharacterClonesView: View {
             HStack(spacing: 0) {
                 List(selection: $selectedImplant) {
                     jumpCooldownSection
-                    if #available(macOS 26.0, *), aiInsightsEnabled, aiInsightClones, !activeImplants.isEmpty {
+                    if #available(macOS 26.0, *), IntelligenceService.isSupported, aiInsightsEnabled, aiInsightClones, !activeImplants.isEmpty {
                         Section {
                             CloneAIInsightCard(
                                 characterName: accountManager.selectedAccount?.characterName ?? "",

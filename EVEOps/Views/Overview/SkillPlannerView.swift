@@ -93,7 +93,7 @@ struct SkillPlannerView: View {
 
             Divider()
 
-            if #available(macOS 26.0, *), let info = selectedCharInfo {
+            if #available(macOS 26.0, *), IntelligenceService.isSupported, let info = selectedCharInfo {
                 SkillPlanAIInsightCard(characterInfo: info, onAddSkill: addPlanItem)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 8)
@@ -330,16 +330,34 @@ struct SkillPlannerView: View {
         .padding(.vertical, 6)
     }
 
-    // MARK:  Skill Browser
+    // MARK: Skill Browser
+
+    private func browserTab(_ title: String, icon: String, mode: BrowserMode) -> some View {
+        Button { browserMode = mode } label: {
+            Label(title, systemImage: icon)
+                .font(.caption.bold())
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 5)
+                .contentShape(Rectangle())
+                .background(
+                    browserMode == mode ? Color.primary.opacity(0.12) : Color.clear,
+                    in: RoundedRectangle(cornerRadius: 6)
+                )
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(browserMode == mode ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
+        .animation(.easeInOut(duration: 0.15), value: browserMode)
+    }
 
     private var skillBrowser: some View {
         VStack(spacing: 0) {
-            Picker("", selection: $browserMode) {
-                Label("Skills", systemImage: "list.bullet").tag(BrowserMode.skills)
-                Label("Item Tree", systemImage: "network").tag(BrowserMode.tree)
+            HStack(spacing: 2) {
+                browserTab("Skills",       icon: "list.bullet", mode: .skills)
+                browserTab("Item Tree",    icon: "network",     mode: .tree)
+                browserTab("Intelligence", icon: "scope",       mode: .shipGoal)
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
+            .padding(3)
+            .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
             .padding(.horizontal, 12)
             .padding(.top, 10)
             .padding(.bottom, 8)
@@ -349,6 +367,12 @@ struct SkillPlannerView: View {
             if browserMode == .tree {
                 ItemSkillTreeView(
                     characterSkills: characterSkillMap.isEmpty ? nil : characterSkillMap,
+                    onAddToPlan: addPlanItem
+                )
+            } else if browserMode == .shipGoal {
+                ShipGoalBrowserView(
+                    characterSkills: characterSkillMap.isEmpty ? nil : characterSkillMap,
+                    characterAttributes: attributes,
                     onAddToPlan: addPlanItem
                 )
             } else {
@@ -927,7 +951,7 @@ struct SkillPlannerView: View {
 // MARK:  Browser Mode
 
 private enum BrowserMode: String {
-    case skills, tree
+    case skills, tree, shipGoal
 }
 
 // MARK:  Data Model
