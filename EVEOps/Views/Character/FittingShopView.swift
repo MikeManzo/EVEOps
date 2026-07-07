@@ -40,8 +40,21 @@ struct FittingShopView: View {
     @State private var waypointMessage: String?
     @State private var waypointIsSuccess = false
     @State private var popoverItem: ItemQuote?
+    @State private var deselectedTypeIds: Set<Int> = []
 
     private var selectedQuote: StationQuote? { quotes.first { $0.id == selectedQuoteId } }
+
+    private var filteredTotal: Double {
+        guard let quote = selectedQuote else { return 0 }
+        return quote.itemQuotes
+            .filter { !deselectedTypeIds.contains($0.typeId) && $0.canFill }
+            .reduce(0) { $0 + $1.totalPrice }
+    }
+
+    private var selectedItemCount: Int {
+        guard let quote = selectedQuote else { return 0 }
+        return quote.itemQuotes.filter { !deselectedTypeIds.contains($0.typeId) }.count
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -268,6 +281,21 @@ struct FittingShopView: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
+                Button {
+                    if deselectedTypeIds.isEmpty {
+                        // Deselect all
+                        deselectedTypeIds = Set(quote.itemQuotes.map(\.typeId))
+                    } else {
+                        // Select all
+                        deselectedTypeIds.removeAll()
+                    }
+                } label: {
+                    Text(deselectedTypeIds.isEmpty ? "Deselect All" : "Select All")
+                        .font(.caption)
+                }
+                .buttonStyle(.plain)
+                .tint(.accentColor)
+                .foregroundStyle(Color.accentColor)
             }
             .padding(.horizontal, 15)
             .padding(.top, 12)
@@ -278,32 +306,58 @@ struct FittingShopView: View {
             ScrollView {
                 VStack(spacing: 0) {
                     ForEach(quote.itemQuotes, id: \.typeId) { item in
-                        itemQuoteRow(item)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                popoverItem = popoverItem?.typeId == item.typeId ? nil : item
+                        let included = !deselectedTypeIds.contains(item.typeId)
+                        HStack(spacing: 0) {
+                            Button {
+                                if deselectedTypeIds.contains(item.typeId) {
+                                    deselectedTypeIds.remove(item.typeId)
+                                } else {
+                                    deselectedTypeIds.insert(item.typeId)
+                                }
+                            } label: {
+                                Image(systemName: included ? "checkmark.square.fill" : "square")
+                                    .font(.system(size: 15))
+                                    .foregroundStyle(included ? Color.accentColor : Color.secondary.opacity(0.4))
+                                    .frame(width: 38, alignment: .center)
                             }
-                            .popover(isPresented: Binding(
-                                get: { popoverItem?.typeId == item.typeId },
-                                set: { if !$0 { popoverItem = nil } }
-                            )) {
-                                ItemShopPopover(item: item)
-                            }
+                            .buttonStyle(.plain)
+                            .padding(.leading, 8)
+
+                            itemQuoteRow(item)
+                                .opacity(included ? 1 : 0.4)
+                                .frame(maxWidth: .infinity)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    popoverItem = popoverItem?.typeId == item.typeId ? nil : item
+                                }
+                                .popover(isPresented: Binding(
+                                    get: { popoverItem?.typeId == item.typeId },
+                                    set: { if !$0 { popoverItem = nil } }
+                                )) {
+                                    ItemShopPopover(item: item)
+                                }
+                        }
                         Divider()
                     }
                 }
             }
 
-            if quote.isComplete {
+            if quote.isComplete || !deselectedTypeIds.isEmpty {
                 Divider()
                 HStack {
-                    Text("Total")
-                        .font(.caption.bold())
-                        .foregroundStyle(.secondary)
+                    if !deselectedTypeIds.isEmpty {
+                        Text("\(selectedItemCount) of \(quote.itemQuotes.count) items")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("Total")
+                            .font(.caption.bold())
+                            .foregroundStyle(.secondary)
+                    }
                     Spacer()
-                    Text(EVEFormatters.formatISK(quote.totalISK))
+                    Text(EVEFormatters.formatISK(filteredTotal))
                         .font(.caption.bold().monospacedDigit())
-                        .foregroundStyle(.green)
+                        .foregroundStyle(deselectedTypeIds.isEmpty ? .green : .primary)
                 }
                 .padding(.horizontal, 15)
                 .padding(.vertical, 10)
@@ -347,7 +401,8 @@ struct FittingShopView: View {
                     .lineLimit(1)
             }
         }
-        .padding(.horizontal, 15)
+        .padding(.leading, 4)
+        .padding(.trailing, 15)
         .padding(.vertical, 6)
     }
 
@@ -376,8 +431,9 @@ struct FittingShopView: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                     if quote.isComplete {
-                        Text(EVEFormatters.formatISK(quote.totalISK))
+                        Text(EVEFormatters.formatISK(filteredTotal))
                             .font(.subheadline.bold().monospacedDigit())
+                            .foregroundStyle(deselectedTypeIds.isEmpty ? .primary : .secondary)
                     } else {
                         Text("\(quote.missingCount) item\(quote.missingCount == 1 ? "" : "s") not available at this station")
                             .font(.caption)
@@ -623,8 +679,12 @@ struct FittingShopView: View {
     }
 
     private func copyMultiBuy() {
+        let text = input.items
+            .filter { !deselectedTypeIds.contains($0.typeId) }
+            .map { "\($0.name)\t\($0.quantity)" }
+            .joined(separator: "\n")
         NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(input.multiBuyString(), forType: .string)
+        NSPasteboard.general.setString(text, forType: .string)
     }
 
     private func securityColor(_ sec: Double) -> Color {

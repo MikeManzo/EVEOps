@@ -415,6 +415,16 @@
     "%lld NPC kills" : {
 
     },
+    "%lld of %lld items" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld of %2$lld items"
+          }
+        }
+      }
+    },
     "%lld of %lld station%@" : {
       "localizations" : {
         "en" : {
@@ -1521,6 +1531,9 @@
 
     },
     "Description" : {
+
+    },
+    "Deselect All" : {
 
     },
     "DEST" : {
@@ -3157,6 +3170,9 @@
 
     },
     "Select a station to set destination or copy the shopping list" : {
+
+    },
+    "Select All" : {
 
     },
     "Select an item first" : {
