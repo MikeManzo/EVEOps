@@ -10,7 +10,7 @@
 
 import SwiftUI
 
-// MARK: - Constants
+// MARK:  Constants
 
 private let prereqAttrPairs: [(skillAttr: Int, levelAttr: Int)] = [
     (182, 277), (183, 278), (184, 279),
@@ -21,7 +21,7 @@ private let spThresholds: [Int: Int] = [
     0: 0, 1: 250, 2: 1_414, 3: 8_000, 4: 45_255, 5: 256_000
 ]
 
-// MARK: - Accumulator
+// MARK:  Accumulator
 
 private final class PrereqAccumulator {
     var maxRequired: [Int: Int] = [:]
@@ -29,7 +29,7 @@ private final class PrereqAccumulator {
     var visited: Set<Int> = []
 }
 
-// MARK: - Entry Model
+// MARK:  Entry Model
 
 private struct PrereqEntry: Identifiable {
     let skillId: Int
@@ -40,7 +40,7 @@ private struct PrereqEntry: Identifiable {
     var isMet: Bool { trained >= required }
 }
 
-// MARK: - AI Goal Card
+// MARK:  AI Goal Card
 
 private struct ResolvedAISkill: Identifiable {
     let id: Int
@@ -251,7 +251,7 @@ private struct ShipGoalAICard: View {
     }
 }
 
-// MARK: - ShipGoalBrowserView
+// MARK:  ShipGoalBrowserView
 
 struct ShipGoalBrowserView: View {
     let characterSkills: [Int: Int]?

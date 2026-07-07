@@ -31,6 +31,7 @@ actor FuzzworkClient {
 
     private let session: URLSession
     private var cache: [Int: (price: FuzzworkPrice, expiry: Date)] = [:]
+    private var stationCache: [Int: [Int: (price: FuzzworkPrice, expiry: Date)]] = [:]
 
     private init() {
         let config = URLSessionConfiguration.default
@@ -67,6 +68,39 @@ actor FuzzworkClient {
         for id in typeIds {
             if let entry = cache[id], entry.expiry > Date() {
                 result[id] = entry.price
+            }
+        }
+        return result
+    }
+
+    /// Fetches market aggregates for a specific station (e.g. Jita 4-4: 60003760).
+    /// Same JSON schema as the region endpoint; cached per station for 10 minutes.
+    func stationPrices(stationId: Int, typeIds: [Int]) async throws -> [Int: FuzzworkPrice] {
+        let now = Date()
+        var entry = stationCache[stationId] ?? [:]
+        let uncached = typeIds.filter { entry[$0].map { $0.expiry <= now } ?? true }
+
+        if !uncached.isEmpty {
+            let typeString = uncached.map(String.init).joined(separator: ",")
+            guard let url = URL(string: "https://market.fuzzwork.co.uk/aggregates/?station=\(stationId)&types=\(typeString)") else {
+                throw URLError(.badURL)
+            }
+            let (data, response) = try await session.data(for: URLRequest(url: url))
+            guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+                throw URLError(.badServerResponse)
+            }
+            let fetched = try parsePrices(data)
+            let expiry = now.addingTimeInterval(600)
+            for price in fetched {
+                entry[price.typeId] = (price: price, expiry: expiry)
+            }
+            stationCache[stationId] = entry
+        }
+
+        var result: [Int: FuzzworkPrice] = [:]
+        for id in typeIds {
+            if let e = stationCache[stationId]?[id], e.expiry > Date() {
+                result[id] = e.price
             }
         }
         return result

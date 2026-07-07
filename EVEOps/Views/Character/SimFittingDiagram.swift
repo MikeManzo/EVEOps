@@ -475,6 +475,7 @@ struct SimModulePopover: View {
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text(t.name).font(.headline).lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
                         Label(slot.category.displayName, systemImage: slot.category.icon)
                             .font(.caption).foregroundStyle(slot.category.color)
                     }

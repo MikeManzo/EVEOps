@@ -10,7 +10,7 @@
 
 import SwiftUI
 
-// MARK: - Local Models
+// MARK:  Local Models
 
 private struct ResolvedLPOffer: Identifiable {
     let offer: ESILPStoreOffer
@@ -31,7 +31,7 @@ private struct ResolvedLPOffer: Identifiable {
     }
 }
 
-// MARK: - Image Views
+// MARK:  Image Views
 
 private enum LPStoreImageCache {
     static let items = NSCache<NSNumber, NSImage>()
@@ -114,7 +114,7 @@ private struct CorpLogoImage: View {
     }
 }
 
-// MARK: - LoyaltyPointStoreView
+// MARK:  LoyaltyPointStoreView
 
 struct LoyaltyPointStoreView: View {
     @Environment(AccountManager.self) private var accountManager
@@ -174,7 +174,7 @@ struct LoyaltyPointStoreView: View {
         }
     }
 
-    // MARK: - Corp List (Left Panel)
+    // MARK:  Corp List (Left Panel)
 
     private var corpList: some View {
         VStack(spacing: 0) {
@@ -263,7 +263,7 @@ struct LoyaltyPointStoreView: View {
         .padding(.vertical, 4)
     }
 
-    // MARK: - Offer Panel (Right Panel)
+    // MARK:  Offer Panel (Right Panel)
 
     @ViewBuilder
     private var offerPanel: some View {
@@ -541,7 +541,7 @@ struct LoyaltyPointStoreView: View {
         return .red
     }
 
-    // MARK: - Data Loading
+    // MARK:  Data Loading
 
     private func loadLP() async {
         isLoadingLP = true
@@ -636,7 +636,7 @@ struct LoyaltyPointStoreView: View {
         }
     }
 
-    // MARK: - Formatting
+    // MARK:  Formatting
 
     private func formatLP(_ value: Int) -> String {
         if value >= 1_000_000 { return String(format: "%.1fM", Double(value) / 1_000_000) }

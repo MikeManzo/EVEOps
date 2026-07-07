@@ -10,7 +10,7 @@
 
 import SwiftUI
 
-// MARK: - Trade Hub Definitions
+// MARK:  Trade Hub Definitions
 
 private struct TradeHub: Sendable {
     let name: String
@@ -26,7 +26,7 @@ private let tradeHubs: [TradeHub] = [
     TradeHub(name: "Hek",     regionId: 10000042, stationId: 60005686),
 ]
 
-// MARK: - Hub Prices Model
+// MARK:  Hub Prices Model
 
 private struct HubPrices: Identifiable {
     let hub: TradeHub
@@ -47,7 +47,7 @@ private struct HubPrices: Identifiable {
     }
 }
 
-// MARK: - Cached Type Image
+// MARK:  Cached Type Image
 
 private enum THCImageCache {
     static let shared = NSCache<NSNumber, NSImage>()
@@ -93,7 +93,7 @@ private struct THCTypeImage: View {
     }
 }
 
-// MARK: - TradeHubComparisonView
+// MARK:  TradeHubComparisonView
 
 struct TradeHubComparisonView: View {
     let initialTypeId: Int?
@@ -131,7 +131,7 @@ struct TradeHubComparisonView: View {
         }
     }
 
-    // MARK: - Header
+    // MARK:  Header
 
     private var headerPanel: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -186,7 +186,7 @@ struct TradeHubComparisonView: View {
         .fixedSize(horizontal: false, vertical: true)
     }
 
-    // MARK: - Content
+    // MARK:  Content
 
     @ViewBuilder
     private var contentArea: some View {
@@ -215,7 +215,7 @@ struct TradeHubComparisonView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    // MARK: - Item Search List
+    // MARK:  Item Search List
 
     private var itemSearchList: some View {
         List(itemSearchResults, id: \.id) { result in
@@ -241,7 +241,7 @@ struct TradeHubComparisonView: View {
         .listStyle(.plain)
     }
 
-    // MARK: - Hub Table
+    // MARK:  Hub Table
 
     private var hubTable: some View {
         VStack(spacing: 0) {
@@ -369,7 +369,7 @@ struct TradeHubComparisonView: View {
         return .red
     }
 
-    // MARK: - Fetch Logic
+    // MARK:  Fetch Logic
 
     private func fetchAllHubs(typeId: Int) async {
         fetchTask?.cancel()
@@ -423,7 +423,7 @@ struct TradeHubComparisonView: View {
         return (bestSell, bestBuy)
     }
 
-    // MARK: - Search
+    // MARK:  Search
 
     private func onItemSearchChanged(_ value: String) {
         searchTask?.cancel()

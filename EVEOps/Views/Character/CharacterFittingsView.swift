@@ -684,11 +684,22 @@ struct ShipDetailPane: View {
     @Environment(DashboardPrefetcher.self) private var prefetcher
     @State private var showSaveSheet = false
     @State private var showModelViewer = false
+    @State private var showShopView = false
 
     private var characterSkills: [Int: Int]? {
         guard let account = accountManager.selectedAccount else { return nil }
         return prefetcher.characterData[account.characterID]
             .map { Dictionary(uniqueKeysWithValues: $0.skills.skills.map { ($0.skillId, $0.activeSkillLevel) }) }
+    }
+
+    private var shopInput: FittingShopInput {
+        var qtys: [Int: Int] = [:]
+        for module in modules { qtys[module.typeId, default: 0] += module.quantity }
+        let hull = FittingShopItem(typeId: ship.typeId, quantity: 1, name: ship.typeName)
+        let items = qtys.sorted { $0.key < $1.key }.map { typeId, qty in
+            FittingShopItem(typeId: typeId, quantity: qty, name: typeNames[typeId] ?? "Type #\(typeId)")
+        }
+        return FittingShopInput(fittingName: ship.displayName, shipTypeId: ship.typeId, items: [hull] + items)
     }
 
     var body: some View {
@@ -753,6 +764,15 @@ struct ShipDetailPane: View {
                                 .foregroundStyle(.white)
                         }
                         .buttonStyle(.plain)
+                        Button { showShopView = true } label: {
+                            Label("Shop Fit", systemImage: "cart.fill")
+                                .font(.caption.bold())
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+                                .foregroundStyle(.white)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
                 .padding(12)
@@ -800,6 +820,10 @@ struct ShipDetailPane: View {
         }
         .sheet(isPresented: $showSaveSheet) {
             SaveFittingSheet(ship: ship, modules: modules, onSaved: onFittingSaved)
+                .environment(accountManager)
+        }
+        .sheet(isPresented: $showShopView) {
+            FittingShopView(input: shopInput)
                 .environment(accountManager)
         }
     }
@@ -987,11 +1011,22 @@ struct SavedFittingDetailPane: View {
     @Environment(DashboardPrefetcher.self) private var prefetcher
     @State private var showExporter = false
     @State private var showModelViewer = false
+    @State private var showShopView = false
 
     private var characterSkills: [Int: Int]? {
         guard let account = accountManager.selectedAccount else { return nil }
         return prefetcher.characterData[account.characterID]
             .map { Dictionary(uniqueKeysWithValues: $0.skills.skills.map { ($0.skillId, $0.activeSkillLevel) }) }
+    }
+
+    private var shopInput: FittingShopInput {
+        var qtys: [Int: Int] = [:]
+        for item in fitting.items { qtys[item.typeId, default: 0] += item.quantity }
+        let hull = FittingShopItem(typeId: fitting.shipTypeId, quantity: 1, name: fitting.shipTypeName)
+        let modules = qtys.sorted { $0.key < $1.key }.map { typeId, qty in
+            FittingShopItem(typeId: typeId, quantity: qty, name: typeNames[typeId] ?? "Type #\(typeId)")
+        }
+        return FittingShopInput(fittingName: fitting.name, shipTypeId: fitting.shipTypeId, items: [hull] + modules)
     }
 
     var body: some View {
@@ -1055,6 +1090,17 @@ struct SavedFittingDetailPane: View {
                             .foregroundStyle(.white)
                     }
                     .buttonStyle(.plain)
+                    if !fitting.items.isEmpty {
+                        Button { showShopView = true } label: {
+                            Label("Shop Fit", systemImage: "cart.fill")
+                                .font(.caption.bold())
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+                                .foregroundStyle(.white)
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
                 .padding(12)
             }
@@ -1079,6 +1125,10 @@ struct SavedFittingDetailPane: View {
         }
         .sheet(isPresented: $showModelViewer) {
             ShipModelSheet(shipName: fitting.shipTypeName, shipClass: fitting.shipClassName)
+        }
+        .sheet(isPresented: $showShopView) {
+            FittingShopView(input: shopInput)
+                .environment(accountManager)
         }
         .fileExporter(
             isPresented: $showExporter,
@@ -1512,6 +1562,8 @@ struct ModuleDetailPopover: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(name ?? "Type #\(typeId)")
                         .font(.headline)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                     if let groupName {
                         Text(groupName)
                             .font(.subheadline)

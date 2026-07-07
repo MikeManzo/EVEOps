@@ -1230,6 +1230,22 @@ nonisolated struct ESIFWStatPeriod: Codable, Sendable {
     let total: Int
 }
 
+// MARK:  Universe Types
+
+nonisolated struct ESIUniverseType: Decodable, Sendable {
+    let typeId: Int
+    let name: String
+    let description: String
+    let groupId: Int
+    let marketGroupId: Int?
+    let volume: Double?
+    let packagedVolume: Double?
+    let mass: Double?
+    let capacity: Double?
+    let portionSize: Int
+    let published: Bool
+}
+
 // MARK:  Moon Extractions
 
 nonisolated struct ESIMoonExtraction: Codable, Sendable, Identifiable {

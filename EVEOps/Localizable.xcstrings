@@ -92,6 +92,16 @@
         }
       }
     },
+    "%@ · %lld items" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$lld items"
+          }
+        }
+      }
+    },
     "%@ (%@) and %@ (%@): up to +%lld SP/min." : {
       "localizations" : {
         "en" : {
@@ -236,6 +246,16 @@
         }
       }
     },
+    "%lld × %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld × %2$@"
+          }
+        }
+      }
+    },
     "%lld active" : {
 
     },
@@ -316,6 +336,16 @@
         }
       }
     },
+    "%lld item%@ not available at this station" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld item%2$@ not available at this station"
+          }
+        }
+      }
+    },
     "%lld items" : {
 
     },
@@ -371,6 +401,9 @@
 
     },
     "%lld minutes" : {
+
+    },
+    "%lld missing" : {
 
     },
     "%lld modules" : {
@@ -979,6 +1012,9 @@
     "Availability" : {
 
     },
+    "Available" : {
+
+    },
     "Available %@" : {
 
     },
@@ -1307,6 +1343,9 @@
 
     },
     "Copy Entry" : {
+
+    },
+    "Copy Multi-Buy" : {
 
     },
     "Copy Name" : {
@@ -1824,6 +1863,9 @@
     "Fuel expires" : {
 
     },
+    "Full Galaxy Search" : {
+
+    },
     "Fuzzwork Enterprises" : {
 
     },
@@ -2056,6 +2098,9 @@
     "Item Appraisal" : {
 
     },
+    "Items" : {
+
+    },
     "Items Lost (%lld)" : {
 
     },
@@ -2225,6 +2270,9 @@
     "Loading galaxy map…" : {
 
     },
+    "Loading item data…" : {
+
+    },
     "Loading LP store offers…" : {
 
     },
@@ -2250,6 +2298,9 @@
 
     },
     "Loading region list…" : {
+
+    },
+    "Loading regions…" : {
 
     },
     "Loading ship database…" : {
@@ -2343,6 +2394,9 @@
 
     },
     "market.fuzzwork.co.uk" : {
+
+    },
+    "Mass" : {
 
     },
     "Max jumps:" : {
@@ -2483,6 +2537,9 @@
     "No Loyalty Points" : {
 
     },
+    "No market data found" : {
+
+    },
     "No Market Orders" : {
 
     },
@@ -2505,6 +2562,9 @@
 
     },
     "No price history available" : {
+
+    },
+    "No results" : {
 
     },
     "No Results" : {
@@ -2564,6 +2624,9 @@
     "None" : {
 
     },
+    "Not available" : {
+
+    },
     "Not Currently Enlisted" : {
 
     },
@@ -2574,6 +2637,9 @@
 
     },
     "Not Responded" : {
+
+    },
+    "Not stocked here" : {
 
     },
     "Note: if an implant is not detected, its floor may show slightly low. The allocations (+10 / +4 / +0) are always correct regardless." : {
@@ -2739,6 +2805,9 @@
 
     },
     "Qty" : {
+
+    },
+    "Qty Needed" : {
 
     },
     "Qty: %@" : {
@@ -2957,6 +3026,9 @@
     "Search all k-space regions" : {
 
     },
+    "Search all k-space regions for the cheapest station — takes 30–60 seconds" : {
+
+    },
     "Search assets..." : {
 
     },
@@ -3042,7 +3114,13 @@
         }
       }
     },
+    "Searching trade hubs…" : {
+
+    },
     "Searching…" : {
+
+    },
+    "Sec" : {
 
     },
     "Secondary (+4)" : {
@@ -3076,6 +3154,9 @@
 
     },
     "Select a ship to view\ncommunity meta fits" : {
+
+    },
+    "Select a station to set destination or copy the shopping list" : {
 
     },
     "Select an item first" : {
@@ -3169,6 +3250,12 @@
 
     },
     "Ships, modules, drones — any item with skill requirements" : {
+
+    },
+    "Shop Fit" : {
+
+    },
+    "Shop This Fitting" : {
 
     },
     "Shortest" : {
@@ -3318,6 +3405,9 @@
     "Station" : {
 
     },
+    "Station / System" : {
+
+    },
     "Station Browser" : {
 
     },
@@ -3433,7 +3523,13 @@
     "Today" : {
 
     },
+    "Total" : {
+
+    },
     "Total Corporation Balance" : {
+
+    },
+    "Total ISK" : {
 
     },
     "Total LP" : {
@@ -3503,6 +3599,9 @@
 
     },
     "Unable to load EVE news" : {
+
+    },
+    "Unit Price" : {
 
     },
     "Universe" : {
