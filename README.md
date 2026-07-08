@@ -1,3 +1,10 @@
+![GitHub Release](https://img.shields.io/github/v/release/MikeManzo/EVEOps?style=for-the-badge)
+![GitHub Downloads](https://img.shields.io/github/downloads/MikeManzo/EVEOps/total?style=for-the-badge)
+![GitHub Stars](https://img.shields.io/github/stars/MikeManzo/EVEOps?style=for-the-badge)
+![GitHub Forks](https://img.shields.io/github/forks/MikeManzo/EVEOps?style=for-the-badge)
+![GitHub Issues](https://img.shields.io/github/issues/MikeManzo/EVEOps?style=for-the-badge)
+![GitHub Last Commit](https://img.shields.io/github/last-commit/MikeManzo/EVEOps?style=for-the-badge)
+
 # EVEOps
 
 A native macOS companion app for [EVE Online](https://www.eveonline.com) — built in Swift and SwiftUI. Monitor your character, and corporation at a glance, right from your menu bar.  Want more - open the companion app to explore an entirely connected experience with your charcater as if you were in-game.
