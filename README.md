@@ -231,7 +231,7 @@ I would be remiss if I didn't acknowledge that this entire effort was inspired b
 
 Pull requests are welcome. For significant changes, please open an issue first to discuss what you'd like to change.
 
-![Downloads](https://shields.io) to date
+![GitHub Downloads (all assets, all releases)](https://shields.io)
 
 ---
 
