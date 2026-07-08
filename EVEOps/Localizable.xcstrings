@@ -102,6 +102,16 @@
         }
       }
     },
+    "%@ › %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ › %2$@"
+          }
+        }
+      }
+    },
     "%@ (%@) and %@ (%@): up to +%lld SP/min." : {
       "localizations" : {
         "en" : {
@@ -260,6 +270,9 @@
 
     },
     "%lld agents found" : {
+
+    },
+    "%lld AK" : {
 
     },
     "%lld attacker(s)" : {
@@ -2084,6 +2097,9 @@
     "ISK" : {
 
     },
+    "ISK / LP" : {
+
+    },
     "ISK Cost" : {
 
     },
@@ -2284,6 +2300,9 @@
 
     },
     "Loading item data…" : {
+
+    },
+    "Loading item details…" : {
 
     },
     "Loading LP store offers…" : {
@@ -2676,6 +2695,9 @@
     "Null Sec" : {
 
     },
+    "Offer #%lld" : {
+
+    },
     "Office Rental:" : {
 
     },
@@ -2791,6 +2813,9 @@
 
     },
     "Plot Route" : {
+
+    },
+    "Portion: %lld" : {
 
     },
     "Powered by EVEShipFit dogma-engine" : {
@@ -3235,6 +3260,12 @@
     "Set Destination" : {
 
     },
+    "Set Destination (loading stations…)" : {
+
+    },
+    "Set Destination (no stations found)" : {
+
+    },
     "Set Destination: %@" : {
 
     },
@@ -3609,6 +3640,9 @@
 
     },
     "Type" : {
+
+    },
+    "Type #%lld" : {
 
     },
     "Type Information" : {
