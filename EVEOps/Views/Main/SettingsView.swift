@@ -1077,6 +1077,21 @@ private struct AboutTab: View {
                     anoikCard
                         .padding(.top, 8)
 
+                    // Special Thanks section
+                    Label("Special Thanks", systemImage: "heart.fill")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 44)
+                        .padding(.top, 14)
+
+                    // Kerreah character card
+                    kerreahCard
+                        .padding(.top, 8)
+
+                    // Idle Boy character card
+                    idleBoyCard
+                        .padding(.top, 8)
+
                     // Collapsible legal
                     DisclosureGroup(isExpanded: $legalExpanded) {
                         VStack(alignment: .leading, spacing: 6) {
@@ -1757,6 +1772,108 @@ private struct AboutTab: View {
                         colors: [
                             Color.indigo.opacity(0.30),
                             Color.indigo.opacity(0.08)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        )
+        .padding(.horizontal, 44)
+    }
+
+    // Mark:  Kerreah character card
+
+    private var kerreahCard: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(Color.cyan.opacity(0.12))
+                    .frame(width: 38, height: 38)
+                Image(systemName: "person.fill")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.cyan)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Kerreah")
+                    .font(.system(size: 13, weight: .semibold))
+                Text("EVE CAPSULEER")
+                    .font(.system(size: 9, weight: .bold))
+                    .tracking(1.2)
+                    .foregroundStyle(.tertiary)
+            }
+
+            Spacer()
+
+            Button("zkillboard.com") {
+                if let url = URL(string: "https://zkillboard.com/search/Kerreah/") {
+                    NSWorkspace.shared.open(url)
+                }
+            }
+            .buttonStyle(.link)
+            .font(.system(size: 11, weight: .medium))
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 11)
+        .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [
+                            Color.cyan.opacity(0.30),
+                            Color.cyan.opacity(0.08)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        )
+        .padding(.horizontal, 44)
+    }
+
+    // Mark:  Idle Boy character card
+
+    private var idleBoyCard: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(Color.orange.opacity(0.12))
+                    .frame(width: 38, height: 38)
+                Image(systemName: "person.fill")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.orange)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Idle Boy")
+                    .font(.system(size: 13, weight: .semibold))
+                Text("EVE CAPSULEER")
+                    .font(.system(size: 9, weight: .bold))
+                    .tracking(1.2)
+                    .foregroundStyle(.tertiary)
+            }
+
+            Spacer()
+
+            Button("zkillboard.com") {
+                if let url = URL(string: "https://zkillboard.com/search/Idle%20Boy/") {
+                    NSWorkspace.shared.open(url)
+                }
+            }
+            .buttonStyle(.link)
+            .font(.system(size: 11, weight: .medium))
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 11)
+        .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [
+                            Color.orange.opacity(0.30),
+                            Color.orange.opacity(0.08)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
