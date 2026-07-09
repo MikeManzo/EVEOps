@@ -663,69 +663,69 @@ struct SummaryGridView: View {
             MetricTileView(
                 icon: "creditcard.fill", color: .green,
                 value: EVEFormatters.formatISKShort(totalWealth),
-                label: "Total Wealth"
+                label: String(localized: "Total Wealth")
             )
             MetricTileView(
                 icon: "brain.head.profile.fill", color: .cyan,
                 value: formatSP(totalSP),
-                label: "Skill Points"
+                label: String(localized: "Skill Points")
             )
             MetricTileView(
                 icon: "person.fill.checkmark", color: .blue,
                 value: "\(onlineCount) / \(summaries.count)",
-                label: onlineCount == summaries.count ? "All Online" : "Online"
+                label: onlineCount == summaries.count ? String(localized: "All Online") : String(localized: "Online")
             )
             if emptyQueues > 0 {
                 MetricTileView(
                     icon: "exclamationmark.triangle.fill", color: .orange,
                     value: "\(emptyQueues) empty",
-                    label: "Queue Alert",
+                    label: String(localized: "Queue Alert"),
                     isAlert: true
                 )
             } else if let finish = nextSkillFinish {
                 MetricTileView(
                     icon: "graduationcap.fill", color: .green,
                     value: EVEFormatters.timeUntil(finish),
-                    label: "Next Skill",
-                    subLabel: "\(summaries.count == 1 ? "" : "\(summaries.count) queues · ")All training"
+                    label: String(localized: "Next Skill"),
+                    subLabel: "\(summaries.count == 1 ? "" : "\(summaries.count) queues · ")\(String(localized: "All training"))"
                 )
             } else {
                 MetricTileView(
                     icon: "graduationcap.fill", color: .green,
-                    value: "All active",
-                    label: "Training"
+                    value: String(localized: "All active"),
+                    label: String(localized: "Training")
                 )
             }
             if activeJobs == 0 {
                 MetricTileView(
                     icon: "hammer.fill", color: .secondary,
-                    value: "None active",
-                    label: "Industry"
+                    value: String(localized: "None active"),
+                    label: String(localized: "Industry")
                 )
             } else if let next = nextJobFinish {
                 MetricTileView(
                     icon: "hammer.fill", color: .purple,
                     value: EVEFormatters.timeUntil(next),
-                    label: "Next Job",
+                    label: String(localized: "Next Job"),
                     subLabel: "\(activeJobs) job\(activeJobs == 1 ? "" : "s") active"
                 )
             } else {
                 MetricTileView(
                     icon: "hammer.fill", color: .purple,
                     value: "\(activeJobs) active",
-                    label: "Industry"
+                    label: String(localized: "Industry")
                 )
             }
             MetricTileView(
                 icon: "doc.text.fill", color: .teal,
-                value: activeContracts == 0 ? "None active" : "\(activeContracts) active",
-                label: "Contracts"
+                value: activeContracts == 0 ? String(localized: "None active") : "\(activeContracts) active",
+                label: String(localized: "Contracts")
             )
             if expiredExtractors > 0 {
                 MetricTileView(
                     icon: "exclamationmark.triangle.fill", color: .red,
                     value: "\(expiredExtractors) offline",
-                    label: "PI Extractors",
+                    label: String(localized: "PI Extractors"),
                     isAlert: true
                 )
             }
@@ -1849,7 +1849,8 @@ struct CharacterHeroView: View {
                 attrPill("bolt.fill", label: "Willpower", value: attrs.willpower, color: .purple)
                 attrPill("person.wave.2.fill", label: "Charisma", value: attrs.charisma, color: .pink)
             } else {
-                ForEach([("brain", "INT", Color.blue), ("memorychip", "MEM", Color.green), ("eye.fill", "PER", Color.orange), ("bolt.fill", "WIL", Color.purple), ("person.wave.2.fill", "CHA", Color.pink)], id: \.1) { icon, label, color in
+                let placeholders: [(String, LocalizedStringKey, Color)] = [("brain", "INT", Color.blue), ("memorychip", "MEM", Color.green), ("eye.fill", "PER", Color.orange), ("bolt.fill", "WIL", Color.purple), ("person.wave.2.fill", "CHA", Color.pink)]
+                ForEach(placeholders, id: \.0) { icon, label, color in
                     HStack(spacing: 4) {
                         Image(systemName: icon)
                         Text(label)
@@ -1865,7 +1866,7 @@ struct CharacterHeroView: View {
         }
     }
 
-    private func attrPill(_ icon: String, label: String, value: Int, color: Color) -> some View {
+    private func attrPill(_ icon: String, label: LocalizedStringKey, value: Int, color: Color) -> some View {
         HStack(spacing: 4) {
             Image(systemName: icon)
                 .font(.system(size: 12, weight: .semibold))
@@ -1917,12 +1918,12 @@ struct CharacterHeroView: View {
             MetricTileView(
                 icon: "creditcard.fill", color: .green,
                 value: EVEFormatters.formatISKShort(summary?.wallet ?? 0),
-                label: "Wallet"
+                label: String(localized: "Wallet")
             )
             MetricTileView(
                 icon: "brain.head.profile.fill", color: .cyan,
                 value: formatSP(summary?.totalSP ?? 0),
-                label: "Skill Points"
+                label: String(localized: "Skill Points")
             )
             trainingTile
             industryTile
@@ -1937,19 +1938,19 @@ struct CharacterHeroView: View {
         if queueIsEmpty {
             MetricTileView(
                 icon: "exclamationmark.triangle.fill", color: .orange,
-                value: "Queue empty",
-                label: "Training",
+                value: String(localized: "Queue empty"),
+                label: String(localized: "Training"),
                 isAlert: true
             )
         } else if let finish = queueSkillFinish {
             MetricTileView(
                 icon: "graduationcap.fill", color: .blue,
                 value: timeUntil(finish),
-                label: queueSkillName ?? "Training",
+                label: queueSkillName ?? String(localized: "Training"),
                 subLabel: "\(queueCount) in queue"
             )
         } else {
-            MetricTileView(icon: "graduationcap.fill", color: .blue, value: "Active", label: "Training")
+            MetricTileView(icon: "graduationcap.fill", color: .blue, value: String(localized: "Active"), label: String(localized: "Training"))
         }
     }
 
@@ -1959,11 +1960,11 @@ struct CharacterHeroView: View {
             MetricTileView(
                 icon: "hammer.fill", color: .purple,
                 value: "\(s.activeIndustryJobCount) active",
-                label: "Industry",
+                label: String(localized: "Industry"),
                 subLabel: s.nextJobFinish.map { timeUntil($0) }
             )
         } else {
-            MetricTileView(icon: "hammer.fill", color: .secondary, value: "None active", label: "Industry")
+            MetricTileView(icon: "hammer.fill", color: .secondary, value: String(localized: "None active"), label: String(localized: "Industry"))
         }
     }
 
@@ -1973,10 +1974,10 @@ struct CharacterHeroView: View {
             MetricTileView(
                 icon: "doc.text.fill", color: .teal,
                 value: "\(s.activeContractCount) active",
-                label: "Contracts"
+                label: String(localized: "Contracts")
             )
         } else {
-            MetricTileView(icon: "doc.text.fill", color: .secondary, value: "None active", label: "Contracts")
+            MetricTileView(icon: "doc.text.fill", color: .secondary, value: String(localized: "None active"), label: String(localized: "Contracts"))
         }
     }
 
@@ -1987,22 +1988,22 @@ struct CharacterHeroView: View {
                 MetricTileView(
                     icon: "globe.americas.fill", color: .red,
                     value: "\(s.expiredExtractorCount) offline",
-                    label: "PI Extractors",
+                    label: String(localized: "PI Extractors"),
                     isAlert: true
                 )
             } else {
                 MetricTileView(
                     icon: "globe.americas.fill", color: .mint,
                     value: "\(s.colonyCount) colon\(s.colonyCount == 1 ? "y" : "ies")",
-                    label: "Planetary Industry"
+                    label: String(localized: "Planetary Industry")
                 )
             }
         } else {
             let isOnline = summary?.online == true
             MetricTileView(
                 icon: "person.fill.checkmark", color: isOnline ? .blue : .secondary,
-                value: isOnline ? "Online" : "Offline",
-                label: "Status"
+                value: isOnline ? String(localized: "Online") : String(localized: "Offline"),
+                label: String(localized: "Status")
             )
         }
     }

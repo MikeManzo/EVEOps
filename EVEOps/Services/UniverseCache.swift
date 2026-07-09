@@ -26,6 +26,7 @@ actor UniverseCache {
     private var regions: [Int: ESIRegion] = [:]
     private var stations: [Int: ESIStation] = [:]
     private var stars: [Int: ESIStar] = [:]
+    private var stargates: [Int: ESIStargate] = [:]
     private var marketGroups: [Int: ESIMarketGroup] = [:]
     private var effectDetails: [Int: ESIDogmaEffectDetail] = [:]
 
@@ -60,6 +61,7 @@ actor UniverseCache {
             regions = Self.loadCache("regions.json") ?? [:]
             stations = Self.loadCache("stations.json") ?? [:]
             stars = Self.loadCache("stars.json") ?? [:]
+            stargates = Self.loadCache("stargates.json") ?? [:]
             marketGroups = Self.loadCache("marketGroups.json") ?? [:]
             effectDetails = Self.loadCache("effectDetails.json") ?? [:]
         }
@@ -134,6 +136,17 @@ actor UniverseCache {
         if let cached = stars[id] { return cached }
         guard let fetched: ESIStar = try? await ESIClient.shared.fetch("/universe/stars/\(id)/", bypassCache: true) else { return nil }
         stars[id] = fetched
+        dirty = true
+        scheduleSave()
+        return fetched
+    }
+
+    /// A stargate's `destination.systemId` is the other end of the jump — used to build
+    /// the local stargate graph for avoid-systems route pathfinding (`RoutePathfinder`).
+    func stargate(id: Int) async -> ESIStargate? {
+        if let cached = stargates[id] { return cached }
+        guard let fetched: ESIStargate = try? await ESIClient.shared.fetch("/universe/stargates/\(id)/", bypassCache: true) else { return nil }
+        stargates[id] = fetched
         dirty = true
         scheduleSave()
         return fetched
@@ -309,6 +322,7 @@ actor UniverseCache {
         Self.saveCache(regions, to: "regions.json")
         Self.saveCache(stations, to: "stations.json")
         Self.saveCache(stars, to: "stars.json")
+        Self.saveCache(stargates, to: "stargates.json")
         Self.saveCache(marketGroups, to: "marketGroups.json")
         Self.saveCache(effectDetails, to: "effectDetails.json")
         Self.saveMeta()
@@ -368,6 +382,7 @@ actor UniverseCache {
         regions.removeAll()
         stations.removeAll()
         stars.removeAll()
+        stargates.removeAll()
         marketGroups.removeAll()
         effectDetails.removeAll()
         Self.clearDiskCacheFiles()

@@ -1394,7 +1394,7 @@ struct CalendarEventDetailPanel: View {
 // MARK:  RSVP Button
 
 struct RSVPButton: View {
-    let label: String
+    let label: LocalizedStringKey
     let icon: String
     let color: Color
     let isSelected: Bool

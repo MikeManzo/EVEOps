@@ -21,4 +21,5 @@ extension Logger {
     static var systemSearch: EVELogger { EVELogger(category: "systemSearch") }
     static var eveRef: EVELogger { EVELogger(category: "eveRef") }
     static var intelligence: EVELogger { EVELogger(category: "intelligence") }
+    static var discord: EVELogger { EVELogger(category: "discord") }
 }

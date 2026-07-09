@@ -17,6 +17,7 @@ actor NotificationService {
     private var lastCheckedSkillQueues: [Int: Bool] = [:]   // characterID: was queue empty
     private var lastCheckedContracts: [Int: Set<String>] = [:]  // characterID: contract statuses
     private var lastQueueWarningSent: [Int: Date] = [:]     // characterID: last warning date
+    private var lastFuelWarningSent: [Int: Date] = [:]      // structureID: last warning date
 
     func requestPermission() async {
         let center = UNUserNotificationCenter.current()
@@ -28,6 +29,7 @@ actor NotificationService {
         getToken: @Sendable (StoredAccount) async throws -> String,
         onUnauthorized: @Sendable (StoredAccount) async -> Void = { _ in }
     ) async {
+        var checkedCorporations: Set<Int> = []
         for account in accounts {
             do {
                 let token = try await getToken(account)
@@ -35,6 +37,9 @@ actor NotificationService {
                 try await checkNotifications(for: account, token: token)
                 try await checkContracts(for: account, token: token)
                 try await checkIndustryJobs(for: account, token: token)
+                if checkedCorporations.insert(account.corporationID).inserted {
+                    try await checkStructureFuel(for: account, token: token)
+                }
             } catch ESIError.unauthorized {
                 await onUnauthorized(account)
             } catch {
@@ -160,6 +165,48 @@ actor NotificationService {
         }
     }
 
+    private func checkStructureFuel(for account: StoredAccount, token: String) async throws {
+        guard UserDefaults.standard.object(forKey: "notificationsEnabled") as? Bool ?? true,
+              UserDefaults.standard.object(forKey: "notifyStructureFuel") as? Bool ?? true else { return }
+        do {
+            let structures: [ESICorporationStructure] = try await ESIClient.shared.fetch(
+                "/corporations/\(account.corporationID)/structures/", token: token
+            )
+
+            let warningHours = UserDefaults.standard.double(forKey: "structureFuelWarningHours")
+            let warningInterval: TimeInterval = (warningHours > 0 ? warningHours : 48) * 3600
+            let cooldown: TimeInterval = 12 * 3600  // don't re-notify for the same structure within 12h
+
+            for structure in structures {
+                guard let fuelExpires = structure.fuelExpires,
+                      fuelExpires.timeIntervalSinceNow < warningInterval else { continue }
+
+                let lastSent = lastFuelWarningSent[structure.structureId]
+                if let lastSent, Date().timeIntervalSince(lastSent) < cooldown { continue }
+
+                let systemName = await NameResolver.shared.resolve(id: structure.systemId)
+                let body: String
+                if fuelExpires.timeIntervalSinceNow > 0 {
+                    let hoursLeft = Int(fuelExpires.timeIntervalSinceNow / 3600) + 1
+                    body = String(localized: "\(structure.name) at \(systemName) — fuel runs out in ~\(hoursLeft)h")
+                } else {
+                    body = String(localized: "\(structure.name) at \(systemName) has run out of fuel!")
+                }
+
+                await sendNotification(
+                    title: String(localized: "Structure Fuel Low — \(account.characterName)"),
+                    body: body,
+                    identifier: "structurefuel-\(structure.structureId)-\(Int(fuelExpires.timeIntervalSince1970))"
+                )
+                lastFuelWarningSent[structure.structureId] = Date()
+            }
+        } catch ESIError.unauthorized {
+            throw ESIError.unauthorized
+        } catch {
+            // Skip — likely missing Station_Manager/Director role, or no structures
+        }
+    }
+
     func notifyPresenceChange(characterID: Int, characterName: String, cameOnline: Bool) async {
         guard UserDefaults.standard.object(forKey: "notificationsEnabled") as? Bool ?? true,
               UserDefaults.standard.object(forKey: "notifyContactPresence") as? Bool ?? true else { return }
@@ -225,6 +272,7 @@ actor NotificationService {
         )
 
         try? await UNUserNotificationCenter.current().add(request)
+        await DiscordNotifier.shared.enqueue(title: title, body: body)
     }
 
     private func formatNotificationType(_ type: String) -> String {

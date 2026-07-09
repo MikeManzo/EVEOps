@@ -244,7 +244,7 @@ struct SimFittingSection: View {
 }
 
 private struct SimResourceBar: View {
-    let label: String
+    let label: LocalizedStringKey
     let used: Double
     let total: Double
     let unit: String

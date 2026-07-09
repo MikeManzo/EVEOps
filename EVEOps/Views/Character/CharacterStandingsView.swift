@@ -24,7 +24,7 @@ struct CharacterStandingsView: View {
                         ForEach(["faction", "npc_corp", "agent"], id: \.self) { fromType in
                             let filtered = group.standings.filter { $0.fromType == fromType }
                             if !filtered.isEmpty {
-                                StandingTypeSection(label: typeLabel(fromType), standings: filtered)
+                                StandingTypeSection(type: fromType, label: typeLabel(fromType), standings: filtered)
                             }
                         }
                     }
@@ -49,12 +49,12 @@ struct CharacterStandingsView: View {
         }
     }
 
-    private func typeLabel(_ type: String) -> String {
+    private func typeLabel(_ type: String) -> LocalizedStringKey {
         switch type {
         case "faction": return "Factions"
         case "npc_corp": return "NPC Corporations"
         case "agent": return "Agents"
-        default: return type.capitalized
+        default: return LocalizedStringKey(type.capitalized)
         }
     }
 
@@ -85,14 +85,17 @@ struct StandingsGroup {
 }
 
 struct StandingTypeSection: View {
-    let label: String
+    let label: LocalizedStringKey
     let standings: [ESIStanding]
     @AppStorage private var isExpanded: Bool
 
-    init(label: String, standings: [ESIStanding]) {
+    /// `type` is the raw, stable ESI standing-type key ("faction"/"npc_corp"/"agent"),
+    /// used only for the AppStorage key — kept separate from `label` so the expanded/
+    /// collapsed state doesn't depend on the current display language.
+    init(type: String, label: LocalizedStringKey, standings: [ESIStanding]) {
         self.label = label
         self.standings = standings
-        self._isExpanded = AppStorage(wrappedValue: true, "standings.section.\(label)")
+        self._isExpanded = AppStorage(wrappedValue: true, "standings.section.\(type)")
     }
 
     var body: some View {

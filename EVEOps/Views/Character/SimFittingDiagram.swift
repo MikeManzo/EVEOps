@@ -560,13 +560,13 @@ private struct SimModuleStatsSections: View {
             VStack(alignment: .leading, spacing: 5) {
                 sectionHeader("FITTING")
                 if let v = cpu, v > 0 {
-                    statRow(icon: "cpu", label: "CPU", value: "\(fmtNum(v)) tf")
+                    statRow(icon: "cpu", label: String(localized: "CPU"), value: "\(fmtNum(v)) tf")
                 }
                 if let v = pg, v > 0 {
-                    statRow(icon: "bolt.fill", label: "Power Grid", value: "\(fmtNum(v)) MW")
+                    statRow(icon: "bolt.fill", label: String(localized: "Power Grid"), value: "\(fmtNum(v)) MW")
                 }
                 if let v = cal, v > 0 {
-                    statRow(icon: "gearshape.2", label: "Calibration", value: "\(fmtNum(v)) pts")
+                    statRow(icon: "gearshape.2", label: String(localized: "Calibration"), value: "\(fmtNum(v)) pts")
                 }
             }
             .padding(.horizontal, 14).padding(.vertical, 8)
@@ -581,9 +581,9 @@ private struct SimModuleStatsSections: View {
             Divider()
             VStack(alignment: .leading, spacing: 5) {
                 sectionHeader("ACTIVATION")
-                statRow(icon: "battery.50", label: "Cap. per Cycle",
+                statRow(icon: "battery.50", label: String(localized: "Cap. per Cycle"),
                         value: "\(fmtNum(cn)) GJ")
-                statRow(icon: "timer",      label: "Duration",
+                statRow(icon: "timer",      label: String(localized: "Duration"),
                         value: "\(fmtNum(dur / 1000)) s")
             }
             .padding(.horizontal, 14).padding(.vertical, 8)
@@ -612,18 +612,18 @@ private struct SimModuleStatsSections: View {
     }
 
     private var specs: [AttrSpec] { [
-        AttrSpec(id: 64,   icon: "scope",              label: "Dmg. Multiplier") { v in v > 0 ? "×\(String(format: "%.2f", v))" : nil },
-        AttrSpec(id: 54,   icon: "arrow.right",        label: "Optimal Range")   { fmtRange($0) },
-        AttrSpec(id: 158,  icon: "arrow.right.to.line",label: "Falloff")         { fmtRange($0) },
-        AttrSpec(id: 160,  icon: "arrow.right.to.line",label: "Accuracy Falloff"){ fmtRange($0) },
-        AttrSpec(id: 68,   icon: "shield",             label: "Shield Boost")    { v in v > 0 ? "\(fmtNum(v)) HP" : nil },
-        AttrSpec(id: 84,   icon: "shield.lefthalf.filled", label: "Armor Repair"){ v in v > 0 ? "\(fmtNum(v)) HP" : nil },
-        AttrSpec(id: 85,   icon: "shield.slash",       label: "Hull Repair")     { v in v > 0 ? "\(fmtNum(v)) HP" : nil },
-        AttrSpec(id: 984,  icon: "shield.checkered",   label: "Resist Bonus")    { v in v != 0 ? (abs(v) / 100).formatted(.percent.precision(.fractionLength(1))) : nil },
-        AttrSpec(id: 20,   icon: "hare",               label: "Velocity Bonus")  { v in v != 0 ? (v / 100).formatted(.percent.precision(.fractionLength(0))) : nil },
-        AttrSpec(id: 554,  icon: "hare",               label: "Velocity Bonus")  { v in v != 0 ? (v / 100).formatted(.percent.precision(.fractionLength(0))) : nil },
-        AttrSpec(id: 633,  icon: "dot.radiowaves.left.and.right", label: "Scan Res. Bonus") { v in v != 0 ? (v / 100).formatted(.percent.precision(.fractionLength(0))) : nil },
-        AttrSpec(id: 182,  icon: "star",               label: "Dmg. Bonus")      { v in v != 0 ? (v / 100).formatted(.percent.precision(.fractionLength(0))) : nil },
+        AttrSpec(id: 64,   icon: "scope",              label: String(localized: "Dmg. Multiplier")) { v in v > 0 ? "×\(String(format: "%.2f", v))" : nil },
+        AttrSpec(id: 54,   icon: "arrow.right",        label: String(localized: "Optimal Range"))   { fmtRange($0) },
+        AttrSpec(id: 158,  icon: "arrow.right.to.line",label: String(localized: "Falloff"))         { fmtRange($0) },
+        AttrSpec(id: 160,  icon: "arrow.right.to.line",label: String(localized: "Accuracy Falloff")){ fmtRange($0) },
+        AttrSpec(id: 68,   icon: "shield",             label: String(localized: "Shield Boost"))    { v in v > 0 ? "\(fmtNum(v)) HP" : nil },
+        AttrSpec(id: 84,   icon: "shield.lefthalf.filled", label: String(localized: "Armor Repair")){ v in v > 0 ? "\(fmtNum(v)) HP" : nil },
+        AttrSpec(id: 85,   icon: "shield.slash",       label: String(localized: "Hull Repair"))     { v in v > 0 ? "\(fmtNum(v)) HP" : nil },
+        AttrSpec(id: 984,  icon: "shield.checkered",   label: String(localized: "Resist Bonus"))    { v in v != 0 ? (abs(v) / 100).formatted(.percent.precision(.fractionLength(1))) : nil },
+        AttrSpec(id: 20,   icon: "hare",               label: String(localized: "Velocity Bonus"))  { v in v != 0 ? (v / 100).formatted(.percent.precision(.fractionLength(0))) : nil },
+        AttrSpec(id: 554,  icon: "hare",               label: String(localized: "Velocity Bonus"))  { v in v != 0 ? (v / 100).formatted(.percent.precision(.fractionLength(0))) : nil },
+        AttrSpec(id: 633,  icon: "dot.radiowaves.left.and.right", label: String(localized: "Scan Res. Bonus")) { v in v != 0 ? (v / 100).formatted(.percent.precision(.fractionLength(0))) : nil },
+        AttrSpec(id: 182,  icon: "star",               label: String(localized: "Dmg. Bonus"))      { v in v != 0 ? (v / 100).formatted(.percent.precision(.fractionLength(0))) : nil },
     ] }
 
     private struct StatRow { let icon: String; let label: String; let value: String }

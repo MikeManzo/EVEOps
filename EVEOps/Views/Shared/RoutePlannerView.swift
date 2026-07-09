@@ -26,6 +26,8 @@ struct RoutePlannerView: View {
     @State private var originSystem: SelectedSystem?
     @State private var destinationSystem: SelectedSystem?
     @State private var routeFlag = "shortest"
+    @State private var avoidSystems: [SelectedSystem] = []
+    @State private var avoidSystemPicker: SelectedSystem?
     @State private var route: [RouteSystem] = []
     @State private var isCalculating = false
     @State private var errorMessage: String?
@@ -129,6 +131,49 @@ struct RoutePlannerView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(!canPlot)
+                }
+
+                Divider()
+
+                VStack(alignment: .leading, spacing: 8) {
+                    SystemSearchField(
+                        label: "Avoid Systems",
+                        icon: "xmark.octagon.fill",
+                        iconColor: .red,
+                        placeholder: "e.g. Rancer",
+                        selectedSystem: $avoidSystemPicker
+                    )
+                    .onChange(of: avoidSystemPicker) { _, newValue in
+                        guard let picked = newValue else { return }
+                        let isEndpoint = picked.id == originSystem?.id || picked.id == destinationSystem?.id
+                        let alreadyAvoided = avoidSystems.contains { $0.id == picked.id }
+                        if !isEndpoint && !alreadyAvoided {
+                            avoidSystems.append(picked)
+                        }
+                        avoidSystemPicker = nil
+                    }
+
+                    if !avoidSystems.isEmpty {
+                        FlowLayout(spacing: 6) {
+                            ForEach(avoidSystems, id: \.id) { system in
+                                HStack(spacing: 4) {
+                                    Text(system.name)
+                                        .font(.caption)
+                                    Button {
+                                        avoidSystems.removeAll { $0.id == system.id }
+                                    } label: {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .font(.caption2)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(.red.opacity(0.12), in: Capsule())
+                                .foregroundStyle(.red)
+                            }
+                        }
+                    }
                 }
 
                 if let errorMessage {
@@ -462,11 +507,23 @@ struct RoutePlannerView: View {
         route = []
 
         do {
-            // Fetch route directly using known system IDs — no name resolution needed
-            let systemIds: [Int] = try await ESIClient.shared.fetch(
-                "/route/\(origin.id)/\(destination.id)/",
-                queryItems: [URLQueryItem(name: "flag", value: routeFlag)]
-            )
+            let systemIds: [Int]
+            if avoidSystems.isEmpty {
+                // Fast path — ESI's own routing endpoint, unchanged from before.
+                systemIds = try await ESIClient.shared.fetch(
+                    "/route/\(origin.id)/\(destination.id)/",
+                    queryItems: [URLQueryItem(name: "flag", value: routeFlag)]
+                )
+            } else {
+                // ESI has no avoidance parameter — fall back to a local pathfinder.
+                let flag = RoutePathfinder.RouteFlag(rawValue: routeFlag) ?? .shortest
+                systemIds = try await RoutePathfinder.findRoute(
+                    from: origin.id,
+                    to: destination.id,
+                    avoiding: Set(avoidSystems.map(\.id)),
+                    flag: flag
+                )
+            }
 
             // Resolve all system details concurrently
             let resolvedSystems = await withTaskGroup(of: (Int, RouteSystem).self) { group -> [RouteSystem] in
@@ -486,6 +543,8 @@ struct RoutePlannerView: View {
                 return indexed.map(\.1)
             }
             route = resolvedSystems
+        } catch let error as RoutePathfinder.NoRouteError {
+            errorMessage = error.localizedDescription
         } catch {
             errorMessage = "No route found between these systems with the selected route type."
         }
@@ -510,7 +569,7 @@ struct RouteSystem {
 // MARK:  System Search Field
 
 struct SystemSearchField: View {
-    let label: String
+    let label: LocalizedStringKey
     let icon: String
     let iconColor: Color
     let placeholder: String

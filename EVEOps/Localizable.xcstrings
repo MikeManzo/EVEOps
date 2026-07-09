@@ -172,11 +172,41 @@
         }
       }
     },
+    "%@ + %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ + %2$@"
+          }
+        }
+      }
+    },
     "%@ appears to be online." : {
 
     },
     "%@ appears to have gone offline." : {
 
+    },
+    "%@ at %@ — fuel runs out in ~%lldh" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ at %2$@ — fuel runs out in ~%3$lldh"
+          }
+        }
+      }
+    },
+    "%@ at %@ has run out of fuel!" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ at %2$@ has run out of fuel!"
+          }
+        }
+      }
     },
     "%@ buy" : {
 
@@ -781,7 +811,13 @@
     "About Remaps" : {
 
     },
+    "Accept" : {
+
+    },
     "Accepted" : {
+
+    },
+    "Accuracy Falloff" : {
 
     },
     "ACKNOWLEDGED INSPIRATION" : {
@@ -870,6 +906,9 @@
     "Agent Type" : {
 
     },
+    "Agents" : {
+
+    },
     "ago" : {
 
     },
@@ -891,10 +930,16 @@
     "All %lld skill requirements are met." : {
 
     },
+    "All active" : {
+
+    },
     "All Divisions" : {
 
     },
     "All EVE Online related materials are used in accordance with the EVE Online Third-Party Developer License Agreement." : {
+
+    },
+    "All Online" : {
 
     },
     "All Responses" : {
@@ -904,6 +949,9 @@
 
     },
     "All Time" : {
+
+    },
+    "All training" : {
 
     },
     "Alliances" : {
@@ -993,7 +1041,13 @@
     "AreaFloor" : {
 
     },
+    "Armor Repair" : {
+
+    },
     "As %@, you can invite pilots and assign their fleet role." : {
+
+    },
+    "Assay" : {
 
     },
     "Assembled" : {
@@ -1050,6 +1104,9 @@
     "Average" : {
 
     },
+    "Avoid Systems" : {
+
+    },
     "Awarded" : {
 
     },
@@ -1057,6 +1114,9 @@
 
     },
     "Background Refresh" : {
+
+    },
+    "Bad" : {
 
     },
     "Balance" : {
@@ -1095,6 +1155,9 @@
     "Bought" : {
 
     },
+    "Bounties" : {
+
+    },
     "BPC" : {
 
     },
@@ -1125,16 +1188,25 @@
     "Buy Value" : {
 
     },
+    "Cal" : {
+
+    },
     "Calculating route…" : {
 
     },
     "Calendar" : {
 
     },
+    "Calibration" : {
+
+    },
     "Callback URL" : {
 
     },
     "Cancel" : {
+
+    },
+    "Cap. per Cycle" : {
 
     },
     "Capacitor capacity — total energy the capacitor can hold" : {
@@ -1147,6 +1219,9 @@
 
     },
     "CEO" : {
+
+    },
+    "CHA" : {
 
     },
     "Changing the server requires a restart to take effect." : {
@@ -1162,6 +1237,9 @@
 
     },
     "Character Info" : {
+
+    },
+    "Charisma" : {
 
     },
     "Check for Updates…" : {
@@ -1221,6 +1299,9 @@
     "Clears the local type cache and re-fetches implant data from ESI. Use this if implant bonuses appear incorrect." : {
 
     },
+    "Click “Send Test Message” to confirm it arrives in the channel." : {
+
+    },
     "Click a constellation to set the route origin" : {
 
     },
@@ -1246,6 +1327,9 @@
 
     },
     "Clones & Implants" : {
+
+    },
+    "Cloning" : {
 
     },
     "Close" : {
@@ -1449,6 +1533,9 @@
     "Coverage Tiers" : {
 
     },
+    "CPU" : {
+
+    },
     "current" : {
 
     },
@@ -1519,6 +1606,9 @@
     "Declared %@" : {
 
     },
+    "Decline" : {
+
+    },
     "Declined" : {
 
     },
@@ -1552,6 +1642,9 @@
     "DEST" : {
 
     },
+    "Destination" : {
+
+    },
     "Details" : {
 
     },
@@ -1559,6 +1652,12 @@
 
     },
     "Diagnostic Logs" : {
+
+    },
+    "Discord" : {
+
+    },
+    "Discord Notifications" : {
 
     },
     "Displays the Utility section containing the Diagnostic Logs viewer" : {
@@ -1571,6 +1670,15 @@
 
     },
     "Division %lld" : {
+
+    },
+    "Dmg. Bonus" : {
+
+    },
+    "Dmg. Multiplier" : {
+
+    },
+    "Docking" : {
 
     },
     "Done" : {
@@ -1700,6 +1808,9 @@
     "EVEOps is an independent third-party application not affiliated with, endorsed by, or sponsored by Fenris Creations." : {
 
     },
+    "EVEOps Test Notification" : {
+
+    },
     "EVERef" : {
 
     },
@@ -1725,6 +1836,12 @@
 
     },
     "Exact name…" : {
+
+    },
+    "Excellent" : {
+
+    },
+    "Exchange" : {
 
     },
     "Excluded from simulation" : {
@@ -1793,7 +1910,16 @@
     "Faction Warfare" : {
 
     },
+    "Factions" : {
+
+    },
+    "Failed — check the URL" : {
+
+    },
     "Failed to load event details" : {
+
+    },
+    "Falloff" : {
 
     },
     "Fetching appraisal…" : {
@@ -1925,6 +2051,9 @@
     "GetEveModels provides 3D ship model data for EVE Online. Used in accordance with the GetEveModels public API terms of service." : {
 
     },
+    "Good" : {
+
+    },
     "Grant Access…" : {
 
     },
@@ -2000,10 +2129,16 @@
     "Hub" : {
 
     },
+    "Hull Repair" : {
+
+    },
     "Idle" : {
 
     },
     "Idle Boy" : {
+
+    },
+    "If you can see this in Discord, your webhook is configured correctly." : {
 
     },
     "Implant Upgrade Potential" : {
@@ -2025,6 +2160,9 @@
 
     },
     "Import plan from clipboard" : {
+
+    },
+    "In Discord, open the channel's settings → Integrations → Webhooks → New Webhook, then Copy Webhook URL." : {
 
     },
     "In Escrow" : {
@@ -2089,6 +2227,15 @@
 
     },
     "Insufficient fitting data" : {
+
+    },
+    "Insurance" : {
+
+    },
+    "INT" : {
+
+    },
+    "Intelligence" : {
 
     },
     "Invite Members" : {
@@ -2413,6 +2560,9 @@
     "Manage all your characters and corporations.\nTrack assets, skills, industry, contracts, and more." : {
 
     },
+    "Manufacturing" : {
+
+    },
     "Margin" : {
 
     },
@@ -2455,7 +2605,13 @@
     "Medals" : {
 
     },
+    "MEM" : {
+
+    },
     "Members" : {
+
+    },
+    "Memory" : {
 
     },
     "Menu Bar Card" : {
@@ -2485,6 +2641,9 @@
     "Navigation 5\nSpaceship Command 4\nDrones 3" : {
 
     },
+    "Navy" : {
+
+    },
     "Near end of life" : {
 
     },
@@ -2497,6 +2656,9 @@
     "Net capacitor recharge at 25% charge level" : {
 
     },
+    "Neutral" : {
+
+    },
     "Never" : {
 
     },
@@ -2504,6 +2666,12 @@
 
     },
     "New Message" : {
+
+    },
+    "Next Job" : {
+
+    },
+    "Next Skill" : {
 
     },
     "Next: %@" : {
@@ -2665,6 +2833,9 @@
     "None" : {
 
     },
+    "None active" : {
+
+    },
     "Not available" : {
 
     },
@@ -2695,6 +2866,9 @@
     "NPC" : {
 
     },
+    "NPC Corporations" : {
+
+    },
     "NPCs" : {
 
     },
@@ -2708,6 +2882,9 @@
 
     },
     "Office Rental:" : {
+
+    },
+    "Offices" : {
 
     },
     "Offline" : {
@@ -2743,6 +2920,9 @@
     "Open System Settings…" : {
 
     },
+    "Optimal Range" : {
+
+    },
     "Optional" : {
 
     },
@@ -2762,6 +2942,9 @@
 
     },
     "Organizer" : {
+
+    },
+    "Origin" : {
 
     },
     "ORIGIN" : {
@@ -2791,10 +2974,25 @@
     "Paste items on the left and tap Appraise" : {
 
     },
+    "Paste the URL into the Webhook URL field here and turn on “Send alerts to Discord.”" : {
+
+    },
     "Peak passive shield recharge rate at 25% shield level" : {
 
     },
+    "PER" : {
+
+    },
+    "Perception" : {
+
+    },
+    "PG" : {
+
+    },
     "PI" : {
+
+    },
+    "PI Extractors" : {
 
     },
     "PI extractors expired" : {
@@ -2818,6 +3016,9 @@
     "Planet Type" : {
 
     },
+    "Planetary Industry" : {
+
+    },
     "Players" : {
 
     },
@@ -2825,6 +3026,9 @@
 
     },
     "Portion: %lld" : {
+
+    },
+    "Power Grid" : {
 
     },
     "Powered by EVEShipFit dogma-engine" : {
@@ -2866,7 +3070,13 @@
     "Quantity: %lld" : {
 
     },
+    "Queue Alert" : {
+
+    },
     "Queue Attribute Demand" : {
+
+    },
+    "Queue empty" : {
 
     },
     "Queue is empty — nothing to analyze." : {
@@ -2986,13 +3196,25 @@
     "Remove Contact" : {
 
     },
+    "Repair" : {
+
+    },
+    "Reprocessing" : {
+
+    },
     "Reprocessing %@" : {
 
     },
     "Required skills" : {
 
     },
+    "Research" : {
+
+    },
     "Research Agents" : {
+
+    },
+    "Resist Bonus" : {
 
     },
     "Resolving modules…" : {
@@ -3047,6 +3269,9 @@
 
     },
     "Saved Fittings" : {
+
+    },
+    "Scan Res. Bonus" : {
 
     },
     "Schematic #%lld" : {
@@ -3236,10 +3461,22 @@
     "Send" : {
 
     },
+    "Send alerts to Discord" : {
+
+    },
     "Send Invite" : {
 
     },
+    "Send Test Message" : {
+
+    },
+    "Send the same alerts you get as native macOS notifications to a channel in your Discord server — handy for corp leadership watching for structure or war alerts without the app open." : {
+
+    },
     "Send to autopilot" : {
+
+    },
+    "Sent" : {
 
     },
     "Sep" : {
@@ -3285,6 +3522,9 @@
 
     },
     "Share Fitting" : {
+
+    },
+    "Shield Boost" : {
 
     },
     "Ship" : {
@@ -3360,6 +3600,9 @@
 
     },
     "Skill Planner" : {
+
+    },
+    "Skill Points" : {
 
     },
     "Skill Queue (%lld)" : {
@@ -3497,6 +3740,12 @@
     "Structure alerts" : {
 
     },
+    "Structure Fuel Low — %@" : {
+
+    },
+    "Structure fuel running low" : {
+
+    },
     "Structure names unavailable" : {
 
     },
@@ -3535,6 +3784,12 @@
 
     },
     "Tentative" : {
+
+    },
+    "Terrible" : {
+
+    },
+    "The Categories above decide which events fire — Discord receives the same ones as your native notifications." : {
 
     },
     "The on-device model is still initializing. Check back shortly." : {
@@ -3601,6 +3856,9 @@
 
     },
     "Total values including implants." : {
+
+    },
+    "Total Wealth" : {
 
     },
     "Total:" : {
@@ -3730,6 +3988,9 @@
     "valuing…" : {
 
     },
+    "Velocity Bonus" : {
+
+    },
     "via Fuzzwork · Jita buy orders" : {
 
     },
@@ -3766,6 +4027,9 @@
     "Volume" : {
 
     },
+    "Wallet" : {
+
+    },
     "Wallet Transaction" : {
 
     },
@@ -3784,6 +4048,9 @@
     "Wealth Distribution" : {
 
     },
+    "Webhook URL" : {
+
+    },
     "What's Not Simulated" : {
 
     },
@@ -3791,6 +4058,12 @@
 
     },
     "When the cooldown expires you can reassign your base attributes (Charisma, Intelligence, Memory, Perception, Willpower) to optimise training time for a new skill plan." : {
+
+    },
+    "WIL" : {
+
+    },
+    "Willpower" : {
 
     },
     "Wing %lld" : {

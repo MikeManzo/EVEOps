@@ -701,7 +701,7 @@ struct AddContactSheet: View {
         let type: String
     }
 
-    private let standingOptions: [(Double, String, Color)] = [
+    private let standingOptions: [(Double, LocalizedStringKey, Color)] = [
         (-10, "Terrible", .red),
         (-5,  "Bad",      .orange),
         (0,   "Neutral",  .secondary),
@@ -828,7 +828,7 @@ struct EditStandingSheet: View {
     @State private var standing: Double
     @State private var isUpdating = false
 
-    private let standingOptions: [(Double, String, Color)] = [
+    private let standingOptions: [(Double, LocalizedStringKey, Color)] = [
         (-10, "Terrible", .red),
         (-5,  "Bad",      .orange),
         (0,   "Neutral",  .secondary),
@@ -898,7 +898,7 @@ struct EditStandingSheet: View {
 
 struct StandingOptionButton: View {
     let value: Double
-    let label: String
+    let label: LocalizedStringKey
     let color: Color
     let isSelected: Bool
     let action: () -> Void

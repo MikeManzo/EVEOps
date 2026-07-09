@@ -395,7 +395,7 @@ struct AttributeRemapView: View {
             guard parts.count == 2 else { return nil }
             let rate = attributeValue(attrs, name: parts[0]) + attributeValue(attrs, name: parts[1]) / 2
             return SpeedEntry(id: key,
-                              label: "\(parts[0]) + \(parts[1])",
+                              label: String(localized: "\(parts[0]) + \(parts[1])"),
                               rate: rate,
                               queueSP: data.queuePairs[key, default: 0])
         }.sorted {
