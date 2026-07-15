@@ -137,6 +137,7 @@ struct CharacterFittingsView: View {
                         preview: SharePreview(transferable.filename, image: Image(systemName: "doc.text"))
                     ) {
                         Label("Share Fitting", systemImage: "square.and.arrow.up")
+                            .padding(5)
                     }
                     .buttonStyle(.borderless)
                 }

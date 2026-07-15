@@ -17,13 +17,29 @@ import SwiftUI
 
 struct SimFittingDiagram: View {
     @Environment(SimulatorState.self) private var simState
+    @Environment(AccountManager.self) private var accountManager
     @State private var showModelViewer = false
+    @State private var showShopView = false
 
     private var highSlots: [SimSlot] { simState.slots.filter { $0.category == .high } }
     private var medSlots:  [SimSlot] { simState.slots.filter { $0.category == .medium } }
     private var lowSlots:  [SimSlot] { simState.slots.filter { $0.category == .low } }
     private var rigSlots:  [SimSlot] { simState.slots.filter { $0.category == .rig } }
     private var subSlots:  [SimSlot] { simState.slots.filter { $0.category == .subsystem } }
+
+    private var shopInput: FittingShopInput {
+        var qtys: [Int: Int] = [:]
+        for slot in simState.slots {
+            guard let typeId = slot.moduleTypeId else { continue }
+            qtys[typeId, default: 0] += 1
+        }
+        let shipTypeId = simState.shipTypeId ?? 0
+        let hull = FittingShopItem(typeId: shipTypeId, quantity: 1, name: simState.shipName)
+        let items = qtys.sorted { $0.key < $1.key }.map { typeId, qty in
+            FittingShopItem(typeId: typeId, quantity: qty, name: simState.moduleTypes[typeId]?.name ?? "Type #\(typeId)")
+        }
+        return FittingShopInput(fittingName: simState.shipName, shipTypeId: shipTypeId, items: [hull] + items)
+    }
 
     var body: some View {
         if simState.shipTypeId == nil {
@@ -39,6 +55,10 @@ struct SimFittingDiagram: View {
             }
             .sheet(isPresented: $showModelViewer) {
                 ShipModelSheet(shipName: simState.shipType?.name ?? simState.shipName, shipClass: simState.shipClassName)
+            }
+            .sheet(isPresented: $showShopView) {
+                FittingShopView(input: shopInput)
+                    .environment(accountManager)
             }
         }
     }
@@ -105,6 +125,14 @@ struct SimFittingDiagram: View {
                 }
                 .buttonStyle(.plain)
                 if simState.slots.contains(where: { !$0.isEmpty }) {
+                    Button { showShopView = true } label: {
+                        Label("Shop Fit", systemImage: "cart.fill")
+                            .font(.caption.bold())
+                            .padding(.horizontal, 10).padding(.vertical, 6)
+                            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+                            .foregroundStyle(.white)
+                    }
+                    .buttonStyle(.plain)
                     Button { simState.clearAll() } label: {
                         Label("Clear Fit", systemImage: "trash")
                             .font(.caption.bold())
