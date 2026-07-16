@@ -58,6 +58,16 @@ private func lpISKPerLPColor(_ value: Double) -> Color {
     return .red
 }
 
+// MARK:  EverMarks (Paragon)
+
+/// Paragon is the NPC corporation whose loyalty points are branded in-game as "EverMarks" —
+/// a cosmetics-only currency (ship/corp emblems, SKINR) with no ISK cost and no market value.
+private let paragonCorporationId = 1000419
+
+private func lpCurrencyLabel(isEverMarks: Bool) -> String { isEverMarks ? "EM" : "LP" }
+private func lpCurrencyIcon(isEverMarks: Bool) -> String { isEverMarks ? "sparkles" : "medal.fill" }
+private func lpCurrencyColor(isEverMarks: Bool) -> Color { isEverMarks ? .purple : .yellow }
+
 // MARK:  Image Views
 
 private enum LPStoreImageCache {
@@ -146,6 +156,7 @@ private struct CorpLogoImage: View {
 private struct LPOfferDetailPopover: View {
     let resolved: ResolvedLPOffer
     let requiredItemNames: [Int: String]
+    let isEverMarks: Bool
 
     private var offer: ESILPStoreOffer { resolved.offer }
 
@@ -238,21 +249,23 @@ private struct LPOfferDetailPopover: View {
                 // Exchange Cost
                 VStack(alignment: .leading, spacing: 2) {
                     sectionLabel("EXCHANGE COST")
-                    detailRow("LP Cost") {
+                    detailRow(isEverMarks ? "EverMarks Cost" : "LP Cost") {
                         HStack(spacing: 4) {
-                            Image(systemName: "medal.fill")
+                            Image(systemName: lpCurrencyIcon(isEverMarks: isEverMarks))
                                 .font(.caption)
-                                .foregroundStyle(.yellow)
-                            Text(lpFormatLP(offer.lpCost) + " LP")
+                                .foregroundStyle(lpCurrencyColor(isEverMarks: isEverMarks))
+                            Text(lpFormatLP(offer.lpCost) + " " + lpCurrencyLabel(isEverMarks: isEverMarks))
                                 .foregroundStyle(Color(hue: 0.13, saturation: 0.85, brightness: 0.9))
                                 .fontWeight(.semibold)
                         }
                     }
-                    detailRow("ISK Cost") {
-                        Text(offer.iskCost > 0
-                             ? EVEFormatters.formatISK(Double(offer.iskCost))
-                             : "—")
-                            .foregroundStyle(.secondary)
+                    if !isEverMarks {
+                        detailRow("ISK Cost") {
+                            Text(offer.iskCost > 0
+                                 ? EVEFormatters.formatISK(Double(offer.iskCost))
+                                 : "—")
+                                .foregroundStyle(.secondary)
+                        }
                     }
                     if let ak = offer.akCost {
                         detailRow("AK Cost") {
@@ -270,33 +283,35 @@ private struct LPOfferDetailPopover: View {
                     detailRow("Quantity") {
                         Text("×\(offer.quantity)").foregroundStyle(.primary)
                     }
-                    if let jita = resolved.jitaSell {
-                        detailRow("Jita Sell") {
-                            Text(EVEFormatters.formatISK(jita)).foregroundStyle(.green)
-                        }
-                        if offer.quantity > 1 {
-                            detailRow("Total Value") {
-                                Text(EVEFormatters.formatISK(jita * Double(offer.quantity)))
-                                    .foregroundStyle(.green)
+                    if !isEverMarks {
+                        if let jita = resolved.jitaSell {
+                            detailRow("Jita Sell") {
+                                Text(EVEFormatters.formatISK(jita)).foregroundStyle(.green)
                             }
-                        }
-                        if let net = resolved.netISK {
-                            detailRow("Net ISK") {
-                                Text((net >= 0 ? "+" : "") + EVEFormatters.formatISK(net))
-                                    .foregroundStyle(net >= 0 ? .green : .red)
-                                    .fontWeight(.semibold)
+                            if offer.quantity > 1 {
+                                detailRow("Total Value") {
+                                    Text(EVEFormatters.formatISK(jita * Double(offer.quantity)))
+                                        .foregroundStyle(.green)
+                                }
                             }
-                        }
-                    } else {
-                        detailRow("Jita Sell") {
-                            Text("Loading…").foregroundStyle(.secondary)
+                            if let net = resolved.netISK {
+                                detailRow("Net ISK") {
+                                    Text((net >= 0 ? "+" : "") + EVEFormatters.formatISK(net))
+                                        .foregroundStyle(net >= 0 ? .green : .red)
+                                        .fontWeight(.semibold)
+                                }
+                            }
+                        } else {
+                            detailRow("Jita Sell") {
+                                Text("Loading…").foregroundStyle(.secondary)
+                            }
                         }
                     }
                 }
                 .padding(.bottom, 8)
 
                 // ISK/LP badge
-                if let iskLP = resolved.iskPerLP {
+                if !isEverMarks, let iskLP = resolved.iskPerLP {
                     let color = lpISKPerLPColor(iskLP)
                     HStack {
                         Spacer()
@@ -393,6 +408,7 @@ private struct LPOfferRow: View {
     let requiredItemNames: [Int: String]
     let agentStations: [AgentStation]
     let isLoadingStations: Bool
+    let isEverMarks: Bool
     let onSetWaypoint: (Int) -> Void
 
     @State private var showPopover = false
@@ -410,7 +426,8 @@ private struct LPOfferRow: View {
                     .popover(isPresented: $showPopover, arrowEdge: .trailing) {
                         LPOfferDetailPopover(
                             resolved: resolved,
-                            requiredItemNames: requiredItemNames
+                            requiredItemNames: requiredItemNames,
+                            isEverMarks: isEverMarks
                         )
                     }
                 VStack(alignment: .leading, spacing: 2) {
@@ -430,45 +447,50 @@ private struct LPOfferRow: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.leading, 12)
 
-            // LP cost
+            // LP / EverMarks cost
             HStack(spacing: 3) {
-                Image(systemName: "medal.fill")
+                Image(systemName: lpCurrencyIcon(isEverMarks: isEverMarks))
                     .font(.system(size: 9))
-                    .foregroundStyle(.yellow)
+                    .foregroundStyle(lpCurrencyColor(isEverMarks: isEverMarks))
                 Text(lpFormatLP(offer.lpCost))
                     .font(.caption.monospacedDigit().bold())
                     .foregroundStyle(Color(hue: 0.13, saturation: 0.85, brightness: 0.9))
             }
             .frame(width: 90, alignment: .trailing)
 
-            // ISK cost
-            Text(offer.iskCost > 0 ? EVEFormatters.formatISKShort(Double(offer.iskCost)) : "—")
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(.secondary)
-                .frame(width: 100, alignment: .trailing)
+            if !isEverMarks {
+                // ISK cost
+                Text(offer.iskCost > 0 ? EVEFormatters.formatISKShort(Double(offer.iskCost)) : "—")
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .frame(width: 100, alignment: .trailing)
+            }
 
             // Quantity
             Text("×\(offer.quantity)")
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.tertiary)
                 .frame(width: 44, alignment: .trailing)
+                .padding(.trailing, isEverMarks ? 16 : 0)
 
-            // Jita sell price
-            Group {
-                if let sell = resolved.jitaSell {
-                    Text(EVEFormatters.formatISKShort(sell))
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.green)
-                } else {
-                    Text("—").foregroundStyle(.tertiary)
+            if !isEverMarks {
+                // Jita sell price
+                Group {
+                    if let sell = resolved.jitaSell {
+                        Text(EVEFormatters.formatISKShort(sell))
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.green)
+                    } else {
+                        Text("—").foregroundStyle(.tertiary)
+                    }
                 }
-            }
-            .frame(width: 110, alignment: .trailing)
-
-            // ISK/LP badge
-            iskPerLPBadge
                 .frame(width: 110, alignment: .trailing)
-                .padding(.trailing, 16)
+
+                // ISK/LP badge
+                iskPerLPBadge
+                    .frame(width: 110, alignment: .trailing)
+                    .padding(.trailing, 16)
+            }
         }
         .padding(.vertical, 9)
         .background(isEven ? Color.clear : Color(NSColor.separatorColor).opacity(0.07))
@@ -556,6 +578,8 @@ struct LoyaltyPointStoreView: View {
         lpData.first { $0.corporationId == selectedCorpId }
     }
 
+    private var isEverMarks: Bool { selectedCorpId == paragonCorporationId }
+
     private var filteredOffers: [ResolvedLPOffer] {
         var result = offers
         if !searchText.isEmpty {
@@ -594,6 +618,7 @@ struct LoyaltyPointStoreView: View {
         }
         .onChange(of: selectedCorpId) { _, id in
             if let id {
+                sortByISKLP = id != paragonCorporationId
                 Task { await loadOffers(for: id) }
                 Task { await loadAgentStations(for: id) }
             }
@@ -666,7 +691,8 @@ struct LoyaltyPointStoreView: View {
     }
 
     private func corpRow(_ lp: ResolvedLoyaltyPoints) -> some View {
-        HStack(spacing: 10) {
+        let isEM = lp.corporationId == paragonCorporationId
+        return HStack(spacing: 10) {
             CorpLogoImage(corpId: lp.corporationId, size: 38)
 
             VStack(alignment: .leading, spacing: 3) {
@@ -676,10 +702,10 @@ struct LoyaltyPointStoreView: View {
                     .fixedSize(horizontal: false, vertical: true)
 
                 HStack(spacing: 3) {
-                    Image(systemName: "medal.fill")
+                    Image(systemName: lpCurrencyIcon(isEverMarks: isEM))
                         .font(.system(size: 9))
-                        .foregroundStyle(.yellow)
-                    Text(lpFormatLP(lp.loyaltyPoints) + " LP")
+                        .foregroundStyle(lpCurrencyColor(isEverMarks: isEM))
+                    Text(lpFormatLP(lp.loyaltyPoints) + " " + lpCurrencyLabel(isEverMarks: isEM))
                         .font(.caption.monospacedDigit())
                         .foregroundStyle(.secondary)
                 }
@@ -759,6 +785,7 @@ struct LoyaltyPointStoreView: View {
                                 requiredItemNames: requiredItemNames,
                                 agentStations: agentStations,
                                 isLoadingStations: isLoadingStations,
+                                isEverMarks: isEverMarks,
                                 onSetWaypoint: { locationId in
                                     Task { await setWaypoint(locationId: locationId) }
                                 }
@@ -818,31 +845,33 @@ struct LoyaltyPointStoreView: View {
                 .transition(.opacity)
             }
 
-            // LP balance badge for selected corp
+            // LP / EverMarks balance badge for selected corp
             if let corp = selectedCorp {
                 HStack(spacing: 4) {
-                    Image(systemName: "medal.fill")
-                        .foregroundStyle(.yellow)
+                    Image(systemName: lpCurrencyIcon(isEverMarks: isEverMarks))
+                        .foregroundStyle(lpCurrencyColor(isEverMarks: isEverMarks))
                         .font(.caption)
-                    Text(lpFormatLP(corp.loyaltyPoints) + " LP")
+                    Text(lpFormatLP(corp.loyaltyPoints) + " " + lpCurrencyLabel(isEverMarks: isEverMarks))
                         .font(.caption.bold().monospacedDigit())
                         .foregroundStyle(.primary)
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 5)
-                .background(.yellow.opacity(0.12), in: Capsule())
-                .overlay(Capsule().strokeBorder(.yellow.opacity(0.3), lineWidth: 1))
+                .background(lpCurrencyColor(isEverMarks: isEverMarks).opacity(0.12), in: Capsule())
+                .overlay(Capsule().strokeBorder(lpCurrencyColor(isEverMarks: isEverMarks).opacity(0.3), lineWidth: 1))
             }
 
-            // Sort picker
-            Picker("Sort", selection: $sortByISKLP) {
-                Text("ISK/LP").tag(true)
-                Text("LP Cost").tag(false)
+            // Sort picker — ISK/LP has no meaning for EverMarks (cosmetics have no ISK cost or market value)
+            if !isEverMarks {
+                Picker("Sort", selection: $sortByISKLP) {
+                    Text("ISK/LP").tag(true)
+                    Text("LP Cost").tag(false)
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 150)
+                .labelsHidden()
+                .help("Sort by estimated ISK per LP or by LP cost")
             }
-            .pickerStyle(.segmented)
-            .frame(width: 150)
-            .labelsHidden()
-            .help("Sort by estimated ISK per LP or by LP cost")
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 9)
@@ -856,7 +885,7 @@ struct LoyaltyPointStoreView: View {
                 .padding(.leading, 64)
 
             HStack(spacing: 3) {
-                Text("LP Cost")
+                Text(isEverMarks ? "EM Cost" : "LP Cost")
                 if !sortByISKLP {
                     Image(systemName: "chevron.up")
                         .font(.system(size: 8, weight: .bold))
@@ -865,25 +894,30 @@ struct LoyaltyPointStoreView: View {
             }
             .frame(width: 90, alignment: .trailing)
 
-            Text("ISK Cost")
-                .frame(width: 100, alignment: .trailing)
+            if !isEverMarks {
+                Text("ISK Cost")
+                    .frame(width: 100, alignment: .trailing)
+            }
 
             Text("Qty")
                 .frame(width: 44, alignment: .trailing)
+                .padding(.trailing, isEverMarks ? 16 : 0)
 
-            Text("Jita Sell")
-                .frame(width: 110, alignment: .trailing)
+            if !isEverMarks {
+                Text("Jita Sell")
+                    .frame(width: 110, alignment: .trailing)
 
-            HStack(spacing: 3) {
-                Text("ISK/LP")
-                if sortByISKLP {
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 8, weight: .bold))
-                        .foregroundStyle(Color.accentColor)
+                HStack(spacing: 3) {
+                    Text("ISK/LP")
+                    if sortByISKLP {
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundStyle(Color.accentColor)
+                    }
                 }
+                .frame(width: 110, alignment: .trailing)
+                .padding(.trailing, 16)
             }
-            .frame(width: 110, alignment: .trailing)
-            .padding(.trailing, 16)
         }
         .font(.caption.bold())
         .foregroundStyle(.secondary)
