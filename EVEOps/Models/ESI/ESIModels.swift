@@ -1230,6 +1230,35 @@ nonisolated struct ESIFWStatPeriod: Codable, Sendable {
     let total: Int
 }
 
+nonisolated struct ESIFWSystem: Codable, Sendable {
+    let contested: String
+    let occupierFactionId: Int
+    let ownerFactionId: Int
+    let solarSystemId: Int
+    let victoryPoints: Int
+    let victoryPointsThreshold: Int
+}
+
+nonisolated struct ESIFWWar: Codable, Sendable {
+    let againstId: Int
+    let factionId: Int
+}
+
+// MARK:  Incursions
+
+nonisolated struct ESIIncursion: Codable, Sendable, Identifiable {
+    let constellationId: Int
+    let factionId: Int
+    let hasBoss: Bool
+    let infestedSolarSystems: [Int]
+    let influence: Double
+    let stagingSolarSystemId: Int
+    let state: String
+    let type: String
+
+    var id: Int { stagingSolarSystemId }
+}
+
 // MARK:  Universe Types
 
 nonisolated struct ESIUniverseType: Decodable, Sendable {

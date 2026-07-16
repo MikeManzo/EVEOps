@@ -341,6 +341,9 @@
         }
       }
     },
+    "%lld contested" : {
+
+    },
     "%lld contracts" : {
 
     },
@@ -367,6 +370,9 @@
 
     },
     "%lld industry jobs finished" : {
+
+    },
+    "%lld infested systems" : {
 
     },
     "%lld internal gate%@" : {
@@ -1147,6 +1153,9 @@
 
     },
     "Bookmarks" : {
+
+    },
+    "Boss" : {
 
     },
     "Both" : {
@@ -2199,6 +2208,9 @@
     "Includes universe data, resolved names, and ESI responses. All data re-fetches automatically." : {
 
     },
+    "Incursions" : {
+
+    },
     "Individual Insights" : {
 
     },
@@ -2501,6 +2513,9 @@
 
     },
     "Loading textures…" : {
+
+    },
+    "Loading warzone control…" : {
 
     },
     "Loading…" : {
@@ -3683,6 +3698,9 @@
     "SSO Configuration" : {
 
     },
+    "Staging: %@" : {
+
+    },
     "Standing" : {
 
     },
@@ -3768,6 +3786,9 @@
 
     },
     "SYSTEM EFFECT" : {
+
+    },
+    "systems" : {
 
     },
     "Systems w/ Stations" : {
@@ -4045,6 +4066,12 @@
     "Warnings" : {
 
     },
+    "Warzone Control" : {
+
+    },
+    "Warzone control unavailable" : {
+
+    },
     "Watched" : {
 
     },
@@ -4090,6 +4117,9 @@
     "Yesterday" : {
 
     },
+    "You" : {
+
+    },
     "You are here" : {
 
     },
@@ -4127,6 +4157,9 @@
       }
     },
     "Your Response" : {
+
+    },
+    "Your Stats" : {
 
     },
     "zKillboard" : {

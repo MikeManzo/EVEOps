@@ -138,6 +138,8 @@ struct MainContentView: View {
                 RoutePlannerView()
             case .galaxyMap:
                 GalaxyMapView()
+            case .incursions:
+                IncursionsView()
             case .careerAgents:
                 AgentFinderView()
             case .fleetManager:

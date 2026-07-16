@@ -16,14 +16,27 @@ struct CharacterFWStatsView: View {
     @State private var isLoading = false
     @State private var error: String?
 
+    @State private var warzoneStats: [WarzoneFactionStat] = []
+    @State private var isLoadingWarzone = false
+
     var body: some View {
-        LoadingStateView(isLoading: isLoading, error: error,
-                         isEmpty: entry == nil, emptyMessage: "No faction warfare data") {
-            List {
-                if let entry {
+        // Warzone control is public, galaxy-wide data — shown regardless of whether the
+        // selected character has personal FW stats, so it isn't hidden behind a per-character
+        // error/empty state (e.g. a character with no FW activity).
+        List {
+            Section("Your Stats") {
+                if isLoading {
+                    HStack {
+                        ProgressView().controlSize(.small)
+                        Text("Loading…").font(.caption).foregroundStyle(.secondary)
+                    }
+                } else if let error {
+                    Text(error).font(.caption).foregroundStyle(.secondary)
+                } else if let entry {
                     FWStatsCard(entry: entry)
                 }
             }
+            warzoneControlSection
         }
         .safeAreaInset(edge: .top, spacing: 0) {
             HStack {
@@ -40,6 +53,73 @@ struct CharacterFWStatsView: View {
             entry = nil
             await load()
         }
+        .task {
+            // Warzone control is public data — independent of the selected character.
+            await loadWarzoneControl()
+        }
+    }
+
+    // MARK:  Warzone Control
+
+    private var warzoneControlSection: some View {
+        Section("Warzone Control") {
+            if isLoadingWarzone && warzoneStats.isEmpty {
+                HStack {
+                    ProgressView().controlSize(.small)
+                    Text("Loading warzone control…")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } else if warzoneStats.isEmpty {
+                Text("Warzone control unavailable")
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(warzoneStats) { stat in
+                    warzoneRow(stat)
+                }
+            }
+        }
+    }
+
+    private func warzoneRow(_ stat: WarzoneFactionStat) -> some View {
+        let isYourFaction = entry?.stats.factionId == stat.factionId
+        return HStack(spacing: 10) {
+            AsyncImage(url: EVEImageURL.corporationLogo(stat.factionId, size: 64)) { image in
+                image.resizable().scaledToFit()
+            } placeholder: {
+                RoundedRectangle(cornerRadius: 6).fill(.quaternary)
+            }
+            .frame(width: 32, height: 32)
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text(stat.factionName)
+                        .font(.subheadline.bold())
+                    if isYourFaction {
+                        Label("You", systemImage: "star.fill")
+                            .font(.caption2.bold())
+                            .foregroundStyle(.blue)
+                    }
+                }
+                if stat.systemsContested > 0 {
+                    Text("\(stat.systemsContested) contested")
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
+                }
+            }
+
+            Spacer()
+
+            Text("\(stat.systemsOwned)")
+                .font(.subheadline.bold().monospacedDigit())
+                .foregroundStyle(.primary)
+            Text("systems")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .padding(.vertical, isYourFaction ? 4 : 0)
+        .listRowBackground(isYourFaction ? Color.blue.opacity(0.08) : Color.clear)
     }
 
     private func load() async {
@@ -71,6 +151,35 @@ struct CharacterFWStatsView: View {
         }
 
         isLoading = false
+    }
+
+    private func loadWarzoneControl() async {
+        isLoadingWarzone = true
+        defer { isLoadingWarzone = false }
+
+        guard let systems: [ESIFWSystem] = try? await ESIClient.shared.fetch("/fw/systems/") else { return }
+
+        var counts: [Int: (owned: Int, contested: Int)] = [:]
+        for sys in systems {
+            var current = counts[sys.ownerFactionId] ?? (owned: 0, contested: 0)
+            current.owned += 1
+            if sys.contested != "uncontested" { current.contested += 1 }
+            counts[sys.ownerFactionId] = current
+        }
+
+        let factionIds = Array(counts.keys)
+        let names = await NameResolver.shared.resolve(ids: factionIds)
+
+        warzoneStats = counts
+            .map { factionId, count in
+                WarzoneFactionStat(
+                    factionId: factionId,
+                    factionName: names[factionId] ?? "Faction #\(factionId)",
+                    systemsOwned: count.owned,
+                    systemsContested: count.contested
+                )
+            }
+            .sorted { $0.systemsOwned > $1.systemsOwned }
     }
 }
 
@@ -200,4 +309,12 @@ private struct FWStatsCard: View {
 private struct FWStatsEntry {
     let stats: ESIFWCharacterStats
     let factionName: String?
+}
+
+private struct WarzoneFactionStat: Identifiable {
+    let factionId: Int
+    let factionName: String
+    let systemsOwned: Int
+    let systemsContested: Int
+    var id: Int { factionId }
 }

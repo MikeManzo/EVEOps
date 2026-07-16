@@ -32,6 +32,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
     case contacts = "Contacts"
     case routePlanner = "Route Planner"
     case galaxyMap = "Galaxy Map"
+    case incursions = "Incursions"
     case careerAgents = "Agent Finder"
     case fleetManager = "Fleet Manager"
     case market = "Market"
@@ -84,6 +85,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
         case .contacts: "Contacts"
         case .routePlanner: "Route Planner"
         case .galaxyMap: "Galaxy Map"
+        case .incursions: "Incursions"
         case .careerAgents: "Agent Finder"
         case .fleetManager: "Fleet Manager"
         case .market: "Market"
@@ -131,6 +133,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
         case .contacts: return "person.2.wave.2.fill"
         case .routePlanner: return "map.fill"
         case .galaxyMap: return "globe"
+        case .incursions: return "flame.fill"
         case .careerAgents: return "magnifyingglass.circle.fill"
         case .fleetManager: return "dot.radiowaves.left.and.right"
         case .corpWallets: return "creditcard.fill"
@@ -169,7 +172,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
     }
 
     static var universeSections: [NavigationSection] {
-        [.routePlanner, .galaxyMap, .stationBrowser, .careerAgents]
+        [.routePlanner, .galaxyMap, .incursions, .stationBrowser, .careerAgents]
     }
 
     static var corporationSections: [NavigationSection] {
