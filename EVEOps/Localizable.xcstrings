@@ -464,6 +464,9 @@
     "%lld NPC kills" : {
 
     },
+    "%lld occupied" : {
+
+    },
     "%lld of %lld items" : {
       "localizations" : {
         "en" : {
@@ -597,6 +600,16 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$lld station%2$@"
+          }
+        }
+      }
+    },
+    "%lld systems · %lld contested · %lld occupied" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld systems · %2$lld contested · %3$lld occupied"
           }
         }
       }
@@ -1435,6 +1448,9 @@
 
     },
     "Contacts" : {
+
+    },
+    "Contested" : {
 
     },
     "Contract Details" : {
@@ -2894,6 +2910,9 @@
 
     },
     "Null Sec" : {
+
+    },
+    "Occupied by %@" : {
 
     },
     "Offer #%lld" : {

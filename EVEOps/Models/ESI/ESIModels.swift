@@ -1244,6 +1244,22 @@ nonisolated struct ESIFWWar: Codable, Sendable {
     let factionId: Int
 }
 
+nonisolated struct ESIFWLeaderboards: Codable, Sendable {
+    let kills: ESIFWLeaderboardMetric
+    let victoryPoints: ESIFWLeaderboardMetric
+}
+
+nonisolated struct ESIFWLeaderboardMetric: Codable, Sendable {
+    let activeTotal: [ESIFWLeaderboardEntry]
+    let lastWeek: [ESIFWLeaderboardEntry]
+    let yesterday: [ESIFWLeaderboardEntry]
+}
+
+nonisolated struct ESIFWLeaderboardEntry: Codable, Sendable {
+    let amount: Int
+    let factionId: Int
+}
+
 // MARK:  Incursions
 
 nonisolated struct ESIIncursion: Codable, Sendable, Identifiable {

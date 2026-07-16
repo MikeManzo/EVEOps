@@ -18,6 +18,11 @@ struct CharacterFWStatsView: View {
 
     @State private var warzoneStats: [WarzoneFactionStat] = []
     @State private var isLoadingWarzone = false
+    @State private var fwSystems: [ESIFWSystem] = []
+    @State private var fwWars: [ESIFWWar] = []
+    @State private var fwLeaderboard: ESIFWLeaderboards?
+    @State private var fwFactionNames: [Int: String] = [:]
+    @State private var fwSystemNames: [Int: String] = [:]
 
     var body: some View {
         // Warzone control is public, galaxy-wide data — shown regardless of whether the
@@ -75,51 +80,18 @@ struct CharacterFWStatsView: View {
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(warzoneStats) { stat in
-                    warzoneRow(stat)
+                    WarzoneRow(
+                        stat: stat,
+                        isYourFaction: entry?.stats.factionId == stat.factionId,
+                        allSystems: fwSystems,
+                        wars: fwWars,
+                        leaderboard: fwLeaderboard,
+                        factionNames: fwFactionNames,
+                        systemNames: fwSystemNames
+                    )
                 }
             }
         }
-    }
-
-    private func warzoneRow(_ stat: WarzoneFactionStat) -> some View {
-        let isYourFaction = entry?.stats.factionId == stat.factionId
-        return HStack(spacing: 10) {
-            AsyncImage(url: EVEImageURL.corporationLogo(stat.factionId, size: 64)) { image in
-                image.resizable().scaledToFit()
-            } placeholder: {
-                RoundedRectangle(cornerRadius: 6).fill(.quaternary)
-            }
-            .frame(width: 32, height: 32)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
-
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
-                    Text(stat.factionName)
-                        .font(.subheadline.bold())
-                    if isYourFaction {
-                        Label("You", systemImage: "star.fill")
-                            .font(.caption2.bold())
-                            .foregroundStyle(.blue)
-                    }
-                }
-                if stat.systemsContested > 0 {
-                    Text("\(stat.systemsContested) contested")
-                        .font(.caption2)
-                        .foregroundStyle(.orange)
-                }
-            }
-
-            Spacer()
-
-            Text("\(stat.systemsOwned)")
-                .font(.subheadline.bold().monospacedDigit())
-                .foregroundStyle(.primary)
-            Text("systems")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-        }
-        .padding(.vertical, isYourFaction ? 4 : 0)
-        .listRowBackground(isYourFaction ? Color.blue.opacity(0.08) : Color.clear)
     }
 
     private func load() async {
@@ -157,26 +129,42 @@ struct CharacterFWStatsView: View {
         isLoadingWarzone = true
         defer { isLoadingWarzone = false }
 
-        guard let systems: [ESIFWSystem] = try? await ESIClient.shared.fetch("/fw/systems/") else { return }
+        async let systemsResult: [ESIFWSystem]? = try? await ESIClient.shared.fetch("/fw/systems/")
+        async let warsResult: [ESIFWWar]? = try? await ESIClient.shared.fetch("/fw/wars/")
+        async let leaderboardResult: ESIFWLeaderboards? = try? await ESIClient.shared.fetch("/fw/leaderboards/")
 
-        var counts: [Int: (owned: Int, contested: Int)] = [:]
+        let (systemsOpt, warsOpt, leaderboardOpt) = await (systemsResult, warsResult, leaderboardResult)
+        guard let systems = systemsOpt else { return }
+
+        fwSystems = systems
+        fwWars = warsOpt ?? []
+        fwLeaderboard = leaderboardOpt
+
+        var counts: [Int: (owned: Int, contested: Int, occupied: Int)] = [:]
         for sys in systems {
-            var current = counts[sys.ownerFactionId] ?? (owned: 0, contested: 0)
+            var current = counts[sys.ownerFactionId] ?? (owned: 0, contested: 0, occupied: 0)
             current.owned += 1
             if sys.contested != "uncontested" { current.contested += 1 }
+            if sys.occupierFactionId != sys.ownerFactionId { current.occupied += 1 }
             counts[sys.ownerFactionId] = current
         }
 
-        let factionIds = Array(counts.keys)
-        let names = await NameResolver.shared.resolve(ids: factionIds)
+        // Resolve every faction that appears anywhere (owner, occupier, or a war party) in one batch.
+        let allFactionIds = Set(counts.keys)
+            .union(systems.map(\.occupierFactionId))
+            .union(fwWars.flatMap { [$0.factionId, $0.againstId] })
+        fwFactionNames = await NameResolver.shared.resolve(ids: Array(allFactionIds))
+
+        fwSystemNames = await NameResolver.shared.resolve(ids: systems.map(\.solarSystemId))
 
         warzoneStats = counts
             .map { factionId, count in
                 WarzoneFactionStat(
                     factionId: factionId,
-                    factionName: names[factionId] ?? "Faction #\(factionId)",
+                    factionName: fwFactionNames[factionId] ?? "Faction #\(factionId)",
                     systemsOwned: count.owned,
-                    systemsContested: count.contested
+                    systemsContested: count.contested,
+                    systemsOccupied: count.occupied
                 )
             }
             .sorted { $0.systemsOwned > $1.systemsOwned }
@@ -316,5 +304,311 @@ private struct WarzoneFactionStat: Identifiable {
     let factionName: String
     let systemsOwned: Int
     let systemsContested: Int
+    let systemsOccupied: Int
     var id: Int { factionId }
 }
+
+// MARK:  Warzone Row + Popover
+
+private struct WarzoneRow: View {
+    let stat: WarzoneFactionStat
+    let isYourFaction: Bool
+    let allSystems: [ESIFWSystem]
+    let wars: [ESIFWWar]
+    let leaderboard: ESIFWLeaderboards?
+    let factionNames: [Int: String]
+    let systemNames: [Int: String]
+
+    @State private var showPopover = false
+
+    var body: some View {
+        HStack(spacing: 10) {
+            AsyncImage(url: EVEImageURL.corporationLogo(stat.factionId, size: 64)) { image in
+                image.resizable().scaledToFit()
+            } placeholder: {
+                RoundedRectangle(cornerRadius: 6).fill(.quaternary)
+            }
+            .frame(width: 32, height: 32)
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text(stat.factionName)
+                        .font(.subheadline.bold())
+                    if isYourFaction {
+                        Label("You", systemImage: "star.fill")
+                            .font(.caption2.bold())
+                            .foregroundStyle(.blue)
+                    }
+                }
+                if stat.systemsContested > 0 || stat.systemsOccupied > 0 {
+                    HStack(spacing: 6) {
+                        if stat.systemsContested > 0 {
+                            Text("\(stat.systemsContested) contested")
+                                .font(.caption2)
+                                .foregroundStyle(.orange)
+                        }
+                        if stat.systemsOccupied > 0 {
+                            Text("\(stat.systemsOccupied) occupied")
+                                .font(.caption2)
+                                .foregroundStyle(.red)
+                        }
+                    }
+                }
+            }
+
+            Spacer()
+
+            Text("\(stat.systemsOwned)")
+                .font(.subheadline.bold().monospacedDigit())
+                .foregroundStyle(.primary)
+            Text("systems")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+
+            Image(systemName: "info.circle")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.vertical, isYourFaction ? 4 : 0)
+        .listRowBackground(isYourFaction ? Color.blue.opacity(0.08) : Color.clear)
+        .contentShape(Rectangle())
+        .onTapGesture { showPopover = true }
+        .popover(isPresented: $showPopover, arrowEdge: .trailing) {
+            WarzoneFactionPopover(
+                stat: stat,
+                isYourFaction: isYourFaction,
+                allSystems: allSystems,
+                wars: wars,
+                leaderboard: leaderboard,
+                factionNames: factionNames,
+                systemNames: systemNames
+            )
+        }
+    }
+}
+
+private struct WarzoneFactionPopover: View {
+    let stat: WarzoneFactionStat
+    let isYourFaction: Bool
+    let allSystems: [ESIFWSystem]
+    let wars: [ESIFWWar]
+    let leaderboard: ESIFWLeaderboards?
+    let factionNames: [Int: String]
+    let systemNames: [Int: String]
+
+    private var ownedSystems: [ESIFWSystem] {
+        allSystems
+            .filter { $0.ownerFactionId == stat.factionId }
+            .sorted { lhs, rhs in
+                let lhsOccupied = lhs.occupierFactionId != lhs.ownerFactionId
+                let rhsOccupied = rhs.occupierFactionId != rhs.ownerFactionId
+                if lhsOccupied != rhsOccupied { return lhsOccupied }
+                if (lhs.contested != "uncontested") != (rhs.contested != "uncontested") {
+                    return lhs.contested != "uncontested"
+                }
+                return vpFraction(lhs) > vpFraction(rhs)
+            }
+    }
+
+    private var opponentFactionIds: [Int] {
+        Array(Set(wars.filter { $0.factionId == stat.factionId }.map(\.againstId)))
+            .sorted { (factionNames[$0] ?? "") < (factionNames[$1] ?? "") }
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                header
+                Divider()
+
+                if !opponentFactionIds.isEmpty {
+                    warSection
+                    Divider()
+                }
+
+                if let leaderboard {
+                    statsSection(leaderboard)
+                    Divider()
+                }
+
+                systemsSection
+            }
+        }
+        .frame(minWidth: 320, maxWidth: 360, maxHeight: 480)
+    }
+
+    // MARK:  Header
+
+    private var header: some View {
+        HStack(spacing: 12) {
+            AsyncImage(url: EVEImageURL.corporationLogo(stat.factionId, size: 64)) { image in
+                image.resizable().scaledToFit()
+            } placeholder: {
+                RoundedRectangle(cornerRadius: 8).fill(.quaternary)
+            }
+            .frame(width: 44, height: 44)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
+                    Text(stat.factionName).font(.headline)
+                    if isYourFaction {
+                        Label("You", systemImage: "star.fill")
+                            .font(.caption2.bold())
+                            .foregroundStyle(.blue)
+                    }
+                }
+                Text("\(stat.systemsOwned) systems · \(stat.systemsContested) contested · \(stat.systemsOccupied) occupied")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+    }
+
+    // MARK:  War Opponents
+
+    private var warSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            sectionLabel("AT WAR WITH")
+            FlowChips(items: opponentFactionIds.map { factionNames[$0] ?? "Faction #\($0)" })
+                .padding(.horizontal, 12)
+        }
+        .padding(.vertical, 8)
+    }
+
+    // MARK:  Combat Stats
+
+    private func statsSection(_ leaderboard: ESIFWLeaderboards) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionLabel("FACTION COMBAT STATS")
+            periodRow(label: "Kills", color: .red,
+                      yesterday: amount(for: leaderboard.kills.yesterday),
+                      lastWeek: amount(for: leaderboard.kills.lastWeek),
+                      total: amount(for: leaderboard.kills.activeTotal))
+            periodRow(label: "Victory Points", color: .blue,
+                      yesterday: amount(for: leaderboard.victoryPoints.yesterday),
+                      lastWeek: amount(for: leaderboard.victoryPoints.lastWeek),
+                      total: amount(for: leaderboard.victoryPoints.activeTotal))
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+    }
+
+    private func periodRow(label: String, color: Color, yesterday: Int, lastWeek: Int, total: Int) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label).font(.caption.bold()).foregroundStyle(.secondary)
+            HStack {
+                statPill("Yesterday", yesterday, color)
+                statPill("Last Week", lastWeek, color)
+                statPill("Total", total, color)
+            }
+        }
+    }
+
+    private func statPill(_ label: String, _ value: Int, _ color: Color) -> some View {
+        VStack(spacing: 1) {
+            Text(value.formatted())
+                .font(.caption.bold().monospacedDigit())
+                .foregroundStyle(value > 0 ? color : .secondary)
+            Text(label)
+                .font(.system(size: 9))
+                .foregroundStyle(.tertiary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func amount(for entries: [ESIFWLeaderboardEntry]) -> Int {
+        entries.first { $0.factionId == stat.factionId }?.amount ?? 0
+    }
+
+    // MARK:  Systems
+
+    private var systemsSection: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            sectionLabel("SYSTEMS (\(ownedSystems.count))")
+            ForEach(ownedSystems, id: \.solarSystemId) { sys in
+                systemRow(sys)
+            }
+        }
+        .padding(.bottom, 8)
+    }
+
+    private func systemRow(_ sys: ESIFWSystem) -> some View {
+        let isOccupied = sys.occupierFactionId != sys.ownerFactionId
+        let fraction = vpFraction(sys)
+        return VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 6) {
+                Text(systemNames[sys.solarSystemId] ?? "System #\(sys.solarSystemId)")
+                    .font(.caption.bold())
+                if sys.contested != "uncontested" {
+                    Text("Contested")
+                        .font(.system(size: 9).bold())
+                        .foregroundStyle(.orange)
+                        .padding(.horizontal, 5).padding(.vertical, 1)
+                        .background(Color.orange.opacity(0.15), in: Capsule())
+                }
+                Spacer(minLength: 0)
+                Text(fraction.formatted(.percent.precision(.fractionLength(0))))
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+            if isOccupied {
+                Label(
+                    "Occupied by \(factionNames[sys.occupierFactionId] ?? "Faction #\(sys.occupierFactionId)")",
+                    systemImage: "exclamationmark.triangle.fill"
+                )
+                .font(.caption2)
+                .foregroundStyle(.red)
+            }
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color.secondary.opacity(0.15))
+                    Capsule().fill(isOccupied ? .red : .orange)
+                        .frame(width: geo.size.width * CGFloat(fraction))
+                }
+            }
+            .frame(height: 4)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 5)
+    }
+
+    private func vpFraction(_ sys: ESIFWSystem) -> Double {
+        guard sys.victoryPointsThreshold > 0 else { return 0 }
+        return min(1, Double(sys.victoryPoints) / Double(sys.victoryPointsThreshold))
+    }
+
+    private func sectionLabel(_ title: String) -> some View {
+        Text(title)
+            .font(.caption2.bold())
+            .foregroundStyle(.tertiary)
+            .padding(.horizontal, 12)
+            .padding(.top, 10)
+            .padding(.bottom, 2)
+    }
+}
+
+// MARK:  Flow Layout for war-opponent chips
+
+private struct FlowChips: View {
+    let items: [String]
+
+    var body: some View {
+        // Simple wrapping flow using a Layout so an arbitrary number of opponent
+        // chips can wrap onto multiple lines within the popover's fixed width.
+        FlowLayout(spacing: 6) {
+            ForEach(items, id: \.self) { name in
+                Text(name)
+                    .font(.caption2.bold())
+                    .foregroundStyle(.red)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Color.red.opacity(0.12), in: Capsule())
+            }
+        }
+    }
+}
+
