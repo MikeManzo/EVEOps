@@ -64,6 +64,12 @@ struct SkillPlannerView: View {
         .task(id: accountManager.selectedCharacterID) {
             await loadData()
         }
+        .onChange(of: prefetcher.lastRefresh) { _, _ in
+            // A background prefetch just landed — pick up any skills that finished
+            // training since we last loaded, without dropping into the full loading
+            // state (that would tear down the Item Tree's in-progress search/selection).
+            Task { await refreshTrainingDataSilently() }
+        }
     }
 
     // MARK:  Plan Panel
@@ -814,6 +820,21 @@ struct SkillPlannerView: View {
     }
 
     // MARK:  Data Loading
+
+    /// Replaces `trainingData` entries with the latest prefetched snapshot in place, so the
+    /// Item Tree's `characterSkillMap` reflects newly-completed training the next time an item
+    /// is searched — without toggling `isLoading`, which would tear down the browser subtree.
+    private func refreshTrainingDataSilently() async {
+        for account in accountManager.accounts {
+            guard let prefetched = prefetcher.data(for: account.characterID) else { continue }
+            let info = buildInfo(from: prefetched, account: account)
+            if let idx = trainingData.firstIndex(where: { $0.characterID == account.characterID }) {
+                trainingData[idx] = info
+            } else {
+                trainingData.append(info)
+            }
+        }
+    }
 
     private func loadData() async {
         isLoading = true

@@ -1678,8 +1678,10 @@ struct MarketBrowserView: View {
 
     private var characterSkillMap: [Int: Int]? {
         guard let account = accountManager.selectedAccount else { return nil }
-        // Access characterData directly (no 2-min freshness check) — skills change rarely
-        // and the freshness window is too short for a market session.
+        // Access characterData directly (no 2-min freshness check) — a market session can
+        // run longer than that window. This is safe because BackgroundMonitor refreshes
+        // characterData on the user's configured poll interval, so staleness here is bounded
+        // by that interval rather than by how long the view has been open.
         return prefetcher.characterData[account.characterID]
             .map { Dictionary(uniqueKeysWithValues: $0.skills.skills.map { ($0.skillId, $0.activeSkillLevel) }) }
     }

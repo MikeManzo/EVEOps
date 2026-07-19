@@ -24,7 +24,7 @@ final class BackgroundMonitor {
         return stored >= 60 ? stored : 300
     }
 
-    func start(accountManager: AccountManager) {
+    func start(accountManager: AccountManager, prefetcher: DashboardPrefetcher) {
         guard !isMonitoring else { return }
         isMonitoring = true
 
@@ -32,7 +32,7 @@ final class BackgroundMonitor {
             await NotificationService.shared.requestPermission()
         }
 
-        launchTask(accountManager: accountManager)
+        launchTask(accountManager: accountManager, prefetcher: prefetcher)
 
         // Restart the task immediately when the poll interval setting changes
         intervalObserver = NotificationCenter.default.addObserver(
@@ -41,7 +41,7 @@ final class BackgroundMonitor {
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor [weak self] in
-                self?.launchTask(accountManager: accountManager)
+                self?.launchTask(accountManager: accountManager, prefetcher: prefetcher)
             }
         }
     }
@@ -56,7 +56,7 @@ final class BackgroundMonitor {
         }
     }
 
-    private func launchTask(accountManager: AccountManager) {
+    private func launchTask(accountManager: AccountManager, prefetcher: DashboardPrefetcher) {
         let current = pollInterval
         guard current != lastKnownInterval || monitorTask == nil else { return }
         lastKnownInterval = current
@@ -70,6 +70,10 @@ final class BackgroundMonitor {
 
                 Logger.prefetch.info("BackgroundMonitor: Poll cycle — refreshing \(accountManager.accounts.count) account(s)")
                 await accountManager.refreshPublicInfo()
+                // Refresh the prefetched character snapshot (skills, wallet, location, etc.)
+                // so screens that read it directly — like the skill-tree and market skill
+                // pills — don't keep showing stale training progress for the whole session.
+                await prefetcher.prefetchAll(accountManager: accountManager)
                 let accounts = accountManager.accounts
                 await NotificationService.shared.checkForUpdates(
                     accounts: accounts,
