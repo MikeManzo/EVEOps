@@ -617,6 +617,9 @@
     "%lld total" : {
 
     },
+    "%lld unpriced" : {
+
+    },
     "%lld unresolved" : {
 
     },
@@ -717,6 +720,9 @@
 
     },
     "+" : {
+
+    },
+    "+ %lld more" : {
 
     },
     "+%lld" : {
@@ -1235,6 +1241,12 @@
 
     },
     "Capacitor recharge time — time to fully recharge from empty" : {
+
+    },
+    "Cargo hold is empty" : {
+
+    },
+    "Cargo Value" : {
 
     },
     "Categories" : {
@@ -2134,6 +2146,9 @@
 
     },
     "Hover" : {
+
+    },
+    "How Cargo Value Is Calculated" : {
 
     },
     "How often EVEOps checks for notifications and updates in the background." : {
@@ -3083,6 +3098,9 @@
     "Prices reflect the best sell/buy orders at the hub's primary station." : {
 
     },
+    "Pricing cargo…" : {
+
+    },
     "Primary (+10)" : {
 
     },
@@ -3126,6 +3144,9 @@
 
     },
     "Quit" : {
+
+    },
+    "Quote-based, not depth-weighted — dumping a large stack could realize less than shown. Prices are Jita-only and may not reflect your local market." : {
 
     },
     "Range" : {

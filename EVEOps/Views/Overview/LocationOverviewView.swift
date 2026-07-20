@@ -21,6 +21,11 @@ struct LocationOverviewView: View {
     @State private var refreshTick = 0
     @State private var stationsExpanded: [Int: Bool] = [:]
     @State private var systemActivity: [Int: SystemActivityData] = [:]
+    @State private var cargoExpanded: [Int: Bool] = [:]
+    @State private var showCargoValueInfo = false
+    @State private var cargoValues: [Int: CargoValueSummary] = [:]
+    @State private var cargoLoading: Set<Int> = []
+    @State private var cargoErrors: [Int: String] = [:]
 
     var body: some View {
         LoadingStateView(isLoading: isLoading, error: error, isEmpty: locations.isEmpty, emptyMessage: "No location data") {
@@ -281,6 +286,10 @@ struct LocationOverviewView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
+                // Cargo value (current ship's hold, priced at Jita)
+                Divider()
+                cargoValueSection(characterID: info.characterID)
+
                 // Docked station services
                 if let station = info.dockedStation, let services = station.services, !services.isEmpty {
                     Divider()
@@ -439,6 +448,176 @@ struct LocationOverviewView: View {
                     .foregroundStyle(.secondary)
             }
         }
+    }
+
+    // MARK:  Cargo Value
+
+    private func cargoValueSection(characterID: Int) -> some View {
+        let isExpanded = Binding(
+            get: { cargoExpanded[characterID, default: false] },
+            set: { newValue in
+                cargoExpanded[characterID] = newValue
+                if newValue && cargoValues[characterID] == nil {
+                    Task { await loadCargoValue(characterID: characterID) }
+                }
+            }
+        )
+        return DisclosureGroup(isExpanded: isExpanded) {
+            cargoValueContent(characterID: characterID)
+                .padding(.top, 4)
+        } label: {
+            HStack {
+                Image(systemName: "shippingbox.fill")
+                    .foregroundStyle(.yellow)
+                Text("Cargo Value")
+                    .font(.subheadline.bold())
+                Button {
+                    showCargoValueInfo = true
+                } label: {
+                    Image(systemName: "info.circle")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .popover(isPresented: $showCargoValueInfo, arrowEdge: .bottom) {
+                    cargoValueInfoPopover
+                }
+                if let summary = cargoValues[characterID], !summary.items.isEmpty {
+                    Text("(\(EVEFormatters.formatISKShort(summary.totalSellValue)))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
+    private var cargoValueInfoPopover: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "shippingbox.fill")
+                    .font(.title3)
+                    .foregroundStyle(.yellow)
+                Text("How Cargo Value Is Calculated")
+                    .font(.headline)
+            }
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 8) {
+                cargoInfoBullet("Scope", "Only items in the current ship's Cargo Hold — fitted modules, drone bay, ore hold, and other bays aren't included.")
+                cargoInfoBullet("Pricing source", "Jita (The Forge) market aggregates via Fuzzwork, cached for 10 minutes.")
+                cargoInfoBullet("Sell Value", "Lowest active sell order × quantity, summed across items — roughly what it'd cost to replace the cargo.")
+                cargoInfoBullet("Buy Value", "Highest active buy order × quantity, summed across items — roughly what you'd get selling instantly.")
+                cargoInfoBullet("Unpriced items", "Items with no active Jita orders are valued at 0 ISK and flagged in red in the list.")
+            }
+
+            Divider()
+
+            Text("Quote-based, not depth-weighted — dumping a large stack could realize less than shown. Prices are Jita-only and may not reflect your local market.")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(14)
+        .frame(minWidth: 260, maxWidth: 320)
+    }
+
+    private func cargoInfoBullet(_ title: String, _ body: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.caption.bold())
+            Text(body)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    @ViewBuilder
+    private func cargoValueContent(characterID: Int) -> some View {
+        if cargoLoading.contains(characterID) {
+            HStack(spacing: 6) {
+                ProgressView().controlSize(.small)
+                Text("Pricing cargo…")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        } else if let error = cargoErrors[characterID] {
+            Text(error)
+                .font(.caption)
+                .foregroundStyle(.red)
+        } else if let summary = cargoValues[characterID] {
+            if summary.items.isEmpty {
+                Text("Cargo hold is empty")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 16) {
+                        cargoStat(label: "Sell Value", value: EVEFormatters.formatISKShort(summary.totalSellValue), color: .green)
+                        cargoStat(label: "Buy Value", value: EVEFormatters.formatISKShort(summary.totalBuyValue), color: .orange)
+                        if summary.unpricedCount > 0 {
+                            Text("\(summary.unpricedCount) unpriced")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                        }
+                        Spacer()
+                        Button {
+                            Task { await loadCargoValue(characterID: characterID) }
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
+                        }
+                        .buttonStyle(.plain)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
+
+                    ForEach(summary.items.prefix(10)) { item in
+                        HStack {
+                            Text(item.typeName)
+                                .font(.caption)
+                                .lineLimit(1)
+                            Text("×\(item.quantity)")
+                                .font(.caption2.monospacedDigit())
+                                .foregroundStyle(.tertiary)
+                            Spacer()
+                            Text(EVEFormatters.formatISKShort(item.totalSellValue))
+                                .font(.caption.monospacedDigit())
+                                .foregroundStyle(item.hasPrice ? Color.secondary : Color.red)
+                        }
+                    }
+                    if summary.items.count > 10 {
+                        Text("+ \(summary.items.count - 10) more")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+            }
+        }
+    }
+
+    private func cargoStat(label: String, value: String, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label)
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+            Text(value)
+                .font(.caption.bold().monospacedDigit())
+                .foregroundStyle(color)
+        }
+    }
+
+    private func loadCargoValue(characterID: Int) async {
+        guard let account = accountManager.selectedAccount, account.characterID == characterID else { return }
+        cargoLoading.insert(characterID)
+        cargoErrors[characterID] = nil
+        do {
+            let token = try await accountManager.validToken(for: account)
+            cargoValues[characterID] = try await CargoValueService.cargoValue(characterID: characterID, token: token)
+        } catch {
+            cargoErrors[characterID] = error.localizedDescription
+        }
+        cargoLoading.remove(characterID)
     }
 
     private func starStat(label: String, value: String) -> some View {
