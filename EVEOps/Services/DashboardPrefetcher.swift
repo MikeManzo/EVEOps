@@ -283,6 +283,9 @@ final class DashboardPrefetcher {
             s.online = prefetched.online.online
             s.ship = prefetched.ship
             s.location = prefetched.location
+            let daily = prefetched.journal.todayISKSummary
+            s.dailyISKMade = daily.made
+            s.dailyISKSpent = daily.spent
 
             let sortedQueue = prefetched.skillQueue.sorted { $0.queuePosition < $1.queuePosition }
             let activeQueue = sortedQueue.filter { $0.finishDate ?? .distantPast > Date() }

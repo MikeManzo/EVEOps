@@ -4,6 +4,9 @@
     "" : {
 
     },
+    "-%@" : {
+
+    },
     "—" : {
 
     },
@@ -723,6 +726,9 @@
 
     },
     "+ %lld more" : {
+
+    },
+    "+%@" : {
 
     },
     "+%lld" : {
@@ -2603,6 +2609,9 @@
     "m³" : {
 
     },
+    "Made" : {
+
+    },
     "Mail Activity" : {
 
     },
@@ -2778,6 +2787,12 @@
 
     },
     "No implants installed" : {
+
+    },
+    "No ISK activity" : {
+
+    },
+    "No ISK activity today" : {
 
     },
     "No item selected" : {
@@ -3275,6 +3290,9 @@
     "Research Agents" : {
 
     },
+    "Resets at local midnight" : {
+
+    },
     "Resist Bonus" : {
 
     },
@@ -3732,6 +3750,9 @@
     "Special Thanks" : {
 
     },
+    "Spent" : {
+
+    },
     "Spread" : {
 
     },
@@ -3902,6 +3923,9 @@
 
     },
     "Today" : {
+
+    },
+    "Today's ISK" : {
 
     },
     "Total" : {

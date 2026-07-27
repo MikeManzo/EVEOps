@@ -180,6 +180,9 @@ struct DashboardView: View {
             s.online = prefetched.online.online
             s.ship = prefetched.ship
             s.location = prefetched.location
+            let daily = prefetched.journal.todayISKSummary
+            s.dailyISKMade = daily.made
+            s.dailyISKSpent = daily.spent
 
             let sortedQueue = prefetched.skillQueue.sorted { $0.queuePosition < $1.queuePosition }
             let activeQueue = sortedQueue.filter { $0.finishDate ?? .distantPast > Date() }
@@ -279,6 +282,9 @@ struct DashboardView: View {
             async let fetchColonies: [ESIColony] = ESIClient.shared.fetch(
                 "/characters/\(account.characterID)/planets/", token: token
             )
+            async let fetchJournal: [ESIWalletJournalEntry] = ESIClient.shared.fetch(
+                "/characters/\(account.characterID)/wallet/journal/", token: token
+            )
 
             let (wallet, queue, skills, loc, ship, online) = try await (
                 fetchWallet, fetchQueue, fetchSkills, fetchLocation, fetchShip, fetchOnline
@@ -286,12 +292,16 @@ struct DashboardView: View {
             let contracts = (try? await fetchContracts) ?? []
             let industry  = (try? await fetchIndustry) ?? []
             let colonies  = (try? await fetchColonies) ?? []
+            let journal   = (try? await fetchJournal) ?? []
 
             summary.wallet = wallet
             summary.totalSP = skills.totalSp
             summary.online = online.online
             summary.ship = ship
             summary.location = loc
+            let daily = journal.todayISKSummary
+            summary.dailyISKMade = daily.made
+            summary.dailyISKSpent = daily.spent
 
             let sortedQueue = queue.sorted { $0.queuePosition < $1.queuePosition }
             let activeQueue = sortedQueue.filter { $0.finishDate ?? .distantPast > Date() }
@@ -509,6 +519,9 @@ struct DashboardView: View {
         summary.online = prefetched.online.online
         summary.ship = prefetched.ship
         summary.location = prefetched.location
+        let daily = prefetched.journal.todayISKSummary
+        summary.dailyISKMade = daily.made
+        summary.dailyISKSpent = daily.spent
 
         let sortedQueue = prefetched.skillQueue.sorted { $0.queuePosition < $1.queuePosition }
         let activeQueue = sortedQueue.filter { $0.finishDate ?? .distantPast > Date() }
@@ -597,6 +610,9 @@ struct CharacterSummary {
     var corporationName: String = ""
     var allianceName: String? = nil
     var loadError: String? = nil
+    var dailyISKMade: Double = 0
+    var dailyISKSpent: Double = 0
+    var dailyISKNet: Double { dailyISKMade - dailyISKSpent }
 }
 
 // Mark:  Contact Summary
@@ -649,6 +665,9 @@ struct SummaryGridView: View {
     let summaries: [CharacterSummary]
 
     private var totalWealth: Double    { summaries.reduce(0) { $0 + $1.wallet } }
+    private var dailyMade: Double      { summaries.reduce(0) { $0 + $1.dailyISKMade } }
+    private var dailySpent: Double     { summaries.reduce(0) { $0 + $1.dailyISKSpent } }
+    private var dailyNet: Double       { dailyMade - dailySpent }
     private var totalSP: Int           { summaries.reduce(0) { $0 + $1.totalSP } }
     private var emptyQueues: Int       { summaries.filter(\.isQueueEmpty).count }
     private var activeJobs: Int        { summaries.reduce(0) { $0 + $1.activeIndustryJobCount } }
@@ -664,6 +683,12 @@ struct SummaryGridView: View {
                 icon: "creditcard.fill", color: .green,
                 value: EVEFormatters.formatISKShort(totalWealth),
                 label: String(localized: "Total Wealth")
+            )
+            MetricTileView(
+                icon: "arrow.left.arrow.right.circle.fill", color: dailyNet >= 0 ? .green : .red,
+                value: (dailyNet >= 0 ? "+" : "") + EVEFormatters.formatISKShort(dailyNet),
+                label: String(localized: "Today's ISK"),
+                subLabel: "+\(EVEFormatters.formatISKShort(dailyMade)) / -\(EVEFormatters.formatISKShort(dailySpent))"
             )
             MetricTileView(
                 icon: "brain.head.profile.fill", color: .cyan,
@@ -1009,6 +1034,42 @@ struct CharacterCardView: View {
                             .foregroundStyle(.cyan)
                             .font(.caption)
                     }
+                }
+
+                // Today's ISK (calendar day, resets at local midnight)
+                HStack(spacing: 10) {
+                    if let s = summary, s.dailyISKMade > 0 || s.dailyISKSpent > 0 {
+                        Label {
+                            Text("+\(EVEFormatters.formatISKShort(s.dailyISKMade))")
+                                .font(.caption2.monospacedDigit())
+                        } icon: {
+                            Image(systemName: "arrow.up.circle.fill")
+                                .foregroundStyle(.green)
+                                .font(.caption2)
+                        }
+                        Label {
+                            Text("-\(EVEFormatters.formatISKShort(s.dailyISKSpent))")
+                                .font(.caption2.monospacedDigit())
+                        } icon: {
+                            Image(systemName: "arrow.down.circle.fill")
+                                .foregroundStyle(.red)
+                                .font(.caption2)
+                        }
+                    } else {
+                        Label {
+                            Text("No ISK activity")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        } icon: {
+                            Image(systemName: "arrow.left.arrow.right.circle.fill")
+                                .foregroundStyle(.secondary)
+                                .font(.caption)
+                        }
+                    }
+                    Spacer()
+                    Text("Today")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
                 }
 
                 // #5: Skill queue with progress bar
@@ -1918,7 +1979,8 @@ struct CharacterHeroView: View {
             MetricTileView(
                 icon: "creditcard.fill", color: .green,
                 value: EVEFormatters.formatISKShort(summary?.wallet ?? 0),
-                label: String(localized: "Wallet")
+                label: String(localized: "Wallet"),
+                subLabel: dailyISKSubLabel
             )
             MetricTileView(
                 icon: "brain.head.profile.fill", color: .cyan,
@@ -1931,6 +1993,14 @@ struct CharacterHeroView: View {
             piOrOnlineTile
         }
         .padding(10)
+    }
+
+    /// "Today" ISK made/spent (calendar day, resets at local midnight) shown under the Wallet tile.
+    private var dailyISKSubLabel: String {
+        guard let s = summary, s.dailyISKMade > 0 || s.dailyISKSpent > 0 else {
+            return String(localized: "No ISK activity today")
+        }
+        return "+\(EVEFormatters.formatISKShort(s.dailyISKMade)) / -\(EVEFormatters.formatISKShort(s.dailyISKSpent)) today"
     }
 
     @ViewBuilder

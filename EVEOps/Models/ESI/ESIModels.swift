@@ -97,6 +97,20 @@ nonisolated struct ESIWalletJournalEntry: Codable, Sendable, Identifiable {
     let taxReceiverId: Int?
 }
 
+extension Array where Element == ESIWalletJournalEntry {
+    /// ISK made/spent since local midnight (today's calendar day, resets at midnight in the user's time zone).
+    var todayISKSummary: (made: Double, spent: Double) {
+        let startOfDay = Calendar.current.startOfDay(for: Date())
+        var made = 0.0
+        var spent = 0.0
+        for entry in self where entry.date >= startOfDay {
+            guard let amount = entry.amount else { continue }
+            if amount > 0 { made += amount } else { spent += -amount }
+        }
+        return (made, spent)
+    }
+}
+
 nonisolated struct ESIWalletTransaction: Codable, Sendable, Identifiable {
     let clientId: Int
     let date: Date

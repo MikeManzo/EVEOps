@@ -69,6 +69,7 @@ struct FinancesView: View {
             ScrollView {
                 VStack(spacing: 20) {
                     summaryCards
+                    todaySummary
                     wealthDistribution
                     if let finance = selectedFinance {
                         if let warning = finance.partialLoadWarning {
@@ -138,6 +139,66 @@ struct FinancesView: View {
         }
         .frame(maxWidth: .infinity)
         .padding()
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    // MARK:  Today Summary
+
+    private var todayISK: (made: Double, spent: Double) {
+        characterFinances.flatMap(\.journal).todayISKSummary
+    }
+
+    private var todaySummary: some View {
+        let daily = todayISK
+        let net = daily.made - daily.spent
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Today")
+                    .font(.subheadline.bold())
+                Spacer()
+                Text("Resets at local midnight")
+                    .font(.system(size: 9))
+                    .foregroundStyle(.tertiary)
+            }
+            HStack(spacing: 16) {
+                VStack(spacing: 2) {
+                    Text("Made")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(EVEFormatters.formatISKShort(daily.made))
+                        .font(.title3.bold().monospacedDigit())
+                        .foregroundStyle(.green)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(10)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+
+                VStack(spacing: 2) {
+                    Text("Spent")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(EVEFormatters.formatISKShort(daily.spent))
+                        .font(.title3.bold().monospacedDigit())
+                        .foregroundStyle(.red)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(10)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+
+                VStack(spacing: 2) {
+                    Text("Net")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text((net >= 0 ? "+" : "") + EVEFormatters.formatISKShort(net))
+                        .font(.title3.bold().monospacedDigit())
+                        .foregroundStyle(net >= 0 ? .green : .red)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(10)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+            }
+        }
+        .padding(10)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
     }
 

@@ -227,6 +227,9 @@ struct MenuBarView: View {
         s.online = prefetched.online.online
         s.ship = prefetched.ship
         s.location = prefetched.location
+        let daily = prefetched.journal.todayISKSummary
+        s.dailyISKMade = daily.made
+        s.dailyISKSpent = daily.spent
 
         let activeQueue = prefetched.skillQueue.filter { $0.finishDate ?? .distantPast > Date() }
         s.skillQueueCount = activeQueue.count
@@ -297,6 +300,7 @@ struct MenuBarView: View {
             var contracts: [ESIContract] = []
             var industry: [ESIIndustryJob] = []
             var colonies: [ESIColony] = []
+            var journal: [ESIWalletJournalEntry] = []
             var firstFieldError: Error? = nil
 
             do { wallet = try await ESIClient.shared.fetch("/characters/\(charID)/wallet/", token: token) } catch { if firstFieldError == nil { firstFieldError = error } }
@@ -308,6 +312,7 @@ struct MenuBarView: View {
             do { contracts = try await ESIClient.shared.fetch("/characters/\(charID)/contracts/", token: token) } catch { if firstFieldError == nil { firstFieldError = error } }
             do { industry = try await ESIClient.shared.fetch("/characters/\(charID)/industry/jobs/", token: token) } catch { if firstFieldError == nil { firstFieldError = error } }
             do { colonies = try await ESIClient.shared.fetch("/characters/\(charID)/planets/", token: token) } catch { if firstFieldError == nil { firstFieldError = error } }
+            do { journal = try await ESIClient.shared.fetch("/characters/\(charID)/wallet/journal/", token: token) } catch { if firstFieldError == nil { firstFieldError = error } }
 
             if let err = firstFieldError {
                 s.loadError = err.localizedDescription
@@ -318,6 +323,9 @@ struct MenuBarView: View {
             s.online = online?.online ?? false
             s.ship = ship
             s.location = loc
+            let daily = journal.todayISKSummary
+            s.dailyISKMade = daily.made
+            s.dailyISKSpent = daily.spent
 
             let activeQueue = queue.filter { $0.finishDate ?? .distantPast > Date() }
             s.skillQueueCount = activeQueue.count
