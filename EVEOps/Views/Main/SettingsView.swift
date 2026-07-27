@@ -660,6 +660,29 @@ private struct GeneralTab: View {
             }
 
             Section("Software Update") {
+                if !appUpdater.notificationsAuthorized {
+                    HStack(spacing: 12) {
+                        Image(systemName: "bell.slash.fill")
+                            .font(.title3)
+                            .foregroundStyle(.orange)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Notifications Disabled")
+                                .font(.subheadline.weight(.semibold))
+                            Text("EVEOps can't alert you when an automatic background check finds an update — only manual checks will show one.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Button("Open Settings\u{2026}") {
+                            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.notifications") {
+                                NSWorkspace.shared.open(url)
+                            }
+                        }
+                        .buttonStyle(.link)
+                    }
+                    .padding(.vertical, 4)
+                }
+
                 if appUpdater.updateAvailable {
                     HStack(spacing: 12) {
                         Image(systemName: "arrow.down.circle.fill")

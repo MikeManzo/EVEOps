@@ -115,6 +115,15 @@ struct FinancesView: View {
             await resolveTypeNames()
             await loadAssetValues()
         }
+        .onChange(of: prefetcher.lastRefresh) { _, _ in
+            // Prefetcher refreshed on its background poll interval (Settings) — sync immediately
+            Task {
+                if buildFromPrefetcher() {
+                    await resolveTypeNames()
+                    await loadAssetValues()
+                }
+            }
+        }
     }
 
     // MARK:  Summary Cards

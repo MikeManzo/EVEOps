@@ -24,7 +24,7 @@ final class BackgroundMonitor {
         return stored >= 60 ? stored : 300
     }
 
-    func start(accountManager: AccountManager, prefetcher: DashboardPrefetcher) {
+    func start(accountManager: AccountManager, prefetcher: DashboardPrefetcher, appUpdater: AppUpdater? = nil) {
         guard !isMonitoring else { return }
         isMonitoring = true
 
@@ -32,7 +32,7 @@ final class BackgroundMonitor {
             await NotificationService.shared.requestPermission()
         }
 
-        launchTask(accountManager: accountManager, prefetcher: prefetcher)
+        launchTask(accountManager: accountManager, prefetcher: prefetcher, appUpdater: appUpdater)
 
         // Restart the task immediately when the poll interval setting changes
         intervalObserver = NotificationCenter.default.addObserver(
@@ -41,7 +41,7 @@ final class BackgroundMonitor {
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor [weak self] in
-                self?.launchTask(accountManager: accountManager, prefetcher: prefetcher)
+                self?.launchTask(accountManager: accountManager, prefetcher: prefetcher, appUpdater: appUpdater)
             }
         }
     }
@@ -56,7 +56,7 @@ final class BackgroundMonitor {
         }
     }
 
-    private func launchTask(accountManager: AccountManager, prefetcher: DashboardPrefetcher) {
+    private func launchTask(accountManager: AccountManager, prefetcher: DashboardPrefetcher, appUpdater: AppUpdater?) {
         let current = pollInterval
         guard current != lastKnownInterval || monitorTask == nil else { return }
         lastKnownInterval = current
@@ -80,6 +80,13 @@ final class BackgroundMonitor {
                     getToken: { account in try await accountManager.validToken(for: account) },
                     onUnauthorized: { account in await accountManager.handleUnauthorized(for: account) }
                 )
+
+                // Sparkle's own scheduled-check timer only fires if the app stays running until
+                // it elapses; a menu-bar app that gets quit/relaunched within the 24h interval can
+                // go a long time without ever getting a chance to check. Use this shorter, more
+                // reliable poll cycle as a backstop — it no-ops unless Sparkle's own interval has
+                // actually elapsed.
+                appUpdater?.checkForUpdatesIfDue()
             }
         }
     }

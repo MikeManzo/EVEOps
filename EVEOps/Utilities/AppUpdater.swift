@@ -9,6 +9,7 @@
 //
 
 import AppKit
+import OSLog
 import Sparkle
 import UserNotifications
 
@@ -21,6 +22,12 @@ final class AppUpdater: NSObject {
 
     var updater: SPUUpdater { controller.updater }
     var canCheckForUpdates = false
+
+    /// Whether the system has granted permission to show notifications. Background/scheduled
+    /// update checks rely entirely on this — Sparkle's "gentle reminder" design shows no window
+    /// for them, only a notification — so if this is false the user will never learn about an
+    /// update found outside of manually clicking "Check for Updates".
+    var notificationsAuthorized = true
 
     var updateAvailable: Bool {
         didSet { UserDefaults.standard.set(updateAvailable, forKey: "updateAvailable") }
@@ -54,10 +61,34 @@ final class AppUpdater: NSObject {
                 }
             }
         }
+
+        Task { @MainActor [weak self] in
+            let status = await NotificationService.shared.authorizationStatus()
+            guard let self else { return }
+            self.notificationsAuthorized = (status == .authorized || status == .provisional)
+            if !self.notificationsAuthorized {
+                Logger.updates.warning("Notifications are not authorized (status: \(status.rawValue)) — background update checks won't be able to alert the user")
+            }
+        }
     }
 
     func checkForUpdates() {
         updater.checkForUpdates()
+    }
+
+    /// Backstop for Sparkle's own scheduled-check timer. EVEOps is a menu-bar-only app that
+    /// isn't necessarily kept running for the full 24h check interval, so the timer can go
+    /// a long time between opportunities to fire. This piggybacks on the app's existing
+    /// periodic background-poll cycle and only checks once we're actually overdue per
+    /// Sparkle's own interval/last-check bookkeeping, so it doesn't check any more often
+    /// than the user's configured interval allows.
+    func checkForUpdatesIfDue() {
+        guard canCheckForUpdates, updater.automaticallyChecksForUpdates else { return }
+        let interval = updater.updateCheckInterval
+        let lastCheck = updater.lastUpdateCheckDate ?? .distantPast
+        guard Date().timeIntervalSince(lastCheck) >= interval else { return }
+        Logger.updates.info("Scheduled update-check interval elapsed during background poll — checking now")
+        updater.checkForUpdatesInBackground()
     }
 }
 
@@ -109,7 +140,13 @@ extension AppUpdater: SPUStandardUserDriverDelegate {
             content.title = "EVEOps Update Available"
             content.body = "Version \(update.displayVersionString) is ready to install."
             let request = UNNotificationRequest(identifier: "eveops-update", content: content, trigger: nil)
-            UNUserNotificationCenter.current().add(request)
+            UNUserNotificationCenter.current().add(request) { error in
+                guard let error else { return }
+                let message = error.localizedDescription
+                Task { @MainActor in
+                    Logger.updates.error("Failed to post update-available notification: \(message)")
+                }
+            }
         }
     }
 

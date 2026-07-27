@@ -10,6 +10,7 @@
 
 import Foundation
 import UserNotifications
+import OSLog
 
 actor NotificationService {
     static let shared = NotificationService()
@@ -21,7 +22,18 @@ actor NotificationService {
 
     func requestPermission() async {
         let center = UNUserNotificationCenter.current()
-        _ = try? await center.requestAuthorization(options: [.alert, .sound, .badge])
+        do {
+            let granted = try await center.requestAuthorization(options: [.alert, .sound, .badge])
+            await Logger.updates.info("Notification permission request completed: granted=\(granted)")
+        } catch {
+            await Logger.updates.error("Notification permission request failed: \(error.localizedDescription)")
+        }
+    }
+
+    /// Current system notification authorization status, so callers can warn the user
+    /// when background alerts (like update notices) will silently fail to appear.
+    func authorizationStatus() async -> UNAuthorizationStatus {
+        await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
     }
 
     func checkForUpdates(

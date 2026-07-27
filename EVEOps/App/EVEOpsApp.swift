@@ -145,7 +145,7 @@ struct EVEOpsApp: App {
         )
 
         Task { @MainActor in
-            bg.start(accountManager: manager, prefetcher: pf)
+            bg.start(accountManager: manager, prefetcher: pf, appUpdater: updater)
             api.start()
             DiagnosticLogStore.shared.load()
             Logger.app.info("EVEOps started — diagnostic log active")

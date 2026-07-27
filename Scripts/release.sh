@@ -92,6 +92,26 @@ read -p "Continue? (y/n) " -n 1 -r
 echo ""
 [[ $REPLY =~ ^[Yy]$ ]] || exit 0
 
+# ── Draft release notes ──────────────────────────────────────
+# Done early (before the long archive/notarize pipeline) so an aborted or
+# empty edit fails fast. Drafted from commits since the last tag, then handed
+# to $EDITOR for review — the same content later drives both the Sparkle
+# appcast item and the GitHub release body.
+info "Drafting release notes..."
+PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+NOTES_DRAFT=$(mktemp "${TMPDIR:-/tmp}/eveops-notes-XXXXXX.md")
+
+if [ -n "$PREV_TAG" ]; then
+  git log "$PREV_TAG"..HEAD --pretty=format:"- %s" | grep -v "^- Update appcast" > "$NOTES_DRAFT" || true
+else
+  echo "- Initial release" > "$NOTES_DRAFT"
+fi
+
+"${EDITOR:-nano}" "$NOTES_DRAFT"
+
+[ -s "$NOTES_DRAFT" ] || error "Release notes are empty — aborting release."
+info "Release notes finalized ✓"
+
 # ── Auto-increment build number ─────────────────────────────
 CURRENT_BUILD=$(grep -m1 'CURRENT_PROJECT_VERSION' "$PROJECT/project.pbxproj" | sed 's/[^0-9]//g')
 NEW_BUILD=$((CURRENT_BUILD + 1))
@@ -253,6 +273,33 @@ info "DMG notarized ✓"
 # new key pair and invalidate the public key embedded in all previously shipped builds.
 info "Generating appcast..."
 
+# generate_appcast picks up release notes automatically from an .html/.txt file
+# that shares the archive's base filename — write ours before the DMG lands
+# next to it. No DOCTYPE/body tags means it's embedded inline as CDATA rather
+# than treated as a standalone linked page.
+NOTES_HTML="$APPCAST_DIR/$SCHEME.html"
+python3 -c '
+import html, sys
+lines = open(sys.argv[1]).read().splitlines()
+out, in_list = [], False
+for line in lines:
+    line = line.strip()
+    if line.startswith("- "):
+        if not in_list:
+            out.append("<ul>")
+            in_list = True
+        out.append(f"<li>{html.escape(line[2:])}</li>")
+    else:
+        if in_list:
+            out.append("</ul>")
+            in_list = False
+        if line:
+            out.append(f"<p>{html.escape(line)}</p>")
+if in_list:
+    out.append("</ul>")
+open(sys.argv[2], "w").write("\n".join(out))
+' "$NOTES_DRAFT" "$NOTES_HTML"
+
 cp "$DMG_PATH" "$APPCAST_DIR/"
 
 "$SPARKLE_BIN/generate_appcast" \
@@ -262,32 +309,38 @@ cp "$DMG_PATH" "$APPCAST_DIR/"
 [ -f "$APPCAST_DIR/appcast.xml" ] || error "Appcast generation failed"
 info "Appcast generated ✓"
 
-# ── Commit Appcast to main branch ────────────────────────────
-info "Committing appcast.xml to $RELEASE_BRANCH..."
+# ── Commit Appcast + Release Notes to main branch ────────────
+info "Committing appcast.xml and release notes to $RELEASE_BRANCH..."
 CURRENT_BRANCH=$(git branch --show-current)
+NOTES_REPO_PATH="Scripts/releasenotes/$VERSION.md"
+mkdir -p "$(dirname "$NOTES_REPO_PATH")"
 cp "$APPCAST_DIR/appcast.xml" ./appcast.xml
+cp "$NOTES_DRAFT" "$NOTES_REPO_PATH"
 
 if [ "$CURRENT_BRANCH" != "$RELEASE_BRANCH" ]; then
   git stash --include-untracked -q 2>/dev/null
   git checkout "$RELEASE_BRANCH"
   git pull origin "$RELEASE_BRANCH" --ff-only
+  mkdir -p "$(dirname "$NOTES_REPO_PATH")"
   cp "$APPCAST_DIR/appcast.xml" ./appcast.xml
+  cp "$NOTES_DRAFT" "$NOTES_REPO_PATH"
 fi
 
-git add appcast.xml
+git add appcast.xml "$NOTES_REPO_PATH"
 if git diff --cached --quiet; then
-  info "No changes to appcast.xml, skipping commit"
+  info "No changes to appcast.xml or release notes, skipping commit"
 else
   git commit -m "Update appcast for $TAG"
   git push origin "$RELEASE_BRANCH"
-  info "Appcast committed to $RELEASE_BRANCH ✓"
+  info "Appcast and release notes committed to $RELEASE_BRANCH ✓"
 fi
 
 if [ "$CURRENT_BRANCH" != "$RELEASE_BRANCH" ]; then
   git checkout "$CURRENT_BRANCH"
   git stash pop -q 2>/dev/null || true
   cp "$APPCAST_DIR/appcast.xml" ./appcast.xml
-  git add appcast.xml
+  cp "$NOTES_DRAFT" "$NOTES_REPO_PATH"
+  git add appcast.xml "$NOTES_REPO_PATH"
   git diff --cached --quiet || git commit -m "Update appcast for $TAG"
 fi
 
@@ -314,7 +367,7 @@ if gh release view "$TAG" &>/dev/null; then
 else
   gh release create "$TAG" \
     --title "$TAG" \
-    --notes "Release $TAG"
+    --notes-file "$NOTES_DRAFT"
 fi
 
 # Upload each asset with retry logic — large DMGs over a flaky
@@ -347,6 +400,7 @@ info "Release $TAG published successfully ✓"
 # ── Cleanup ──────────────────────────────────────────────────
 info "Cleaning up..."
 rm -rf "$WORK_DIR"
+rm -f "$NOTES_DRAFT"
 
 echo ""
 echo -e "${GREEN}============================================${NC}"
