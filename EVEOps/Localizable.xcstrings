@@ -1243,6 +1243,9 @@
     "Capacitor recharge time — time to fully recharge from empty" : {
 
     },
+    "Cargo data isn't available while undocked — dock and refresh to see it." : {
+
+    },
     "Cargo hold is empty" : {
 
     },

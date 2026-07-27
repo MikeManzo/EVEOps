@@ -172,7 +172,24 @@ struct SkillStatusDot: View {
     /// Pass nil when no character is logged in — the dot will not appear.
     let characterSkills: [Int: Int]?
 
-    @State private var dotColor: Color? = nil
+    /// Item's raw skill requirements (skillId, requiredLevel) — pilot-independent, safe to
+    /// cache per typeId. The color itself is derived live in `body` from `characterSkills` so
+    /// it always reflects whichever pilot is currently selected, even when `typeId` is unchanged.
+    @State private var requirements: [(skillId: Int, level: Int)] = []
+
+    private var dotColor: Color? {
+        guard let characterSkills, !requirements.isEmpty else { return nil }
+        var allMet = true
+        var anyUnmet = false
+        for req in requirements {
+            let have = characterSkills[req.skillId] ?? 0
+            if have < req.level {
+                allMet = false
+                if have == 0 { anyUnmet = true }
+            }
+        }
+        return allMet ? .green : anyUnmet ? .red : .orange
+    }
 
     var body: some View {
         Group {
@@ -187,8 +204,7 @@ struct SkillStatusDot: View {
     }
 
     private func resolve() async {
-        dotColor = nil
-        guard let characterSkills else { return }
+        requirements = []
 
         // Try cache; fall back to a full ESI fetch that includes dogmaAttributes.
         let attrs: [ESIDogmaAttribute]
@@ -207,9 +223,7 @@ struct SkillStatusDot: View {
 
         let attrMap = Dictionary(attrs.map { ($0.attributeId, $0.value) },
                                   uniquingKeysWith: { a, _ in a })
-        var allMet = true
-        var anyUnmet = false
-        var hasRequirements = false
+        var parsed: [(skillId: Int, level: Int)] = []
 
         for pair in skillAttrPairs {
             guard let rawSkill = attrMap[pair.skillAttr],
@@ -217,15 +231,10 @@ struct SkillStatusDot: View {
             let skillId = Int(rawSkill)
             let required = Int(rawLevel)
             guard skillId > 0, required > 0 else { continue }
-            hasRequirements = true
-            let have = characterSkills[skillId] ?? 0
-            if have < required {
-                allMet = false
-                if have == 0 { anyUnmet = true }
-            }
+            parsed.append((skillId, required))
         }
 
-        guard !Task.isCancelled, hasRequirements else { return }
-        dotColor = allMet ? .green : anyUnmet ? .red : .orange
+        guard !Task.isCancelled else { return }
+        requirements = parsed
     }
 }

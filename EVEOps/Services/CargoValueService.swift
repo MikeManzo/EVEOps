@@ -30,8 +30,11 @@ struct CargoValueSummary: Sendable {
     let totalSellValue: Double
     let totalBuyValue: Double
     let unpricedCount: Int
+    /// True when ESI omitted the piloted ship's asset subtree entirely (happens while undocked/in space),
+    /// so an empty `items` list here means "unknown," not "actually empty."
+    let dataUnavailable: Bool
 
-    static let empty = CargoValueSummary(shipTypeId: 0, items: [], totalSellValue: 0, totalBuyValue: 0, unpricedCount: 0)
+    static let empty = CargoValueSummary(shipTypeId: 0, items: [], totalSellValue: 0, totalBuyValue: 0, unpricedCount: 0, dataUnavailable: false)
 }
 
 // MARK:  Service
@@ -52,7 +55,14 @@ enum CargoValueService {
 
         let cargo = assets.filter { $0.locationId == ship.shipItemId && $0.locationFlag == "Cargo" }
         guard !cargo.isEmpty else {
-            return CargoValueSummary(shipTypeId: ship.shipTypeId, items: [], totalSellValue: 0, totalBuyValue: 0, unpricedCount: 0)
+            // ESI omits the actively piloted ship's asset subtree entirely while it's undocked
+            // (in space). If the hull itself isn't in the asset list, we can't tell whether the
+            // hold is genuinely empty or ESI just isn't reporting it — flag it instead of guessing.
+            let hullReported = assets.contains { $0.itemId == ship.shipItemId }
+            return CargoValueSummary(
+                shipTypeId: ship.shipTypeId, items: [], totalSellValue: 0, totalBuyValue: 0,
+                unpricedCount: 0, dataUnavailable: !hullReported
+            )
         }
 
         // Aggregate quantity by typeId — cargo can hold multiple stacks of the same item.
@@ -93,7 +103,8 @@ enum CargoValueService {
             items: items,
             totalSellValue: totalSell,
             totalBuyValue: totalBuy,
-            unpricedCount: unpriced
+            unpricedCount: unpriced,
+            dataUnavailable: false
         )
     }
 }

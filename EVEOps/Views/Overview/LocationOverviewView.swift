@@ -509,6 +509,7 @@ struct LocationOverviewView: View {
                 cargoInfoBullet("Sell Value", "Lowest active sell order × quantity, summed across items — roughly what it'd cost to replace the cargo.")
                 cargoInfoBullet("Buy Value", "Highest active buy order × quantity, summed across items — roughly what you'd get selling instantly.")
                 cargoInfoBullet("Unpriced items", "Items with no active Jita orders are valued at 0 ISK and flagged in red in the list.")
+                cargoInfoBullet("Docked required", "CCP's servers don't report your active ship's cargo contents while it's undocked — dock up, then refresh.")
             }
 
             Divider()
@@ -547,7 +548,16 @@ struct LocationOverviewView: View {
                 .font(.caption)
                 .foregroundStyle(.red)
         } else if let summary = cargoValues[characterID] {
-            if summary.items.isEmpty {
+            if summary.dataUnavailable {
+                HStack(spacing: 4) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
+                    Text("Cargo data isn't available while undocked — dock and refresh to see it.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } else if summary.items.isEmpty {
                 Text("Cargo hold is empty")
                     .font(.caption)
                     .foregroundStyle(.secondary)
