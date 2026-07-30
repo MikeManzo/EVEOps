@@ -1854,6 +1854,9 @@
     "EVEOps" : {
 
     },
+    "EVEOps can't alert you when an automatic background check finds an update — only manual checks will show one." : {
+
+    },
     "EVEOps is an independent third-party application not affiliated with, endorsed by, or sponsored by Fenris Creations." : {
 
     },
@@ -2930,6 +2933,9 @@
     "Notification Data" : {
 
     },
+    "Notifications Disabled" : {
+
+    },
     "NPC" : {
 
     },
@@ -2982,6 +2988,9 @@
 
     },
     "Open in EVE" : {
+
+    },
+    "Open Settings…" : {
 
     },
     "Open System Notification Settings…" : {

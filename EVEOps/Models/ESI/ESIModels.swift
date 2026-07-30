@@ -97,7 +97,7 @@ nonisolated struct ESIWalletJournalEntry: Codable, Sendable, Identifiable {
     let taxReceiverId: Int?
 }
 
-extension Array where Element == ESIWalletJournalEntry {
+nonisolated extension Array where Element == ESIWalletJournalEntry {
     /// ISK made/spent since local midnight (today's calendar day, resets at midnight in the user's time zone).
     var todayISKSummary: (made: Double, spent: Double) {
         let startOfDay = Calendar.current.startOfDay(for: Date())

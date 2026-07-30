@@ -145,6 +145,7 @@ struct CharacterFittingsView: View {
                     Task {
                         await ESIClient.shared.clearCache()
                         await UniverseCache.shared.clearDiskCache()
+                        await prefetcher.prefetchAll(accountManager: accountManager)
                         if activeTab == .ships {
                             await load()
                         } else {
@@ -209,7 +210,10 @@ struct CharacterFittingsView: View {
             }
         }
         .onChange(of: prefetcher.lastRefresh) { _, _ in
-            Task { await load() }
+            Task {
+                await load()
+                if savedFittingsLoaded { await loadSavedFittings() }
+            }
         }
         .onChange(of: activeTab) { _, newTab in
             if newTab == .savedFittings && !savedFittingsLoaded && !isSavingsLoading {
