@@ -3,15 +3,15 @@
     <channel>
         <title>EVEOps</title>
         <item>
-            <title>0.9.9.20.1</title>
-            <pubDate>Fri, 31 Jul 2026 08:00:19 -0400</pubDate>
-            <sparkle:version>120</sparkle:version>
-            <sparkle:shortVersionString>0.9.9.20.1</sparkle:shortVersionString>
+            <title>0.9.9.20.2</title>
+            <pubDate>Fri, 31 Jul 2026 12:19:56 -0400</pubDate>
+            <sparkle:version>121</sparkle:version>
+            <sparkle:shortVersionString>0.9.9.20.2</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
             <description><![CDATA[<ul>
-<li>Fixed the the case where training completed while the app was open and it was not reflected in the fittings training requirements.  We now update teh cache in-line with the user&#x27;s settings.</li>
+<li>Updated the notification workflow to better account for checking for automatic updates</li>
 </ul>]]></description>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.9.20.1/EVEOps.dmg" length="32422119" type="application/octet-stream" sparkle:edSignature="bscrSXux0CbV/wfzDpSde9665W2z46Ogrq4dhzDiXV2DH5FOFLrfCF6ZYgtfOkeGr5Zp8I7bW3Gm/2TjasvxAw=="/>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.9.20.2/EVEOps.dmg" length="33712391" type="application/octet-stream" sparkle:edSignature="4VkVga79whqiG9qcAOnEEGNqEJclxkD6pSBVwMNIuRTJFavoDOSidLNI4a3JofRPOhTDbgDnd0OJac6QXhMfDw=="/>
         </item>
     </channel>
 </rss>
