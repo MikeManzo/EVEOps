@@ -55,6 +55,7 @@ final class AppUpdater: NSObject {
                 self.canCheckForUpdates = canCheck
                 if canCheck && !self.hasCheckedOnLaunch {
                     self.hasCheckedOnLaunch = true
+                    Logger.updates.info("Launch check gate — automaticallyChecksForUpdates=\(updater.automaticallyChecksForUpdates), updateCheckInterval=\(Int(updater.updateCheckInterval))s, lastUpdateCheckDate=\(updater.lastUpdateCheckDate?.description ?? "nil")")
                     if updater.automaticallyChecksForUpdates {
                         updater.checkForUpdatesInBackground()
                     }
@@ -83,7 +84,10 @@ final class AppUpdater: NSObject {
     /// Sparkle's own interval/last-check bookkeeping, so it doesn't check any more often
     /// than the user's configured interval allows.
     func checkForUpdatesIfDue() {
-        guard canCheckForUpdates, updater.automaticallyChecksForUpdates else { return }
+        guard canCheckForUpdates, updater.automaticallyChecksForUpdates else {
+            Logger.updates.debug("checkForUpdatesIfDue skipped — canCheckForUpdates=\(self.canCheckForUpdates), automaticallyChecksForUpdates=\(self.updater.automaticallyChecksForUpdates)")
+            return
+        }
         let interval = updater.updateCheckInterval
         let lastCheck = updater.lastUpdateCheckDate ?? .distantPast
         guard Date().timeIntervalSince(lastCheck) >= interval else { return }
@@ -114,6 +118,32 @@ extension AppUpdater: SPUUpdaterDelegate {
             if choice == .skip {
                 updateAvailable = false
                 availableVersion = nil
+            }
+        }
+    }
+
+    // Diagnostics for the "background checks never fire" investigation — these mirror
+    // Sparkle's own internal scheduling decisions so we have first-party evidence of
+    // whether/why its scheduler engages, instead of inferring from absent log lines.
+    nonisolated func updater(_ updater: SPUUpdater, willScheduleUpdateCheckAfterDelay delay: TimeInterval) {
+        Task { @MainActor in
+            Logger.updates.info("Sparkle scheduled its next automatic check in \(Int(delay))s")
+        }
+    }
+
+    nonisolated func updaterWillNotScheduleUpdateCheck(_ updater: SPUUpdater) {
+        Task { @MainActor in
+            Logger.updates.warning("Sparkle will NOT schedule any future automatic update check (automaticallyChecksForUpdates is currently false)")
+        }
+    }
+
+    nonisolated func updater(_ updater: SPUUpdater, didFinishUpdateCycleFor updateCheck: SPUUpdateCheck, error: Error?) {
+        Task { @MainActor in
+            if let error {
+                let nsError = error as NSError
+                Logger.updates.error("Update check (type \(updateCheck.rawValue)) finished with error: \(nsError.domain) \(nsError.code) — \(nsError.localizedDescription)")
+            } else {
+                Logger.updates.info("Update check (type \(updateCheck.rawValue)) finished successfully")
             }
         }
     }
