@@ -3,15 +3,15 @@
     <channel>
         <title>EVEOps</title>
         <item>
-            <title>0.9.9.20.2</title>
-            <pubDate>Fri, 31 Jul 2026 12:19:56 -0400</pubDate>
-            <sparkle:version>121</sparkle:version>
-            <sparkle:shortVersionString>0.9.9.20.2</sparkle:shortVersionString>
+            <title>0.9.9.20.3</title>
+            <pubDate>Mon, 03 Aug 2026 20:21:41 -0400</pubDate>
+            <sparkle:version>122</sparkle:version>
+            <sparkle:shortVersionString>0.9.9.20.3</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
             <description><![CDATA[<ul>
-<li>Updated the notification workflow to better account for checking for automatic updates</li>
+<li>Added charactewr detail for Kill Mails; click the charcter involved in your battle to get details.</li>
 </ul>]]></description>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.9.20.2/EVEOps.dmg" length="33712391" type="application/octet-stream" sparkle:edSignature="4VkVga79whqiG9qcAOnEEGNqEJclxkD6pSBVwMNIuRTJFavoDOSidLNI4a3JofRPOhTDbgDnd0OJac6QXhMfDw=="/>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.9.20.3/EVEOps.dmg" length="33745268" type="application/octet-stream" sparkle:edSignature="8gO6/Nc79q2V556Dz66vsTFoI90f0DvlKq9mlOqfUTeohodYnfdqEB3eSG51jeewHH/r8STUb+emNQ+HAJOZDw=="/>
         </item>
     </channel>
 </rss>
