@@ -420,23 +420,33 @@ struct KillmailAttackerRow: View {
     let attacker: ESIKillmailAttacker
     @State private var shipName = ""
     @State private var name = ""
+    @State private var showPopover = false
 
     var body: some View {
         HStack(spacing: 8) {
-            if let charId = attacker.characterId {
-                AsyncImage(url: EVEImageURL.characterPortrait(charId, size: 64)) { image in
-                    image.resizable()
-                } placeholder: { Circle().fill(.quaternary) }
-                .frame(width: 28, height: 28).clipShape(Circle())
-            } else {
-                Circle().fill(.quaternary).frame(width: 28, height: 28)
-            }
+            HStack(spacing: 8) {
+                if let charId = attacker.characterId {
+                    AsyncImage(url: EVEImageURL.characterPortrait(charId, size: 64)) { image in
+                        image.resizable()
+                    } placeholder: { Circle().fill(.quaternary) }
+                    .frame(width: 28, height: 28).clipShape(Circle())
+                } else {
+                    Circle().fill(.quaternary).frame(width: 28, height: 28)
+                }
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(name.isEmpty ? (attacker.characterId.map { "Character #\($0)" } ?? "NPC") : name)
-                    .font(.subheadline)
-                Text(shipName.isEmpty ? (attacker.shipTypeId.map { "Ship #\($0)" } ?? "Unknown") : shipName)
-                    .font(.caption).foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(name.isEmpty ? (attacker.characterId.map { "Character #\($0)" } ?? "NPC") : name)
+                        .font(.subheadline)
+                    Text(shipName.isEmpty ? (attacker.shipTypeId.map { "Ship #\($0)" } ?? "Unknown") : shipName)
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                if attacker.characterId != nil { showPopover = true }
+            }
+            .popover(isPresented: $showPopover, arrowEdge: .trailing) {
+                AttackerInfoPopover(attacker: attacker, name: name, shipName: shipName)
             }
 
             Spacer()
@@ -455,6 +465,161 @@ struct KillmailAttackerRow: View {
         .task {
             if let charId = attacker.characterId { name = await NameResolver.shared.resolve(id: charId) }
             if let shipId = attacker.shipTypeId { shipName = (await UniverseCache.shared.type(id: shipId))?.name ?? "" }
+        }
+    }
+}
+
+// MARK: Attacker Info Popover
+
+struct AttackerInfoPopover: View {
+    let attacker: ESIKillmailAttacker
+    let name: String
+    let shipName: String
+
+    @State private var charInfo: ESICharacterPublic?
+    @State private var corpName = ""
+    @State private var allianceName = ""
+    @State private var weaponName = ""
+    @State private var isLoading = true
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                if let charId = attacker.characterId {
+                    AsyncImage(url: EVEImageURL.characterPortrait(charId, size: 256)) { image in
+                        image.resizable()
+                    } placeholder: { Circle().fill(.quaternary) }
+                    .frame(width: 56, height: 56).clipShape(Circle())
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(name.isEmpty ? "Unknown" : name)
+                        .font(.headline)
+                    HStack(spacing: 6) {
+                        Label(String(format: "%.2f", attacker.securityStatus), systemImage: "shield.fill")
+                            .font(.caption)
+                            .foregroundStyle(securityColor(attacker.securityStatus))
+                        if attacker.finalBlow {
+                            Text("Final Blow").font(.caption2.bold())
+                                .padding(.horizontal, 5).padding(.vertical, 2)
+                                .background(.red.opacity(0.15), in: Capsule())
+                                .foregroundStyle(.red)
+                        }
+                    }
+                }
+            }
+
+            Divider()
+
+            if isLoading {
+                ProgressView().controlSize(.small).frame(maxWidth: .infinity)
+            } else {
+                VStack(alignment: .leading, spacing: 6) {
+                    if !corpName.isEmpty {
+                        popoverRow("Corporation", value: corpName)
+                    }
+                    if !allianceName.isEmpty {
+                        popoverRow("Alliance", value: allianceName)
+                    }
+                    popoverRow("Ship Flown", value: shipName.isEmpty ? "Unknown" : shipName)
+                    if !weaponName.isEmpty {
+                        popoverRow("Weapon", value: weaponName)
+                    }
+                    popoverRow("Damage Done", value: "\(attacker.damageDone)")
+                    if let info = charInfo {
+                        popoverRow("Birthday", value: EVEFormatters.dateFormatter.string(from: info.birthday))
+                        popoverRow("Race", value: raceName(info.raceId))
+                        popoverRow("Bloodline", value: bloodlineName(info.bloodlineId))
+                        if let title = info.title, !title.isEmpty {
+                            popoverRow("Title", value: title)
+                        }
+                        if let desc = info.description, !desc.isEmpty {
+                            Text("Bio").font(.caption).foregroundStyle(.secondary).padding(.top, 4)
+                            Text(desc.strippingEVEMarkup)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(4)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(14)
+        .frame(width: 280)
+        .task {
+            await load()
+        }
+    }
+
+    private func popoverRow(_ label: String, value: String) -> some View {
+        HStack(alignment: .top) {
+            Text(label).font(.caption).foregroundStyle(.secondary)
+            Spacer()
+            Text(value).font(.caption.monospacedDigit()).multilineTextAlignment(.trailing)
+        }
+    }
+
+    private func load() async {
+        async let infoResult = fetchCharInfo()
+        async let weaponResult = fetchWeaponName()
+
+        charInfo = await infoResult
+        weaponName = await weaponResult
+
+        var idsToResolve: [Int] = []
+        if let corpId = attacker.corporationId ?? charInfo?.corporationId { idsToResolve.append(corpId) }
+        if let allianceId = attacker.allianceId ?? charInfo?.allianceId { idsToResolve.append(allianceId) }
+        if !idsToResolve.isEmpty {
+            let resolved = await NameResolver.shared.resolve(ids: idsToResolve)
+            if let corpId = attacker.corporationId ?? charInfo?.corporationId { corpName = resolved[corpId] ?? "" }
+            if let allianceId = attacker.allianceId ?? charInfo?.allianceId { allianceName = resolved[allianceId] ?? "" }
+        }
+
+        isLoading = false
+    }
+
+    private func fetchCharInfo() async -> ESICharacterPublic? {
+        guard let charId = attacker.characterId else { return nil }
+        return try? await ESIClient.shared.fetch("/characters/\(charId)/")
+    }
+
+    private func fetchWeaponName() async -> String {
+        guard let weaponId = attacker.weaponTypeId else { return "" }
+        return (await UniverseCache.shared.type(id: weaponId))?.name ?? ""
+    }
+
+    private func securityColor(_ sec: Double) -> Color {
+        if sec >= 0.5 { return .green }
+        if sec > 0.0 { return .yellow }
+        return .red
+    }
+
+    private func raceName(_ id: Int) -> String {
+        switch id {
+        case 1: return "Caldari"
+        case 2: return "Minmatar"
+        case 4: return "Amarr"
+        case 8: return "Gallente"
+        default: return "Unknown"
+        }
+    }
+
+    private func bloodlineName(_ id: Int) -> String {
+        switch id {
+        case 1: return "Deteis"
+        case 2: return "Civire"
+        case 3: return "Sebiestor"
+        case 4: return "Brutor"
+        case 5: return "Amarr"
+        case 6: return "Ni-Kunni"
+        case 7: return "Gallente"
+        case 8: return "Intaki"
+        case 9: return "Static"
+        case 10: return "Modifier"
+        case 11: return "Achura"
+        case 12: return "Jin-Mei"
+        case 13: return "Khanid"
+        case 14: return "Vherokior"
+        default: return "Unknown"
         }
     }
 }
