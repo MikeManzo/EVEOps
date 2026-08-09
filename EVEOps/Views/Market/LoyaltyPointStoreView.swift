@@ -10,23 +10,66 @@
 
 import SwiftUI
 
+// MARK:  Market Hub
+
+/// Reference market used to price offer rewards and required turn-in items.
+/// Region-wide aggregates (not single-station), matching how `FuzzworkClient` already works.
+private enum LPMarketHub: String, CaseIterable, Identifiable, Codable {
+    case jita, amarr, dodixie, rens, hek
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .jita:    "Jita"
+        case .amarr:   "Amarr"
+        case .dodixie: "Dodixie"
+        case .rens:    "Rens"
+        case .hek:     "Hek"
+        }
+    }
+
+    /// Region containing this hub's trade station.
+    var regionId: Int {
+        switch self {
+        case .jita:    10000002 // The Forge
+        case .amarr:   10000043 // Domain
+        case .dodixie: 10000032 // Sinq Laison
+        case .rens:    10000030 // Heimatar
+        case .hek:     10000042 // Metropolis
+        }
+    }
+}
+
 // MARK:  Local Models
 
 private struct ResolvedLPOffer: Identifiable {
     let offer: ESILPStoreOffer
     let typeName: String
-    var jitaSell: Double?
+    var marketSell: Double?
+    /// Market cost of items that must be turned in alongside LP/ISK, priced at the selected hub's sell price.
+    /// Nil until priced; nil is treated as "unknown," not "free," when requiredItems is non-empty.
+    var requiredItemsCost: Double?
     var id: Int { offer.offerId }
 
-    /// Net ISK gained per exchange: (jitaSell × qty) − iskCost
+    /// Net ISK gained per exchange: (marketSell × qty) − iskCost − requiredItemsCost
     var netISK: Double? {
-        guard let jitaSell else { return nil }
-        return (jitaSell * Double(offer.quantity)) - Double(offer.iskCost)
+        guard let marketSell else { return nil }
+        if !offer.requiredItems.isEmpty && requiredItemsCost == nil { return nil }
+        let reqCost = requiredItemsCost ?? 0
+        return (marketSell * Double(offer.quantity)) - Double(offer.iskCost) - reqCost
     }
 
     /// ISK earned per LP spent
     var iskPerLP: Double? {
         guard let net = netISK, net > 0, offer.lpCost > 0 else { return nil }
+        return net / Double(offer.lpCost)
+    }
+
+    /// Same as `iskPerLP` but includes break-even/unprofitable offers (may be ≤ 0).
+    /// Used to rank "closest to profitable" when nothing actually clears the bar.
+    var rawISKPerLP: Double? {
+        guard let net = netISK, offer.lpCost > 0 else { return nil }
         return net / Double(offer.lpCost)
     }
 }
@@ -35,6 +78,57 @@ private struct AgentStation: Identifiable {
     let locationId: Int
     let stationName: String
     var id: Int { locationId }
+}
+
+private struct LPStoreOfferBundle {
+    var offers: [ResolvedLPOffer]
+    var requiredItemNames: [Int: String]
+}
+
+/// Fetches a corp's LP store offers, resolves names, and prices both the reward
+/// items and any required turn-in items — against `regionId` — so `netISK`/`iskPerLP`
+/// reflect the full cost at whichever hub the user has selected.
+private func fetchLPStoreOffers(for corpId: Int, regionId: Int) async throws -> LPStoreOfferBundle {
+    let raw: [ESILPStoreOffer] = try await ESIClient.shared.fetch("/loyalty/stores/\(corpId)/offers/")
+
+    let offerTypeIds = Array(Set(raw.map(\.typeId)))
+    let reqTypeIds   = Array(Set(raw.flatMap { $0.requiredItems.map(\.typeId) }))
+    let allTypeIds   = Array(Set(offerTypeIds + reqTypeIds))
+    let names        = await NameResolver.shared.resolve(ids: allTypeIds)
+
+    let requiredItemNames = Dictionary(
+        uniqueKeysWithValues: reqTypeIds.compactMap { id -> (Int, String)? in
+            guard let name = names[id] else { return nil }
+            return (id, name)
+        }
+    )
+
+    var resolved = raw.map { offer in
+        ResolvedLPOffer(offer: offer, typeName: names[offer.typeId] ?? "Item #\(offer.typeId)")
+    }
+
+    if !allTypeIds.isEmpty, let prices = try? await FuzzworkClient.shared.prices(typeIds: allTypeIds, regionId: regionId) {
+        for i in resolved.indices {
+            let tid = resolved[i].offer.typeId
+            resolved[i].marketSell = prices[tid]?.sellPercentile
+
+            let reqItems = resolved[i].offer.requiredItems
+            if !reqItems.isEmpty {
+                var total = 0.0
+                var allKnown = true
+                for req in reqItems {
+                    guard let p = prices[req.typeId]?.sellPercentile else { allKnown = false; break }
+                    total += p * Double(req.quantity)
+                }
+                resolved[i].requiredItemsCost = allKnown ? total : nil
+            }
+        }
+    }
+
+    return LPStoreOfferBundle(
+        offers: resolved.sorted { ($0.iskPerLP ?? -1) > ($1.iskPerLP ?? -1) },
+        requiredItemNames: requiredItemNames
+    )
 }
 
 // MARK:  Private Formatting Helpers
@@ -61,7 +155,10 @@ private func lpISKPerLPColor(_ value: Double) -> Color {
 // MARK:  EverMarks (Paragon)
 
 /// Paragon is the NPC corporation whose loyalty points are branded in-game as "EverMarks" —
-/// a cosmetics-only currency (ship/corp emblems, SKINR) with no ISK cost and no market value.
+/// mostly ship/corp emblems and SKINs. Some SKINs *are* tradeable and carry real ISK value,
+/// so pricing/optimization run the same as any other corp; `isEverMarks` is now only used for
+/// cosmetic labeling ("EM" vs "LP", icon/color). Items with no market simply price as unknown,
+/// the same way any illiquid item does elsewhere in this view.
 private let paragonCorporationId = 1000419
 
 private func lpCurrencyLabel(isEverMarks: Bool) -> String { isEverMarks ? "EM" : "LP" }
@@ -151,12 +248,67 @@ private struct CorpLogoImage: View {
     }
 }
 
+// MARK:  Corp Holding Row (Left Panel)
+
+private struct CorpHoldingRow: View {
+    let corp: ResolvedLoyaltyPoints
+    let isEverMarks: Bool
+    let hub: LPMarketHub
+    let isSelected: Bool
+
+    @State private var showSpendPlan = false
+
+    var body: some View {
+        HStack(spacing: 10) {
+            CorpLogoImage(corpId: corp.corporationId, size: 38)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(corp.corporationName)
+                    .font(.subheadline.bold())
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                HStack(spacing: 3) {
+                    Image(systemName: lpCurrencyIcon(isEverMarks: isEverMarks))
+                        .font(.system(size: 9))
+                        .foregroundStyle(lpCurrencyColor(isEverMarks: isEverMarks))
+                    Text(lpFormatLP(corp.loyaltyPoints) + " " + lpCurrencyLabel(isEverMarks: isEverMarks))
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Spacer(minLength: 4)
+
+            if corp.loyaltyPoints > 0 {
+                Button {
+                    showSpendPlan = true
+                } label: {
+                    Image(systemName: "wand.and.stars")
+                        .font(.system(size: 12))
+                        // accentColor washes out against the selection highlight,
+                        // which is also blue — switch to white when the row is selected.
+                        .foregroundStyle(isSelected ? .white : Color.accentColor)
+                }
+                .buttonStyle(.plain)
+                .help("Optimize LP spend for maximum ISK")
+                .popover(isPresented: $showSpendPlan, arrowEdge: .trailing) {
+                    LPSpendPlanPopover(corp: corp, hub: hub)
+                }
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
+
 // MARK:  Offer Detail Popover
 
 private struct LPOfferDetailPopover: View {
     let resolved: ResolvedLPOffer
     let requiredItemNames: [Int: String]
     let isEverMarks: Bool
+    let hubName: String
+    let showPricing: Bool
 
     private var offer: ESILPStoreOffer { resolved.offer }
 
@@ -259,7 +411,7 @@ private struct LPOfferDetailPopover: View {
                                 .fontWeight(.semibold)
                         }
                     }
-                    if !isEverMarks {
+                    if showPricing {
                         detailRow("ISK Cost") {
                             Text(offer.iskCost > 0
                                  ? EVEFormatters.formatISK(Double(offer.iskCost))
@@ -270,6 +422,15 @@ private struct LPOfferDetailPopover: View {
                     if let ak = offer.akCost {
                         detailRow("AK Cost") {
                             Text("\(ak) AK").foregroundStyle(.secondary)
+                        }
+                    }
+                    if !offer.requiredItems.isEmpty {
+                        detailRow("Required Items") {
+                            if let reqCost = resolved.requiredItemsCost {
+                                Text(EVEFormatters.formatISK(reqCost)).foregroundStyle(.secondary)
+                            } else {
+                                Text("Loading…").foregroundStyle(.tertiary)
+                            }
                         }
                     }
                 }
@@ -283,14 +444,14 @@ private struct LPOfferDetailPopover: View {
                     detailRow("Quantity") {
                         Text("×\(offer.quantity)").foregroundStyle(.primary)
                     }
-                    if !isEverMarks {
-                        if let jita = resolved.jitaSell {
-                            detailRow("Jita Sell") {
-                                Text(EVEFormatters.formatISK(jita)).foregroundStyle(.green)
+                    if showPricing {
+                        if let sell = resolved.marketSell {
+                            detailRow("\(hubName) Sell") {
+                                Text(EVEFormatters.formatISK(sell)).foregroundStyle(.green)
                             }
                             if offer.quantity > 1 {
                                 detailRow("Total Value") {
-                                    Text(EVEFormatters.formatISK(jita * Double(offer.quantity)))
+                                    Text(EVEFormatters.formatISK(sell * Double(offer.quantity)))
                                         .foregroundStyle(.green)
                                 }
                             }
@@ -302,8 +463,8 @@ private struct LPOfferDetailPopover: View {
                                 }
                             }
                         } else {
-                            detailRow("Jita Sell") {
-                                Text("Loading…").foregroundStyle(.secondary)
+                            detailRow("\(hubName) Sell") {
+                                Text("No market data").foregroundStyle(.tertiary)
                             }
                         }
                     }
@@ -311,7 +472,7 @@ private struct LPOfferDetailPopover: View {
                 .padding(.bottom, 8)
 
                 // ISK/LP badge
-                if !isEverMarks, let iskLP = resolved.iskPerLP {
+                if showPricing, let iskLP = resolved.iskPerLP {
                     let color = lpISKPerLPColor(iskLP)
                     HStack {
                         Spacer()
@@ -356,7 +517,7 @@ private struct LPOfferDetailPopover: View {
                 }
             }
         }
-        .frame(minWidth: 300, maxWidth: 360)
+        .frame(minWidth: 300, maxWidth: 360, minHeight: 200, maxHeight: 520)
         .task(id: offer.typeId) { await loadTypeInfo() }
     }
 
@@ -400,6 +561,309 @@ private struct LPOfferDetailPopover: View {
     }
 }
 
+// MARK:  Spend Plan Popover (Holdings Optimizer)
+
+private struct LPSpendPlanEntry: Identifiable {
+    let offer: ResolvedLPOffer
+    let redemptions: Int
+    var id: Int { offer.id }
+
+    var lpUsed: Int { offer.offer.lpCost * redemptions }
+    var iskGained: Double { (offer.netISK ?? 0) * Double(redemptions) }
+}
+
+/// Why the greedy planner couldn't build a spend plan — these are two distinct
+/// situations that call for different next steps, so they're kept separate rather
+/// than folded into one generic "no offers" message.
+private enum LPSpendPlanEmptyReason {
+    /// None of this store's rewards have any market data at all (e.g. Paragon/EverMarks —
+    /// mostly account-bound cosmetics). There's no ISK angle to optimize for here.
+    case noMarketData
+    /// Some offers are priced, but nothing clears break-even. `closest` are the
+    /// least-unprofitable offers (may be ≤ 0 ISK/LP) shown for context.
+    case noProfitableOffers(closest: [ResolvedLPOffer])
+    /// At least one offer is profitable, but the corp's LP balance can't afford
+    /// even one redemption of the cheapest of them.
+    case lpTooLow(cheapest: ResolvedLPOffer, shortfall: Int)
+}
+
+/// Greedily fills the corp's LP balance with the highest ISK/LP offers it can afford,
+/// in order, spilling leftover LP into the next-best affordable offer. This is an
+/// approximation (not an exact knapsack solve) but matches the ranking already shown
+/// in the offer list and needs no extra state to reason about.
+private struct LPSpendPlanPopover: View {
+    let corp: ResolvedLoyaltyPoints
+    let hub: LPMarketHub
+
+    @State private var isLoading = true
+    @State private var loadError: String?
+    @State private var plan: [LPSpendPlanEntry] = []
+    @State private var emptyReason: LPSpendPlanEmptyReason?
+    @State private var lpUsed = 0
+    @State private var totalISK: Double = 0
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            header
+            Divider()
+            if isLoading {
+                HStack(spacing: 8) {
+                    ProgressView().scaleEffect(0.7)
+                    Text("Calculating best value…")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(16)
+            } else if let loadError {
+                Text(loadError)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(16)
+            } else if let emptyReason {
+                emptyStateView(emptyReason)
+            } else {
+                Text(planSummarySentence)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                Divider()
+                ScrollView {
+                    planList
+                }
+                Divider()
+                summary
+            }
+        }
+        .frame(minWidth: 360, maxWidth: 440, minHeight: 160, maxHeight: 420)
+        // List(.sidebar) — the ancestor presenting this popover — sets an implicit
+        // .lineLimit(1) on its row content, which popovers inherit from their
+        // presenting view's environment. Reset it here so multi-line text below
+        // (e.g. the empty-state message) isn't silently truncated to one line.
+        .lineLimit(nil)
+        .task(id: "\(corp.corporationId)_\(hub.rawValue)") { await buildPlan() }
+    }
+
+    @ViewBuilder
+    private func emptyStateView(_ reason: LPSpendPlanEmptyReason) -> some View {
+        switch reason {
+        case .noMarketData:
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "xmark.seal")
+                        .foregroundStyle(.tertiary)
+                    Text("None of \(corp.corporationName)'s rewards are tradeable on the market — there's no ISK value to optimize for here.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(16)
+
+        case .noProfitableOffers(let closest):
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "chart.line.downtrend.xyaxis")
+                        .foregroundStyle(.tertiary)
+                    Text("None of \(corp.corporationName)'s offers clear break-even at current \(hub.displayName) prices.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                if !closest.isEmpty {
+                    Divider()
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("CLOSEST TO PROFITABLE")
+                            .font(.caption2.bold())
+                            .foregroundStyle(.tertiary)
+                        ForEach(closest) { offer in
+                            HStack(spacing: 8) {
+                                Text(offer.typeName)
+                                    .font(.caption)
+                                    .lineLimit(1)
+                                Spacer(minLength: 8)
+                                if let ratio = offer.rawISKPerLP {
+                                    Text(lpFormatISKPerLP(ratio) + " ISK/LP")
+                                        .font(.caption.monospacedDigit().bold())
+                                        .foregroundStyle(ratio > 0 ? .green : .red)
+                                }
+                            }
+                        }
+                    }
+                    Text("Prices move — check back later, or redeem manually for an item's use value rather than resale profit.")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(16)
+
+        case .lpTooLow(let cheapest, let shortfall):
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "medal")
+                        .foregroundStyle(.tertiary)
+                    Text("You don't have enough LP yet for a profitable redemption.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Divider()
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("CHEAPEST PROFITABLE OFFER")
+                        .font(.caption2.bold())
+                        .foregroundStyle(.tertiary)
+                    HStack(spacing: 8) {
+                        Text(cheapest.typeName)
+                            .font(.caption.bold())
+                            .lineLimit(1)
+                        Spacer(minLength: 8)
+                        Text(lpFormatLP(cheapest.offer.lpCost) + " LP")
+                            .font(.caption.monospacedDigit())
+                    }
+                    if let net = cheapest.netISK {
+                        Text("+" + EVEFormatters.formatISK(net) + " net ISK")
+                            .font(.caption2.monospacedDigit())
+                            .foregroundStyle(.green)
+                    }
+                }
+                Text("You need \(lpFormatLP(shortfall)) more LP to afford it.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(16)
+        }
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text("Optimized LP Spend")
+                .font(.headline)
+            Text("\(corp.corporationName) · \(lpFormatLP(corp.loyaltyPoints)) LP available")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Text("Priced at \(hub.displayName)")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+        }
+        .padding(16)
+    }
+
+    private var planList: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(plan) { entry in
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text("×\(entry.redemptions)")
+                        .font(.caption.monospacedDigit().bold())
+                        .foregroundStyle(.secondary)
+                        .frame(minWidth: 28, alignment: .leading)
+                    Text(entry.offer.typeName)
+                        .font(.caption)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    VStack(alignment: .trailing, spacing: 1) {
+                        Text("+" + EVEFormatters.formatISK(entry.iskGained))
+                            .font(.caption.monospacedDigit().bold())
+                            .foregroundStyle(.green)
+                        Text(lpFormatLP(entry.lpUsed) + " LP")
+                            .font(.caption2.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
+                    .fixedSize()
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 6)
+            }
+        }
+        .padding(.vertical, 6)
+    }
+
+    /// Plain-English readout of the plan, generated by templating the numbers we
+    /// already computed — no model call, so it's exact and always available.
+    private var planSummarySentence: String {
+        let lpText  = "\(lpFormatLP(lpUsed))/\(lpFormatLP(corp.loyaltyPoints)) LP"
+        let iskText = "+" + EVEFormatters.formatISK(totalISK)
+
+        if plan.count == 1, let only = plan.first {
+            return "Redeem ×\(only.redemptions) \(only.offer.typeName) for \(lpText), netting \(iskText)."
+        }
+        let leader = plan.max { ($0.offer.iskPerLP ?? 0) < ($1.offer.iskPerLP ?? 0) }
+        let ledBy = leader.map { " led by \($0.offer.typeName)" } ?? ""
+        return "Redeem \(plan.count) offers\(ledBy) using \(lpText) for a projected \(iskText)."
+    }
+
+    private var summary: some View {
+        VStack(spacing: 6) {
+            HStack {
+                Text("LP Used")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text("\(lpFormatLP(lpUsed)) / \(lpFormatLP(corp.loyaltyPoints))")
+                    .font(.caption.monospacedDigit())
+            }
+            HStack {
+                Text("Projected ISK")
+                    .font(.subheadline.bold())
+                Spacer()
+                Text("+" + EVEFormatters.formatISK(totalISK))
+                    .font(.subheadline.bold().monospacedDigit())
+                    .foregroundStyle(.green)
+            }
+        }
+        .padding(16)
+    }
+
+    private func buildPlan() async {
+        isLoading = true
+        loadError = nil
+        emptyReason = nil
+        do {
+            let bundle = try await fetchLPStoreOffers(for: corp.corporationId, regionId: hub.regionId)
+            let candidates = bundle.offers
+                .filter { ($0.iskPerLP ?? 0) > 0 && $0.offer.lpCost > 0 }
+                .sorted { ($0.iskPerLP ?? 0) > ($1.iskPerLP ?? 0) }
+
+            guard !candidates.isEmpty else {
+                let priced = bundle.offers.filter { $0.rawISKPerLP != nil }
+                plan = []
+                if priced.isEmpty {
+                    emptyReason = .noMarketData
+                } else {
+                    let closest = priced.sorted { $0.rawISKPerLP! > $1.rawISKPerLP! }.prefix(3)
+                    emptyReason = .noProfitableOffers(closest: Array(closest))
+                }
+                isLoading = false
+                return
+            }
+
+            var remainingLP = corp.loyaltyPoints
+            var entries: [LPSpendPlanEntry] = []
+            for offer in candidates {
+                let count = remainingLP / offer.offer.lpCost
+                guard count > 0 else { continue }
+                entries.append(LPSpendPlanEntry(offer: offer, redemptions: count))
+                remainingLP -= count * offer.offer.lpCost
+            }
+
+            if entries.isEmpty {
+                let cheapest = candidates.min { $0.offer.lpCost < $1.offer.lpCost }!
+                plan = []
+                emptyReason = .lpTooLow(cheapest: cheapest, shortfall: cheapest.offer.lpCost - corp.loyaltyPoints)
+            } else {
+                plan = entries
+                lpUsed = corp.loyaltyPoints - remainingLP
+                totalISK = entries.reduce(0) { $0 + $1.iskGained }
+            }
+        } catch {
+            loadError = "Could not load LP store offers."
+        }
+        isLoading = false
+    }
+}
+
 // MARK:  Offer Row
 
 private struct LPOfferRow: View {
@@ -409,6 +873,8 @@ private struct LPOfferRow: View {
     let agentStations: [AgentStation]
     let isLoadingStations: Bool
     let isEverMarks: Bool
+    let hubName: String
+    let showPricing: Bool
     let onSetWaypoint: (Int) -> Void
 
     @State private var showPopover = false
@@ -427,7 +893,9 @@ private struct LPOfferRow: View {
                         LPOfferDetailPopover(
                             resolved: resolved,
                             requiredItemNames: requiredItemNames,
-                            isEverMarks: isEverMarks
+                            isEverMarks: isEverMarks,
+                            hubName: hubName,
+                            showPricing: showPricing
                         )
                     }
                 VStack(alignment: .leading, spacing: 2) {
@@ -458,7 +926,7 @@ private struct LPOfferRow: View {
             }
             .frame(width: 90, alignment: .trailing)
 
-            if !isEverMarks {
+            if showPricing {
                 // ISK cost
                 Text(offer.iskCost > 0 ? EVEFormatters.formatISKShort(Double(offer.iskCost)) : "—")
                     .font(.caption.monospacedDigit())
@@ -471,12 +939,12 @@ private struct LPOfferRow: View {
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.tertiary)
                 .frame(width: 44, alignment: .trailing)
-                .padding(.trailing, isEverMarks ? 16 : 0)
+                .padding(.trailing, showPricing ? 0 : 16)
 
-            if !isEverMarks {
-                // Jita sell price
+            if showPricing {
+                // Market sell price at the selected hub
                 Group {
-                    if let sell = resolved.jitaSell {
+                    if let sell = resolved.marketSell {
                         Text(EVEFormatters.formatISKShort(sell))
                             .font(.caption.monospacedDigit())
                             .foregroundStyle(.green)
@@ -533,7 +1001,7 @@ private struct LPOfferRow: View {
                 .padding(.vertical, 4)
                 .background(color, in: Capsule())
                 .shadow(color: color.opacity(0.4), radius: 3, x: 0, y: 1)
-        } else if resolved.jitaSell == nil {
+        } else if resolved.marketSell == nil {
             Text("—")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
@@ -562,6 +1030,7 @@ struct LoyaltyPointStoreView: View {
     @State private var offersError: String?
     @State private var searchText = ""
     @State private var sortByISKLP = true
+    @AppStorage("lpStoreMarketHub") private var selectedHub: LPMarketHub = .jita
 
     // Required item names resolved alongside offer type names
     @State private var requiredItemNames: [Int: String] = [:]
@@ -579,6 +1048,15 @@ struct LoyaltyPointStoreView: View {
     }
 
     private var isEverMarks: Bool { selectedCorpId == paragonCorporationId }
+
+    /// Whether any currently-loaded offer actually has market pricing. Some NPC-corp
+    /// reward stores (e.g. Paragon/EverMarks) turn out to be entirely non-tradeable
+    /// items — detected from real fetch results rather than assumed from corp identity,
+    /// so pricing UI hides itself for any store like that and reappears automatically
+    /// if that ever changes, without hardcoding a corp ID.
+    private var offersHaveMarketData: Bool {
+        offers.contains { $0.marketSell != nil }
+    }
 
     private var filteredOffers: [ResolvedLPOffer] {
         var result = offers
@@ -618,9 +1096,14 @@ struct LoyaltyPointStoreView: View {
         }
         .onChange(of: selectedCorpId) { _, id in
             if let id {
-                sortByISKLP = id != paragonCorporationId
+                sortByISKLP = true
                 Task { await loadOffers(for: id) }
                 Task { await loadAgentStations(for: id) }
+            }
+        }
+        .onChange(of: selectedHub) { _, _ in
+            if let id = selectedCorpId {
+                Task { await loadOffers(for: id) }
             }
         }
     }
@@ -681,37 +1164,18 @@ struct LoyaltyPointStoreView: View {
                     get: { selectedCorpId },
                     set: { selectedCorpId = $0 }
                 )) { lp in
-                    corpRow(lp)
-                        .tag(lp.corporationId)
+                    CorpHoldingRow(
+                        corp: lp,
+                        isEverMarks: lp.corporationId == paragonCorporationId,
+                        hub: selectedHub,
+                        isSelected: lp.corporationId == selectedCorpId
+                    )
+                    .tag(lp.corporationId)
                 }
                 .listStyle(.sidebar)
             }
         }
         .background(Color(NSColor.controlBackgroundColor))
-    }
-
-    private func corpRow(_ lp: ResolvedLoyaltyPoints) -> some View {
-        let isEM = lp.corporationId == paragonCorporationId
-        return HStack(spacing: 10) {
-            CorpLogoImage(corpId: lp.corporationId, size: 38)
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(lp.corporationName)
-                    .font(.subheadline.bold())
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                HStack(spacing: 3) {
-                    Image(systemName: lpCurrencyIcon(isEverMarks: isEM))
-                        .font(.system(size: 9))
-                        .foregroundStyle(lpCurrencyColor(isEverMarks: isEM))
-                    Text(lpFormatLP(lp.loyaltyPoints) + " " + lpCurrencyLabel(isEverMarks: isEM))
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                }
-            }
-        }
-        .padding(.vertical, 4)
     }
 
     // MARK:  Offer Panel (Right Panel)
@@ -773,6 +1237,10 @@ struct LoyaltyPointStoreView: View {
                         .foregroundStyle(.tertiary)
                     Text(searchText.isEmpty ? "No offers available" : "No results for \"\(searchText)\"")
                         .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: 280)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -786,6 +1254,8 @@ struct LoyaltyPointStoreView: View {
                                 agentStations: agentStations,
                                 isLoadingStations: isLoadingStations,
                                 isEverMarks: isEverMarks,
+                                hubName: selectedHub.displayName,
+                                showPricing: offersHaveMarketData,
                                 onSetWaypoint: { locationId in
                                     Task { await setWaypoint(locationId: locationId) }
                                 }
@@ -798,6 +1268,7 @@ struct LoyaltyPointStoreView: View {
                 }
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var offerToolbar: some View {
@@ -861,8 +1332,24 @@ struct LoyaltyPointStoreView: View {
                 .overlay(Capsule().strokeBorder(lpCurrencyColor(isEverMarks: isEverMarks).opacity(0.3), lineWidth: 1))
             }
 
-            // Sort picker — ISK/LP has no meaning for EverMarks (cosmetics have no ISK cost or market value)
-            if !isEverMarks {
+            // Market hub / sort — hidden when this store's rewards have no market data at all
+            // (e.g. Paragon/EverMarks — checked from the actual fetch, not assumed from corp ID).
+            if offersHaveMarketData {
+                HStack(spacing: 4) {
+                    Image(systemName: "building.columns")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Picker("Market", selection: $selectedHub) {
+                        ForEach(LPMarketHub.allCases) { hub in
+                            Text(hub.displayName).tag(hub)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .labelsHidden()
+                    .frame(width: 80)
+                }
+                .help("Reference market for reward and required-item prices")
+
                 Picker("Sort", selection: $sortByISKLP) {
                     Text("ISK/LP").tag(true)
                     Text("LP Cost").tag(false)
@@ -894,17 +1381,17 @@ struct LoyaltyPointStoreView: View {
             }
             .frame(width: 90, alignment: .trailing)
 
-            if !isEverMarks {
+            if offersHaveMarketData {
                 Text("ISK Cost")
                     .frame(width: 100, alignment: .trailing)
             }
 
             Text("Qty")
                 .frame(width: 44, alignment: .trailing)
-                .padding(.trailing, isEverMarks ? 16 : 0)
+                .padding(.trailing, offersHaveMarketData ? 0 : 16)
 
-            if !isEverMarks {
-                Text("Jita Sell")
+            if offersHaveMarketData {
+                Text("\(selectedHub.displayName) Sell")
                     .frame(width: 110, alignment: .trailing)
 
                 HStack(spacing: 3) {
@@ -986,46 +1473,13 @@ struct LoyaltyPointStoreView: View {
         requiredItemNames = [:]
 
         do {
-            let raw: [ESILPStoreOffer] = try await ESIClient.shared.fetch(
-                "/loyalty/stores/\(corpId)/offers/"
-            )
-
-            // Resolve names for offer types AND required item types in one batch
-            let offerTypeIds = Array(Set(raw.map(\.typeId)))
-            let reqTypeIds   = Array(Set(raw.flatMap { $0.requiredItems.map(\.typeId) }))
-            let allTypeIds   = Array(Set(offerTypeIds + reqTypeIds))
-            let names        = await NameResolver.shared.resolve(ids: allTypeIds)
-
-            requiredItemNames = Dictionary(
-                uniqueKeysWithValues: reqTypeIds.compactMap { id -> (Int, String)? in
-                    guard let name = names[id] else { return nil }
-                    return (id, name)
-                }
-            )
-
-            var resolved = raw.map { offer in
-                ResolvedLPOffer(
-                    offer: offer,
-                    typeName: names[offer.typeId] ?? "Item #\(offer.typeId)"
-                )
-            }
-
-            isLoadingOffers = false
-            offers = resolved.sorted { ($0.iskPerLP ?? -1) > ($1.iskPerLP ?? -1) }
-
-            if !offerTypeIds.isEmpty {
-                if let prices = try? await FuzzworkClient.shared.prices(typeIds: offerTypeIds) {
-                    for i in resolved.indices {
-                        let tid = resolved[i].offer.typeId
-                        resolved[i].jitaSell = prices[tid]?.sellPercentile
-                    }
-                    offers = resolved.sorted { ($0.iskPerLP ?? -1) > ($1.iskPerLP ?? -1) }
-                }
-            }
+            let bundle = try await fetchLPStoreOffers(for: corpId, regionId: selectedHub.regionId)
+            offers = bundle.offers
+            requiredItemNames = bundle.requiredItemNames
         } catch {
-            isLoadingOffers = false
             offersError = "Could not load LP store. This corporation may not have a public LP store."
         }
+        isLoadingOffers = false
     }
 
     private func loadAgentStations(for corpId: Int) async {

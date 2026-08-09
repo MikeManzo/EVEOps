@@ -193,13 +193,19 @@ final class AccountManager {
         }
     }
 
+    /// Scopes the app currently requests that this account's last-granted token is missing.
+    /// Surfaces when CCP's SSO didn't include a newly-added scope on a routine re-authentication.
+    func missingScopes(for account: StoredAccount) -> [String] {
+        SSOConfiguration.default.scopes.filter { !account.scopes.contains($0) }
+    }
+
     /// Re-runs the full SSO browser flow for an account whose refresh token has expired.
     /// On success clears needsReauth and updates all tokens. On wrong character, sets error.
-    func reauthorize(_ account: StoredAccount) async {
+    func reauthorize(_ account: StoredAccount, forceFreshSession: Bool = false) async {
         isLoading = true
         error = nil
         do {
-            let tokenResponse = try await authenticator.authenticate()
+            let tokenResponse = try await authenticator.authenticate(forceFreshSession: forceFreshSession)
             let character = try decodeJWT(tokenResponse.accessToken)
             guard character.characterID == account.characterID else {
                 Logger.auth.warning("Auth: Reauth failed — wrong character (expected \(account.characterName))")

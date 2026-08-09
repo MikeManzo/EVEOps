@@ -19,6 +19,10 @@ struct LoadingStateView<Content: View>: View {
     let emptyMessage: String
     let loadingMessage: String
     let onRetry: (() -> Void)?
+    /// Optional clickable link shown below the error text (e.g. a manual fix-it page the
+    /// generic retry action can't reach). Rendered only when both label and URL are set.
+    let errorLinkLabel: String?
+    let errorLinkURL: URL?
     @ViewBuilder let content: () -> Content
 
     init(
@@ -28,6 +32,8 @@ struct LoadingStateView<Content: View>: View {
         emptyMessage: String = "No data available",
         loadingMessage: String = "Loading...",
         onRetry: (() -> Void)? = nil,
+        errorLinkLabel: String? = nil,
+        errorLinkURL: URL? = nil,
         @ViewBuilder content: @escaping () -> Content
     ) {
         self.isLoading = isLoading
@@ -36,6 +42,8 @@ struct LoadingStateView<Content: View>: View {
         self.emptyMessage = emptyMessage
         self.loadingMessage = loadingMessage
         self.onRetry = onRetry
+        self.errorLinkLabel = errorLinkLabel
+        self.errorLinkURL = errorLinkURL
         self.content = content
     }
 
@@ -62,6 +70,10 @@ struct LoadingStateView<Content: View>: View {
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
+                    if let errorLinkLabel, let errorLinkURL {
+                        Link(errorLinkLabel, destination: errorLinkURL)
+                            .font(.caption)
+                    }
                     if let onRetry {
                         Button("Retry", action: onRetry)
                             .buttonStyle(.bordered)

@@ -15,10 +15,16 @@ struct CharacterMedalsView: View {
     @State private var groups: [MedalGroup] = []
     @State private var isLoading = false
     @State private var error: String?
+    @State private var repairAttempted = false
+
+    private static let authorizedAppsURL = URL(string: "https://developers.eveonline.com/authorized-apps")!
 
     var body: some View {
         LoadingStateView(isLoading: isLoading, error: error,
-                         isEmpty: groups.isEmpty, emptyMessage: "No medals awarded") {
+                         isEmpty: groups.isEmpty, emptyMessage: "No medals awarded",
+                         onRetry: { Task { await repairScopeAndReload() } },
+                         errorLinkLabel: repairAttempted ? "developers.eveonline.com/authorized-apps" : nil,
+                         errorLinkURL: repairAttempted ? Self.authorizedAppsURL : nil) {
             List {
                 ForEach(groups, id: \.characterID) { group in
                     Section(groups.count > 1 ? group.characterName : "") {
@@ -74,12 +80,33 @@ struct CharacterMedalsView: View {
         groups = result
         if result.isEmpty {
             if missingScope {
-                self.error = "Missing scope: esi-characters.read_medals.v1\n\nRemove and re-add your account to grant this permission."
+                self.error = repairAttempted
+                    ? """
+                    Missing scope: esi-characters.read_medals.v1
+
+                    Retrying didn't grant it — EVE's SSO sometimes keeps re-issuing an old permission set even after a fresh login. Open the link below, select this character, find EVEOps, and click Revoke Access — then come back and tap Retry again.
+                    """
+                    : "Missing scope: esi-characters.read_medals.v1\n\nTap Retry to grant this permission."
             } else if let e = lastError {
                 self.error = e.localizedDescription
             }
         }
         isLoading = false
+    }
+
+    /// Re-authenticates any account missing the medals scope using an isolated browser session,
+    /// forcing EVE SSO to present a fresh consent prompt instead of silently reusing a prior
+    /// authorization that predates this scope being requested. See AccountManager.reauthorize.
+    /// If a repair was already attempted and the scope is still missing, load() switches to
+    /// manual instructions since CCP's SSO can keep replaying a stale grant regardless of how
+    /// many times the OAuth flow is redone from the client.
+    private func repairScopeAndReload() async {
+        for account in accountManager.accounts
+        where accountManager.missingScopes(for: account).contains("esi-characters.read_medals.v1") {
+            await accountManager.reauthorize(account, forceFreshSession: true)
+        }
+        repairAttempted = true
+        await load()
     }
 }
 

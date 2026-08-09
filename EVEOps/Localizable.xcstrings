@@ -95,6 +95,16 @@
         }
       }
     },
+    "%@ · %@ LP available" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$@ LP available"
+          }
+        }
+      }
+    },
     "%@ · %lld items" : {
       "localizations" : {
         "en" : {
@@ -236,6 +246,9 @@
 
     },
     "%@ premium" : {
+
+    },
+    "%@ Sell" : {
 
     },
     "%@ SP" : {
@@ -1225,6 +1238,9 @@
     "Cal" : {
 
     },
+    "Calculating best value…" : {
+
+    },
     "Calculating route…" : {
 
     },
@@ -1283,6 +1299,9 @@
 
     },
     "Charisma" : {
+
+    },
+    "CHEAPEST PROFITABLE OFFER" : {
 
     },
     "Check for Updates…" : {
@@ -1379,6 +1398,9 @@
 
     },
     "Closed" : {
+
+    },
+    "CLOSEST TO PROFITABLE" : {
 
     },
     "Collapse" : {
@@ -2359,9 +2381,6 @@
     "Jita / The Forge — Market Orders" : {
 
     },
-    "Jita Sell" : {
-
-    },
     "Job Details" : {
 
     },
@@ -2609,6 +2628,9 @@
     "LP Store" : {
 
     },
+    "LP Used" : {
+
+    },
     "m³" : {
 
     },
@@ -2816,6 +2838,9 @@
     "No Loyalty Points" : {
 
     },
+    "No market data" : {
+
+    },
     "No market data found" : {
 
     },
@@ -2904,6 +2929,19 @@
 
     },
     "None active" : {
+
+    },
+    "None of %@'s offers clear break-even at current %@ prices." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "None of %1$@'s offers clear break-even at current %2$@ prices."
+          }
+        }
+      }
+    },
+    "None of %@'s rewards are tradeable on the market — there's no ISK value to optimize for here." : {
 
     },
     "Not available" : {
@@ -3000,6 +3038,12 @@
 
     },
     "Optimal Range" : {
+
+    },
+    "Optimize LP spend for maximum ISK" : {
+
+    },
+    "Optimized LP Spend" : {
 
     },
     "Optional" : {
@@ -3122,6 +3166,12 @@
     "Price History" : {
 
     },
+    "Priced at %@" : {
+
+    },
+    "Prices move — check back later, or redeem manually for an item's use value rather than resale profit." : {
+
+    },
     "Prices reflect the best sell/buy orders at the hub's primary station." : {
 
     },
@@ -3132,6 +3182,9 @@
 
     },
     "Processors (%lld)" : {
+
+    },
+    "Projected ISK" : {
 
     },
     "PvP" : {
@@ -3219,6 +3272,9 @@
 
     },
     "Reduce to L%lld" : {
+
+    },
+    "Reference market for reward and required-item prices" : {
 
     },
     "Reference Prices" : {
@@ -4200,6 +4256,12 @@
 
     },
     "You can already fly this ship!" : {
+
+    },
+    "You don't have enough LP yet for a profitable redemption." : {
+
+    },
+    "You need %@ more LP to afford it." : {
 
     },
     "Your Assets Here (%lld type%@)" : {

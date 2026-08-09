@@ -97,7 +97,12 @@ final class SSOAuthenticator: NSObject {
         self.config = config
     }
 
-    func authenticate() async throws -> SSOTokenResponse {
+    /// - Parameter forceFreshSession: When true, uses an isolated (ephemeral) browser session with
+    ///   no shared cookies, forcing EVE SSO to present a fresh login/consent prompt instead of
+    ///   silently reusing a prior authorization. Used to recover an account that is missing a
+    ///   scope CCP's SSO didn't re-grant on a normal re-authentication. Defaults to false so
+    ///   routine add/reauth flows keep the convenience of a shared, already-logged-in session.
+    func authenticate(forceFreshSession: Bool = false) async throws -> SSOTokenResponse {
         let codeVerifier = generateCodeVerifier()
         let codeChallenge = generateCodeChallenge(from: codeVerifier)
 
@@ -129,7 +134,7 @@ final class SSOAuthenticator: NSObject {
                 }
             }
             session.presentationContextProvider = self
-            session.prefersEphemeralWebBrowserSession = false
+            session.prefersEphemeralWebBrowserSession = forceFreshSession
             self.webAuthSession = session
             session.start()
         }
