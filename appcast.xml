@@ -3,15 +3,15 @@
     <channel>
         <title>EVEOps</title>
         <item>
-            <title>0.9.9.20.3</title>
-            <pubDate>Mon, 03 Aug 2026 20:21:41 -0400</pubDate>
-            <sparkle:version>122</sparkle:version>
-            <sparkle:shortVersionString>0.9.9.20.3</sparkle:shortVersionString>
+            <title>0.9.10</title>
+            <pubDate>Sun, 09 Aug 2026 12:32:26 -0400</pubDate>
+            <sparkle:version>123</sparkle:version>
+            <sparkle:shortVersionString>0.9.10</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
             <description><![CDATA[<ul>
-<li>Added charactewr detail for Kill Mails; click the charcter involved in your battle to get details.</li>
+<li>Enanced the Loyalty Points tab with region and galaxy search for a recommendation on the  most profitable deal(s).</li>
 </ul>]]></description>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.9.20.3/EVEOps.dmg" length="33745268" type="application/octet-stream" sparkle:edSignature="8gO6/Nc79q2V556Dz66vsTFoI90f0DvlKq9mlOqfUTeohodYnfdqEB3eSG51jeewHH/r8STUb+emNQ+HAJOZDw=="/>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.10/EVEOps.dmg" length="32522281" type="application/octet-stream" sparkle:edSignature="ILefRc3PLfTwAjwoqJ+W3E25bwpIyhof6IYoHzBYmM+FVOXyiryUaJot4il34fg6ibzz0clWPeyaZWGOJqfwBw=="/>
         </item>
     </channel>
 </rss>
