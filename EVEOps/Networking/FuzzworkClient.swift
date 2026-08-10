@@ -30,7 +30,7 @@ actor FuzzworkClient {
     static let shared = FuzzworkClient()
 
     private let session: URLSession
-    private var cache: [Int: (price: FuzzworkPrice, expiry: Date)] = [:]
+    private var cache: [Int: [Int: (price: FuzzworkPrice, expiry: Date)]] = [:]
     private var stationCache: [Int: [Int: (price: FuzzworkPrice, expiry: Date)]] = [:]
 
     private init() {
@@ -42,11 +42,12 @@ actor FuzzworkClient {
         session = URLSession(configuration: config)
     }
 
-    /// Fetches Jita (default) market aggregates for the given type IDs.
-    /// Caches results for 10 minutes; batches uncached IDs in a single request.
+    /// Fetches market aggregates for the given type IDs in `regionId` (Jita by default).
+    /// Caches results per-region for 10 minutes; batches uncached IDs in a single request.
     func prices(typeIds: [Int], regionId: Int = 10000002) async throws -> [Int: FuzzworkPrice] {
         let now = Date()
-        let uncached = typeIds.filter { cache[$0].map { $0.expiry <= now } ?? true }
+        var entry = cache[regionId] ?? [:]
+        let uncached = typeIds.filter { entry[$0].map { $0.expiry <= now } ?? true }
 
         if !uncached.isEmpty {
             let typeString = uncached.map(String.init).joined(separator: ",")
@@ -60,14 +61,15 @@ actor FuzzworkClient {
             let fetched = try parsePrices(data)
             let expiry = now.addingTimeInterval(600)
             for price in fetched {
-                cache[price.typeId] = (price: price, expiry: expiry)
+                entry[price.typeId] = (price: price, expiry: expiry)
             }
+            cache[regionId] = entry
         }
 
         var result: [Int: FuzzworkPrice] = [:]
         for id in typeIds {
-            if let entry = cache[id], entry.expiry > Date() {
-                result[id] = entry.price
+            if let e = cache[regionId]?[id], e.expiry > Date() {
+                result[id] = e.price
             }
         }
         return result

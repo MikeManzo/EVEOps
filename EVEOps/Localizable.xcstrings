@@ -1181,6 +1181,9 @@
     "Best Buy" : {
 
     },
+    "Best price across Jita, Amarr, Dodixie, Rens & Hek" : {
+
+    },
     "Best Sell" : {
 
     },
@@ -2931,15 +2934,8 @@
     "None active" : {
 
     },
-    "None of %@'s offers clear break-even at current %@ prices." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "None of %1$@'s offers clear break-even at current %2$@ prices."
-          }
-        }
-      }
+    "None of %@'s offers clear break-even at current prices, even checking every major hub." : {
+
     },
     "None of %@'s rewards are tradeable on the market — there's no ISK value to optimize for here." : {
 
@@ -3164,9 +3160,6 @@
 
     },
     "Price History" : {
-
-    },
-    "Priced at %@" : {
 
     },
     "Prices move — check back later, or redeem manually for an item's use value rather than resale profit." : {
@@ -3585,6 +3578,9 @@
 
     },
     "Sell" : {
+
+    },
+    "sell at %@" : {
 
     },
     "Sell Order" : {

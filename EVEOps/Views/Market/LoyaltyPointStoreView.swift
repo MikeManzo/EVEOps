@@ -47,6 +47,9 @@ private struct ResolvedLPOffer: Identifiable {
     let offer: ESILPStoreOffer
     let typeName: String
     var marketSell: Double?
+    /// Which hub `marketSell` was found at. Only set when priced via the galaxy-wide
+    /// scan (`fetchLPStoreOffersAcrossHubs`); nil for the single-hub browse path.
+    var bestSellHub: LPMarketHub?
     /// Market cost of items that must be turned in alongside LP/ISK, priced at the selected hub's sell price.
     /// Nil until priced; nil is treated as "unknown," not "free," when requiredItems is non-empty.
     var requiredItemsCost: Double?
@@ -118,6 +121,84 @@ private func fetchLPStoreOffers(for corpId: Int, regionId: Int) async throws -> 
                 var allKnown = true
                 for req in reqItems {
                     guard let p = prices[req.typeId]?.sellPercentile else { allKnown = false; break }
+                    total += p * Double(req.quantity)
+                }
+                resolved[i].requiredItemsCost = allKnown ? total : nil
+            }
+        }
+    }
+
+    return LPStoreOfferBundle(
+        offers: resolved.sorted { ($0.iskPerLP ?? -1) > ($1.iskPerLP ?? -1) },
+        requiredItemNames: requiredItemNames
+    )
+}
+
+/// Same as `fetchLPStoreOffers`, but instead of pricing against a single hub, queries all
+/// five major trade hubs concurrently and picks the best price per item — the actual
+/// "checking across the galaxy" the Optimize feature is meant to do. Reward items are priced
+/// at whichever hub pays the most (`marketSell`/`bestSellHub`); required turn-in items are
+/// priced at whichever hub sells them cheapest, since that minimizes cost.
+private func fetchLPStoreOffersAcrossHubs(for corpId: Int) async throws -> LPStoreOfferBundle {
+    let raw: [ESILPStoreOffer] = try await ESIClient.shared.fetch("/loyalty/stores/\(corpId)/offers/")
+
+    let offerTypeIds = Array(Set(raw.map(\.typeId)))
+    let reqTypeIds   = Array(Set(raw.flatMap { $0.requiredItems.map(\.typeId) }))
+    let allTypeIds   = Array(Set(offerTypeIds + reqTypeIds))
+    let names        = await NameResolver.shared.resolve(ids: allTypeIds)
+
+    let requiredItemNames = Dictionary(
+        uniqueKeysWithValues: reqTypeIds.compactMap { id -> (Int, String)? in
+            guard let name = names[id] else { return nil }
+            return (id, name)
+        }
+    )
+
+    var resolved = raw.map { offer in
+        ResolvedLPOffer(offer: offer, typeName: names[offer.typeId] ?? "Item #\(offer.typeId)")
+    }
+
+    if !allTypeIds.isEmpty {
+        // Fetch every hub's prices for the full type list in parallel.
+        let perHub: [(hub: LPMarketHub, prices: [Int: FuzzworkPrice])] = await withTaskGroup(
+            of: (LPMarketHub, [Int: FuzzworkPrice]).self
+        ) { group in
+            for hub in LPMarketHub.allCases {
+                group.addTask {
+                    let prices = (try? await FuzzworkClient.shared.prices(typeIds: allTypeIds, regionId: hub.regionId)) ?? [:]
+                    return (hub, prices)
+                }
+            }
+            var results: [(LPMarketHub, [Int: FuzzworkPrice])] = []
+            for await result in group { results.append(result) }
+            return results
+        }
+
+        // Per type: best (highest) sell price for reward items, cheapest for required items.
+        var bestSell: [Int: (price: Double, hub: LPMarketHub)] = [:]
+        var cheapestBuy: [Int: Double] = [:]
+        for (hub, prices) in perHub {
+            for (typeId, price) in prices {
+                if bestSell[typeId] == nil || price.sellPercentile > bestSell[typeId]!.price {
+                    bestSell[typeId] = (price.sellPercentile, hub)
+                }
+                if cheapestBuy[typeId] == nil || price.sellPercentile < cheapestBuy[typeId]! {
+                    cheapestBuy[typeId] = price.sellPercentile
+                }
+            }
+        }
+
+        for i in resolved.indices {
+            let tid = resolved[i].offer.typeId
+            resolved[i].marketSell = bestSell[tid]?.price
+            resolved[i].bestSellHub = bestSell[tid]?.hub
+
+            let reqItems = resolved[i].offer.requiredItems
+            if !reqItems.isEmpty {
+                var total = 0.0
+                var allKnown = true
+                for req in reqItems {
+                    guard let p = cheapestBuy[req.typeId] else { allKnown = false; break }
                     total += p * Double(req.quantity)
                 }
                 resolved[i].requiredItemsCost = allKnown ? total : nil
@@ -253,7 +334,6 @@ private struct CorpLogoImage: View {
 private struct CorpHoldingRow: View {
     let corp: ResolvedLoyaltyPoints
     let isEverMarks: Bool
-    let hub: LPMarketHub
     let isSelected: Bool
 
     @State private var showSpendPlan = false
@@ -293,7 +373,7 @@ private struct CorpHoldingRow: View {
                 .buttonStyle(.plain)
                 .help("Optimize LP spend for maximum ISK")
                 .popover(isPresented: $showSpendPlan, arrowEdge: .trailing) {
-                    LPSpendPlanPopover(corp: corp, hub: hub)
+                    LPSpendPlanPopover(corp: corp)
                 }
             }
         }
@@ -593,7 +673,6 @@ private enum LPSpendPlanEmptyReason {
 /// in the offer list and needs no extra state to reason about.
 private struct LPSpendPlanPopover: View {
     let corp: ResolvedLoyaltyPoints
-    let hub: LPMarketHub
 
     @State private var isLoading = true
     @State private var loadError: String?
@@ -642,7 +721,7 @@ private struct LPSpendPlanPopover: View {
         // presenting view's environment. Reset it here so multi-line text below
         // (e.g. the empty-state message) isn't silently truncated to one line.
         .lineLimit(nil)
-        .task(id: "\(corp.corporationId)_\(hub.rawValue)") { await buildPlan() }
+        .task(id: corp.corporationId) { await buildPlan() }
     }
 
     @ViewBuilder
@@ -666,7 +745,7 @@ private struct LPSpendPlanPopover: View {
                 HStack(alignment: .top, spacing: 8) {
                     Image(systemName: "chart.line.downtrend.xyaxis")
                         .foregroundStyle(.tertiary)
-                    Text("None of \(corp.corporationName)'s offers clear break-even at current \(hub.displayName) prices.")
+                    Text("None of \(corp.corporationName)'s offers clear break-even at current prices, even checking every major hub.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -743,7 +822,7 @@ private struct LPSpendPlanPopover: View {
             Text("\(corp.corporationName) · \(lpFormatLP(corp.loyaltyPoints)) LP available")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            Text("Priced at \(hub.displayName)")
+            Text("Best price across Jita, Amarr, Dodixie, Rens & Hek")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         }
@@ -758,11 +837,18 @@ private struct LPSpendPlanPopover: View {
                         .font(.caption.monospacedDigit().bold())
                         .foregroundStyle(.secondary)
                         .frame(minWidth: 28, alignment: .leading)
-                    Text(entry.offer.typeName)
-                        .font(.caption)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(entry.offer.typeName)
+                            .font(.caption)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                        if let hub = entry.offer.bestSellHub {
+                            Text("sell at \(hub.displayName)")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     VStack(alignment: .trailing, spacing: 1) {
                         Text("+" + EVEFormatters.formatISK(entry.iskGained))
                             .font(.caption.monospacedDigit().bold())
@@ -821,7 +907,7 @@ private struct LPSpendPlanPopover: View {
         loadError = nil
         emptyReason = nil
         do {
-            let bundle = try await fetchLPStoreOffers(for: corp.corporationId, regionId: hub.regionId)
+            let bundle = try await fetchLPStoreOffersAcrossHubs(for: corp.corporationId)
             let candidates = bundle.offers
                 .filter { ($0.iskPerLP ?? 0) > 0 && $0.offer.lpCost > 0 }
                 .sorted { ($0.iskPerLP ?? 0) > ($1.iskPerLP ?? 0) }
@@ -1167,7 +1253,6 @@ struct LoyaltyPointStoreView: View {
                     CorpHoldingRow(
                         corp: lp,
                         isEverMarks: lp.corporationId == paragonCorporationId,
-                        hub: selectedHub,
                         isSelected: lp.corporationId == selectedCorpId
                     )
                     .tag(lp.corporationId)

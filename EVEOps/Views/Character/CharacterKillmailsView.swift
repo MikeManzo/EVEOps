@@ -30,10 +30,6 @@ struct CharacterKillmailsView: View {
         ) {
             VStack(spacing: 0) {
                 filterBar
-                if #available(macOS 26.0, *), IntelligenceService.isSupported {
-                    CombatAIInsightCard(groups: groups)
-                        .padding(10)
-                }
                 killmailList
             }
         }
@@ -81,6 +77,12 @@ struct CharacterKillmailsView: View {
 
     private var killmailList: some View {
         List {
+            if #available(macOS 26.0, *), IntelligenceService.isSupported {
+                CombatAIInsightCard(groups: groups)
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
+            }
             ForEach(groups, id: \.characterName) { group in
                 let filtered = filter == "all" ? group.killmails
                     : group.killmails.filter { filter == "kills" ? $0.isKill : !$0.isKill }
