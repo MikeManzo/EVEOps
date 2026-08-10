@@ -3,15 +3,16 @@
     <channel>
         <title>EVEOps</title>
         <item>
-            <title>0.9.10</title>
-            <pubDate>Sun, 09 Aug 2026 12:32:26 -0400</pubDate>
-            <sparkle:version>123</sparkle:version>
-            <sparkle:shortVersionString>0.9.10</sparkle:shortVersionString>
+            <title>0.9.10.1</title>
+            <pubDate>Mon, 10 Aug 2026 08:14:50 -0400</pubDate>
+            <sparkle:version>125</sparkle:version>
+            <sparkle:shortVersionString>0.9.10.1</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
             <description><![CDATA[<ul>
-<li>Enanced the Loyalty Points tab with region and galaxy search for a recommendation on the  most profitable deal(s).</li>
+<li>Fixed Kill Mail screen blanking after Apple Intelliegnce provides a summary of the kills</li>
+<li>Fixed the LP Store not searching the galaxy for teh best deals on cashing in loyalty points</li>
 </ul>]]></description>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.10/EVEOps.dmg" length="32522281" type="application/octet-stream" sparkle:edSignature="ILefRc3PLfTwAjwoqJ+W3E25bwpIyhof6IYoHzBYmM+FVOXyiryUaJot4il34fg6ibzz0clWPeyaZWGOJqfwBw=="/>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.10.1/EVEOps.dmg" length="32543259" type="application/octet-stream" sparkle:edSignature="0NIQI+kz5apE9Rtl+tLZHc5dKl4XdJJsmea4CKIe6J7eu6OX5XuyIs3/bBio2y1qcP4myLAul3ufdHIHWJJMCQ=="/>
         </item>
     </channel>
 </rss>
