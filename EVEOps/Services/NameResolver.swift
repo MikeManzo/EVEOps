@@ -59,25 +59,7 @@ actor NameResolver {
             for batch in stride(from: 0, to: smallIDs.count, by: 1000) {
                 let end = min(batch + 1000, smallIDs.count)
                 let chunk = Array(smallIDs[batch..<end])
-                do {
-                    let url = URL(string: "https://esi.evetech.net/latest/universe/names/?datasource=tranquility")!
-                    var request = URLRequest(url: url)
-                    request.httpMethod = "POST"
-                    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-                    request.httpBody = try JSONEncoder().encode(chunk)
-
-                    let (data, response) = try await URLSession.shared.data(for: request)
-                    guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-                        continue
-                    }
-                    let names = try JSONDecoder().decode([UniverseName].self, from: data)
-                    for name in names {
-                        cache[name.id] = name.name
-                    }
-                    dirty = true
-                } catch {
-                    // Continue with next batch
-                }
+                await resolveChunk(chunk)
             }
 
             // Persist after resolving new names
@@ -89,6 +71,40 @@ actor NameResolver {
             result[id] = cache[id]
         }
         return result
+    }
+
+    /// Resolves one chunk of ids via a single POST. A single unrecognized id makes the whole
+    /// request fail, so on failure this bisects and retries the halves rather than dropping
+    /// every id in the chunk.
+    private func resolveChunk(_ ids: [Int]) async {
+        guard !ids.isEmpty else { return }
+        do {
+            let url = URL(string: "https://esi.evetech.net/latest/universe/names/?datasource=tranquility")!
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = try JSONEncoder().encode(ids)
+
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                await bisectAndRetry(ids)
+                return
+            }
+            let names = try JSONDecoder().decode([UniverseName].self, from: data)
+            for name in names {
+                cache[name.id] = name.name
+            }
+            dirty = true
+        } catch {
+            await bisectAndRetry(ids)
+        }
+    }
+
+    private func bisectAndRetry(_ ids: [Int]) async {
+        guard ids.count > 1 else { return }
+        let mid = ids.count / 2
+        await resolveChunk(Array(ids[..<mid]))
+        await resolveChunk(Array(ids[mid...]))
     }
 
     func resolve(id: Int) async -> String {

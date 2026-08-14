@@ -2071,6 +2071,12 @@
     "Fleet Manager requires the **esi-fleets.read_fleet.v1** scope.\n\nPlease remove and re-add your character to grant the updated permissions." : {
 
     },
+    "Fleet Members" : {
+
+    },
+    "Fleet Position" : {
+
+    },
     "Fleet Role" : {
 
     },
@@ -2851,6 +2857,9 @@
 
     },
     "No matching items" : {
+
+    },
+    "No member details available." : {
 
     },
     "No modules fitted" : {

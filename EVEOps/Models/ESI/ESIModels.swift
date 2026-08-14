@@ -960,6 +960,22 @@ nonisolated struct ESIFleetInfo: Codable, Sendable {
     let wingId: Int
 }
 
+/// Element of GET /fleets/{fleet_id}/members/
+nonisolated struct ESIFleetMember: Codable, Sendable, Identifiable {
+    let characterId: Int
+    let joinTime: Date
+    let role: String        // "fleet_commander", "wing_commander", "squad_commander", "squad_member"
+    let roleName: String
+    let shipTypeId: Int
+    let solarSystemId: Int
+    let squadId: Int
+    let stationId: Int?
+    let takesFleetWarp: Bool
+    let wingId: Int
+
+    var id: Int { characterId }
+}
+
 /// Body for POST /fleets/{fleet_id}/members/
 nonisolated struct ESIFleetInvite: Encodable, Sendable {
     let characterId: Int
