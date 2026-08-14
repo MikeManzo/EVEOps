@@ -3,16 +3,15 @@
     <channel>
         <title>EVEOps</title>
         <item>
-            <title>0.9.10.1</title>
-            <pubDate>Mon, 10 Aug 2026 08:14:50 -0400</pubDate>
-            <sparkle:version>125</sparkle:version>
-            <sparkle:shortVersionString>0.9.10.1</sparkle:shortVersionString>
+            <title>0.9.10.2</title>
+            <pubDate>Fri, 14 Aug 2026 17:52:47 -0400</pubDate>
+            <sparkle:version>126</sparkle:version>
+            <sparkle:shortVersionString>0.9.10.2</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
             <description><![CDATA[<ul>
-<li>Fixed Kill Mail screen blanking after Apple Intelliegnce provides a summary of the kills</li>
-<li>Fixed the LP Store not searching the galaxy for teh best deals on cashing in loyalty points</li>
+<li>Enhanced character data is now available data in Fleet Manager</li>
 </ul>]]></description>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.10.1/EVEOps.dmg" length="32543259" type="application/octet-stream" sparkle:edSignature="0NIQI+kz5apE9Rtl+tLZHc5dKl4XdJJsmea4CKIe6J7eu6OX5XuyIs3/bBio2y1qcP4myLAul3ufdHIHWJJMCQ=="/>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.10.2/EVEOps.dmg" length="33960929" type="application/octet-stream" sparkle:edSignature="YGrwqtV9n8O8xd/QYxPZS4YdpBNyQKpv6FjooKt9vjvZTAF5Oxc1ArnH1yaVxvbic2GTeW8LXQc5kYQ0l5gGAw=="/>
         </item>
     </channel>
 </rss>
