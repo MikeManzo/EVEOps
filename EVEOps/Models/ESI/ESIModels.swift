@@ -1333,3 +1333,12 @@ nonisolated struct ESIMoonExtraction: Codable, Sendable, Identifiable {
     var id: Int { structureId }
 }
 
+// MARK:  Status
+
+nonisolated struct ESIStatus: Codable, Sendable {
+    let players: Int
+    let serverVersion: String
+    let startTime: Date
+    let vip: Bool?
+}
+

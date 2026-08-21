@@ -11,12 +11,50 @@
 import Foundation
 import OSLog
 
-/// Monitors ESI API reachability and exposes status for UI banners.
+/// EVE Online's daily downtime — always 11:00 UTC, lasting roughly 20–30 minutes.
+enum EVEDowntime {
+    static let hour = 11
+    static let minute = 0
+
+    /// The next occurrence of daily downtime at or after `date`.
+    static func next(from date: Date = Date()) -> Date {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        var components = calendar.dateComponents([.year, .month, .day], from: date)
+        components.hour = hour
+        components.minute = minute
+        components.second = 0
+        let todayDowntime = calendar.date(from: components) ?? date
+        if todayDowntime > date {
+            return todayDowntime
+        }
+        return calendar.date(byAdding: .day, value: 1, to: todayDowntime) ?? todayDowntime
+    }
+}
+
+/// Monitors ESI API reachability/server status and exposes it for UI banners and widgets.
 @MainActor
 @Observable
 final class APIStatusMonitor {
     private(set) var isReachable = true
     private(set) var statusMessage = ""
+
+    /// Latest values from ESI `/status/` — nil until the first successful check.
+    private(set) var playersOnline: Int?
+    private(set) var serverVersion: String?
+    private(set) var vipMode = false
+    private(set) var serverStartTime: Date?
+    private(set) var lastUpdated: Date?
+
+    struct PopulationSample: Identifiable, Sendable {
+        let date: Date
+        let players: Int
+        var id: Date { date }
+    }
+
+    /// Rolling population history, one sample per check, capped to keep ~an hour of trend data.
+    private(set) var populationHistory: [PopulationSample] = []
+    private let maxHistorySamples = 60
 
     private var monitorTask: Task<Void, Never>?
     private let checkInterval: TimeInterval = 60
@@ -40,55 +78,50 @@ final class APIStatusMonitor {
         await checkStatus()
     }
 
-    private nonisolated func checkStatus() async {
-        let url = URL(string: "https://esi.evetech.net/latest/status/?datasource=tranquility")!
-        var request = URLRequest(url: url)
-        request.timeoutInterval = 10
-
+    private func checkStatus() async {
+        let wasReachable = isReachable
         do {
-            let (_, response) = try await URLSession.shared.data(for: request)
-            guard let http = response as? HTTPURLResponse else {
-                await MainActor.run {
-                    if self.isReachable { Logger.api.error("API: EVE servers unreachable — invalid HTTP response") }
-                    self.isReachable = false
-                    self.statusMessage = "Unable to reach EVE servers"
-                }
-                return
+            let status: ESIStatus = try await ESIClient.shared.fetch("/status/")
+            if !wasReachable { Logger.api.info("API: EVE servers reachable") }
+            isReachable = true
+            statusMessage = ""
+            playersOnline = status.players
+            serverVersion = status.serverVersion
+            vipMode = status.vip ?? false
+            serverStartTime = status.startTime
+            lastUpdated = Date()
+
+            populationHistory.append(PopulationSample(date: lastUpdated!, players: status.players))
+            if populationHistory.count > maxHistorySamples {
+                populationHistory.removeFirst(populationHistory.count - maxHistorySamples)
             }
-            await MainActor.run {
-                if (200...299).contains(http.statusCode) {
-                    if !self.isReachable { Logger.api.info("API: EVE servers reachable") }
-                    self.isReachable = true
-                    self.statusMessage = ""
-                } else if http.statusCode == 503 {
-                    if self.isReachable { Logger.api.warning("API: EVE servers unreachable — maintenance (503)") }
-                    self.isReachable = false
-                    self.statusMessage = "EVE servers are undergoing maintenance"
-                } else {
-                    if self.isReachable { Logger.api.error("API: EVE servers unreachable — HTTP \(http.statusCode)") }
-                    self.isReachable = false
-                    self.statusMessage = "EVE API returned an error (\(http.statusCode))"
-                }
+
+            if !wasReachable {
+                await NotificationService.shared.notifyServerRecovered()
             }
-        } catch let error as URLError {
-            await MainActor.run {
-                if self.isReachable { Logger.api.error("API: EVE servers unreachable — \(error.localizedDescription)") }
-                self.isReachable = false
-                switch error.code {
+        } catch let error as ESIError {
+            if isReachable { Logger.api.error("API: EVE servers unreachable — \(error.localizedDescription)") }
+            isReachable = false
+            switch error {
+            case .serverError(let code, _) where code == 503:
+                Logger.api.warning("API: EVE servers unreachable — maintenance (503)")
+                statusMessage = "EVE servers are undergoing maintenance"
+            case .networkError(let underlying as URLError):
+                switch underlying.code {
                 case .notConnectedToInternet:
-                    self.statusMessage = "No internet connection"
+                    statusMessage = "No internet connection"
                 case .timedOut:
-                    self.statusMessage = "EVE API request timed out"
+                    statusMessage = "EVE API request timed out"
                 default:
-                    self.statusMessage = "Unable to reach EVE servers"
+                    statusMessage = "Unable to reach EVE servers"
                 }
+            default:
+                statusMessage = "Unable to reach EVE servers"
             }
         } catch {
-            await MainActor.run {
-                if self.isReachable { Logger.api.error("API: EVE servers unreachable — \(error.localizedDescription)") }
-                self.isReachable = false
-                self.statusMessage = "Unable to reach EVE servers"
-            }
+            if isReachable { Logger.api.error("API: EVE servers unreachable — \(error.localizedDescription)") }
+            isReachable = false
+            statusMessage = "Unable to reach EVE servers"
         }
     }
 }

@@ -242,6 +242,9 @@
     "%@ of queue" : {
 
     },
+    "%@ online" : {
+
+    },
     "%@ payout" : {
 
     },
@@ -1764,6 +1767,9 @@
     "Downloads are cached after the first view" : {
 
     },
+    "Downtime in %lldm" : {
+
+    },
     "DPS calculation requires ammo selection" : {
 
     },
@@ -1865,6 +1871,9 @@
 
     },
     "EVE Scout" : {
+
+    },
+    "EVE Servers Online" : {
 
     },
     "EVE: %@" : {
@@ -2120,6 +2129,9 @@
 
     },
     "Galaxy Search" : {
+
+    },
+    "Gathering trend data…" : {
 
     },
     "Generate Insight" : {
@@ -3634,6 +3646,9 @@
     "Server" : {
 
     },
+    "Servers back online after downtime" : {
+
+    },
     "Services" : {
 
     },
@@ -4061,7 +4076,13 @@
     "Training Speed by Attribute Pair" : {
 
     },
+    "Tranquility" : {
+
+    },
     "Tranquility (Live)" : {
+
+    },
+    "Tranquility is back up." : {
 
     },
     "Transactions (%lld)" : {
@@ -4171,6 +4192,9 @@
 
     },
     "View Details" : {
+
+    },
+    "VIP" : {
 
     },
     "Visibility" : {

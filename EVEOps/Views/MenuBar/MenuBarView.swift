@@ -19,14 +19,51 @@ struct MenuBarView: View {
     @AppStorage("backgroundPollInterval") private var pollInterval: Double = 300
     @State private var summaries: [Int: CharacterSummary] = [:]
     @State private var isLoading = false
+    @State private var now = Date()
 
     private var selectedSummary: CharacterSummary? {
         guard let id = accountManager.selectedCharacterID else { return nil }
         return summaries[id]
     }
 
+    private var timeUntilDowntime: TimeInterval {
+        EVEDowntime.next(from: now).timeIntervalSince(now)
+    }
+
     var body: some View {
         VStack(spacing: 0) {
+            if !apiStatus.isReachable {
+                HStack(spacing: 6) {
+                    Image(systemName: "clock.badge.exclamationmark")
+                        .foregroundStyle(.orange)
+                        .font(.caption)
+                    Text(apiStatus.statusMessage.isEmpty ? "Downtime in progress" : apiStatus.statusMessage)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(.orange.opacity(0.1))
+
+                Divider()
+            } else if timeUntilDowntime <= 15 * 60 {
+                HStack(spacing: 6) {
+                    Image(systemName: "clock.badge.exclamationmark")
+                        .foregroundStyle(.orange)
+                        .font(.caption)
+                    Text("Downtime in \(max(Int(timeUntilDowntime) / 60, 0))m")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(.orange.opacity(0.1))
+
+                Divider()
+            }
+
             if appUpdater.updateAvailable {
                 Button {
                     appUpdater.checkForUpdates()
@@ -52,23 +89,6 @@ struct MenuBarView: View {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .background(.blue.opacity(0.1))
-
-                Divider()
-            }
-
-            if !apiStatus.isReachable {
-                HStack(spacing: 6) {
-                    Image(systemName: "wifi.exclamationmark")
-                        .foregroundStyle(.orange)
-                        .font(.caption)
-                    Text(apiStatus.statusMessage.isEmpty ? "Unable to reach EVE servers" : apiStatus.statusMessage)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(.orange.opacity(0.1))
 
                 Divider()
             }
@@ -160,6 +180,12 @@ struct MenuBarView: View {
         .onChange(of: prefetcher.lastRefresh) { _, _ in
             // Prefetcher was refreshed externally (e.g. "Refresh Now" in Settings) — sync immediately
             Task { await loadAllSummaries() }
+        }
+        .task(id: "downtime-timer") {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(30))
+                now = Date()
+            }
         }
     }
 

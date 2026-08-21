@@ -9,6 +9,7 @@
 //
 
 import SwiftUI
+import Charts
 
 struct DashboardView: View {
     @Environment(AccountManager.self) private var accountManager
@@ -25,6 +26,7 @@ struct DashboardView: View {
     @State private var newsIsLoading = true
     @AppStorage("dashboard.news.expanded") private var newsExpanded = true
     @AppStorage("dashboard.news.readIDs") private var readIDsRaw = ""
+    @AppStorage("dashboard.serverStatus.expanded") private var serverStatusExpanded = true
 
     private var readIDs: Binding<Set<String>> {
         Binding(
@@ -51,6 +53,9 @@ struct DashboardView: View {
                     }
                 }
                 .padding(.horizontal)
+
+                ServerStatusWidgetView(isExpanded: $serverStatusExpanded)
+                    .padding(.horizontal)
 
                 EVENewsWidgetView(items: newsItems, isLoading: newsIsLoading, isExpanded: $newsExpanded, readIDs: readIDs)
 
@@ -839,7 +844,6 @@ struct CharacterCardView: View {
 
     @State private var liveCorpName: String?
     @State private var liveAllianceName: String?
-    @State private var pulsing = false
     @State private var now = Date()
     @AppStorage("backgroundPollInterval") private var pollInterval: Double = 300
 
@@ -947,7 +951,7 @@ struct CharacterCardView: View {
                             Text(account.characterName)
                                 .font(.headline)
                             Spacer()
-                            onlineIndicator
+                            serverPilotsIndicator
                         }
                         Text(effectiveCorpName)
                             .font(.subheadline)
@@ -1186,22 +1190,8 @@ struct CharacterCardView: View {
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .onAppear {
             Task { await fetchIdentity() }
-            if summary?.online == true {
-                withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
-                    pulsing = true
-                }
-            }
         }
         .onChange(of: prefetcher.lastRefresh) { _, _ in Task { await fetchIdentity() } }
-        .onChange(of: summary?.online) { _, online in
-            if online == true {
-                withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
-                    pulsing = true
-                }
-            } else {
-                withAnimation(.default) { pulsing = false }
-            }
-        }
         .task(id: "timer") {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(1))
@@ -1259,32 +1249,27 @@ struct CharacterCardView: View {
         return Color(white: 0.25)
     }
 
-    // #4: Animated online indicator with pulsing glow
+    // #4: EVE server population, in place of the old per-character online/offline dot
     @ViewBuilder
-    private var onlineIndicator: some View {
-        let isOnline = summary?.online == true
-        HStack(spacing: 4) {
-            ZStack {
-                if isOnline {
-                    Circle()
-                        .fill(Color.green.opacity(0.35))
-                        .frame(width: 16, height: 16)
-                        .scaleEffect(pulsing ? 1.6 : 0.7)
-                        .opacity(pulsing ? 0.0 : 0.5)
-                        .animation(
-                            .easeOut(duration: 0.9).repeatForever(autoreverses: false),
-                            value: pulsing
-                        )
-                }
+    private var serverPilotsIndicator: some View {
+        if let players = apiStatus.playersOnline {
+            HStack(spacing: 4) {
                 Circle()
-                    .fill(isOnline ? Color.green : Color.gray)
+                    .fill(apiStatus.vipMode ? Color.yellow : Color.green)
                     .frame(width: 8, height: 8)
-                    .shadow(color: isOnline ? .green.opacity(0.7) : .clear, radius: 4)
+                    .shadow(color: (apiStatus.vipMode ? Color.yellow : Color.green).opacity(0.7), radius: 4)
+                Text("\(players.formatted()) online")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
             }
-            Text(isOnline ? "Online" : "Offline")
-                .font(.caption2)
-                .foregroundStyle(isOnline ? .green : .secondary)
+            .help(serverUptimeTooltip)
         }
+    }
+
+    private var serverUptimeTooltip: String {
+        guard let start = apiStatus.serverStartTime else { return "Tranquility" }
+        let uptime = EVEFormatters.formatDuration(max(Int(Date().timeIntervalSince(start)), 0))
+        return "Tranquility — up \(uptime)"
     }
 
     private var effectiveCorpName: String {
@@ -2389,6 +2374,119 @@ struct ContactCardView: View {
         if contact.standing == 0 { return "minus" }
         if contact.standing > -5 { return "hand.thumbsdown.fill" }
         return "xmark.circle.fill"
+    }
+}
+
+// MARK:  Server Status Widget
+
+struct ServerStatusWidgetView: View {
+    @Binding var isExpanded: Bool
+    @Environment(APIStatusMonitor.self) private var apiStatus
+    @State private var now = Date()
+
+    private var timeUntilDowntime: TimeInterval {
+        EVEDowntime.next(from: now).timeIntervalSince(now)
+    }
+
+    private var uptimeText: String {
+        guard let start = apiStatus.serverStartTime else { return "—" }
+        return EVEFormatters.formatDuration(max(Int(now.timeIntervalSince(start)), 0))
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button {
+                isExpanded.toggle()
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "server.rack")
+                        .foregroundStyle(apiStatus.isReachable ? .green : .orange)
+                        .font(.callout)
+                    Text("Tranquility")
+                        .font(.title3.bold())
+                    if apiStatus.vipMode {
+                        Text("VIP")
+                            .font(.caption2.bold())
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(.yellow, in: Capsule())
+                            .foregroundStyle(.black)
+                    }
+                    Spacer()
+                    if let players = apiStatus.playersOnline {
+                        Text("\(players.formatted()) online")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                        .font(.caption.bold())
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(Color.green.opacity(0.07), in: RoundedRectangle(cornerRadius: 10))
+                .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.green.opacity(0.15), lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+
+            if isExpanded {
+                HStack(alignment: .top, spacing: 24) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        if apiStatus.isReachable {
+                            metricRow(label: "Uptime", value: uptimeText)
+                            metricRow(label: "Next downtime", value: "in \(EVEFormatters.formatDuration(max(Int(timeUntilDowntime), 0)))")
+                        } else {
+                            metricRow(label: "Status", value: apiStatus.statusMessage.isEmpty ? "Downtime in progress" : apiStatus.statusMessage)
+                        }
+                        if let version = apiStatus.serverVersion {
+                            metricRow(label: "Build", value: version)
+                        }
+                    }
+                    Spacer()
+                    populationSparkline
+                }
+                .padding(.horizontal, 12)
+                .padding(.top, 12)
+                .padding(.bottom, 4)
+            }
+        }
+        .task(id: "server-status-timer") {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(30))
+                now = Date()
+            }
+        }
+    }
+
+    private func metricRow(label: String, value: String) -> some View {
+        HStack(spacing: 6) {
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.caption.monospacedDigit())
+        }
+    }
+
+    @ViewBuilder
+    private var populationSparkline: some View {
+        let samples = apiStatus.populationHistory
+        if samples.count > 1 {
+            Chart(samples) { sample in
+                LineMark(x: .value("Time", sample.date), y: .value("Players", sample.players))
+                    .foregroundStyle(.green)
+                AreaMark(x: .value("Time", sample.date), y: .value("Players", sample.players))
+                    .foregroundStyle(.green.opacity(0.1))
+            }
+            .chartXAxis(.hidden)
+            .chartYAxis(.hidden)
+            .frame(width: 220, height: 50)
+        } else {
+            Text("Gathering trend data\u{2026}")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .frame(width: 220, height: 50)
+        }
     }
 }
 

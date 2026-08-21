@@ -219,6 +219,16 @@ actor NotificationService {
         }
     }
 
+    func notifyServerRecovered() async {
+        guard UserDefaults.standard.object(forKey: "notificationsEnabled") as? Bool ?? true,
+              UserDefaults.standard.object(forKey: "notifyServerStatus") as? Bool ?? true else { return }
+        await sendNotification(
+            title: String(localized: "EVE Servers Online"),
+            body: String(localized: "Tranquility is back up."),
+            identifier: "server-status-online-\(Int(Date().timeIntervalSince1970))"
+        )
+    }
+
     func notifyPresenceChange(characterID: Int, characterName: String, cameOnline: Bool) async {
         guard UserDefaults.standard.object(forKey: "notificationsEnabled") as? Bool ?? true,
               UserDefaults.standard.object(forKey: "notifyContactPresence") as? Bool ?? true else { return }
