@@ -3,15 +3,15 @@
     <channel>
         <title>EVEOps</title>
         <item>
-            <title>0.9.10.2</title>
-            <pubDate>Fri, 14 Aug 2026 17:52:47 -0400</pubDate>
+            <title>0.9.10.3</title>
+            <pubDate>Fri, 21 Aug 2026 14:19:14 -0400</pubDate>
             <sparkle:version>126</sparkle:version>
-            <sparkle:shortVersionString>0.9.10.2</sparkle:shortVersionString>
+            <sparkle:shortVersionString>0.9.10.3</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
             <description><![CDATA[<ul>
-<li>Enhanced character data is now available data in Fleet Manager</li>
+<li>Add number of users online (Manubar) and server up-time status (Dashboard)</li>
 </ul>]]></description>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.10.2/EVEOps.dmg" length="33960929" type="application/octet-stream" sparkle:edSignature="YGrwqtV9n8O8xd/QYxPZS4YdpBNyQKpv6FjooKt9vjvZTAF5Oxc1ArnH1yaVxvbic2GTeW8LXQc5kYQ0l5gGAw=="/>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.10.3/EVEOps.dmg" length="33582425" type="application/octet-stream" sparkle:edSignature="Zw6qceLoEFD0CT+AzpnkEvvj3gZ8+M0SmHRgwZ9PlMbUIB5OXLKJZZKpB4YoK1uUsVPltyw67V+0l3ZYKvEtBQ=="/>
         </item>
     </channel>
 </rss>
