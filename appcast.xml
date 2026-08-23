@@ -3,15 +3,16 @@
     <channel>
         <title>EVEOps</title>
         <item>
-            <title>0.9.10.3</title>
-            <pubDate>Fri, 21 Aug 2026 14:19:14 -0400</pubDate>
-            <sparkle:version>126</sparkle:version>
-            <sparkle:shortVersionString>0.9.10.3</sparkle:shortVersionString>
+            <title>0.9.10.4</title>
+            <pubDate>Sun, 23 Aug 2026 16:54:39 -0400</pubDate>
+            <sparkle:version>127</sparkle:version>
+            <sparkle:shortVersionString>0.9.10.4</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
             <description><![CDATA[<ul>
-<li>Add number of users online (Manubar) and server up-time status (Dashboard)</li>
+<li>Fixed Tech III Fittings loading &amp; Saving</li>
+<li>Added the ability to paste EFT data into the &quot;Simulate Ships&quot; tab</li>
 </ul>]]></description>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.10.3/EVEOps.dmg" length="33582425" type="application/octet-stream" sparkle:edSignature="Zw6qceLoEFD0CT+AzpnkEvvj3gZ8+M0SmHRgwZ9PlMbUIB5OXLKJZZKpB4YoK1uUsVPltyw67V+0l3ZYKvEtBQ=="/>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.10.4/EVEOps.dmg" length="34046366" type="application/octet-stream" sparkle:edSignature="mPuIGGAkXinEzDdb4znpudoDXUGxMMiMnQlSASZ2YhTQRksG4EOaae+y8vwX8sN7sOsrCGz+7ncKGeAM2MeKAg=="/>
         </item>
     </channel>
 </rss>
