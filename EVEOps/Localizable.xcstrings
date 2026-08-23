@@ -2062,6 +2062,9 @@
     "Fitting name" : {
 
     },
+    "Fitting saved to EVE" : {
+
+    },
     "Fittings" : {
 
     },
@@ -3105,6 +3108,9 @@
     "Passive shield recharge" : {
 
     },
+    "Paste EFT" : {
+
+    },
     "Paste from EVE's show info, cargo scan, or any list.\nFormat: Item Name (tab) Quantity per line." : {
 
     },
@@ -3418,6 +3424,12 @@
 
     },
     "Save fitting as .eft file" : {
+
+    },
+    "Save fitting to EVE" : {
+
+    },
+    "Save Fitting to EVE" : {
 
     },
     "Save to EVE" : {

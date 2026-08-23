@@ -822,6 +822,19 @@ nonisolated struct ESIFittingItemSave: Encodable, Sendable {
     let flag: String
     let quantity: Int
     let typeId: Int
+
+    /// ESI's flag enum differs between read (assets, GET fittings) and write (POST
+    /// fittings) endpoints for Strategic Cruiser subsystem slots: reads use
+    /// "SubSystem0".."SubSystem3", but POST /characters/{id}/fittings/ only accepts
+    /// "SubSystemSlot0".."SubSystemSlot3". This app represents subsystem slots
+    /// internally in the read-side form everywhere (SimSlotCategory, EFTSerializer,
+    /// ESI asset locationFlag), so translate only when building a save request body.
+    static func postFlag(_ internalFlag: String) -> String {
+        guard internalFlag.hasPrefix("SubSystem"), !internalFlag.hasPrefix("SubSystemSlot") else {
+            return internalFlag
+        }
+        return "SubSystemSlot" + internalFlag.dropFirst("SubSystem".count)
+    }
 }
 
 /// Response from POST /characters/{id}/fittings/ — returns the new fitting's ID

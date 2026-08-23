@@ -239,9 +239,19 @@ struct SimLoadFittingSheet: View {
                     .padding(.horizontal, 24)
             }
 
-            Button("Choose .eft File…") { showFileImporter = true }
-                .buttonStyle(.borderedProminent)
+            HStack(spacing: 10) {
+                Button("Choose .eft File…") { showFileImporter = true }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(isResolvingEFT)
+
+                Button {
+                    Task { await pasteEFTFromClipboard() }
+                } label: {
+                    Label("Paste EFT", systemImage: "doc.on.clipboard")
+                }
+                .buttonStyle(.bordered)
                 .disabled(isResolvingEFT)
+            }
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -256,20 +266,47 @@ struct SimLoadFittingSheet: View {
         let accessed = url.startAccessingSecurityScopedResource()
         defer { if accessed { url.stopAccessingSecurityScopedResource() } }
 
+        guard let text = try? String(contentsOf: url, encoding: .utf8) else {
+            eftError = "Could not read the selected file"
+            return
+        }
+        await processEFTText(text, sourceDescription: "File")
+    }
+
+    private func pasteEFTFromClipboard() async {
+        guard let text = NSPasteboard.general.string(forType: .string),
+              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            eftError = "Clipboard is empty — copy an EFT fitting first"
+            return
+        }
+        await processEFTText(text, sourceDescription: "Clipboard")
+    }
+
+    /// Parses and resolves EFT text shared by both the file-import and clipboard-paste
+    /// entry points. `EFTSerializer.parse` is itself the EFT-format validity check, run
+    /// first and reported distinctly so a later ESI resolution failure isn't confused
+    /// with a format problem.
+    private func processEFTText(_ text: String, sourceDescription: String) async {
         isResolvingEFT = true
         eftError = nil
 
+        let parsed: EFTSerializer.ParsedFitting
         do {
-            let text = try String(contentsOf: url, encoding: .utf8)
-            let parsed = try EFTSerializer.parse(eftText: text)
+            parsed = try EFTSerializer.parse(eftText: text)
+        } catch {
+            eftError = "\(sourceDescription) does not contain valid EFT fitting data — \(error.localizedDescription)"
+            isResolvingEFT = false
+            return
+        }
 
-            guard let account = accountManager.selectedAccount,
-                  let token = try? await accountManager.validToken(for: account) else {
-                eftError = "No active account — sign in to resolve module names"
-                isResolvingEFT = false
-                return
-            }
+        guard let account = accountManager.selectedAccount,
+              let token = try? await accountManager.validToken(for: account) else {
+            eftError = "No active account — sign in to resolve module names"
+            isResolvingEFT = false
+            return
+        }
 
+        do {
             let (shipTypeId, name, items) = try await EFTSerializer.resolve(
                 parsed: parsed, account: account, token: token
             )
@@ -283,8 +320,6 @@ struct SimLoadFittingSheet: View {
             importSaveName = entry.name
             importSaveDesc = ""
             saveImportError = nil
-            isResolvingEFT = false
-            return
         } catch {
             eftError = error.localizedDescription
         }
@@ -391,7 +426,7 @@ struct SimLoadFittingSheet: View {
         }
         do {
             let items = entry.items.map {
-                ESIFittingItemSave(flag: $0.flag, quantity: $0.quantity, typeId: $0.typeId)
+                ESIFittingItemSave(flag: ESIFittingItemSave.postFlag($0.flag), quantity: $0.quantity, typeId: $0.typeId)
             }
             let body = ESIFittingSaveRequest(
                 description: importSaveDesc,
@@ -671,7 +706,7 @@ struct EFTImportSaveSheet: View {
         }
         do {
             let items = entry.items.map {
-                ESIFittingItemSave(flag: $0.flag, quantity: $0.quantity, typeId: $0.typeId)
+                ESIFittingItemSave(flag: ESIFittingItemSave.postFlag($0.flag), quantity: $0.quantity, typeId: $0.typeId)
             }
             let body = ESIFittingSaveRequest(
                 description: fittingDescription,

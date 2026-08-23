@@ -95,12 +95,14 @@ final class SimulatorState {
 
     func fillSlot(id: UUID, with typeId: Int) async {
         guard let idx = slots.firstIndex(where: { $0.id == id }) else { return }
+        let category = slots[idx].category
         slots[idx].moduleTypeId = typeId
         slots[idx].isOnline = true
         if moduleTypes[typeId] == nil {
             let types = await UniverseCache.shared.types(ids: [typeId])
             if let t = types[typeId] { moduleTypes[typeId] = t }
         }
+        if category == .subsystem { await recomputeSlotLayout() }
         recomputeStats()
         activeSlotId = nil
     }
@@ -129,20 +131,25 @@ final class SimulatorState {
         }
     }
 
-    func clearSlot(id: UUID) {
+    func clearSlot(id: UUID) async {
         guard let idx = slots.firstIndex(where: { $0.id == id }) else { return }
+        let category = slots[idx].category
         let old = slots[idx].moduleTypeId
         slots[idx].moduleTypeId = nil
         slots[idx].isOnline = true
         if let tid = old, !slots.contains(where: { $0.moduleTypeId == tid }) {
             moduleTypes.removeValue(forKey: tid)
         }
+        if category == .subsystem { await recomputeSlotLayout() }
         recomputeStats()
     }
 
-    func clearAll() {
+    func clearAll() async {
         for i in slots.indices { slots[i].moduleTypeId = nil; slots[i].isOnline = true }
         moduleTypes = [:]
+        // Subsystems were just cleared too — collapse Strategic Cruiser high/med/low
+        // slots back down rather than leaving stale empty ones behind.
+        await recomputeSlotLayout()
         recomputeStats()
     }
 
@@ -155,6 +162,19 @@ final class SimulatorState {
         let typeIds = Array(Set(fitting.items.map(\.typeId)))
         let types = await UniverseCache.shared.types(ids: typeIds)
         moduleTypes.merge(types) { _, new in new }
+
+        // Subsystems first: Strategic Cruisers derive their high/med/low slot counts
+        // from equipped subsystems, so the layout must expand before those items can
+        // be matched into slots below.
+        for item in fitting.items where item.flag.hasPrefix(SimSlotCategory.subsystem.flagPrefix) {
+            let suffix = item.flag.dropFirst(SimSlotCategory.subsystem.flagPrefix.count)
+            if let idx = Int(suffix),
+               let si = slots.firstIndex(where: { $0.category == .subsystem && $0.index == idx }) {
+                slots[si].moduleTypeId = item.typeId
+            }
+        }
+        await recomputeSlotLayout()
+
         for item in fitting.items {
             for cat in SimSlotCategory.allCases where item.flag.hasPrefix(cat.flagPrefix) {
                 let suffix = item.flag.dropFirst(cat.flagPrefix.count)
@@ -175,6 +195,16 @@ final class SimulatorState {
         let typeIds = Array(Set(modules.map(\.typeId)))
         let types = await UniverseCache.shared.types(ids: typeIds)
         moduleTypes.merge(types) { _, new in new }
+
+        for asset in modules where asset.locationFlag.hasPrefix(SimSlotCategory.subsystem.flagPrefix) {
+            let suffix = asset.locationFlag.dropFirst(SimSlotCategory.subsystem.flagPrefix.count)
+            if let idx = Int(suffix),
+               let si = slots.firstIndex(where: { $0.category == .subsystem && $0.index == idx }) {
+                slots[si].moduleTypeId = asset.typeId
+            }
+        }
+        await recomputeSlotLayout()
+
         for asset in modules {
             for cat in SimSlotCategory.allCases where asset.locationFlag.hasPrefix(cat.flagPrefix) {
                 let suffix = asset.locationFlag.dropFirst(cat.flagPrefix.count)
@@ -190,6 +220,20 @@ final class SimulatorState {
 
     // MARK: Slot Building
 
+    // Dogma attribute IDs for high/medium/low slot counts. Strategic Cruisers (T3)
+    // carry 0 here on the bare hull — those slots come entirely from the 4 fitted
+    // subsystems — while rig (1137) and subsystem (1367) counts are always native
+    // to the hull, so they don't need the same treatment.
+    private static let hullSlotAttrs: [SimSlotCategory: Int] = [.high: 14, .medium: 13, .low: 12]
+
+    // Each subsystem carries its own slot contribution directly as a dogma attribute
+    // rather than through the generic effect-modifier chain (ESI's dogma/effects
+    // endpoint returns no modifier_info for the "slotModifier"/"hardPointModifierEffect"
+    // effects that mark subsystems, so that chain can't be walked). 1374/1375/1376 =
+    // High/Medium/Low Slot Modifier, confirmed against CCP's own tooltip text (e.g.
+    // Tengu "Accelerated Ejection Bay: +7 High Slots" matches attribute 1374 = 7.0).
+    private static let subsystemSlotModifierAttrs: [SimSlotCategory: Int] = [.high: 1374, .medium: 1375, .low: 1376]
+
     private func buildSlots(from type: ESIType) -> [SimSlot] {
         let attrs = type.dogmaAttributes ?? []
         func count(_ id: Int) -> Int { Int(attrs.first { $0.attributeId == id }?.value ?? 0) }
@@ -200,6 +244,54 @@ final class SimulatorState {
         for i in 0..<count(1137) { result.append(SimSlot(category: .rig,       index: i)) }
         for i in 0..<count(1367) { result.append(SimSlot(category: .subsystem, index: i)) }
         return result
+    }
+
+    // Sums each fitted subsystem's own High/Medium/Low Slot Modifier attributes.
+    private func computeSubsystemSlotDeltas(_ subsystemTypeIds: [Int]) async -> [SimSlotCategory: Int] {
+        guard !subsystemTypeIds.isEmpty else { return [:] }
+        let types = await UniverseCache.shared.types(ids: subsystemTypeIds)
+        var deltas: [SimSlotCategory: Int] = [:]
+        for id in subsystemTypeIds {
+            guard let attrs = types[id]?.dogmaAttributes else { continue }
+            for (category, attrId) in Self.subsystemSlotModifierAttrs {
+                if let value = attrs.first(where: { $0.attributeId == attrId })?.value {
+                    deltas[category, default: 0] += Int(value.rounded())
+                }
+            }
+        }
+        return deltas
+    }
+
+    /// Rebuilds the high/medium/low slot arrays from the hull's own attributes plus
+    /// any deltas contributed by currently-fitted subsystem modules, preserving
+    /// already-fitted modules in slots that survive. Safe to call for any ship: hulls
+    /// with no subsystems (i.e. everything but Strategic Cruisers) simply have no
+    /// deltas, so this reproduces the count `buildSlots` already established.
+    func recomputeSlotLayout() async {
+        guard let shipType else { return }
+        let subsystemTypeIds = slots.filter { $0.category == .subsystem }.compactMap(\.moduleTypeId)
+        let deltas = await computeSubsystemSlotDeltas(subsystemTypeIds)
+
+        for (category, attrId) in Self.hullSlotAttrs {
+            let base = Int(shipType.dogmaAttributes?.first(where: { $0.attributeId == attrId })?.value ?? 0)
+            let target = max(0, base + (deltas[category] ?? 0))
+            let current = slots.filter { $0.category == category }
+            if target > current.count {
+                for i in current.count..<target {
+                    slots.append(SimSlot(category: category, index: i))
+                }
+            } else if target < current.count {
+                let removed = current.suffix(current.count - target)
+                let removedIds = Set(removed.map(\.id))
+                for slot in removed {
+                    if let tid = slot.moduleTypeId,
+                       !slots.contains(where: { !removedIds.contains($0.id) && $0.moduleTypeId == tid }) {
+                        moduleTypes.removeValue(forKey: tid)
+                    }
+                }
+                slots.removeAll { removedIds.contains($0.id) }
+            }
+        }
     }
 
     // MARK: Stats Calculation

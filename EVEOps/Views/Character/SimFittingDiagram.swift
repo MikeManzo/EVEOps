@@ -133,7 +133,7 @@ struct SimFittingDiagram: View {
                             .foregroundStyle(.white)
                     }
                     .buttonStyle(.plain)
-                    Button { simState.clearAll() } label: {
+                    Button { Task { await simState.clearAll() } } label: {
                         Label("Clear Fit", systemImage: "trash")
                             .font(.caption.bold())
                             .padding(.horizontal, 10).padding(.vertical, 6)
@@ -367,6 +367,7 @@ struct SimSlotSocketView: View {
                     isTargeted: $isDropTargeted
                 ) { typeId in
                     guard let idx = simState.slots.firstIndex(where: { $0.id == slot.id }) else { return }
+                    let category = simState.slots[idx].category
                     simState.slots[idx].moduleTypeId = typeId
                     simState.activeSlotId = nil
                     simState.draggingCategory = nil
@@ -378,10 +379,15 @@ struct SimSlotSocketView: View {
                             await MainActor.run {
                                 if let t = fetched[typeId] {
                                     simState.moduleTypes[typeId] = t
-                                    simState.recomputeStats()
                                 }
                             }
                         }
+                        // Strategic Cruiser subsystems grant high/med/low slots — expand
+                        // the layout to match before the stats pass that follows.
+                        if category == .subsystem {
+                            await simState.recomputeSlotLayout()
+                        }
+                        await simState.recomputeStats()
                     }
                 }
             )
@@ -402,7 +408,7 @@ struct SimSlotSocketView: View {
             // Hover × badge — shown only when a module is fitted and the slot is hovered.
             if isHovered && currentModuleTypeId != nil {
                 Button {
-                    simState.clearSlot(id: slot.id)
+                    Task { await simState.clearSlot(id: slot.id) }
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .font(.system(size: 14, weight: .semibold))
@@ -549,7 +555,7 @@ struct SimModulePopover: View {
                     Divider().frame(height: 30)
 
                     Button(role: .destructive) {
-                        simState.clearSlot(id: slot.id)
+                        Task { await simState.clearSlot(id: slot.id) }
                     } label: {
                         Label("Remove", systemImage: "minus.circle")
                             .font(.caption).frame(maxWidth: .infinity)

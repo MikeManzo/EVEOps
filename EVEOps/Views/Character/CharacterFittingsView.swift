@@ -931,7 +931,7 @@ struct SaveFittingSheet: View {
         }
         do {
             let token = try await accountManager.validToken(for: account)
-            let items = modules.map { ESIFittingItemSave(flag: $0.locationFlag, quantity: $0.quantity, typeId: $0.typeId) }
+            let items = modules.map { ESIFittingItemSave(flag: ESIFittingItemSave.postFlag($0.locationFlag), quantity: $0.quantity, typeId: $0.typeId) }
             let body = ESIFittingSaveRequest(
                 description: fittingDescription,
                 items: items,

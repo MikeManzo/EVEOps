@@ -58,6 +58,7 @@ struct SimLeftPanel: View {
     @State private var showLoadSheet = false
     @State private var showExporter = false
     @State private var eftExportDocument = EFTFittingDocument(text: "")
+    @State private var showSaveToEVESheet = false
 
     private var filteredShipSections: [(className: String, ships: [ESIType])] {
         let q = shipSearchText.lowercased().trimmingCharacters(in: .whitespaces)
@@ -87,6 +88,19 @@ struct SimLeftPanel: View {
             contentType: .eveFitting,
             defaultFilename: "\(simState.shipName.isEmpty ? "fitting" : simState.shipName).eft"
         ) { _ in }
+        .sheet(isPresented: $showSaveToEVESheet) {
+            if let shipType = simState.shipType {
+                SimSaveFittingSheet(
+                    shipTypeId: shipType.typeId,
+                    items: simState.slots.compactMap { slot in
+                        guard let typeId = slot.moduleTypeId else { return nil }
+                        return ESIFittingItemSave(flag: ESIFittingItemSave.postFlag(slot.flag), quantity: 1, typeId: typeId)
+                    },
+                    initialName: simState.shipName.isEmpty ? shipType.name : simState.shipName
+                )
+                .environment(accountManager)
+            }
+        }
         .task {
             await loadAllShips()
             if simState.shipTypeId != nil {
@@ -244,6 +258,17 @@ struct SimLeftPanel: View {
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
                 .help("Save fitting as .eft file")
+
+                Button {
+                    guard simState.shipType != nil else { return }
+                    showSaveToEVESheet = true
+                } label: {
+                    Image(systemName: "icloud.and.arrow.up")
+                        .font(.caption)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+                .help("Save fitting to EVE")
 
                 if !simState.shipName.isEmpty {
                     VStack(alignment: .trailing, spacing: 1) {
@@ -413,19 +438,31 @@ struct SimLeftPanel: View {
         isLoadingModules = true
         defer { isLoadingModules = false }
 
-        guard let modCategory = await UniverseCache.shared.category(id: 7) else { return }
-        let groups = await UniverseCache.shared.groups(ids: Set(modCategory.groups))
-        let publishedTypeIds = Array(Set(
-            groups.values.filter(\.published).flatMap(\.types)
-        ))
-        guard !publishedTypeIds.isEmpty else { return }
-        let types = await UniverseCache.shared.types(ids: publishedTypeIds)
-
         var bySlot: [SimSlotCategory: [ESIType]] = [:]
-        for t in types.values where t.published {
-            guard let effects = t.dogmaEffects,
-                  let cat = SlotEffect.category(from: effects) else { continue }
-            bySlot[cat, default: []].append(t)
+
+        if let modCategory = await UniverseCache.shared.category(id: 7) {
+            let groups = await UniverseCache.shared.groups(ids: Set(modCategory.groups))
+            let publishedTypeIds = Array(Set(groups.values.filter(\.published).flatMap(\.types)))
+            if !publishedTypeIds.isEmpty {
+                let types = await UniverseCache.shared.types(ids: publishedTypeIds)
+                for t in types.values where t.published {
+                    guard let effects = t.dogmaEffects,
+                          let cat = SlotEffect.category(from: effects) else { continue }
+                    bySlot[cat, default: []].append(t)
+                }
+            }
+        }
+
+        // Category 32 = Subsystem. Strategic Cruiser subsystems (Tengu/Legion/Loki/
+        // Proteus) live in a separate SDE category from regular modules and don't
+        // carry the slot-effect IDs SlotEffect looks for, so fetch them directly.
+        if let subCategory = await UniverseCache.shared.category(id: 32) {
+            let subGroups = await UniverseCache.shared.groups(ids: Set(subCategory.groups))
+            let publishedSubTypeIds = Array(Set(subGroups.values.filter(\.published).flatMap(\.types)))
+            if !publishedSubTypeIds.isEmpty {
+                let subTypes = await UniverseCache.shared.types(ids: publishedSubTypeIds)
+                bySlot[.subsystem, default: []].append(contentsOf: subTypes.values.filter(\.published))
+            }
         }
 
         allModuleSections = SimSlotCategory.allCases.compactMap { cat in
@@ -522,5 +559,115 @@ struct SimModuleRow: View {
             Spacer()
         }
         .padding(.vertical, 2)
+    }
+}
+
+// MARK:  Save Fitting to EVE Sheet
+
+struct SimSaveFittingSheet: View {
+    let shipTypeId: Int
+    let items: [ESIFittingItemSave]
+
+    @Environment(AccountManager.self) private var accountManager
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var name: String
+    @State private var fittingDescription = ""
+    @State private var isSaving = false
+    @State private var saveError: String?
+    @State private var didSave = false
+
+    init(shipTypeId: Int, items: [ESIFittingItemSave], initialName: String) {
+        self.shipTypeId = shipTypeId
+        self.items = items
+        _name = State(initialValue: initialName)
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("Save Fitting to EVE").font(.headline)
+                Spacer()
+                Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
+            }
+            .padding()
+
+            Divider()
+
+            if didSave {
+                VStack(spacing: 10) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 36))
+                        .foregroundStyle(.green)
+                    Text("Fitting saved to EVE").font(.subheadline.bold())
+                }
+                .frame(maxWidth: .infinity, minHeight: 140)
+            } else {
+                Form {
+                    Section("Name") {
+                        TextField("Fitting name", text: $name)
+                    }
+                    Section("Description") {
+                        TextField("Optional", text: $fittingDescription, axis: .vertical)
+                            .lineLimit(2...4)
+                    }
+                }
+                .formStyle(.grouped)
+            }
+
+            Divider()
+
+            HStack {
+                if let saveError {
+                    Label(saveError, systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption).foregroundStyle(.red).lineLimit(2)
+                }
+                Spacer()
+                if isSaving { ProgressView().controlSize(.small) }
+                if didSave {
+                    Button("Done") { dismiss() }
+                        .keyboardShortcut(.defaultAction)
+                        .buttonStyle(.borderedProminent)
+                } else {
+                    Button("Save to EVE") { Task { await save() } }
+                        .keyboardShortcut(.defaultAction)
+                        .buttonStyle(.borderedProminent)
+                        .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty || isSaving)
+                }
+            }
+            .padding()
+        }
+        .frame(width: 380)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func save() async {
+        isSaving = true
+        saveError = nil
+        guard let account = accountManager.selectedAccount,
+              let token = try? await accountManager.validToken(for: account) else {
+            saveError = "No active account — sign in to save"
+            isSaving = false
+            return
+        }
+        do {
+            let body = ESIFittingSaveRequest(
+                description: fittingDescription,
+                items: items,
+                name: name.trimmingCharacters(in: .whitespaces),
+                shipTypeId: shipTypeId
+            )
+            let _: ESIFittingCreatedResponse = try await ESIClient.shared.post(
+                "/characters/\(account.characterID)/fittings/",
+                body: body,
+                token: token
+            )
+            didSave = true
+        } catch ESIError.unauthorized {
+            saveError = "Missing permission — re-authenticate to save fittings"
+        } catch {
+            saveError = error.localizedDescription
+        }
+        isSaving = false
     }
 }
