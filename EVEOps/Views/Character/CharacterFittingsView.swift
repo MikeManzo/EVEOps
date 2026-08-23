@@ -265,7 +265,7 @@ struct CharacterFittingsView: View {
                         Task { await loadSavedFittings() }
                     }
                 )
-                .frame(width: 340)
+                .frame(minWidth: 340, idealWidth: 380, maxWidth: 420)
             }
         }
     }
@@ -306,7 +306,7 @@ struct CharacterFittingsView: View {
             if let fitting = selectedFitting {
                 Divider()
                 SavedFittingDetailPane(fitting: fitting, typeNames: fittingTypeNames)
-                    .frame(width: 340)
+                    .frame(minWidth: 340, idealWidth: 380, maxWidth: 420)
             }
         }
     }
@@ -709,47 +709,30 @@ struct ShipDetailPane: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ZStack(alignment: .bottomLeading) {
-                AsyncImage(url: EVEImageURL.typeRender(ship.typeId, size: 512)) { image in
-                    image.resizable().aspectRatio(contentMode: .fill)
-                } placeholder: {
-                    Rectangle().fill(
-                        LinearGradient(
-                            colors: [Color(.darkGray).opacity(0.4), .black.opacity(0.6)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                }
-                .frame(height: 160)
-                .clipped()
-
-                LinearGradient(
-                    stops: [
-                        .init(color: .clear, location: 0.0),
-                        .init(color: .black.opacity(0.75), location: 1.0)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-
-                HStack(alignment: .bottom) {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(ship.displayName)
-                            .font(.headline)
-                            .foregroundStyle(.white)
-                        if ship.customName != nil {
-                            Text(ship.typeName)
-                                .font(.caption)
-                                .foregroundStyle(.white.opacity(0.6))
-                        }
-                        Label(ship.locationName, systemImage: "mappin.circle.fill")
+            // Title/skills stack above its own button row (rather than sharing one
+            // horizontal line via a Spacer) so neither gets squeezed for width — the
+            // skill pills need real room to wrap onto their own line(s), not just show
+            // their icon. The ship render and gradient are `.background`s of this
+            // content rather than ZStack siblings with their own fixed height, so they
+            // always exactly fill however tall the content needs to be (at least 190),
+            // instead of a fixed-height image leaving a blank gap when text wraps.
+            VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(ship.displayName)
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                    if ship.customName != nil {
+                        Text(ship.typeName)
                             .font(.caption)
-                            .foregroundStyle(.white.opacity(0.75))
-                            .lineLimit(1)
-                        SkillRequirementsView(typeId: ship.typeId, typeInfo: nil, characterSkills: characterSkills)
+                            .foregroundStyle(.white.opacity(0.6))
                     }
-                    Spacer()
+                    Label(ship.locationName, systemImage: "mappin.circle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.75))
+                        .lineLimit(1)
+                    SkillRequirementsView(typeId: ship.typeId, typeInfo: nil, characterSkills: characterSkills)
+                }
+                HStack(spacing: 8) {
                     Button { showModelViewer = true } label: {
                         Label("View 3D", systemImage: "cube.transparent")
                             .font(.caption.bold())
@@ -780,9 +763,41 @@ struct ShipDetailPane: View {
                         .buttonStyle(.plain)
                     }
                 }
-                .padding(12)
             }
-            .frame(height: 160)
+            .padding(12)
+            .frame(maxWidth: .infinity, minHeight: 190, alignment: .bottomLeading)
+            .background {
+                LinearGradient(
+                    stops: [
+                        .init(color: .clear, location: 0.0),
+                        .init(color: .black.opacity(0.75), location: 1.0)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            }
+            .background {
+                // GeometryReader pins the image to exactly this box's size before
+                // clipping. `.aspectRatio(contentMode: .fill)` is free to compute a
+                // size larger than what `.background` proposes — .clipped() alone only
+                // clips drawing, not that oversized layout footprint — so without this
+                // the image's box can bleed past its intended bounds.
+                GeometryReader { geo in
+                    AsyncImage(url: EVEImageURL.typeRender(ship.typeId, size: 512)) { image in
+                        image.resizable().aspectRatio(contentMode: .fill)
+                    } placeholder: {
+                        Rectangle().fill(
+                            LinearGradient(
+                                colors: [Color(.darkGray).opacity(0.4), .black.opacity(0.6)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                    }
+                    .frame(width: geo.size.width, height: geo.size.height)
+                    .clipped()
+                }
+            }
 
             Divider()
 
@@ -1036,47 +1051,30 @@ struct SavedFittingDetailPane: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ZStack(alignment: .bottom) {
-                AsyncImage(url: EVEImageURL.typeRender(fitting.shipTypeId, size: 512)) { image in
-                    image.resizable().aspectRatio(contentMode: .fill)
-                } placeholder: {
-                    Rectangle().fill(
-                        LinearGradient(
-                            colors: [Color(.darkGray).opacity(0.4), .black.opacity(0.6)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                }
-                .frame(height: 160)
-                .clipped()
-
-                LinearGradient(
-                    stops: [
-                        .init(color: .clear, location: 0.0),
-                        .init(color: .black.opacity(0.75), location: 1.0)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-
-                HStack(alignment: .bottom) {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(fitting.name)
-                            .font(.headline)
-                            .foregroundStyle(.white)
-                        Text(fitting.shipTypeName)
-                            .font(.caption)
-                            .foregroundStyle(.white.opacity(0.7))
-                        if !fitting.fittingDescription.isEmpty {
-                            Text(fitting.fittingDescription)
-                                .font(.caption2)
-                                .foregroundStyle(.white.opacity(0.5))
-                                .lineLimit(1)
-                        }
-                        SkillRequirementsView(typeId: fitting.shipTypeId, typeInfo: nil, characterSkills: characterSkills)
+            // Title/skills stack above its own button row (rather than sharing one
+            // horizontal line via a Spacer) so neither gets squeezed for width — the
+            // skill pills need real room to wrap onto their own line(s), not just show
+            // their icon. The ship render and gradient are `.background`s of this
+            // content rather than ZStack siblings with their own fixed height, so they
+            // always exactly fill however tall the content needs to be (at least 190),
+            // instead of a fixed-height image leaving a blank gap when text wraps.
+            VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(fitting.name)
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                    Text(fitting.shipTypeName)
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.7))
+                    if !fitting.fittingDescription.isEmpty {
+                        Text(fitting.fittingDescription)
+                            .font(.caption2)
+                            .foregroundStyle(.white.opacity(0.5))
+                            .lineLimit(1)
                     }
-                    Spacer()
+                    SkillRequirementsView(typeId: fitting.shipTypeId, typeInfo: nil, characterSkills: characterSkills)
+                }
+                HStack(spacing: 8) {
                     Button { showModelViewer = true } label: {
                         Label("View 3D", systemImage: "cube.transparent")
                             .font(.caption.bold())
@@ -1107,9 +1105,41 @@ struct SavedFittingDetailPane: View {
                         .buttonStyle(.plain)
                     }
                 }
-                .padding(12)
             }
-            .frame(height: 160)
+            .padding(12)
+            .frame(maxWidth: .infinity, minHeight: 190, alignment: .bottomLeading)
+            .background {
+                LinearGradient(
+                    stops: [
+                        .init(color: .clear, location: 0.0),
+                        .init(color: .black.opacity(0.75), location: 1.0)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            }
+            .background {
+                // GeometryReader pins the image to exactly this box's size before
+                // clipping. `.aspectRatio(contentMode: .fill)` is free to compute a
+                // size larger than what `.background` proposes — .clipped() alone only
+                // clips drawing, not that oversized layout footprint — so without this
+                // the image's box can bleed past its intended bounds.
+                GeometryReader { geo in
+                    AsyncImage(url: EVEImageURL.typeRender(fitting.shipTypeId, size: 512)) { image in
+                        image.resizable().aspectRatio(contentMode: .fill)
+                    } placeholder: {
+                        Rectangle().fill(
+                            LinearGradient(
+                                colors: [Color(.darkGray).opacity(0.4), .black.opacity(0.6)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                    }
+                    .frame(width: geo.size.width, height: geo.size.height)
+                    .clipped()
+                }
+            }
 
             Divider()
 
@@ -1644,14 +1674,27 @@ struct ModuleDetailPopover: View {
 
         Divider()
 
-        Button {
-            WindowService.shared.showGalaxySearch(typeId: typeId, typeName: name ?? "Type #\(typeId)")
-        } label: {
-            Label("Find in Galaxy", systemImage: "globe.europe.africa.fill")
-                .frame(maxWidth: .infinity)
+        HStack(spacing: 0) {
+            Button {
+                WindowService.shared.showGalaxySearch(typeId: typeId, typeName: name ?? "Type #\(typeId)")
+            } label: {
+                Label("Find in Galaxy", systemImage: "globe.europe.africa.fill")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderless)
+            .foregroundStyle(.blue)
+
+            Divider().frame(height: 20)
+
+            Button {
+                WindowService.shared.showItemSkillTree(typeId: typeId, typeName: name ?? "Type #\(typeId)")
+            } label: {
+                Label("Skill Tree", systemImage: "network")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderless)
+            .foregroundStyle(.blue)
         }
-        .buttonStyle(.borderless)
-        .foregroundStyle(.blue)
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
         .frame(width: 300)

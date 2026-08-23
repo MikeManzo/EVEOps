@@ -37,7 +37,7 @@ struct SkillRequirementsView: View {
     @State private var requirements: [ResolvedSkillReq] = []
 
     var body: some View {
-        HStack(spacing: requirements.isEmpty ? 0 : 6) {
+        FlowLayout(spacing: 6) {
             if !requirements.isEmpty {
                 Image(systemName: "graduationcap.fill")
                     .font(.caption2)

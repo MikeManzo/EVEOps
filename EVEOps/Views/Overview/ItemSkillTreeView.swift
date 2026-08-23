@@ -83,6 +83,10 @@ struct ItemSkillTreeView: View {
     let characterSkills: [Int: Int]?
     /// Called when the user taps + on a skill node or "Add All to Plan".
     var onAddToPlan: ((SkillPlanItem) -> Void)?
+    /// When set, the tree is built for this item immediately, skipping the search step —
+    /// used when another screen sends a specific item here pre-populated.
+    var initialTypeId: Int? = nil
+    var initialTypeName: String = ""
 
     @Environment(AccountManager.self) private var accountManager
 
@@ -113,6 +117,10 @@ struct ItemSkillTreeView: View {
                 .padding(10)
             Divider()
             treeContent
+        }
+        .task {
+            guard let initialTypeId, selectedTypeId == nil else { return }
+            selectItem(initialTypeId, name: initialTypeName)
         }
     }
 

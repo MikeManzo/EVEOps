@@ -30,6 +30,7 @@ final class WindowService: NSObject {
     private var mainWindow: NSWindow?
     private var galaxySearchWindow: NSWindow?
     private var tradeHubWindow: NSWindow?
+    private var itemSkillTreeWindow: NSWindow?
     private var settingsWindow: NSWindow?
     private var shipModelWindows: [String: NSWindow] = [:]
     private var defaultsObserver: NSObjectProtocol?
@@ -173,6 +174,47 @@ final class WindowService: NSObject {
         applyActivationPolicy()
     }
 
+    // MARK: Item Skill Tree
+
+    func showItemSkillTree(typeId: Int, typeName: String) {
+        // Always reopen fresh so the new item preloads, matching Galaxy Search's pattern.
+        if let existing = itemSkillTreeWindow {
+            existing.close()
+            itemSkillTreeWindow = nil
+        }
+
+        guard let am = accountManager, let pf = prefetcher else { return }
+
+        let characterSkills: [Int: Int]? = am.selectedAccount.flatMap { account in
+            pf.characterData[account.characterID].map {
+                Dictionary(uniqueKeysWithValues: $0.skills.skills.map { ($0.skillId, $0.activeSkillLevel) })
+            }
+        }
+
+        let content = ItemSkillTreeView(
+            characterSkills: characterSkills,
+            initialTypeId: typeId,
+            initialTypeName: typeName
+        )
+        .environment(am)
+
+        let controller = NSHostingController(rootView: content)
+        let window = NSWindow(contentViewController: controller)
+        window.appearance = resolvedNSAppearance
+        window.title = "Skill Tree — \(typeName)"
+        window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
+        window.minSize = NSSize(width: 640, height: 480)
+        window.setContentSize(NSSize(width: 820, height: 620))
+        window.isReleasedWhenClosed = false
+        window.delegate = self
+        window.setFrameAutosaveName("EVEOpsItemSkillTreeWindow")
+        window.center()
+
+        itemSkillTreeWindow = window
+        window.makeKeyAndOrderFront(nil)
+        applyActivationPolicy()
+    }
+
     // MARK: Ship Model Viewer
 
     func showShipModel(shipName: String, shipClass: String = "") {
@@ -253,6 +295,7 @@ final class WindowService: NSObject {
         mainWindow?.appearance = appearance
         galaxySearchWindow?.appearance = appearance
         tradeHubWindow?.appearance = appearance
+        itemSkillTreeWindow?.appearance = appearance
         settingsWindow?.appearance = appearance
         shipModelWindows.values.forEach { $0.appearance = appearance }
     }
@@ -279,6 +322,7 @@ extension WindowService: NSWindowDelegate {
         MainActor.assumeIsolated {
             if window === settingsWindow { settingsWindow = nil }
             if window === tradeHubWindow { tradeHubWindow = nil }
+            if window === itemSkillTreeWindow { itemSkillTreeWindow = nil }
             shipModelWindows = shipModelWindows.filter { $0.value !== window }
         }
     }

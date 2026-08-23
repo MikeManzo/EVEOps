@@ -742,35 +742,37 @@ struct MarketBrowserView: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
+                // Own row, not squeezed against the buttons via a Spacer — the skill
+                // pills need real width to show name+level, not just their icon.
                 SkillRequirementsView(typeId: typeId, typeInfo: selectedTypeInfo, characterSkills: characterSkillMap)
+                HStack(spacing: 8) {
+                    if let info = selectedTypeInfo, CharacterFittingsView.eveShipGroupIds.contains(info.groupId) {
+                        Button { showModelViewer = true } label: {
+                            Label("View 3D", systemImage: "cube.transparent")
+                        }
+                        .buttonStyle(.bordered)
+                    }
+
+                    if let account = accountManager.selectedAccount, !account.isTokenExpired {
+                        let token = account.accessToken
+                        VStack(alignment: .leading, spacing: 4) {
+                            Button {
+                                Task { await openInEVE(typeId: typeId, token: token) }
+                            } label: {
+                                Label("Open in EVE", systemImage: "arrow.up.right.square")
+                            }
+                            .buttonStyle(.bordered)
+                            if let msg = openInEVEMessage {
+                                Text(msg)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
             }
 
             Spacer()
-
-            if let info = selectedTypeInfo, CharacterFittingsView.eveShipGroupIds.contains(info.groupId) {
-                Button { showModelViewer = true } label: {
-                    Label("View 3D", systemImage: "cube.transparent")
-                }
-                .buttonStyle(.bordered)
-            }
-
-            if let account = accountManager.selectedAccount, !account.isTokenExpired {
-                let token = account.accessToken
-                VStack(alignment: .trailing, spacing: 4) {
-                    Button {
-                        Task { await openInEVE(typeId: typeId, token: token) }
-                    } label: {
-                        Label("Open in EVE", systemImage: "arrow.up.right.square")
-                    }
-                    .buttonStyle(.bordered)
-                    if let msg = openInEVEMessage {
-                        Text(msg)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.trailing)
-                    }
-                }
-            }
         }
         .padding()
         .background {
