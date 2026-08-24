@@ -242,7 +242,11 @@ final class SimulatorState {
         for i in 0..<count(13)   { result.append(SimSlot(category: .medium,    index: i)) }
         for i in 0..<count(12)   { result.append(SimSlot(category: .low,       index: i)) }
         for i in 0..<count(1137) { result.append(SimSlot(category: .rig,       index: i)) }
-        for i in 0..<count(1367) { result.append(SimSlot(category: .subsystem, index: i)) }
+        // Strategic Cruisers always have exactly 4 subsystem slots (Offensive/
+        // Defensive/Propulsion/Core) — confirmed by ESI's own fitting-save flag enum,
+        // which only defines SubSystemSlot0-3. The hull's own "Subsystem Slots"
+        // attribute (1367) reports 5 for all four T3 cruisers, not 4, so cap it.
+        for i in 0..<min(count(1367), 4) { result.append(SimSlot(category: .subsystem, index: i)) }
         return result
     }
 
