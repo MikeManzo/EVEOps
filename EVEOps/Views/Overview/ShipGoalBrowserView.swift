@@ -12,9 +12,13 @@ import SwiftUI
 
 // MARK:  Constants
 
+// Skills 4-6 don't follow the simple "next ID" pattern skills 1-3 do — CCP's actual
+// numbering pairs 1285↔1286, 1289↔1287, 1290↔1288 (confirmed against ESI's own
+// attribute descriptions: e.g. attr 1286 is named "Level 5 required" but its
+// description reads "Required skill level for skill 4").
 private let prereqAttrPairs: [(skillAttr: Int, levelAttr: Int)] = [
     (182, 277), (183, 278), (184, 279),
-    (1285, 1289), (1286, 1290), (1287, 1291)
+    (1285, 1286), (1289, 1287), (1290, 1288)
 ]
 
 private let spThresholds: [Int: Int] = [

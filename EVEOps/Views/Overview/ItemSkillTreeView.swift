@@ -12,9 +12,13 @@ import SwiftUI
 
 // MARK:  Tree Data Models
 
+// Skills 4-6 don't follow the simple "next ID" pattern skills 1-3 do — CCP's actual
+// numbering pairs 1285↔1286, 1289↔1287, 1290↔1288 (confirmed against ESI's own
+// attribute descriptions: e.g. attr 1286 is named "Level 5 required" but its
+// description reads "Required skill level for skill 4").
 private let treeAttrPairs: [(skillAttr: Int, levelAttr: Int)] = [
     (182, 277), (183, 278), (184, 279),
-    (1285, 1289), (1286, 1290), (1287, 1291)
+    (1285, 1286), (1289, 1287), (1290, 1288)
 ]
 
 private enum SkillNodeStatus: Equatable {
@@ -681,9 +685,16 @@ struct ItemSkillTreeView: View {
             }
         }
 
+        // Record every direct prerequisite's edge + node data before recursing into
+        // any of their own sub-prerequisites. Recursing inline (interleaved with this
+        // loop) can revisit a sibling that's already marked `visited` above — e.g.
+        // Large Hybrid Turret itself requires Gunnery, and Gunnery is *also* a direct
+        // sibling here — before this loop's own iteration for that sibling runs. The
+        // recursive branch then finds it "visited" (so it isn't re-fetched into that
+        // call's local `typeMap`) but with no nodeData yet, locking in a permanent
+        // "Skill <id>" fallback name instead of "Gunnery".
         for (sid, lvl) in prereqs {
             state.edges.append((from: parentId, to: sid))
-
             if state.nodeData[sid] == nil {
                 state.nodeData[sid] = (
                     name: typeMap[sid]?.name ?? "Skill \(sid)",
@@ -691,8 +702,9 @@ struct ItemSkillTreeView: View {
                     trainedLevel: characterSkills?[sid] ?? 0
                 )
             }
+        }
 
-            // Recurse into this skill's own prerequisites.
+        for (sid, _) in prereqs {
             if let skillAttrs = typeMap[sid]?.dogmaAttributes {
                 await traversePrereqs(parentId: sid, attrs: skillAttrs, state: state)
             }

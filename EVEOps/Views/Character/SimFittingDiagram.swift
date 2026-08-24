@@ -150,6 +150,23 @@ struct SimFittingDiagram: View {
 
     private var slotGrid: some View {
         VStack(alignment: .leading, spacing: 10) {
+            // Strategic Cruisers (Tengu/Legion/Loki/Proteus) get their High/Med/Low
+            // slots entirely from their 4 subsystems — the bare hull genuinely has
+            // none. Without this, someone fitting one from scratch sees only the Rig
+            // and Subsystem rows with no clue those other rows exist at all.
+            if highSlots.isEmpty && medSlots.isEmpty && lowSlots.isEmpty && !subSlots.isEmpty {
+                HStack(spacing: 8) {
+                    Image(systemName: "info.circle")
+                        .foregroundStyle(.secondary)
+                    Text("Fit all 4 subsystems below to unlock this ship's High, Medium, and Low slots.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer(minLength: 0)
+                }
+                .padding(10)
+                .background(RoundedRectangle(cornerRadius: 8).fill(.quaternary.opacity(0.3)))
+            }
+
             if !highSlots.isEmpty { SimSlotRowView(slots: highSlots, category: .high) }
             if !medSlots.isEmpty  { SimSlotRowView(slots: medSlots,  category: .medium) }
             if !lowSlots.isEmpty  { SimSlotRowView(slots: lowSlots,  category: .low) }
