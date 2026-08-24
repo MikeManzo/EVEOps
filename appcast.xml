@@ -3,15 +3,15 @@
     <channel>
         <title>EVEOps</title>
         <item>
-            <title>0.9.10.5.1</title>
-            <pubDate>Sun, 23 Aug 2026 20:35:46 -0400</pubDate>
-            <sparkle:version>130</sparkle:version>
-            <sparkle:shortVersionString>0.9.10.5.1</sparkle:shortVersionString>
+            <title>0.9.10.5.2</title>
+            <pubDate>Sun, 23 Aug 2026 20:49:39 -0400</pubDate>
+            <sparkle:version>131</sparkle:version>
+            <sparkle:shortVersionString>0.9.10.5.2</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
             <description><![CDATA[<ul>
-<li>Fixed skill tree naming look-up error</li>
+<li>Fixed susbystem slots (max 4) for all T3 cruisers.</li>
 </ul>]]></description>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.10.5.1/EVEOps.dmg" length="34072886" type="application/octet-stream" sparkle:edSignature="H5KtENtEtwxDgOmJK58GNbDFZCss/gVEe1v7AD8e3Jits0t2ictMju7mFQohxKYgv5faEKudXrhxIyy/5/hODw=="/>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.10.5.2/EVEOps.dmg" length="34072362" type="application/octet-stream" sparkle:edSignature="BSVUOkAQqNK2o8HOjIxQqqcgCixDB7OpQxFmPkEb/Qlpgu0VmmHEa8tQjAJukyRekVdrFufcZV7eBr+oc6smCw=="/>
         </item>
     </channel>
 </rss>
