@@ -235,9 +235,13 @@ struct MarketBrowserView: View {
     @State private var isSearching = false
     @State private var searchTask: Task<Void, Never>?
 
-    // Persisted last-viewed item (restored on re-open)
-    @AppStorage("market.savedTypeId")   private var savedTypeId:   Int    = 0
-    @AppStorage("market.savedTypeName") private var savedTypeName: String = ""
+    // Last-viewed item, remembered only for the current app session so navigating
+    // away from the Market tab and back restores it. Deliberately NOT @AppStorage:
+    // persisting across launches made stale / no-longer-relevant items reappear on
+    // a fresh start, and spurious List-selection writes made the remembered item
+    // effectively random from run to run.
+    private static var sessionTypeId:   Int    = 0
+    private static var sessionTypeName: String = ""
 
     // Selected item
     @State private var selectedTypeId: Int?
@@ -1307,10 +1311,11 @@ struct MarketBrowserView: View {
             selectedRegionId = constellation.regionId
         }
 
-        // Restore last-viewed item (ESIClient cache makes this cheap on re-open)
-        if savedTypeId > 0 && selectedTypeId == nil {
-            let typeId = savedTypeId
-            let name = savedTypeName
+        // Restore last-viewed item for this session only (ESIClient cache makes this
+        // cheap). Cleared on app relaunch, so a fresh launch starts with no selection.
+        if Self.sessionTypeId > 0 && selectedTypeId == nil {
+            let typeId = Self.sessionTypeId
+            let name = Self.sessionTypeName
             selectedTypeId = typeId
             selectedTypeName = name
             await withTaskGroup(of: Void.self) { group in
@@ -1453,10 +1458,15 @@ struct MarketBrowserView: View {
     // MARK:  Type Selection & Order Loading
 
     private func selectType(_ typeId: Int, name: String) async {
+        // Ignore no-op re-selections. The List(selection:) bindings re-emit the
+        // current value whenever their data reloads (group switch, search refresh),
+        // which would otherwise trigger a full reload and rewrite the remembered item.
+        guard typeId != selectedTypeId else { return }
+
         selectedTypeId = typeId
         selectedTypeName = name
-        savedTypeId = typeId
-        savedTypeName = name
+        Self.sessionTypeId = typeId
+        Self.sessionTypeName = name
         selectedOrderTab = 0
         selectedTypeInfo = nil
         priceHistory = []

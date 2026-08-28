@@ -479,15 +479,28 @@ struct AttributeRemapView: View {
             || data.nextAnnualRemap == nil
             || (data.nextAnnualRemap.map { $0 <= now } ?? false)
 
-        // Current speed for the dominant pair (includes implant bonuses in current attrs)
+        // Implant bonuses for the dominant pair. NOTE: ESI's attribute totals already
+        // bake in implants, but this map is resolved from a separate /implants/ fetch and
+        // can be incomplete (failed fetch, type-cache miss, unmapped dogma attribute).
+        let implantP = data.implantBonuses[primary.lowercased(), default: 0]
+        let implantS = data.implantBonuses[secondary.lowercased(), default: 0]
+
+        // Current speed for the dominant pair (ESI totals include implant bonuses).
         let curPrimary = attributeValue(data.attributes, name: primary)
         let curSecondary = attributeValue(data.attributes, name: secondary)
         let currentSpeed = curPrimary + curSecondary / 2
 
-        // Optimal speed after remap, preserving current implants (base 27/21 + implants)
-        let implantP = data.implantBonuses[primary.lowercased(), default: 0]
-        let implantS = data.implantBonuses[secondary.lowercased(), default: 0]
-        let optimalSpeed = (27 + implantP) + (21 + implantS) / 2
+        // Optimal speed after remap. Compute it on the SAME footing as currentSpeed:
+        // back out the current base with the detected implant term, clamp each base up to
+        // the 27/21 template (a remap never lowers a base that is already higher), then add
+        // the identical implant term back. This keeps optimalSpeed >= currentSpeed even when
+        // implant detection under-reports — otherwise the "after remap" figure could come out
+        // below "current", recommending a slower remap than the character already has.
+        let curBaseP = max(0, curPrimary - implantP)
+        let curBaseS = max(0, curSecondary - implantS)
+        let targetBaseP = max(curBaseP, 27)
+        let targetBaseS = max(curBaseS, 21)
+        let optimalSpeed = (targetBaseP + implantP) + (targetBaseS + implantS) / 2
 
         // Theoretical max with +5 implants on both
         let maxSpeed = (27 + 5) + (21 + 5) / 2  // = 45
@@ -581,14 +594,21 @@ struct AttributeRemapView: View {
                             .font(.caption).foregroundStyle(.secondary)
                         Text("\(optimalSpeed) SP/min")
                             .font(.subheadline.bold().monospacedDigit())
-                            .foregroundStyle(.green)
+                            .foregroundStyle(optimalSpeed > currentSpeed ? .green : .secondary)
                     }
-                    if currentSpeed < optimalSpeed {
+                    if optimalSpeed > currentSpeed {
                         Text("+\(optimalSpeed - currentSpeed) SP/min")
                             .font(.caption.bold())
                             .padding(.horizontal, 8).padding(.vertical, 3)
                             .background(Color.green.opacity(0.15))
                             .foregroundStyle(.green)
+                            .clipShape(Capsule())
+                    } else {
+                        Text("Already optimal for this pair")
+                            .font(.caption.bold())
+                            .padding(.horizontal, 8).padding(.vertical, 3)
+                            .background(Color.secondary.opacity(0.15))
+                            .foregroundStyle(.secondary)
                             .clipShape(Capsule())
                     }
                     if optimalSpeed < maxSpeed {
