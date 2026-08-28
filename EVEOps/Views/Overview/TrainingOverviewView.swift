@@ -20,6 +20,7 @@ struct TrainingOverviewView: View {
     @State private var error: String?
     @State private var now = Date()
     @AppStorage("collapsedSkillCharacters") private var collapsedSkillCharactersRaw: String = ""
+    @AppStorage("collapsedSkillGroups") private var collapsedSkillGroupsRaw: String = ""
     @State private var selectedSkill: SkillSelection?
     @State private var skillSearchText: String = ""
 
@@ -468,6 +469,33 @@ struct TrainingOverviewView: View {
         collapsedSkillCharactersRaw = set.map(String.init).joined(separator: ",")
     }
 
+    private var collapsedSkillGroups: Set<String> {
+        Set(collapsedSkillGroupsRaw.split(separator: ",").map(String.init))
+    }
+
+    private func toggleSkillGroupExpansion(_ key: String) {
+        var set = collapsedSkillGroups
+        if set.contains(key) {
+            set.remove(key)
+        } else {
+            set.insert(key)
+        }
+        collapsedSkillGroupsRaw = set.sorted().joined(separator: ",")
+    }
+
+    private func setAllSkillGroups(_ info: CharacterTrainingInfo, collapsed: Bool) {
+        var set = collapsedSkillGroups
+        for group in info.skillGroups {
+            let key = "\(info.characterID)-\(group.groupId)"
+            if collapsed {
+                set.insert(key)
+            } else {
+                set.remove(key)
+            }
+        }
+        collapsedSkillGroupsRaw = set.sorted().joined(separator: ",")
+    }
+
     private func knownSkillsSection(_ info: CharacterTrainingInfo) -> some View {
         let isSearching = !skillSearchText.trimmingCharacters(in: .whitespaces).isEmpty
         let isExpanded = isSearching || !collapsedSkillCharacters.contains(info.characterID)
@@ -515,9 +543,30 @@ struct TrainingOverviewView: View {
                         .foregroundStyle(.secondary)
                         .padding(12)
                 } else {
+                    if !isSearching && displayGroups.count > 1 {
+                        HStack(spacing: 12) {
+                            Spacer()
+                            Button("Expand All") {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    setAllSkillGroups(info, collapsed: false)
+                                }
+                            }
+                            Button("Collapse All") {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    setAllSkillGroups(info, collapsed: true)
+                                }
+                            }
+                        }
+                        .font(.caption)
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.blue)
+                        .padding(.horizontal, 12)
+                        .padding(.top, 8)
+                    }
+
                     VStack(alignment: .leading, spacing: 0) {
                         ForEach(displayGroups.sorted(by: { $0.groupName < $1.groupName }), id: \.groupName) { group in
-                            skillGroupSection(group)
+                            skillGroupSection(group, characterID: info.characterID)
                         }
                     }
                     .padding(.horizontal, 12)
@@ -527,34 +576,53 @@ struct TrainingOverviewView: View {
         }
     }
 
-    private func skillGroupSection(_ group: KnownSkillGroup) -> some View {
+    private func skillGroupSection(_ group: KnownSkillGroup, characterID: Int) -> some View {
         let groupSP = group.skills.reduce(0) { $0 + $1.skillpoints }
         let maxedCount = group.skills.filter { $0.trainedLevel == 5 }.count
+        let isSearching = !skillSearchText.trimmingCharacters(in: .whitespaces).isEmpty
+        let key = "\(characterID)-\(group.groupId)"
+        let isExpanded = isSearching || !collapsedSkillGroups.contains(key)
 
         return VStack(alignment: .leading, spacing: 0) {
             // Group header
-            HStack(spacing: 8) {
-                Text(group.groupName)
-                    .font(.caption.bold())
-                    .foregroundStyle(.primary)
-                Text("\(group.skills.count) skills")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                if maxedCount > 0 {
-                    Text("\(maxedCount) maxed")
-                        .font(.caption2)
-                        .foregroundStyle(.orange)
+            Button {
+                if !isSearching {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        toggleSkillGroupExpansion(key)
+                    }
                 }
-                Spacer()
-                Text("\(groupSP.formatted()) SP")
-                    .font(.caption2.monospacedDigit())
-                    .foregroundStyle(.secondary)
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 12)
+                    Text(group.groupName)
+                        .font(.caption.bold())
+                        .foregroundStyle(.primary)
+                    Text("\(group.skills.count) skills")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                    if maxedCount > 0 {
+                        Text("\(maxedCount) maxed")
+                            .font(.caption2)
+                            .foregroundStyle(.orange)
+                    }
+                    Spacer()
+                    Text("\(groupSP.formatted()) SP")
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 6)
+                .contentShape(Rectangle())
             }
-            .padding(.vertical, 6)
+            .buttonStyle(.plain)
 
             // Skills in group
-            ForEach(group.skills.sorted(by: { $0.name < $1.name }), id: \.skillId) { skill in
-                skillRow(skill, groupName: group.groupName)
+            if isExpanded {
+                ForEach(group.skills.sorted(by: { $0.name < $1.name }), id: \.skillId) { skill in
+                    skillRow(skill, groupName: group.groupName)
+                }
             }
         }
     }

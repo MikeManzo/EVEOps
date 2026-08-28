@@ -382,8 +382,15 @@
         }
       }
     },
-    "%lld files need updating" : {
-
+    "%lld files, %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld files, %2$@"
+          }
+        }
+      }
     },
     "%lld heads" : {
 
@@ -488,16 +495,6 @@
     },
     "%lld occupied" : {
 
-    },
-    "%lld of %lld files" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$lld of %2$lld files"
-          }
-        }
-      }
     },
     "%lld of %lld items" : {
       "localizations" : {
@@ -877,6 +874,9 @@
     "Accepted" : {
 
     },
+    "Account" : {
+
+    },
     "Accuracy Falloff" : {
 
     },
@@ -1018,6 +1018,9 @@
 
     },
     "Allows switching to EVEOps via Cmd-Tab and the Dock. Takes effect immediately." : {
+
+    },
+    "Already optimal for this pair" : {
 
     },
     "Already Trained (%lld)" : {
@@ -1297,6 +1300,9 @@
 
     },
     "CCP requires logging in through their own launcher — this just opens it for you." : {
+
+    },
+    "CCP's own client applies patches additively, so ResFiles content replaced by an update is never deleted automatically. Compact Cache finds content no longer referenced by your installed manifest and moves it to the Trash — never a permanent delete, and never anything still in use." : {
 
     },
     "CEO" : {
@@ -1916,13 +1922,13 @@
     "EVEOps" : {
 
     },
-    "EVEOps applies EVE Online patches additively, so ResFiles content replaced by an update is never deleted automatically. Compact Cache finds content no longer referenced by your installed manifest and moves it to the Trash — never a permanent delete, and never anything still in use." : {
-
-    },
     "EVEOps can't alert you when an automatic background check finds an update — only manual checks will show one." : {
 
     },
     "EVEOps is an independent third-party application not affiliated with, endorsed by, or sponsored by Fenris Creations." : {
+
+    },
+    "EVEOps only checks for updates — the real launcher does the actual patching." : {
 
     },
     "EVEOps Test Notification" : {
@@ -2542,6 +2548,9 @@
     "Launch at login" : {
 
     },
+    "Launch EVE" : {
+
+    },
     "Legal Notices" : {
 
     },
@@ -3104,6 +3113,9 @@
     "Open EVE Launcher" : {
 
     },
+    "Open EVE Launcher to Update" : {
+
+    },
     "Open in dedicated window" : {
 
     },
@@ -3228,9 +3240,6 @@
 
     },
     "Planetary Industry" : {
-
-    },
-    "Play EVE" : {
 
     },
     "Players" : {
@@ -4219,9 +4228,6 @@
     "Upcoming" : {
 
     },
-    "Update & Play" : {
-
-    },
     "Update available" : {
 
     },
@@ -4266,9 +4272,6 @@
 
     },
     "Velocity Bonus" : {
-
-    },
-    "Verifying downloaded files…" : {
 
     },
     "via Fuzzwork · Jita buy orders" : {
