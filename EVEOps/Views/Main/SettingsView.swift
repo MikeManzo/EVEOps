@@ -806,6 +806,12 @@ private struct CacheTab: View {
     @State private var eveInstallStatus = EVEInstallLocator.shared.statusDescription()
     private let eveStandardPath         = EVEInstallLocator.standardDisplayPath()
 
+    @State private var isScanningCache = false
+    @State private var compactionPlan: ResFilesCompactor.Plan?
+    @State private var showCompactConfirm = false
+    @State private var compactionResultText: String?
+    @State private var compactionError: String?
+
     private var eveStatusColor: Color {
         if eveInstallStatus == "Active" { return .green }
         if eveInstallStatus.hasPrefix("Stale") ||
@@ -887,7 +893,67 @@ private struct CacheTab: View {
                 Text("When enabled, ship textures are read directly from your EVE installation instead of downloaded from the internet. 3D models always use the online source.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+
+                if eveHasBookmark {
+                    Divider()
+                    Button(isScanningCache ? "Scanning\u{2026}" : "Compact Cache\u{2026}") {
+                        Task {
+                            isScanningCache = true
+                            compactionError = nil
+                            compactionResultText = nil
+                            do {
+                                let plan = try await Task.detached(priority: .utility) {
+                                    try ResFilesCompactor.scan()
+                                }.value
+                                isScanningCache = false
+                                if plan.orphanedFiles.isEmpty {
+                                    compactionResultText = "No unused files found."
+                                } else {
+                                    compactionPlan = plan
+                                    showCompactConfirm = true
+                                }
+                            } catch {
+                                isScanningCache = false
+                                compactionError = error.localizedDescription
+                            }
+                        }
+                    }
+                    .disabled(isScanningCache)
+                    .confirmationDialog(
+                        compactionPlan.map {
+                            "Move \($0.orphanedFiles.count) unused file\($0.orphanedFiles.count == 1 ? "" : "s") (\(formatBytes($0.reclaimableBytes))) to the Trash?"
+                        } ?? "",
+                        isPresented: $showCompactConfirm,
+                        titleVisibility: .visible
+                    ) {
+                        Button("Move to Trash", role: .destructive) {
+                            guard let plan = compactionPlan else { return }
+                            Task {
+                                let result = await Task.detached(priority: .utility) {
+                                    ResFilesCompactor.compact(plan)
+                                }.value
+                                compactionPlan = nil
+                                compactionResultText = "Moved \(result.filesRemoved) file\(result.filesRemoved == 1 ? "" : "s") (\(formatBytes(result.bytesReclaimed))) to the Trash."
+                            }
+                        }
+                    }
+                    if let compactionResultText {
+                        Text(compactionResultText)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    if let compactionError {
+                        Text(compactionError)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+                    Text("CCP's own client applies patches additively, so ResFiles content replaced by an update is never deleted automatically. Compact Cache finds content no longer referenced by your installed manifest and moves it to the Trash — never a permanent delete, and never anything still in use.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
+
+            EVELaunchView()
 
             Section("Dashboard Data") {
                 LabeledContent("Last refreshed") {

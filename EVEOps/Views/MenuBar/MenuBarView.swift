@@ -128,36 +128,48 @@ struct MenuBarView: View {
                 Divider()
             }
 
-            ZStack {
-                HStack {
-                    Button {
-                        dismiss()
-                        WindowService.shared.showMain()
-                    } label: {
-                        Label("EVEOps", systemImage: "macwindow")
-                    }
-                    .buttonStyle(.plain)
-
-                    Spacer()
-
-                    Button {
-                        NSApplication.shared.terminate(nil)
-                    } label: {
-                        Label("Quit", systemImage: "power")
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.secondary)
+            HStack {
+                Button {
+                    dismiss()
+                    WindowService.shared.showMain()
+                } label: {
+                    Image(systemName: "macwindow")
                 }
+                .help("EVEOps")
+
+                Spacer()
+
+                Button {
+                    dismiss()
+                    Task { try? await GameLauncher.launchOfficialLauncher() }
+                } label: {
+                    Image(systemName: "gamecontroller.fill")
+                }
+                .foregroundStyle(.secondary)
+                .help("Launch EVE")
+
+                Spacer()
 
                 Button {
                     dismiss()
                     WindowService.shared.showSettings()
                 } label: {
-                    Label("Settings", systemImage: "gear")
+                    Image(systemName: "gear")
                 }
-                .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
+                .help("Settings")
+
+                Spacer()
+
+                Button {
+                    NSApplication.shared.terminate(nil)
+                } label: {
+                    Image(systemName: "power")
+                }
+                .foregroundStyle(.secondary)
+                .help("Quit")
             }
+            .buttonStyle(.plain)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
         }

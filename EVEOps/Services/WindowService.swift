@@ -26,6 +26,7 @@ final class WindowService: NSObject {
     private var presenceTracker: PresenceTracker?
     private var modelContainer: ModelContainer?
     private var appUpdater: AppUpdater?
+    private var launchManager: EVELaunchManager?
 
     private var mainWindow: NSWindow?
     private var galaxySearchWindow: NSWindow?
@@ -41,7 +42,8 @@ final class WindowService: NSObject {
         apiStatusMonitor: APIStatusMonitor,
         presenceTracker: PresenceTracker,
         modelContainer: ModelContainer,
-        appUpdater: AppUpdater
+        appUpdater: AppUpdater,
+        launchManager: EVELaunchManager
     ) {
         self.accountManager = accountManager
         self.prefetcher = prefetcher
@@ -49,6 +51,7 @@ final class WindowService: NSObject {
         self.presenceTracker = presenceTracker
         self.modelContainer = modelContainer
         self.appUpdater = appUpdater
+        self.launchManager = launchManager
 
         defaultsObserver = NotificationCenter.default.addObserver(
             forName: UserDefaults.didChangeNotification,
@@ -251,12 +254,13 @@ final class WindowService: NSObject {
             return
         }
 
-        guard let am = accountManager, let pf = prefetcher, let au = appUpdater else { return }
+        guard let am = accountManager, let pf = prefetcher, let au = appUpdater, let lm = launchManager else { return }
 
         let content = SettingsView(openToUpdate: au.updateAvailable)
             .environment(am)
             .environment(pf)
             .environment(au)
+            .environment(lm)
 
         let controller = NSHostingController(rootView: content)
         let window = NSWindow(contentViewController: controller)

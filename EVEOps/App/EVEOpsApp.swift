@@ -94,7 +94,8 @@ struct EVEOpsApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             StoredAccount.self,
-            CachedName.self
+            CachedName.self,
+            LauncherAccount.self
         ])
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         do {
@@ -110,6 +111,8 @@ struct EVEOpsApp: App {
     @State private var apiStatusMonitor: APIStatusMonitor
     @State private var presenceTracker: PresenceTracker
     @State private var appUpdater: AppUpdater
+    @State private var launcherAccountManager: LauncherAccountManager
+    @State private var launchManager: EVELaunchManager
     @AppStorage("colorScheme") private var colorSchemePref: String = "system"
 
     private var resolvedColorScheme: ColorScheme? {
@@ -127,6 +130,8 @@ struct EVEOpsApp: App {
         let api = APIStatusMonitor()
         let tracker = PresenceTracker()
         let updater = AppUpdater()
+        let launcherAccounts = LauncherAccountManager(modelContext: sharedModelContainer.mainContext)
+        let launch = EVELaunchManager(accountManager: launcherAccounts)
 
         _accountManager = State(initialValue: manager)
         _backgroundMonitor = State(initialValue: bg)
@@ -134,6 +139,8 @@ struct EVEOpsApp: App {
         _apiStatusMonitor = State(initialValue: api)
         _presenceTracker = State(initialValue: tracker)
         _appUpdater = State(initialValue: updater)
+        _launcherAccountManager = State(initialValue: launcherAccounts)
+        _launchManager = State(initialValue: launch)
 
         WindowService.shared.configure(
             accountManager: manager,
@@ -141,7 +148,8 @@ struct EVEOpsApp: App {
             apiStatusMonitor: api,
             presenceTracker: tracker,
             modelContainer: sharedModelContainer,
-            appUpdater: updater
+            appUpdater: updater,
+            launchManager: launch
         )
 
         Task { @MainActor in

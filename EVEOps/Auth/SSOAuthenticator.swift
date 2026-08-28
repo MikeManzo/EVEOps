@@ -30,6 +30,7 @@ struct SSOConfiguration: Sendable {
     let clientID: String
     let callbackURL: String
     let scopes: [String]
+    var extraAuthParams: [String: String] = [:]
 
     static let `default` = SSOConfiguration(
         clientID: "27c5210c4d8a44538fdeeb7fc58f28b6",                       // If you are forking this to make this your own, you MUST change this.
@@ -83,18 +84,70 @@ struct SSOConfiguration: Sendable {
         ]
     )
 
+    /// CCP's own launcher's identity: a completely separate OAuth client from EVEOps' ESI
+    /// registration, used only to obtain a session for verifying/launching the game client
+    /// itself. Its redirect_uri is a plain HTTPS page CCP owns (not a URL scheme EVEOps
+    /// registers), so it cannot use ASWebAuthenticationSession the way `.default` does — see
+    /// `EmbeddedWebAuthPresenter`.
+    static let launcher = SSOConfiguration(
+        clientID: "eveLauncherTQ",
+        callbackURL: "https://login.eveonline.com/launcher?client_id=eveLauncherTQ",
+        scopes: [
+            "eveClientLogin",
+            "cisservice.customerRead.v1",
+            "cisservice.customerWrite.v1",
+            "cisservice.userProfileBasic.v1",
+            "vgs.transactionRead.v1",
+            "vgs.marketAccess.v1",
+            "pulsar.customer.user:read",
+            "pulsar.plex.user:read",
+            "pulsar.store.user:read",
+            "esi-location.read_location.v1",
+            "esi-location.read_ship_type.v1",
+            "esi-skills.read_skills.v1",
+            "esi-skills.read_skillqueue.v1"
+        ],
+        extraAuthParams: ["device_id": launcherDeviceID]
+    )
+
+    /// Persisted once per install — the real launcher sends the same device_id on every
+    /// authorize request rather than a fresh one each time. Not private: `GameLauncher` reuses
+    /// this same value for the `/deviceID=` launch argument, confirmed live to be the same
+    /// device_id the real launcher both authorizes with AND hands to the spawned game process.
+    static var launcherDeviceID: String {
+        let key = "launcherDeviceID"
+        if let existing = UserDefaults.standard.string(forKey: key) { return existing }
+        let fresh = UUID().uuidString.lowercased()
+        UserDefaults.standard.set(fresh, forKey: key)
+        return fresh
+    }
+
     var scopeString: String { scopes.joined(separator: " ") }
 }
 
+/// Presents the SSO authorize page to the user and resolves once the redirect callback is
+/// observed, returning the full callback URL (with `code`/`state` query items intact).
+/// Pluggable because `.default` (EVEOps' own ESI client) and `.launcher` (CCP's own client,
+/// whose redirect_uri EVEOps doesn't own) need genuinely different capture mechanisms.
 @MainActor
-final class SSOAuthenticator: NSObject {
+protocol AuthorizationCallbackPresenting {
+    func presentAndAwaitCallback(
+        authURL: URL,
+        callbackURLString: String,
+        forceFreshSession: Bool
+    ) async throws -> URL
+}
+
+@MainActor
+final class SSOAuthenticator {
     var isAuthenticating = false
 
     private let config: SSOConfiguration
-    private var webAuthSession: ASWebAuthenticationSession?
+    private let presenter: AuthorizationCallbackPresenting
 
-    init(config: SSOConfiguration) {
+    init(config: SSOConfiguration, presenter: AuthorizationCallbackPresenting? = nil) {
         self.config = config
+        self.presenter = presenter ?? ASWebAuthPresenter()
     }
 
     /// - Parameter forceFreshSession: When true, uses an isolated (ephemeral) browser session with
@@ -109,7 +162,7 @@ final class SSOAuthenticator: NSObject {
         let state = UUID().uuidString
 
         var components = URLComponents(string: "https://login.eveonline.com/v2/oauth/authorize")!
-        components.queryItems = [
+        var queryItems = [
             URLQueryItem(name: "response_type", value: "code"),
             URLQueryItem(name: "redirect_uri", value: config.callbackURL),
             URLQueryItem(name: "client_id", value: config.clientID),
@@ -118,27 +171,19 @@ final class SSOAuthenticator: NSObject {
             URLQueryItem(name: "code_challenge", value: codeChallenge),
             URLQueryItem(name: "code_challenge_method", value: "S256")
         ]
+        for (key, value) in config.extraAuthParams {
+            queryItems.append(URLQueryItem(name: key, value: value))
+        }
+        components.queryItems = queryItems
 
         let authURL = components.url!
 
-        let callbackURL = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<URL, Error>) in
-            isAuthenticating = true
-            let session = ASWebAuthenticationSession(
-                url: authURL,
-                callbackURLScheme: "eveauth-\(config.clientID)"
-            ) { url, error in
-                if let error = error {
-                    continuation.resume(throwing: error)
-                } else if let url = url {
-                    continuation.resume(returning: url)
-                }
-            }
-            session.presentationContextProvider = self
-            session.prefersEphemeralWebBrowserSession = forceFreshSession
-            self.webAuthSession = session
-            session.start()
-        }
-
+        isAuthenticating = true
+        let callbackURL = try await presenter.presentAndAwaitCallback(
+            authURL: authURL,
+            callbackURLString: config.callbackURL,
+            forceFreshSession: forceFreshSession
+        )
         isAuthenticating = false
 
         guard let components = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false),
@@ -224,7 +269,43 @@ final class SSOAuthenticator: NSObject {
     }
 }
 
-extension SSOAuthenticator: ASWebAuthenticationPresentationContextProviding {
+/// Default presenter, used by `.default` (EVEOps' own ESI client): relies on
+/// `ASWebAuthenticationSession`'s OS-level interception of the app's own registered
+/// `eveauth-<clientID>://callback` URL scheme.
+@MainActor
+final class ASWebAuthPresenter: NSObject, AuthorizationCallbackPresenting {
+    private var webAuthSession: ASWebAuthenticationSession?
+
+    func presentAndAwaitCallback(
+        authURL: URL,
+        callbackURLString: String,
+        forceFreshSession: Bool
+    ) async throws -> URL {
+        guard let scheme = URL(string: callbackURLString)?.scheme else {
+            throw SSOError.invalidCallback
+        }
+        return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<URL, Error>) in
+            let session = ASWebAuthenticationSession(
+                url: authURL,
+                callbackURLScheme: scheme
+            ) { url, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else if let url = url {
+                    continuation.resume(returning: url)
+                } else {
+                    continuation.resume(throwing: SSOError.invalidCallback)
+                }
+            }
+            session.presentationContextProvider = self
+            session.prefersEphemeralWebBrowserSession = forceFreshSession
+            self.webAuthSession = session
+            session.start()
+        }
+    }
+}
+
+extension ASWebAuthPresenter: ASWebAuthenticationPresentationContextProviding {
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
         NSApplication.shared.keyWindow ?? ASPresentationAnchor()
     }

@@ -152,6 +152,25 @@ final class EVEInstallLocator {
         return FileManager.default.fileExists(atPath: idx.path) ? idx : nil
     }
 
+    /// Path to the local app-bundle-level manifest — distinct from `resfileindex.txt`, which
+    /// covers game content. Not used for the remote update-diff in `EVELaunchManager` (confirmed
+    /// non-comparable to CCP's remote `eveonline_{build}.txt`, which mixes in Windows-only
+    /// paths), but its entries still point into the same content-addressed `ResFiles` store
+    /// (identical hashPath format), so `ResFilesCompactor` needs it to know what's still in use.
+    func localAppIndexURL() -> URL? {
+        guard let base = startAccess() else { return nil }
+        let idx = resolvedSharedCache(from: base).appendingPathComponent("index_tranquility.txt")
+        return FileManager.default.fileExists(atPath: idx.path) ? idx : nil
+    }
+
+    /// Same as `resFilesURL()` — doesn't require `isEnabled` (the "use local textures" toggle),
+    /// since `ResFilesCompactor` needs to walk this tree regardless of that setting.
+    func resFilesWritableURL() -> URL? {
+        guard let base = startAccess() else { return nil }
+        let rf = resolvedSharedCache(from: base).appendingPathComponent("ResFiles", isDirectory: true)
+        return FileManager.default.fileExists(atPath: rf.path) ? rf : nil
+    }
+
     /// Resolves the actual SharedCache directory from the bookmarked root.
     ///
     /// Priority order:

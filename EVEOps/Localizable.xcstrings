@@ -382,6 +382,9 @@
         }
       }
     },
+    "%lld files need updating" : {
+
+    },
     "%lld heads" : {
 
     },
@@ -485,6 +488,16 @@
     },
     "%lld occupied" : {
 
+    },
+    "%lld of %lld files" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld of %2$lld files"
+          }
+        }
+      }
     },
     "%lld of %lld items" : {
       "localizations" : {
@@ -1283,6 +1296,9 @@
     "Categories" : {
 
     },
+    "CCP requires logging in through their own launcher — this just opens it for you." : {
+
+    },
     "CEO" : {
 
     },
@@ -1310,10 +1326,16 @@
     "CHEAPEST PROFITABLE OFFER" : {
 
     },
+    "Check for Updates" : {
+
+    },
     "Check for Updates…" : {
 
     },
     "Check interval" : {
+
+    },
+    "Checking for updates…" : {
 
     },
     "Choose .eft File…" : {
@@ -1452,6 +1474,9 @@
 
     },
     "Community Fittings" : {
+
+    },
+    "Compact Cache…" : {
 
     },
     "Compare best sell and buy prices at Jita, Amarr, Dodixie, Rens, and Hek" : {
@@ -1864,6 +1889,9 @@
     "EVE Installation" : {
 
     },
+    "EVE Launcher Opened" : {
+
+    },
     "EVE News" : {
 
     },
@@ -1886,6 +1914,9 @@
 
     },
     "EVEOps" : {
+
+    },
+    "EVEOps applies EVE Online patches additively, so ResFiles content replaced by an update is never deleted automatically. Compact Cache finds content no longer referenced by your installed manifest and moves it to the Trash — never a permanent delete, and never anything still in use." : {
 
     },
     "EVEOps can't alert you when an automatic background check finds an update — only manual checks will show one." : {
@@ -2054,6 +2085,9 @@
 
     },
     "First launch only — cached for 7 days" : {
+
+    },
+    "Fit all 4 subsystems below to unlock this ship's High, Medium, and Low slots." : {
 
     },
     "Fitting" : {
@@ -2619,7 +2653,16 @@
     "Log in a character to enable jump-distance filtering" : {
 
     },
+    "Log in and click Play there." : {
+
+    },
     "Log In with EVE Online" : {
+
+    },
+    "Log in with your EVE Online account to check your install for updates." : {
+
+    },
+    "Log Out" : {
 
     },
     "Login:" : {
@@ -2743,6 +2786,19 @@
 
     },
     "Moon" : {
+
+    },
+    "Move %lld unused file%@ (%@) to the Trash?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Move %1$lld unused file%2$@ (%3$@) to the Trash?"
+          }
+        }
+      }
+    },
+    "Move to Trash" : {
 
     },
     "Name" : {
@@ -2976,6 +3032,9 @@
     "not in queue" : {
 
     },
+    "Not Now" : {
+
+    },
     "Not Responded" : {
 
     },
@@ -3042,6 +3101,9 @@
     "Only show orders in systems with security status ≥ 0.5" : {
 
     },
+    "Open EVE Launcher" : {
+
+    },
     "Open in dedicated window" : {
 
     },
@@ -3055,6 +3117,9 @@
 
     },
     "Open System Settings…" : {
+
+    },
+    "Opening EVE Launcher…" : {
 
     },
     "Optimal Range" : {
@@ -3163,6 +3228,9 @@
 
     },
     "Planetary Industry" : {
+
+    },
+    "Play EVE" : {
 
     },
     "Players" : {
@@ -3442,6 +3510,9 @@
 
     },
     "Scan Res. Bonus" : {
+
+    },
+    "Scanning…" : {
 
     },
     "Schematic #%lld" : {
@@ -3793,6 +3864,9 @@
     "Skill Training" : {
 
     },
+    "Skill Tree" : {
+
+    },
     "Skills" : {
 
     },
@@ -4100,6 +4174,9 @@
     "Transactions (%lld)" : {
 
     },
+    "Try Again" : {
+
+    },
     "Turn on Apple Intelligence in System Settings to use AI Insights." : {
 
     },
@@ -4136,7 +4213,13 @@
     "until pop" : {
 
     },
+    "Up to date" : {
+
+    },
     "Upcoming" : {
+
+    },
+    "Update & Play" : {
 
     },
     "Update available" : {
@@ -4185,6 +4268,9 @@
     "Velocity Bonus" : {
 
     },
+    "Verifying downloaded files…" : {
+
+    },
     "via Fuzzwork · Jita buy orders" : {
 
     },
@@ -4222,6 +4308,9 @@
 
     },
     "Volume" : {
+
+    },
+    "Waiting for login…" : {
 
     },
     "Wallet" : {

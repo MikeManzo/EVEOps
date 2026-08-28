@@ -69,7 +69,7 @@ final class AccountManager {
         error = nil
         do {
             let tokenResponse = try await authenticator.authenticate()
-            let character = try decodeJWT(tokenResponse.accessToken)
+            let character = try decodeSSOJWT(tokenResponse.accessToken)
 
             // Check if already exists
             if let existing = accounts.first(where: { $0.characterID == character.characterID }) {
@@ -206,7 +206,7 @@ final class AccountManager {
         error = nil
         do {
             let tokenResponse = try await authenticator.authenticate(forceFreshSession: forceFreshSession)
-            let character = try decodeJWT(tokenResponse.accessToken)
+            let character = try decodeSSOJWT(tokenResponse.accessToken)
             guard character.characterID == account.characterID else {
                 Logger.auth.warning("Auth: Reauth failed — wrong character (expected \(account.characterName))")
                 self.error = "Wrong character. Please log in as \(account.characterName)."
@@ -261,66 +261,4 @@ final class AccountManager {
         try? modelContext.save()
     }
 
-    private func decodeJWT(_ token: String) throws -> ESITokenCharacter {
-        let parts = token.split(separator: ".")
-        guard parts.count == 3 else { throw SSOError.invalidToken }
-
-        var base64 = String(parts[1])
-        while base64.count % 4 != 0 {
-            base64.append("=")
-        }
-        base64 = base64.replacingOccurrences(of: "-", with: "+")
-            .replacingOccurrences(of: "_", with: "/")
-
-        guard let data = Data(base64Encoded: base64) else { throw SSOError.invalidToken }
-
-        struct JWTPayload: Codable {
-            let sub: String
-            let name: String
-            let scp: ScopeValue?
-            let exp: Int
-
-            enum ScopeValue: Codable {
-                case single(String)
-                case multiple([String])
-
-                init(from decoder: Decoder) throws {
-                    let container = try decoder.singleValueContainer()
-                    if let array = try? container.decode([String].self) {
-                        self = .multiple(array)
-                    } else if let string = try? container.decode(String.self) {
-                        self = .single(string)
-                    } else {
-                        self = .multiple([])
-                    }
-                }
-
-                func encode(to encoder: Encoder) throws {
-                    var container = encoder.singleValueContainer()
-                    switch self {
-                    case .single(let s): try container.encode(s)
-                    case .multiple(let a): try container.encode(a)
-                    }
-                }
-
-                var scopes: [String] {
-                    switch self {
-                    case .single(let s): return [s]
-                    case .multiple(let a): return a
-                    }
-                }
-            }
-        }
-
-        let payload = try JSONDecoder().decode(JWTPayload.self, from: data)
-        let characterIDString = payload.sub.replacingOccurrences(of: "CHARACTER:EVE:", with: "")
-        guard let characterID = Int(characterIDString) else { throw SSOError.invalidToken }
-
-        return ESITokenCharacter(
-            characterID: characterID,
-            characterName: payload.name,
-            scopes: payload.scp?.scopes ?? [],
-            expiresOn: Date(timeIntervalSince1970: TimeInterval(payload.exp))
-        )
-    }
 }
