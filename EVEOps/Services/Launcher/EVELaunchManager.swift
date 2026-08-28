@@ -61,10 +61,10 @@ final class EVELaunchManager {
 
     init(
         accountManager: LauncherAccountManager,
-        manifestClient: EVEManifestFetching = EVEManifestClient.shared
+        manifestClient: EVEManifestFetching? = nil
     ) {
         self.accountManager = accountManager
-        self.manifestClient = manifestClient
+        self.manifestClient = manifestClient ?? EVEManifestClient.shared
         self.account = accountManager.accounts.first
         if account != nil { state = .idle }
     }

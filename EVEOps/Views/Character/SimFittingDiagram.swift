@@ -404,7 +404,7 @@ struct SimSlotSocketView: View {
                         if category == .subsystem {
                             await simState.recomputeSlotLayout()
                         }
-                        await simState.recomputeStats()
+                        simState.recomputeStats()
                     }
                 }
             )

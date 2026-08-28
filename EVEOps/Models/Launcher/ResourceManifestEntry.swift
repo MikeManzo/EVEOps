@@ -27,7 +27,7 @@ struct ResourceManifestEntry: Sendable, Hashable {
     let compressedSize: Int
     let unixPermissions: Int?
 
-    static func parseLine(_ line: String) -> ResourceManifestEntry? {
+    nonisolated static func parseLine(_ line: String) -> ResourceManifestEntry? {
         let fields = line.components(separatedBy: ",")
         guard fields.count >= 5,
               let uncompressed = Int(fields[3]),
@@ -42,7 +42,7 @@ struct ResourceManifestEntry: Sendable, Hashable {
         )
     }
 
-    static func parseIndex(_ text: String) -> [ResourceManifestEntry] {
+    nonisolated static func parseIndex(_ text: String) -> [ResourceManifestEntry] {
         text.replacingOccurrences(of: "\r\n", with: "\n")
             .components(separatedBy: "\n")
             .compactMap { line in line.isEmpty ? nil : parseLine(line) }

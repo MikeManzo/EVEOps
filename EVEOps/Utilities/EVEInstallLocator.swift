@@ -37,7 +37,7 @@ import OSLog
 ///       │   └── …
 ///       └── tq/EVE.app/Contents/Resources/build/
 ///           └── resfileindex.txt
-final class EVEInstallLocator {
+nonisolated final class EVEInstallLocator: @unchecked Sendable {
     static let shared = EVEInstallLocator()
 
     private static let log = Logger(subsystem: "CitizenCoder.EVEOps", category: "EVEInstall")
@@ -241,7 +241,6 @@ final class EVEInstallLocator {
         // urls(for: .applicationSupportDirectory), not the real ~/Library/Application Support/.
         panel.directoryURL = Self.standardEVEURL()
 
-        let displayPath = Self.standardDisplayPath()
         panel.message = """
             EVEOps needs access to read ship textures locally.
 

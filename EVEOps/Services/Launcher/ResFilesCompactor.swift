@@ -26,7 +26,7 @@ import OSLog
 /// either one from the referenced set would misclassify in-use files as orphaned and could break
 /// the installed client. `compact` never permanently deletes — it moves files to the user's
 /// Trash, so a bad scan can always be undone by hand.
-enum ResFilesCompactor {
+nonisolated enum ResFilesCompactor {
     private static let log = Logger(subsystem: "CitizenCoder.EVEOps", category: "ResFilesCompactor")
 
     struct Plan: Sendable {

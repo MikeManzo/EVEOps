@@ -35,9 +35,9 @@ protocol EVEManifestFetching: Sendable {
 actor EVEManifestClient: EVEManifestFetching {
     static let shared = EVEManifestClient()
 
-    private static let buildVersionURL   = "https://binaries.eveonline.com/eveclient_TQ.json"
-    private static let buildManifestBase = "https://binaries.eveonline.com/eveonline_"
-    private static let binaryBase        = "https://binaries.eveonline.com/"
+    private nonisolated static let buildVersionURL   = "https://binaries.eveonline.com/eveclient_TQ.json"
+    private nonisolated static let buildManifestBase = "https://binaries.eveonline.com/eveonline_"
+    private nonisolated static let binaryBase        = "https://binaries.eveonline.com/"
 
     func fetchCurrentBuild() async throws -> String {
         guard let url = URL(string: Self.buildVersionURL) else { throw EVEManifestError.badURL }
