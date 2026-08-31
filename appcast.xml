@@ -3,15 +3,18 @@
     <channel>
         <title>EVEOps</title>
         <item>
-            <title>0.9.10.6</title>
-            <pubDate>Mon, 31 Aug 2026 16:20:57 -0400</pubDate>
-            <sparkle:version>133</sparkle:version>
-            <sparkle:shortVersionString>0.9.10.6</sparkle:shortVersionString>
+            <title>0.9.10.6.1</title>
+            <pubDate>Mon, 31 Aug 2026 18:18:57 -0400</pubDate>
+            <sparkle:version>134</sparkle:version>
+            <sparkle:shortVersionString>0.9.10.6.1</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
             <description><![CDATA[<ul>
-<li>Dashboard enhacements.  Click on the attribute &#x27;pill&#x27; to gain important insights.</li>
+<li>Various quality of life enhacements</li>
+<li>All Images rendered are the highest quality available from ESI</li>
+<li>Location screen has been optimized for space</li>
+<li>Assets now sort better</li>
 </ul>]]></description>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.10.6/EVEOps.dmg" length="32592653" type="application/octet-stream" sparkle:edSignature="Jy+kObmjLPVLNk5B2st3a0O1oGOqqWwewuC0xujm2qDYyqYDn3GT3e5dcEgK0/+wCUTlI0/dwp4nuAWKweW7Dg=="/>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.10.6.1/EVEOps.dmg" length="32598579" type="application/octet-stream" sparkle:edSignature="8DKh9gz9I1MJOFUfFOk7fRGtfMRYtHyr32oNoOfPx7OqIsSMplEp5DpMLhN6hqncRc2Lhr21gHDpECDouuF+Cw=="/>
         </item>
     </channel>
 </rss>
