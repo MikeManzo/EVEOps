@@ -64,6 +64,11 @@ struct MainContentView: View {
         .onChange(of: AppRouter.shared.pendingEFTURL) { _, url in
             if url != nil { selectedSection = .fittings }
         }
+        .onChange(of: AppRouter.shared.pendingSection) { _, section in
+            guard let section else { return }
+            selectedSection = section
+            AppRouter.shared.pendingSection = nil
+        }
     }
 
     @ViewBuilder

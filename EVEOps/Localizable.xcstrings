@@ -4,6 +4,9 @@
     "" : {
 
     },
+    " — training speed is unaffected by this attribute right now." : {
+
+    },
     "-%@" : {
 
     },
@@ -165,6 +168,16 @@
         }
       }
     },
+    "%@ %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$lld"
+          }
+        }
+      }
+    },
     "%@ → %@" : {
       "localizations" : {
         "en" : {
@@ -220,6 +233,9 @@
           }
         }
       }
+    },
+    "%@ attribute for " : {
+
     },
     "%@ buy" : {
 
@@ -337,6 +353,9 @@
         }
       }
     },
+    "%lld bonus remaps available" : {
+
+    },
     "%lld buy" : {
 
     },
@@ -370,6 +389,9 @@
 
     },
     "%lld dmg" : {
+
+    },
+    "%lld effective" : {
 
     },
     "%lld external → %@" : {
@@ -785,6 +807,9 @@
 
     },
     "☰  →  Add skills listed in clipboard to end of queue" : {
+
+    },
+    "1 bonus remap available" : {
 
     },
     "1 day" : {
@@ -1326,9 +1351,6 @@
     "Character Info" : {
 
     },
-    "Charisma" : {
-
-    },
     "CHEAPEST PROFITABLE OFFER" : {
 
     },
@@ -1503,6 +1525,9 @@
     "Compose" : {
 
     },
+    "Composition" : {
+
+    },
     "Computing jump distances…" : {
 
     },
@@ -1668,6 +1693,9 @@
           }
         }
       }
+    },
+    "Current training" : {
+
     },
     "Currently Training" : {
 
@@ -2379,9 +2407,6 @@
     "INT" : {
 
     },
-    "Intelligence" : {
-
-    },
     "Invite Members" : {
 
     },
@@ -2533,6 +2558,9 @@
     "Last refreshed" : {
 
     },
+    "Last remap %@" : {
+
+    },
     "Last Seen" : {
 
     },
@@ -2597,6 +2625,9 @@
 
     },
     "Loading galaxy map…" : {
+
+    },
+    "Loading implant breakdown…" : {
 
     },
     "Loading item data…" : {
@@ -2773,9 +2804,6 @@
     "Members" : {
 
     },
-    "Memory" : {
-
-    },
     "Menu Bar Card" : {
 
     },
@@ -2831,10 +2859,16 @@
     "Net capacitor recharge at 25% charge level" : {
 
     },
+    "Neural attribute" : {
+
+    },
     "Neutral" : {
 
     },
     "Never" : {
+
+    },
+    "Never remapped" : {
 
     },
     "New Eden" : {
@@ -2877,6 +2911,9 @@
 
     },
     "No assembled ships found" : {
+
+    },
+    "No attribute implant in this slot" : {
 
     },
     "No character data loaded" : {
@@ -2984,6 +3021,9 @@
     "No ships found" : {
 
     },
+    "No skill in training." : {
+
+    },
     "No skills" : {
 
     },
@@ -3048,6 +3088,9 @@
 
     },
     "Not stocked here" : {
+
+    },
+    "Not used by " : {
 
     },
     "Note: if an implant is not detected, its floor may show slightly low. The allocations (+10 / +4 / +0) are always correct regardless." : {
@@ -3120,6 +3163,9 @@
 
     },
     "Open in EVE" : {
+
+    },
+    "Open Remap Advisor" : {
 
     },
     "Open Settings…" : {
@@ -3204,9 +3250,6 @@
 
     },
     "PER" : {
-
-    },
-    "Perception" : {
 
     },
     "PG" : {
@@ -3420,6 +3463,9 @@
 
     },
     "Remap on Cooldown — Planned Recommendation" : {
+
+    },
+    "Remap status" : {
 
     },
     "Remove" : {
@@ -4346,6 +4392,9 @@
     "Webhook URL" : {
 
     },
+    "What it trains" : {
+
+    },
     "What's Not Simulated" : {
 
     },
@@ -4356,9 +4405,6 @@
 
     },
     "WIL" : {
-
-    },
-    "Willpower" : {
 
     },
     "Wing %lld" : {

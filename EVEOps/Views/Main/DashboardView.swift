@@ -1447,6 +1447,13 @@ struct CharacterHeroView: View {
     @State private var liveQueueEmpty: Bool = true
     @State private var liveQueueLoaded = false
 
+    // Attribute pill detail-panel support
+    @State private var liveImplantBonuses: [String: Int] = [:]
+    @State private var liveImplantsResolved = false
+    @State private var liveTrainingPrimaryAttr: SkillTrainingAttribute?
+    @State private var liveTrainingSecondaryAttr: SkillTrainingAttribute?
+    @State private var expandedAttr: SkillTrainingAttribute?
+
     private var queueIsEmpty: Bool      { liveQueueLoaded ? liveQueueEmpty  : (summary?.isQueueEmpty    ?? true) }
     private var queueSkillName: String? { liveQueueLoaded ? liveSkillName   : summary?.trainingSkillName }
     private var queueSkillLevel: Int?   { liveQueueLoaded ? liveSkillLevel  : summary?.trainingSkillLevel }
@@ -1567,9 +1574,19 @@ struct CharacterHeroView: View {
         } ?? active.first
 
         var skillName: String?
+        var primaryAttr: SkillTrainingAttribute?
+        var secondaryAttr: SkillTrainingAttribute?
         if let skillID = current?.skillId {
             let resolved = await NameResolver.shared.resolve(ids: [skillID])
             skillName = resolved[skillID]
+            if let dogma = await UniverseCache.shared.type(id: skillID)?.dogmaAttributes {
+                if let pID = dogma.first(where: { $0.attributeId == 180 }).map({ Int($0.value) }) {
+                    primaryAttr = SkillTrainingAttribute.from(dogmaID: pID)
+                }
+                if let sID = dogma.first(where: { $0.attributeId == 181 }).map({ Int($0.value) }) {
+                    secondaryAttr = SkillTrainingAttribute.from(dogmaID: sID)
+                }
+            }
         }
 
         liveSkillName        = skillName
@@ -1583,6 +1600,8 @@ struct CharacterHeroView: View {
         liveQueueEnd         = active.last?.finishDate
         liveQueueEmpty       = active.isEmpty
         liveQueueLoaded      = true
+        liveTrainingPrimaryAttr   = primaryAttr
+        liveTrainingSecondaryAttr = secondaryAttr
     }
 
     @ViewBuilder
@@ -1617,6 +1636,9 @@ struct CharacterHeroView: View {
 
             }
             .frame(height: 140)
+            .clipped()
+            .allowsHitTesting(false)   // banner is purely decorative; a fill-mode AsyncImage's
+                                       // un-clipped bounds otherwise swallow clicks on the card below
 
             VStack(alignment: .leading, spacing: 10) {
                 HStack(alignment: .top, spacing: 14) {
@@ -1887,14 +1909,44 @@ struct CharacterHeroView: View {
 
     @ViewBuilder
     private var attributePillsRow: some View {
-        HStack(spacing: 5) {
-            if let attrs = liveAttributes {
-                attrPill("brain", label: "Intelligence", value: attrs.intelligence, color: .blue)
-                attrPill("memorychip", label: "Memory", value: attrs.memory, color: .green)
-                attrPill("eye.fill", label: "Perception", value: attrs.perception, color: .orange)
-                attrPill("bolt.fill", label: "Willpower", value: attrs.willpower, color: .purple)
-                attrPill("person.wave.2.fill", label: "Charisma", value: attrs.charisma, color: .pink)
-            } else {
+        if let attrs = liveAttributes {
+            VStack(spacing: 8) {
+                HStack(spacing: 5) {
+                    ForEach(SkillTrainingAttribute.allCases) { attr in
+                        AttributePill(
+                            attr: attr,
+                            value: attr.value(in: attrs),
+                            isSelected: expandedAttr == attr,
+                            onTap: {
+                                withAnimation(.easeInOut(duration: 0.15)) {
+                                    expandedAttr = (expandedAttr == attr) ? nil : attr
+                                }
+                            }
+                        )
+                    }
+                }
+
+                if let focus = expandedAttr {
+                    AttributeDetailPopover(
+                        focus: focus,
+                        attributes: attrs,
+                        implantBonuses: liveImplantBonuses,
+                        implantsResolved: liveImplantsResolved,
+                        trainingSkillName: queueIsEmpty ? nil : queueSkillName,
+                        trainingPrimary: liveTrainingPrimaryAttr,
+                        trainingSecondary: liveTrainingSecondaryAttr,
+                        onOpenRemapAdvisor: {
+                            withAnimation(.easeInOut(duration: 0.15)) { expandedAttr = nil }
+                            AppRouter.shared.pendingSection = .remapAdvisor
+                        }
+                    )
+                    .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 10))
+                    .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(focus.color.opacity(0.25), lineWidth: 1))
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
+            }
+        } else {
+            HStack(spacing: 5) {
                 let placeholders: [(String, LocalizedStringKey, Color)] = [("brain", "INT", Color.blue), ("memorychip", "MEM", Color.green), ("eye.fill", "PER", Color.orange), ("bolt.fill", "WIL", Color.purple), ("person.wave.2.fill", "CHA", Color.pink)]
                 ForEach(placeholders, id: \.0) { icon, label, color in
                     HStack(spacing: 4) {
@@ -1910,25 +1962,6 @@ struct CharacterHeroView: View {
                 }
             }
         }
-    }
-
-    private func attrPill(_ icon: String, label: LocalizedStringKey, value: Int, color: Color) -> some View {
-        HStack(spacing: 4) {
-            Image(systemName: icon)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(color)
-            Text(label)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(color)
-            Text("\(value)")
-                .font(.system(size: 13, weight: .bold).monospacedDigit())
-                .foregroundStyle(.primary)
-        }
-        .padding(.horizontal, 9)
-        .padding(.vertical, 6)
-        .background(color.opacity(0.12), in: Capsule())
-        .overlay(Capsule().strokeBorder(color.opacity(0.25), lineWidth: 0.5))
-        .frame(maxWidth: .infinity)
     }
 
     @ViewBuilder
@@ -2140,9 +2173,16 @@ struct CharacterHeroView: View {
             async let cloneFetch: ESIClonesResponse = ESIClient.shared.fetch(
                 "/characters/\(charID)/clones/", token: token
             )
+            async let implantFetch: [Int] = ESIClient.shared.fetch(
+                "/characters/\(charID)/implants/", token: token
+            )
             if let attrs = try? await attrFetch { liveAttributes = attrs }
             if let clones = try? await cloneFetch, let lastJump = clones.lastCloneJumpDate {
                 liveCloneJumpReadyAt = lastJump.addingTimeInterval(24 * 3600)
+            }
+            if let implantIDs = try? await implantFetch {
+                liveImplantBonuses = await resolveImplantAttributeBonuses(implantTypeIDs: implantIDs)
+                liveImplantsResolved = true
             }
         }
     }

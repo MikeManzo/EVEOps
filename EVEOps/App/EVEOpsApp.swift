@@ -20,6 +20,10 @@ final class AppRouter {
     static let shared = AppRouter()
     private init() {}
     var pendingEFTURL: URL?
+
+    /// Set by any view that wants MainContentView to switch the selected sidebar section.
+    /// MainContentView consumes it and resets it to nil.
+    var pendingSection: NavigationSection?
 }
 
 // Sets itself as the UNUserNotificationCenter delegate so banners are shown
