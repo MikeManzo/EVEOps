@@ -20,6 +20,9 @@ struct CharacterClonesView: View {
     @State private var isLoading = true
     @State private var error: String?
     @State private var selectedImplant: ResolvedImplant?
+    /// Implant shown in the detail pane when picked from a jump clone's icon strip
+    /// (those rows aren't in the `List` selection model). Takes precedence when set.
+    @State private var stripImplant: ResolvedImplant?
     @AppStorage("aiInsightsEnabled") private var aiInsightsEnabled = false
     @AppStorage("aiInsightClones") private var aiInsightClones = true
 
@@ -47,12 +50,16 @@ struct CharacterClonesView: View {
                 }
                 .frame(maxWidth: .infinity)
 
-                if let implant = selectedImplant {
+                if let implant = stripImplant ?? selectedImplant {
                     Divider()
                     ImplantDetailView(implant: implant)
                         .frame(width: 320)
                 }
             }
+        }
+        .onChange(of: selectedImplant) { _, newValue in
+            // A row click in the List takes over the detail pane from the strip.
+            if newValue != nil { stripImplant = nil }
         }
         .safeAreaInset(edge: .top, spacing: 0) {
             HStack {
@@ -70,6 +77,7 @@ struct CharacterClonesView: View {
             activeImplants = []
             jumpClones = []
             selectedImplant = nil
+            stripImplant = nil
             isLoading = true
             await loadClones()
         }
@@ -131,26 +139,95 @@ struct CharacterClonesView: View {
 
     private var jumpClonesSection: some View {
         Section("Jump Clones (\(jumpClones.count))") {
-            ForEach(jumpClones, id: \.jumpCloneId) { clone in
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Image(systemName: "person.2.fill")
-                            .foregroundStyle(.teal)
-                        Text(clone.name ?? "Unnamed Clone")
-                            .font(.body)
-                    }
-                    Text(clone.locationName)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .padding(.leading, 28)
-                    if !clone.implantNames.isEmpty {
-                        Text("Implants: \(clone.implantNames.joined(separator: ", "))")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                            .padding(.leading, 28)
-                            .lineLimit(2)
-                    }
+            if jumpClones.isEmpty {
+                Text("No jump clones")
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(jumpClones, id: \.jumpCloneId) { clone in
+                    jumpCloneRow(clone)
                 }
+            }
+        }
+    }
+
+    private func jumpCloneRow(_ clone: ResolvedJumpClone) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            cloneLocationThumbnail(typeId: clone.locationTypeId)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(clone.name ?? "Unnamed Clone")
+                    .font(.body.weight(.medium))
+                Text(clone.locationName)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+
+                if clone.implants.isEmpty {
+                    Text("No implants")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                } else {
+                    implantStrip(clone.implants)
+                        .padding(.top, 1)
+                }
+            }
+        }
+        .padding(.vertical, 2)
+    }
+
+    /// Hi-res render of the station/structure the clone is parked in.
+    private func cloneLocationThumbnail(typeId: Int?) -> some View {
+        AsyncImage(url: typeId.flatMap { EVEImageURL.typeRender($0, size: 256) }) { phase in
+            if let image = phase.image {
+                image.resizable()
+                    .interpolation(.high)
+                    .aspectRatio(contentMode: .fill)
+            } else if typeId != nil, phase.error == nil {
+                ProgressView().controlSize(.small)
+            } else {
+                Image(systemName: "building.2.fill")
+                    .font(.system(size: 16))
+                    .foregroundStyle(.tertiary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .frame(width: 44, height: 44)
+        .background(Color(white: 0.12))
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(.separator, lineWidth: 0.5))
+    }
+
+    /// Row of implant icons for a jump clone; each opens the implant detail pane.
+    private func implantStrip(_ implants: [ResolvedImplant]) -> some View {
+        let shown = implants.prefix(8)
+        let overflow = implants.count - shown.count
+        return HStack(spacing: 3) {
+            ForEach(Array(shown)) { implant in
+                Button {
+                    stripImplant = implant
+                } label: {
+                    AsyncImage(url: EVEImageURL.typeIcon(implant.typeId, size: 64)) { phase in
+                        if let image = phase.image {
+                            image.resizable().interpolation(.high)
+                        } else {
+                            Image(systemName: "brain.head.profile")
+                                .font(.system(size: 9))
+                                .foregroundStyle(.purple)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        }
+                    }
+                    .frame(width: 20, height: 20)
+                    .background(Color(white: 0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 3))
+                }
+                .buttonStyle(.plain)
+                .help(implant.name)
+            }
+            if overflow > 0 {
+                Text("+\(overflow)")
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .padding(.leading, 1)
             }
         }
     }
@@ -214,15 +291,19 @@ struct CharacterClonesView: View {
             var resolvedClones: [ResolvedJumpClone] = []
             for jc in clones.jumpClones {
                 let locName = await NameResolver.shared.resolve(id: jc.locationId)
-                let implantNames = jc.implants.prefix(10).map { impID in
-                    resolvedTypes[impID]?.name ?? "Implant #\(impID)"
+                let locTypeId = await cloneLocationTypeId(
+                    locationId: jc.locationId, locationType: jc.locationType, token: token
+                )
+                let implants = jc.implants.map { impID in
+                    ResolvedImplant(typeId: impID, name: resolvedTypes[impID]?.name ?? "Implant #\(impID)")
                 }
                 resolvedClones.append(ResolvedJumpClone(
                     jumpCloneId: jc.jumpCloneId,
                     name: jc.name,
                     locationId: jc.locationId,
                     locationName: locName,
-                    implantNames: implantNames
+                    locationTypeId: locTypeId,
+                    implants: implants
                 ))
             }
             jumpClones = resolvedClones
@@ -230,6 +311,22 @@ struct CharacterClonesView: View {
             self.error = error.localizedDescription
         }
         isLoading = false
+    }
+
+    /// Resolves a jump clone's parked location to its station/structure type ID so the
+    /// row can show a hi-res `typeRender`. Returns `nil` for structures we can't read.
+    private func cloneLocationTypeId(locationId: Int, locationType: String, token: String) async -> Int? {
+        switch locationType {
+        case "station":
+            return await UniverseCache.shared.station(id: locationId)?.typeId
+        case "structure":
+            let structure: ESIStructure? = try? await ESIClient.shared.fetch(
+                "/universe/structures/\(locationId)/", token: token
+            )
+            return structure?.typeId
+        default:
+            return nil
+        }
     }
 }
 
@@ -247,7 +344,12 @@ struct ResolvedJumpClone {
     let name: String?
     let locationId: Int
     let locationName: String
-    let implantNames: [String]
+    /// Station/structure type of the clone's parked location, for the header render.
+    /// `nil` when unresolvable (e.g. a structure whose ACL denies docking access).
+    let locationTypeId: Int?
+    let implants: [ResolvedImplant]
+
+    var implantNames: [String] { implants.map(\.name) }
 }
 
 // MARK:  Clone AI Insight Card

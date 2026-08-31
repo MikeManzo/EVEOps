@@ -22,6 +22,9 @@
     "·" : {
 
     },
+    "· %lld unpriced" : {
+
+    },
     "\"%@\"" : {
 
     },
@@ -114,6 +117,16 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ · %2$lld items"
+          }
+        }
+      }
+    },
+    "%@ · %lld kill%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$lld kill%3$@"
           }
         }
       }
@@ -436,6 +449,16 @@
         }
       }
     },
+    "%lld item%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld item%2$@"
+          }
+        }
+      }
+    },
     "%lld item%@ not available at this station" : {
       "localizations" : {
         "en" : {
@@ -668,9 +691,6 @@
     "%lld total" : {
 
     },
-    "%lld unpriced" : {
-
-    },
     "%lld unresolved" : {
 
     },
@@ -771,9 +791,6 @@
 
     },
     "+" : {
-
-    },
-    "+ %lld more" : {
 
     },
     "+%@" : {
@@ -1310,9 +1327,6 @@
 
     },
     "Capacitor recharge time — time to fully recharge from empty" : {
-
-    },
-    "Cargo data isn't available while undocked — dock and refresh to see it." : {
 
     },
     "Cargo hold is empty" : {
@@ -1892,6 +1906,9 @@
     "ESI" : {
 
     },
+    "ESI aggregates, ~1h delayed" : {
+
+    },
     "ESI Server" : {
 
     },
@@ -2314,9 +2331,6 @@
 
     },
     "Implants" : {
-
-    },
-    "Implants: %@" : {
 
     },
     "Import" : {
@@ -2937,6 +2951,9 @@
     "No flags" : {
 
     },
+    "No implants" : {
+
+    },
     "No implants installed" : {
 
     },
@@ -2953,6 +2970,9 @@
 
     },
     "No journal entries" : {
+
+    },
+    "No jump clones" : {
 
     },
     "No Liability Payments" : {
@@ -3315,7 +3335,7 @@
     "Prices reflect the best sell/buy orders at the hub's primary station." : {
 
     },
-    "Pricing cargo…" : {
+    "Pricing…" : {
 
     },
     "Primary (+10)" : {
@@ -3358,9 +3378,6 @@
 
     },
     "Queue Position" : {
-
-    },
-    "Quiet" : {
 
     },
     "Quit" : {
@@ -3597,9 +3614,6 @@
     "Search all k-space regions for the cheapest station — takes 30–60 seconds" : {
 
     },
-    "Search assets..." : {
-
-    },
     "Search bookmarks" : {
 
     },
@@ -3610,9 +3624,6 @@
 
     },
     "Search constellation or region…" : {
-
-    },
-    "Search corporation assets..." : {
 
     },
     "Search Failed" : {
@@ -4245,6 +4256,9 @@
 
     },
     "Unable to load EVE news" : {
+
+    },
+    "Undocked — dock and refresh to view" : {
 
     },
     "Unit Price" : {

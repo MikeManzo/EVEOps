@@ -90,7 +90,7 @@ struct MainContentView: View {
             case .finances:
                 FinancesView()
             case .assets:
-                CharacterAssetsView()
+                AssetBrowser(kind: .character)
             case .clones:
                 CharacterClonesView()
             case .colonies:
@@ -108,7 +108,7 @@ struct MainContentView: View {
 
             // Corporation
             case .corpAssets:
-                CorporationAssetsView()
+                AssetBrowser(kind: .corporation)
             case .corpHangars:
                 CorporationHangarsView()
             case .corpIndustry:

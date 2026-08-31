@@ -21,7 +21,6 @@ struct LocationOverviewView: View {
     @State private var refreshTick = 0
     @State private var stationsExpanded: [Int: Bool] = [:]
     @State private var systemActivity: [Int: SystemActivityData] = [:]
-    @State private var cargoExpanded: [Int: Bool] = [:]
     @State private var showCargoValueInfo = false
     @State private var cargoValues: [Int: CargoValueSummary] = [:]
     @State private var cargoLoading: Set<Int> = []
@@ -69,6 +68,9 @@ struct LocationOverviewView: View {
                 async let loc: Void = loadLocations()
                 async let act: Void = loadSystemActivity()
                 _ = await (loc, act)
+                for info in locations {
+                    await loadCargoValue(characterID: info.characterID)
+                }
             }
         }
     }
@@ -85,7 +87,7 @@ struct LocationOverviewView: View {
                     HStack(alignment: .top, spacing: 10) {
 
                         // 128×128 character portrait
-                        AsyncImage(url: EVEImageURL.characterPortrait(info.characterID, size: 256)) { image in
+                        AsyncImage(url: EVEImageURL.characterPortrait(info.characterID, size: 512)) { image in
                             image.resizable()
                         } placeholder: {
                             RoundedRectangle(cornerRadius: 10).fill(.quaternary)
@@ -231,7 +233,7 @@ struct LocationOverviewView: View {
 
                     // Column 3: Ship icon (128×128) + ship info
                     HStack(alignment: .top, spacing: 10) {
-                        AsyncImage(url: EVEImageURL.typeIcon(info.shipTypeId, size: 256)) { phase in
+                        AsyncImage(url: EVEImageURL.typeRender(info.shipTypeId, size: 512)) { phase in
                             if let image = phase.image {
                                 image.resizable()
                                     .frame(width: 128, height: 128)
@@ -284,11 +286,13 @@ struct LocationOverviewView: View {
                         }  // end ship info VStack
                     }  // end column 3 HStack
                     .frame(maxWidth: .infinity, alignment: .leading)
-                }
 
-                // Cargo value (current ship's hold, priced at Jita)
-                Divider()
-                cargoValueSection(characterID: info.characterID)
+                    Divider().frame(height: 132)
+
+                    // Column 4: Cargo value (current ship's hold, priced at Jita)
+                    cargoValueColumn(characterID: info.characterID)
+                        .frame(width: 172, alignment: .leading)
+                }
 
                 // Docked station services
                 if let station = info.dockedStation, let services = station.services, !services.isEmpty {
@@ -302,15 +306,9 @@ struct LocationOverviewView: View {
                     systemStationsSection(info.systemStations, characterID: info.characterID)
                 }
 
-                // Star + Connected Systems (combined row)
-                if info.starName != nil || !info.nearbySystems.isEmpty {
-                    Divider()
-                    starAndConnectionsSection(info)
-                }
-
-                // System activity (last hour, from ESI)
+                // Star · Connected Systems · Last Hour (combined row)
                 Divider()
-                systemActivityRow(systemId: info.systemId)
+                starConnectionsActivitySection(info)
 
                 // Wormhole intel (J-space only)
                 if let whInfo = WHSpaceInfo.info(systemId: info.systemId, systemName: info.systemName, regionName: info.regionName) {
@@ -452,21 +450,9 @@ struct LocationOverviewView: View {
 
     // MARK:  Cargo Value
 
-    private func cargoValueSection(characterID: Int) -> some View {
-        let isExpanded = Binding(
-            get: { cargoExpanded[characterID, default: false] },
-            set: { newValue in
-                cargoExpanded[characterID] = newValue
-                if newValue && cargoValues[characterID] == nil {
-                    Task { await loadCargoValue(characterID: characterID) }
-                }
-            }
-        )
-        return DisclosureGroup(isExpanded: isExpanded) {
-            cargoValueContent(characterID: characterID)
-                .padding(.top, 4)
-        } label: {
-            HStack {
+    private func cargoValueColumn(characterID: Int) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
                 Image(systemName: "shippingbox.fill")
                     .foregroundStyle(.yellow)
                 Text("Cargo Value")
@@ -482,12 +468,23 @@ struct LocationOverviewView: View {
                 .popover(isPresented: $showCargoValueInfo, arrowEdge: .bottom) {
                     cargoValueInfoPopover
                 }
-                if let summary = cargoValues[characterID], !summary.items.isEmpty {
-                    Text("(\(EVEFormatters.formatISKShort(summary.totalSellValue)))")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                Spacer(minLength: 0)
+                if cargoValues[characterID] != nil && !cargoLoading.contains(characterID) {
+                    Button {
+                        Task { await loadCargoValue(characterID: characterID) }
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
+
+            cargoValueColumnContent(characterID: characterID)
+        }
+        .task(id: characterID) {
+            if cargoValues[characterID] == nil { await loadCargoValue(characterID: characterID) }
         }
     }
 
@@ -508,7 +505,7 @@ struct LocationOverviewView: View {
                 cargoInfoBullet("Pricing source", "Jita (The Forge) market aggregates via Fuzzwork, cached for 10 minutes.")
                 cargoInfoBullet("Sell Value", "Lowest active sell order × quantity, summed across items — roughly what it'd cost to replace the cargo.")
                 cargoInfoBullet("Buy Value", "Highest active buy order × quantity, summed across items — roughly what you'd get selling instantly.")
-                cargoInfoBullet("Unpriced items", "Items with no active Jita orders are valued at 0 ISK and flagged in red in the list.")
+                cargoInfoBullet("Unpriced items", "Items with no active Jita orders are valued at 0 ISK and counted separately.")
                 cargoInfoBullet("Docked required", "CCP's servers don't report your active ship's cargo contents while it's undocked — dock up, then refresh.")
             }
 
@@ -535,27 +532,29 @@ struct LocationOverviewView: View {
     }
 
     @ViewBuilder
-    private func cargoValueContent(characterID: Int) -> some View {
-        if cargoLoading.contains(characterID) {
+    private func cargoValueColumnContent(characterID: Int) -> some View {
+        if cargoLoading.contains(characterID) && cargoValues[characterID] == nil {
             HStack(spacing: 6) {
                 ProgressView().controlSize(.small)
-                Text("Pricing cargo…")
+                Text("Pricing…")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-        } else if let error = cargoErrors[characterID] {
+        } else if let error = cargoErrors[characterID], cargoValues[characterID] == nil {
             Text(error)
-                .font(.caption)
+                .font(.caption2)
                 .foregroundStyle(.red)
+                .lineLimit(3)
         } else if let summary = cargoValues[characterID] {
             if summary.dataUnavailable {
-                HStack(spacing: 4) {
+                HStack(alignment: .top, spacing: 4) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .font(.caption2)
                         .foregroundStyle(.orange)
-                    Text("Cargo data isn't available while undocked — dock and refresh to see it.")
-                        .font(.caption)
+                    Text("Undocked — dock and refresh to view")
+                        .font(.caption2)
                         .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             } else if summary.items.isEmpty {
                 Text("Cargo hold is empty")
@@ -563,46 +562,24 @@ struct LocationOverviewView: View {
                     .foregroundStyle(.secondary)
             } else {
                 VStack(alignment: .leading, spacing: 6) {
-                    HStack(spacing: 16) {
-                        cargoStat(label: "Sell Value", value: EVEFormatters.formatISKShort(summary.totalSellValue), color: .green)
-                        cargoStat(label: "Buy Value", value: EVEFormatters.formatISKShort(summary.totalBuyValue), color: .orange)
-                        if summary.unpricedCount > 0 {
-                            Text("\(summary.unpricedCount) unpriced")
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
-                        }
-                        Spacer()
-                        Button {
-                            Task { await loadCargoValue(characterID: characterID) }
-                        } label: {
-                            Image(systemName: "arrow.clockwise")
-                        }
-                        .buttonStyle(.plain)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    }
-
-                    ForEach(summary.items.prefix(10)) { item in
-                        HStack {
-                            Text(item.typeName)
-                                .font(.caption)
-                                .lineLimit(1)
-                            Text("×\(item.quantity)")
-                                .font(.caption2.monospacedDigit())
-                                .foregroundStyle(.tertiary)
-                            Spacer()
-                            Text(EVEFormatters.formatISKShort(item.totalSellValue))
-                                .font(.caption.monospacedDigit())
-                                .foregroundStyle(item.hasPrice ? Color.secondary : Color.red)
-                        }
-                    }
-                    if summary.items.count > 10 {
-                        Text("+ \(summary.items.count - 10) more")
+                    cargoStat(label: "Sell Value", value: EVEFormatters.formatISKShort(summary.totalSellValue), color: .green)
+                    cargoStat(label: "Buy Value", value: EVEFormatters.formatISKShort(summary.totalBuyValue), color: .orange)
+                    HStack(spacing: 4) {
+                        Text("\(summary.items.count) item\(summary.items.count == 1 ? "" : "s")")
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
+                        if summary.unpricedCount > 0 {
+                            Text("· \(summary.unpricedCount) unpriced")
+                                .font(.caption2)
+                                .foregroundStyle(.red.opacity(0.85))
+                        }
                     }
                 }
             }
+        } else {
+            Text("—")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
         }
     }
 
@@ -668,9 +645,9 @@ struct LocationOverviewView: View {
         }
     }
 
-    // MARK:  Star + Connected Systems (combined)
+    // MARK:  Star · Connected Systems · Last Hour (combined)
 
-    private func starAndConnectionsSection(_ info: CharacterLocationInfo) -> some View {
+    private func starConnectionsActivitySection(_ info: CharacterLocationInfo) -> some View {
         HStack(alignment: .top, spacing: 16) {
             // Left: Star info
             if info.starName != nil {
@@ -781,6 +758,123 @@ struct LocationOverviewView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
+
+            if info.starName != nil || !info.nearbySystems.isEmpty {
+                Divider()
+            }
+
+            // Right: Last-hour activity (this system + connected)
+            lastHourColumn(info)
+                .frame(width: 224, alignment: .topLeading)
+        }
+    }
+
+    // MARK:  Last Hour
+
+    private struct ConnectedActivity {
+        var shipKills = 0
+        var podKills = 0
+        var npcKills = 0
+        var jumps = 0
+        var systemsWithData = 0
+    }
+
+    private func connectedActivity(_ info: CharacterLocationInfo) -> ConnectedActivity {
+        var agg = ConnectedActivity()
+        for sys in info.nearbySystems {
+            guard let a = systemActivity[sys.systemId] else { continue }
+            agg.systemsWithData += 1
+            agg.shipKills += a.shipKills
+            agg.podKills += a.podKills
+            agg.npcKills += a.npcKills
+            agg.jumps += a.jumps
+        }
+        return agg
+    }
+
+    /// Connected system with the most player kills (ship + pod) in the last hour, if any.
+    private func activityHotspot(_ info: CharacterLocationInfo) -> (name: String, kills: Int)? {
+        info.nearbySystems
+            .compactMap { sys -> (String, Int)? in
+                guard let a = systemActivity[sys.systemId] else { return nil }
+                let k = a.shipKills + a.podKills
+                return k > 0 ? (sys.name, k) : nil
+            }
+            .max { $0.1 < $1.1 }
+            .map { (name: $0.0, kills: $0.1) }
+    }
+
+    private func lastHourColumn(_ info: CharacterLocationInfo) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: "chart.bar.fill")
+                    .foregroundStyle(.cyan)
+                Text("Last Hour")
+                    .font(.subheadline.bold())
+            }
+
+            // This system
+            VStack(alignment: .leading, spacing: 4) {
+//                activityCaption("This System")
+                if let a = systemActivity[info.systemId] {
+                    activityPillWrap(killMetrics(ship: a.shipKills, pod: a.podKills, npc: a.npcKills, jumps: a.jumps))
+                } else {
+                    ProgressView().controlSize(.mini)
+                }
+            }
+
+            // Connected systems (within 1 jump)
+            if !info.nearbySystems.isEmpty {
+                let agg = connectedActivity(info)
+                if agg.systemsWithData > 0 {
+                    Divider()
+                    VStack(alignment: .leading, spacing: 4) {
+                        activityCaption("Within 1 Jump · \(info.nearbySystems.count) system\(info.nearbySystems.count == 1 ? "" : "s")")
+                        activityPillWrap(killMetrics(ship: agg.shipKills, pod: agg.podKills, npc: agg.npcKills, jumps: agg.jumps))
+                        if let hot = activityHotspot(info) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.system(size: 9))
+                                    .foregroundStyle(.orange)
+                                Text("\(hot.name) · \(hot.kills) kill\(hot.kills == 1 ? "" : "s")")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            }
+                        }
+                    }
+                }
+            }
+
+            Text("ESI aggregates, ~1h delayed")
+                .font(.system(size: 8))
+                .foregroundStyle(.tertiary)
+        }
+    }
+
+    private func activityCaption(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 8, weight: .bold))
+            .tracking(0.8)
+            .foregroundStyle(.tertiary)
+    }
+
+    /// ship / pod / NPC kills are always shown (0 renders muted); jumps trailing.
+    private func killMetrics(ship: Int, pod: Int, npc: Int, jumps: Int) -> [(Int, String, Color)] {
+        [
+            (ship, ship == 1 ? "ship kill" : "ship kills", .red),
+            (pod, pod == 1 ? "pod" : "pods", .orange),
+            (npc, "NPC", .indigo),
+            (jumps, "jumps", .blue),
+        ]
+    }
+
+    private func activityPillWrap(_ metrics: [(Int, String, Color)]) -> some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 92), spacing: 4, alignment: .leading)],
+                  alignment: .leading, spacing: 4) {
+            ForEach(Array(metrics.enumerated()), id: \.offset) { _, m in
+                activityPill(m.0, m.1, color: m.2)
+            }
         }
     }
 
@@ -847,63 +941,20 @@ struct LocationOverviewView: View {
         }
     }
 
-    // MARK:  System Activity
-
-    private func systemActivityRow(systemId: Int) -> some View {
-        HStack(spacing: 12) {
-            HStack(spacing: 4) {
-                Image(systemName: "chart.bar.fill")
-                    .font(.caption2)
-                    .foregroundStyle(.cyan)
-                Text("Last Hour")
-                    .font(.caption.bold())
-                    .foregroundStyle(.secondary)
-            }
-
-            if let activity = systemActivity[systemId] {
-                let hasPlayerKills = activity.shipKills > 0 || activity.podKills > 0
-                if !hasPlayerKills && activity.npcKills == 0 {
-                    Text("Quiet")
-                        .font(.caption)
-                        .foregroundStyle(.green)
-                        .italic()
-                    if activity.jumps > 0 {
-                        activityPill(activity.jumps, "jumps", color: .blue)
-                    }
-                } else {
-                    if activity.shipKills > 0 {
-                        activityPill(activity.shipKills, activity.shipKills == 1 ? "ship kill" : "ship kills", color: .red)
-                    }
-                    if activity.podKills > 0 {
-                        activityPill(activity.podKills, activity.podKills == 1 ? "pod" : "pods", color: .orange)
-                    }
-                    if activity.npcKills > 0 {
-                        activityPill(activity.npcKills, "NPC", color: .secondary)
-                    }
-                    if activity.jumps > 0 {
-                        activityPill(activity.jumps, "jumps", color: .blue)
-                    }
-                }
-            } else {
-                ProgressView().controlSize(.mini)
-            }
-
-            Spacer()
-        }
-    }
-
     private func activityPill(_ value: Int, _ label: String, color: Color) -> some View {
-        HStack(spacing: 3) {
-            Text("\(value)")
+        let active = value > 0
+        let tint: Color = active ? color : .secondary
+        return HStack(spacing: 3) {
+            Text(value.formatted(.number.grouping(.automatic)))
                 .font(.caption.bold().monospacedDigit())
-                .foregroundStyle(color)
+                .foregroundStyle(tint)
             Text(label)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(active ? .secondary : .tertiary)
         }
         .padding(.horizontal, 6)
         .padding(.vertical, 2)
-        .background(color.opacity(0.12), in: Capsule())
+        .background(tint.opacity(active ? 0.12 : 0.06), in: Capsule())
     }
 
     // MARK:  Helpers
