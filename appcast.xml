@@ -3,18 +3,15 @@
     <channel>
         <title>EVEOps</title>
         <item>
-            <title>0.9.10.5.3</title>
-            <pubDate>Fri, 28 Aug 2026 07:25:19 -0400</pubDate>
-            <sparkle:version>132</sparkle:version>
-            <sparkle:shortVersionString>0.9.10.5.3</sparkle:shortVersionString>
+            <title>0.9.10.6</title>
+            <pubDate>Mon, 31 Aug 2026 16:20:57 -0400</pubDate>
+            <sparkle:version>133</sparkle:version>
+            <sparkle:shortVersionString>0.9.10.6</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<p>Swift- Updated code for Swift 6.x compatability</p>
-<ul>
-<li>Upated UI on Training</li>
-<li>Various UI tweks and updates</li>
-<li>Now able to launch the EVE Launcher from the Menubar</li>
+            <description><![CDATA[<ul>
+<li>Dashboard enhacements.  Click on the attribute &#x27;pill&#x27; to gain important insights.</li>
 </ul>]]></description>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.10.5.3/EVEOps.dmg" length="32169420" type="application/octet-stream" sparkle:edSignature="RcFLzJBRmzN0b2xwNxDeRKL/G9yhwsuINknkUTSXM/7cFaZTJ4iVPzdxyCoQ579UpJftunnaAuNwf5wituowBg=="/>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.10.6/EVEOps.dmg" length="32592653" type="application/octet-stream" sparkle:edSignature="Jy+kObmjLPVLNk5B2st3a0O1oGOqqWwewuC0xujm2qDYyqYDn3GT3e5dcEgK0/+wCUTlI0/dwp4nuAWKweW7Dg=="/>
         </item>
     </channel>
 </rss>
