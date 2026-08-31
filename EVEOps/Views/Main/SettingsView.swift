@@ -449,6 +449,7 @@ private struct NotificationsTab: View {
     @AppStorage("notifyStructureFuel") private var notifyStructureFuel = true
     @AppStorage("notifyWarAlerts") private var notifyWarAlerts = true
     @AppStorage("notifyContactPresence") private var notifyContactPresence = true
+    @AppStorage("notifyStandingsChanged") private var notifyStandingsChanged = true
     @AppStorage("notifyServerStatus") private var notifyServerStatus = true
     @AppStorage("discordNotificationsEnabled") private var discordNotificationsEnabled = false
 
@@ -482,6 +483,8 @@ private struct NotificationsTab: View {
                 Toggle("War declarations", isOn: $notifyWarAlerts)
                     .disabled(!notificationsEnabled)
                 Toggle("Contact comes online / goes offline", isOn: $notifyContactPresence)
+                    .disabled(!notificationsEnabled)
+                Toggle("Standing increases or decreases", isOn: $notifyStandingsChanged)
                     .disabled(!notificationsEnabled)
                 Toggle("Servers back online after downtime", isOn: $notifyServerStatus)
                     .disabled(!notificationsEnabled)

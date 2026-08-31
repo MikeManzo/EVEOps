@@ -48,6 +48,7 @@ actor NotificationService {
                 try await checkSkillQueue(for: account, token: token)
                 try await checkNotifications(for: account, token: token)
                 try await checkContracts(for: account, token: token)
+                try await checkStandings(for: account, token: token)
                 try await checkIndustryJobs(for: account, token: token)
                 if checkedCorporations.insert(account.corporationID).inserted {
                     try await checkStructureFuel(for: account, token: token)
@@ -278,6 +279,80 @@ actor NotificationService {
             throw ESIError.unauthorized
         } catch {
             // Skip
+        }
+    }
+
+    /// Polls `/characters/{id}/standings/` (NPC faction / corp / agent standings) on the
+    /// background cycle, persists a per-character snapshot in `UserDefaults`, and diffs
+    /// consecutive pulls to surface increases and decreases. ESI only exposes the current
+    /// value — there is no history endpoint and no causal reason — so this also catches
+    /// derived-standing ripple effects without knowing which mission/agent action drove them.
+    private func checkStandings(for account: StoredAccount, token: String) async throws {
+        guard UserDefaults.standard.object(forKey: "notificationsEnabled") as? Bool ?? true,
+              UserDefaults.standard.object(forKey: "notifyStandingsChanged") as? Bool ?? true else { return }
+        do {
+            let standings: [ESIStanding] = try await ESIClient.shared.fetch(
+                "/characters/\(account.characterID)/standings/", token: token
+            )
+
+            let key = "lastStandingsSnapshot-\(account.characterID)"
+            // Snapshot keyed "fromType/fromId" -> standing value.
+            let current: [String: Double] = Dictionary(
+                standings.map { ("\($0.fromType)/\($0.fromId)", $0.standing) },
+                uniquingKeysWith: { _, last in last }
+            )
+            let previous = UserDefaults.standard.dictionary(forKey: key) as? [String: Double]
+
+            // First run for this character: store a baseline, notify nothing.
+            defer { UserDefaults.standard.set(current, forKey: key) }
+            guard let previous else { return }
+
+            // Floating-point noise guard — derived standings carry many decimals.
+            let epsilon = 0.01
+            struct Change { let standing: ESIStanding; let old: Double; let delta: Double }
+            var changes: [Change] = []
+            for standing in standings {
+                let entryKey = "\(standing.fromType)/\(standing.fromId)"
+                guard let old = previous[entryKey] else { continue }  // brand-new entity — skip, not a change
+                let delta = standing.standing - old
+                if abs(delta) >= epsilon {
+                    changes.append(Change(standing: standing, old: old, delta: delta))
+                }
+            }
+            guard !changes.isEmpty else { return }
+
+            // Largest swings first so the summary line is the useful one.
+            changes.sort { abs($0.delta) > abs($1.delta) }
+            let stamp = Int(Date().timeIntervalSince1970)
+
+            if changes.count <= 3 {
+                for change in changes {
+                    let name = await NameResolver.shared.resolve(id: change.standing.fromId)
+                    let direction = change.delta > 0
+                        ? String(localized: "increased")
+                        : String(localized: "decreased")
+                    await sendNotification(
+                        title: String(localized: "Standing Change — \(account.characterName)"),
+                        body: String(localized: "Standing with \(name) \(direction) by \(String(format: "%.2f", abs(change.delta))) (\(String(format: "%+.2f", change.old)) → \(String(format: "%+.2f", change.standing.standing)))"),
+                        identifier: "standing-\(account.characterID)-\(change.standing.fromType)-\(change.standing.fromId)-\(stamp)"
+                    )
+                }
+            } else {
+                let top = changes.first!
+                let topName = await NameResolver.shared.resolve(id: top.standing.fromId)
+                let topDirection = top.delta > 0
+                    ? String(localized: "up")
+                    : String(localized: "down")
+                await sendNotification(
+                    title: String(localized: "Standings Changed — \(account.characterName)"),
+                    body: String(localized: "\(changes.count) standings shifted. Largest: \(topName) \(topDirection) \(String(format: "%.2f", abs(top.delta)))."),
+                    identifier: "standings-\(account.characterID)-\(stamp)"
+                )
+            }
+        } catch ESIError.unauthorized {
+            throw ESIError.unauthorized
+        } catch {
+            // Skip — likely missing the esi-characters.read_standings.v1 scope.
         }
     }
 

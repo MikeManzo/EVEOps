@@ -668,6 +668,16 @@
     "%lld SP/min" : {
 
     },
+    "%lld standings shifted. Largest: %@ %@ %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld standings shifted. Largest: %2$@ %3$@ %4$@."
+          }
+        }
+      }
+    },
     "%lld station%@" : {
       "localizations" : {
         "en" : {
@@ -1759,6 +1769,9 @@
     "Declined" : {
 
     },
+    "decreased" : {
+
+    },
     "Deep Space" : {
 
     },
@@ -1829,6 +1842,9 @@
 
     },
     "Done" : {
+
+    },
+    "down" : {
 
     },
     "Downloaded ship meshes and DDS textures. Re-downloaded on demand when viewing ships." : {
@@ -2377,6 +2393,9 @@
 
     },
     "Includes universe data, resolved names, and ESI responses. All data re-fetches automatically." : {
+
+    },
+    "increased" : {
 
     },
     "Incursions" : {
@@ -4008,7 +4027,26 @@
     "STANDING" : {
 
     },
+    "Standing Change — %@" : {
+
+    },
+    "Standing increases or decreases" : {
+
+    },
+    "Standing with %@ %@ by %@ (%@ → %@)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Standing with %1$@ %2$@ by %3$@ (%4$@ → %5$@)"
+          }
+        }
+      }
+    },
     "Standings" : {
+
+    },
+    "Standings Changed — %@" : {
 
     },
     "Star" : {
@@ -4280,6 +4318,9 @@
 
     },
     "until pop" : {
+
+    },
+    "up" : {
 
     },
     "Up to date" : {
