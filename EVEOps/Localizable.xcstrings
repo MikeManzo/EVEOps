@@ -734,6 +734,9 @@
         }
       }
     },
+    "%lld×" : {
+
+    },
     "%lldd • %@" : {
       "localizations" : {
         "en" : {
@@ -1290,6 +1293,16 @@
     },
     "Building training plan…" : {
 
+    },
+    "Busier than %lld%% of active systems  ·  #%@ / %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Busier than %1$lld%% of active systems  ·  #%2$@ / %3$@"
+          }
+        }
+      }
     },
     "Buy" : {
 
@@ -2061,9 +2074,6 @@
     "Export…" : {
 
     },
-    "ext" : {
-
-    },
     "Extend to L%lld" : {
 
     },
@@ -2534,6 +2544,9 @@
 
     },
     "Just now" : {
+
+    },
+    "K / J = player kills / jumps in the last hour" : {
 
     },
     "Keep logs for" : {

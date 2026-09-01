@@ -16,7 +16,7 @@ actor UniverseCache {
     static let shared = UniverseCache()
 
     private static let ttl: TimeInterval = 7 * 24 * 3600 // 7 days
-    private static let schemaVersion = 12
+    private static let schemaVersion = 13
 
     private var types: [Int: ESIType] = [:]
     private var groups: [Int: ESIGroup] = [:]
@@ -26,6 +26,7 @@ actor UniverseCache {
     private var regions: [Int: ESIRegion] = [:]
     private var stations: [Int: ESIStation] = [:]
     private var stars: [Int: ESIStar] = [:]
+    private var planets: [Int: ESIPlanet] = [:]
     private var stargates: [Int: ESIStargate] = [:]
     private var marketGroups: [Int: ESIMarketGroup] = [:]
     private var effectDetails: [Int: ESIDogmaEffectDetail] = [:]
@@ -61,6 +62,7 @@ actor UniverseCache {
             regions = Self.loadCache("regions.json") ?? [:]
             stations = Self.loadCache("stations.json") ?? [:]
             stars = Self.loadCache("stars.json") ?? [:]
+            planets = Self.loadCache("planets.json") ?? [:]
             stargates = Self.loadCache("stargates.json") ?? [:]
             marketGroups = Self.loadCache("marketGroups.json") ?? [:]
             effectDetails = Self.loadCache("effectDetails.json") ?? [:]
@@ -136,6 +138,15 @@ actor UniverseCache {
         if let cached = stars[id] { return cached }
         guard let fetched: ESIStar = try? await ESIClient.shared.fetch("/universe/stars/\(id)/", bypassCache: true) else { return nil }
         stars[id] = fetched
+        dirty = true
+        scheduleSave()
+        return fetched
+    }
+
+    func planet(id: Int) async -> ESIPlanet? {
+        if let cached = planets[id] { return cached }
+        guard let fetched: ESIPlanet = try? await ESIClient.shared.fetch("/universe/planets/\(id)/", bypassCache: true) else { return nil }
+        planets[id] = fetched
         dirty = true
         scheduleSave()
         return fetched
@@ -322,6 +333,7 @@ actor UniverseCache {
         Self.saveCache(regions, to: "regions.json")
         Self.saveCache(stations, to: "stations.json")
         Self.saveCache(stars, to: "stars.json")
+        Self.saveCache(planets, to: "planets.json")
         Self.saveCache(stargates, to: "stargates.json")
         Self.saveCache(marketGroups, to: "marketGroups.json")
         Self.saveCache(effectDetails, to: "effectDetails.json")
@@ -382,6 +394,7 @@ actor UniverseCache {
         regions.removeAll()
         stations.removeAll()
         stars.removeAll()
+        planets.removeAll()
         stargates.removeAll()
         marketGroups.removeAll()
         effectDetails.removeAll()

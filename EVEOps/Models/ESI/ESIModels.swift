@@ -589,6 +589,7 @@ nonisolated struct ESIPosition: Codable, Sendable {
 nonisolated struct ESISolarSystem: Codable, Sendable {
     let constellationId: Int
     let name: String
+    let planets: [ESISystemPlanet]?
     let position: ESIPosition?
     let securityClass: String?
     let securityStatus: Double
@@ -596,6 +597,22 @@ nonisolated struct ESISolarSystem: Codable, Sendable {
     let stargates: [Int]?
     let stations: [Int]?
     let systemId: Int
+}
+
+/// A planet entry as returned inline by `/universe/systems/{id}/` — just the id plus
+/// its moon and asteroid-belt ids. Planet type requires `/universe/planets/{id}/`.
+nonisolated struct ESISystemPlanet: Codable, Sendable {
+    let planetId: Int
+    let asteroidBelts: [Int]?
+    let moons: [Int]?
+}
+
+/// `/universe/planets/{id}/` — static, cached in `UniverseCache`.
+nonisolated struct ESIPlanet: Codable, Sendable {
+    let name: String
+    let planetId: Int
+    let systemId: Int
+    let typeId: Int
 }
 
 nonisolated struct ESIStation: Codable, Sendable {
