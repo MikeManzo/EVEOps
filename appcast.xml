@@ -3,30 +3,22 @@
     <channel>
         <title>EVEOps</title>
         <item>
-            <title>0.9.11.2</title>
-            <pubDate>Thu, 03 Sep 2026 14:21:41 -0400</pubDate>
-            <sparkle:version>135</sparkle:version>
-            <sparkle:shortVersionString>0.9.11.2</sparkle:shortVersionString>
+            <title>0.9.11.3</title>
+            <pubDate>Thu, 03 Sep 2026 19:59:01 -0400</pubDate>
+            <sparkle:version>136</sparkle:version>
+            <sparkle:shortVersionString>0.9.11.3</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<p>Quality-of-life features</p>
-<ul>
-<li>Command palette (⌘K): a fuzzy quick-switcher over all ~50 navigation sections, with recents, quick actions (Settings, Add Character, Refresh), and live EVE name lookup via /universe/ids/ that jumps to the market window or opens Dotlan/zKillboard.</li>
-<li>Standard macOS menu + keyboard shortcuts: a new AppCommands scene adds an EVEOps/File/Go/Window/Help menu and wires ⌘K, ⌘R, ⌘0, ⌘[/⌘], ⌘1–9, ⌘N and ⌘, (the app previously had no menu bar and zero shortcuts).</li>
-<li>Last-viewed section is remembered across launches (plus a couple of filter toggles), instead of always resetting to the Dashboard.</li>
-<li>Unified refresh &amp; freshness UI:  new shared RefreshButton, live &quot;Updated 3m ago&quot; label, .autoRefresh(every:) and .periodicTick(every:) modifiers, adopted across the main daily-use screens.</li>
-<li>Stale-while-revalidate loading: LoadingStateView now keeps cached content on screen with a thin progress strip (and an optional skeleton) instead of flashing a full-screen spinner on every navigation.</li>
-<li>Launch update check is now unconditional: it no longer depends on the &quot;automatic checks&quot; toggle, so an available version is found on every launch.</li>
-<li>Update notifications are reliable and actionable: posted from didFindValidUpdate (not just the gentle-reminder hook), carrying an &quot;Install Update&quot; action button, and checkForUpdates() now brings the app forward so the Sparkle window isn&#x27;t buried.</li>
-<li>The menu-bar &quot;Update available&quot; banner dismisses the popover and launches the installer, with a clearer &quot;Install&quot; affordance.</li>
-</ul>
-<p>Reliability &amp; performance</p>
-<ul>
-<li>ESI response cache persisted to disk: the ETag cache is now mirrored to Caches/EVEOps/ and restored before the first prefetch, so relaunch serves fresh data instantly and revalidates the rest with cheap 304s.</li>
-<li>Shared cached image loader: a drop-in CachedAsyncImage (memory + disk) replaced all 130 AsyncImage call sites across 42 files, removing portrait/icon flicker and re-downloads.</li>
-<li>Better error handling</li>
-<li>First VoiceOver pass: labels/values/hidden-decoration added to the toolbar buttons, status/reauth banners, LoadingStateView states, the sidebar (portraits, pilot switcher, reauth, calendar badge), the command palette rows, the Dashboard hero card, and the Sovereignty score bars and Route-risk pill.</li>
+            <description><![CDATA[<ul>
+<li>Exploration Codex: a new Universe screen for Ghost Sites (all four Covert Research Facility tiers) and Sleeper Caches (Limited / Standard / Superior). Pick a site on the left and a resizable click-to-inspect pane on the right.  Lays out its security band, defenses, mechanics, severity-graded hazards, tactics and recommended ships. Loot values are cross-referenced live so the reference is always current.</li>
+<li>Readiness check: reads the signed-in character&#x27;s Hacking / Archaeology / Astrometrics levels and active implants and gives each site a Ready / Marginal / Under-skilled verdict, with specific advice (&quot;train Hacking to V&quot;, &quot;fit a virus-coherence implant&quot;). The verdict also shows on every row in the list.</li>
+<li>Ghost Site response timer: start it the moment you land; it counts down the response-fleet window and fires a notification (plus an optional Discord ping) at the 30-second warning and at zero.</li>
+<li>Blast survivability: enter your worst-case EHP and get a Survivable / Risky / Lethal call against each tier&#x27;s failed-hack explosion (≈1k in high-sec up to ≈7.6k in wormhole space).</li>
+<li>Live loot values: every drop is priced from Jita daily history, with an indicative consumables floor and the jackpot rolls flagged separately.</li>
+<li>Market signal: each site&#x27;s drops are scored against their 30-day median (Spiking / Elevated / In line / Soft) so you know when it&#x27;s worth selling, with per-item change badges and a price-history chart for the headline item.</li>
+<li>Run ledger: log a haul after a run (tick what dropped, valued live at Jita, optional duration); tracks run count, total ISK, best run and ISK/hour per site, stored on-device.</li>
+<li>Scouting: a live &quot;is it hot where I am&quot; read for your current system, alongside a jump to the Galaxy Map&#x27;s Kills mode.</li>
 </ul>]]></description>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.11.2/EVEOps.dmg" length="34534248" type="application/octet-stream" sparkle:edSignature="8c4RXf0IQ0waZiMdH1mSkHwSjpS/LRXJRF9unhdwYnhvk4J9NHImf+w9KyZwDnamJI/vMTdMMCKnghu/LsKQAQ=="/>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.11.3/EVEOps.dmg" length="35350273" type="application/octet-stream" sparkle:edSignature="AGLX6t4Kx47ogCNXpj/WCdB0U/J1ihdMC+R1XSm/jdIYak63eu6txEWHDeJsZsS7wnuztmWOq1xJBiBCil8sCw=="/>
         </item>
     </channel>
 </rss>
