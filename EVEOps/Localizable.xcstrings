@@ -22,8 +22,24 @@
     "·" : {
 
     },
+    "· %@" : {
+
+    },
     "· %lld unpriced" : {
 
+    },
+    "· kills as of %@" : {
+
+    },
+    "· routed around %lld hot system%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "· routed around %1$lld hot system%2$@"
+          }
+        }
+      }
     },
     "\"%@\"" : {
 
@@ -97,6 +113,16 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ - %2$lld run%3$@"
+          }
+        }
+      }
+    },
+    "%@ – %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ – %2$@"
           }
         }
       }
@@ -177,6 +203,16 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ / %2$@ SP"
+          }
+        }
+      }
+    },
+    "%@ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@"
           }
         }
       }
@@ -295,6 +331,9 @@
     "%@ unallocated" : {
 
     },
+    "%@ vs 30d" : {
+
+    },
     "%@, %lld years old" : {
       "localizations" : {
         "en" : {
@@ -372,6 +411,16 @@
     "%lld buy" : {
 
     },
+    "%lld campaigns · %@ structures" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld campaigns · %2$@ structures"
+          }
+        }
+      }
+    },
     "%lld colon%@" : {
       "localizations" : {
         "en" : {
@@ -398,6 +447,9 @@
     "%lld contracts" : {
 
     },
+    "%lld corps" : {
+
+    },
     "%lld days" : {
 
     },
@@ -406,6 +458,16 @@
     },
     "%lld effective" : {
 
+    },
+    "%lld entries · %@ – %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld entries · %2$@ – %3$@"
+          }
+        }
+      }
     },
     "%lld external → %@" : {
       "localizations" : {
@@ -511,6 +573,16 @@
     "%lld jumps (last hour)" : {
 
     },
+    "%lld kill%@/h" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld kill%2$@/h"
+          }
+        }
+      }
+    },
     "%lld kills" : {
 
     },
@@ -606,10 +678,33 @@
     "%lld sell" : {
 
     },
+    "%lld ship + pod kill%@ in the last hour" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld ship + pod kill%2$@ in the last hour"
+          }
+        }
+      }
+    },
+    "%lld ship jumps through %@ in the last hour" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld ship jumps through %2$@ in the last hour"
+          }
+        }
+      }
+    },
     "%lld ship kills" : {
 
     },
     "%lld ships killed" : {
+
+    },
+    "%lld shown" : {
 
     },
     "%lld skill%@ in queue" : {
@@ -812,6 +907,9 @@
     "+%lld" : {
 
     },
+    "+%lld more degraded" : {
+
+    },
     "+%lld more…" : {
 
     },
@@ -902,6 +1000,9 @@
     "30d" : {
 
     },
+    "30d median" : {
+
+    },
     "50–74% — Common" : {
 
     },
@@ -927,6 +1028,12 @@
 
     },
     "Accepted" : {
+
+    },
+    "Access" : {
+
+    },
+    "Accessible only" : {
 
     },
     "Account" : {
@@ -1015,6 +1122,9 @@
     "After remap" : {
 
     },
+    "Agent Access" : {
+
+    },
     "Agent Finder" : {
 
     },
@@ -1048,6 +1158,9 @@
     "All active" : {
 
     },
+    "All alliances" : {
+
+    },
     "All Divisions" : {
 
     },
@@ -1067,6 +1180,9 @@
 
     },
     "All training" : {
+
+    },
+    "Alliance" : {
 
     },
     "Alliances" : {
@@ -1165,6 +1281,9 @@
     "As %@, you can invite pilots and assign their fleet role." : {
 
     },
+    "as of %@" : {
+
+    },
     "Assay" : {
 
     },
@@ -1180,10 +1299,19 @@
     "Assets" : {
 
     },
+    "Attacker details not published for this campaign." : {
+
+    },
     "Attacker Frequency" : {
 
     },
+    "ATTACKERS" : {
+
+    },
     "Attackers (%lld)" : {
+
+    },
+    "Attackers %@" : {
 
     },
     "Attributes" : {
@@ -1223,6 +1351,9 @@
 
     },
     "Avoid Systems" : {
+
+    },
+    "Avoid systems with more than" : {
 
     },
     "Awarded" : {
@@ -1283,6 +1414,9 @@
 
     },
     "BPC" : {
+
+    },
+    "Breakdown" : {
 
     },
     "Browse skills on the right and tap + to add them to your plan." : {
@@ -1359,6 +1493,9 @@
 
     },
     "Categories" : {
+
+    },
+    "Category" : {
 
     },
     "CCP requires logging in through their own launcher — this just opens it for you." : {
@@ -1697,6 +1834,9 @@
     "Could not load model" : {
 
     },
+    "Couldn't load sovereignty" : {
+
+    },
     "Coverage Tiers" : {
 
     },
@@ -1710,6 +1850,9 @@
 
     },
     "Current constellation" : {
+
+    },
+    "Current price vs the 30-day median (%@). Above the norm shows red, below shows green." : {
 
     },
     "Current Rank" : {
@@ -1794,6 +1937,12 @@
     "Default location" : {
 
     },
+    "Defender %@" : {
+
+    },
+    "DEGRADED" : {
+
+    },
     "Delete" : {
 
     },
@@ -1816,6 +1965,9 @@
 
     },
     "Destination" : {
+
+    },
+    "details" : {
 
     },
     "Details" : {
@@ -1896,6 +2048,16 @@
     "Effective hit points by damage type (all layers combined)" : {
 
     },
+    "Effective standing %@ ≥ required %@ (via %@)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Effective standing %1$@ ≥ required %2$@ (via %3$@)"
+          }
+        }
+      }
+    },
     "ehp" : {
 
     },
@@ -1936,6 +2098,19 @@
 
     },
     "ESI aggregates, ~1h delayed" : {
+
+    },
+    "ESI error budget: %lld left — resets %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "ESI error budget: %1$lld left — resets %2$@"
+          }
+        }
+      }
+    },
+    "ESI routes" : {
 
     },
     "ESI Server" : {
@@ -1982,6 +2157,9 @@
 
     },
     "EVE Servers Online" : {
+
+    },
+    "EVE Service Status" : {
 
     },
     "EVE: %@" : {
@@ -2042,6 +2220,9 @@
 
     },
     "Excluded from simulation" : {
+
+    },
+    "Executor: %@" : {
 
     },
     "Exp: %@" : {
@@ -2212,6 +2393,9 @@
     "Floor (muted) = 17 + implants. Bright segment = remap points added." : {
 
     },
+    "Flow" : {
+
+    },
     "Frequency Key" : {
 
     },
@@ -2371,6 +2555,16 @@
     "Import plan from clipboard" : {
 
     },
+    "in %@ · out %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "in %1$@ · out %2$@"
+          }
+        }
+      }
+    },
     "In Discord, open the channel's settings → Integrations → Webhooks → New Webhook, then Copy Webhook URL." : {
 
     },
@@ -2393,6 +2587,15 @@
     "In Progress" : {
 
     },
+    "IN PROGRESS" : {
+
+    },
+    "In progress — ends %@" : {
+
+    },
+    "In progress — started %@" : {
+
+    },
     "In Queue (#%lld)" : {
 
     },
@@ -2400,6 +2603,12 @@
 
     },
     "Inactive" : {
+
+    },
+    "Incident: %@" : {
+
+    },
+    "Include ADM ≥ 4" : {
 
     },
     "Includes universe data, resolved names, and ESI responses. All data re-fetches automatically." : {
@@ -2631,6 +2840,12 @@
     "Level" : {
 
     },
+    "Level 1 agents have no standing requirement" : {
+
+    },
+    "Level 1 agents have no standing requirement." : {
+
+    },
     "Liabilities" : {
 
     },
@@ -2715,10 +2930,19 @@
     "Loading ship database…" : {
 
     },
+    "Loading sovereignty data…" : {
+
+    },
     "Loading star map..." : {
 
     },
+    "Loading structures…" : {
+
+    },
     "Loading textures…" : {
+
+    },
+    "Loading the sovereignty map…" : {
 
     },
     "Loading warzone control…" : {
@@ -2794,6 +3018,12 @@
 
     },
     "Mails" : {
+
+    },
+    "MAINTENANCE" : {
+
+    },
+    "Maintenance in progress: %@" : {
 
     },
     "Manage all your characters and corporations.\nTrack assets, skills, industry, contracts, and more." : {
@@ -2896,6 +3126,16 @@
     "Near end of life" : {
 
     },
+    "Needs %@ effective standing for a level %lld agent — you have %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Needs %1$@ effective standing for a level %2$lld agent — you have %3$@"
+          }
+        }
+      }
+    },
     "Net" : {
 
     },
@@ -2926,7 +3166,20 @@
     "Next Job" : {
 
     },
+    "Next maintenance %@: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Next maintenance %1$@: %2$@"
+          }
+        }
+      }
+    },
     "Next Skill" : {
+
+    },
+    "Next window %@" : {
 
     },
     "Next: %@" : {
@@ -2939,6 +3192,9 @@
 
     },
     "No 3D model available" : {
+
+    },
+    "No active campaigns" : {
 
     },
     "No active market orders" : {
@@ -2983,6 +3239,9 @@
     "No flags" : {
 
     },
+    "No holdings data" : {
+
+    },
     "No implants" : {
 
     },
@@ -3005,6 +3264,9 @@
 
     },
     "No jump clones" : {
+
+    },
+    "No kills in the last hour" : {
 
     },
     "No Liability Payments" : {
@@ -3091,6 +3353,9 @@
     "No stations match your filters" : {
 
     },
+    "No structures match the current filter." : {
+
+    },
     "No systems found" : {
 
     },
@@ -3130,10 +3395,16 @@
     "Not enough kills with recorded fitting information." : {
 
     },
+    "Not enough recent history" : {
+
+    },
     "not in queue" : {
 
     },
     "Not Now" : {
+
+    },
+    "Not published for this campaign." : {
 
     },
     "Not Responded" : {
@@ -3146,6 +3417,9 @@
 
     },
     "Note: if an implant is not detected, its floor may show slightly low. The allocations (+10 / +4 / +0) are always correct regardless." : {
+
+    },
+    "Nothing to show" : {
 
     },
     "Notification" : {
@@ -3271,6 +3545,9 @@
     "Origin:" : {
 
     },
+    "OTHER STRUCTURES HERE" : {
+
+    },
     "Outstanding" : {
 
     },
@@ -3359,6 +3636,9 @@
 
     },
     "Price History" : {
+
+    },
+    "Price Trend (%@)" : {
 
     },
     "Prices move — check back later, or redeem manually for an item's use value rather than resale profit." : {
@@ -3580,6 +3860,9 @@
     "Route" : {
 
     },
+    "Route around recent kills" : {
+
+    },
     "Route Planner" : {
 
     },
@@ -3617,6 +3900,9 @@
 
     },
     "Scanning…" : {
+
+    },
+    "Scheduled %@" : {
 
     },
     "Schematic #%lld" : {
@@ -3875,6 +4161,9 @@
     "Ship" : {
 
     },
+    "ship + pod kills in the last hour" : {
+
+    },
     "SHIP FIT SIM ENGINE" : {
 
     },
@@ -3909,6 +4198,9 @@
 
     },
     "Show Dock Icon" : {
+
+    },
+    "Show only agents your current effective standing lets you talk to" : {
 
     },
     "Show skill points" : {
@@ -4001,6 +4293,9 @@
     "Sort: %@" : {
 
     },
+    "Sovereignty" : {
+
+    },
     "SP" : {
 
     },
@@ -4074,6 +4369,9 @@
     "Started %@ ago" : {
 
     },
+    "Starts %@" : {
+
+    },
     "Startup" : {
 
     },
@@ -4099,6 +4397,9 @@
 
     },
     "Status" : {
+
+    },
+    "status.eveonline.com" : {
 
     },
     "Storage" : {
@@ -4132,6 +4433,9 @@
 
     },
     "System" : {
+
+    },
+    "SYSTEM" : {
 
     },
     "System Default" : {
@@ -4171,6 +4475,9 @@
     "The on-device model is still initializing. Check back shortly." : {
 
     },
+    "The sovereignty map returned nothing." : {
+
+    },
     "Theme" : {
 
     },
@@ -4178,6 +4485,9 @@
 
     },
     "Thera is a wormhole system with dozens of daily connections to K-space. Pochven is Triglavian-controlled space with its own wormhole network. Both offer shortcuts across the galaxy — but wormholes are unstable and expire." : {
+
+    },
+    "There are no sovereignty campaigns running right now." : {
 
     },
     "This character has never used a neural remap." : {
@@ -4354,10 +4664,16 @@
     "Update Standing" : {
 
     },
+    "updated %@" : {
+
+    },
     "Updated %@ ago" : {
 
     },
     "Use local textures" : {
+
+    },
+    "Uses EVE's hourly kill map. Origin and destination are never skipped, even if hot." : {
 
     },
     "Uses the on-device Apple Intelligence to analyze your financial and skill training data. All processing is local — no data leaves your Mac." : {
@@ -4425,6 +4741,15 @@
 
     },
     "Volume" : {
+
+    },
+    "VULNERABILITY WINDOW" : {
+
+    },
+    "Vulnerable %@" : {
+
+    },
+    "Vulnerable now — ends %@" : {
 
     },
     "Waiting for login…" : {
@@ -4500,6 +4825,9 @@
 
     },
     "You are here" : {
+
+    },
+    "You can accept missions from this agent." : {
 
     },
     "You can already fly this ship!" : {

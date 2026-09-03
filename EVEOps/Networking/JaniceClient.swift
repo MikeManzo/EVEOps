@@ -63,7 +63,7 @@ actor JaniceClient {
         let config = URLSessionConfiguration.default
         config.httpAdditionalHeaders = [
             "Accept": "application/json",
-            "User-Agent": "EVEOps macOS App"
+            "User-Agent": HTTPClientInfo.userAgent
         ]
         session = URLSession(configuration: config)
     }

@@ -42,7 +42,7 @@ actor EVEManifestClient: EVEManifestFetching {
     func fetchCurrentBuild() async throws -> String {
         guard let url = URL(string: Self.buildVersionURL) else { throw EVEManifestError.badURL }
         var request = URLRequest(url: url)
-        request.setValue("EVEOps macOS", forHTTPHeaderField: "User-Agent")
+        request.setValue(HTTPClientInfo.userAgent, forHTTPHeaderField: "User-Agent")
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse, http.statusCode == 200,
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
@@ -61,7 +61,7 @@ actor EVEManifestClient: EVEManifestFetching {
             throw EVEManifestError.badURL
         }
         var request = URLRequest(url: url)
-        request.setValue("EVEOps macOS", forHTTPHeaderField: "User-Agent")
+        request.setValue(HTTPClientInfo.userAgent, forHTTPHeaderField: "User-Agent")
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse, http.statusCode == 200,
               let text = String(data: data, encoding: .utf8)
@@ -75,7 +75,7 @@ actor EVEManifestClient: EVEManifestFetching {
     func fetchResFileIndex(hashPath: String) async throws -> [ResourceManifestEntry] {
         guard let url = URL(string: Self.binaryBase + hashPath) else { throw EVEManifestError.badURL }
         var request = URLRequest(url: url)
-        request.setValue("EVEOps macOS", forHTTPHeaderField: "User-Agent")
+        request.setValue(HTTPClientInfo.userAgent, forHTTPHeaderField: "User-Agent")
         let (bytes, response) = try await URLSession.shared.bytes(for: request)
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
             throw EVEManifestError.http((response as? HTTPURLResponse)?.statusCode ?? -1)

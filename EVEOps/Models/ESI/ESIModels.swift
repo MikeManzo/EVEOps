@@ -687,6 +687,52 @@ nonisolated struct ESISystemJumps: Codable, Sendable {
     let systemId: Int
 }
 
+// MARK:  Sovereignty
+
+/// One entry from GET /sovereignty/map/ — who holds a given solar system.
+nonisolated struct ESISovereigntyMapEntry: Codable, Sendable {
+    let systemId: Int
+    let allianceId: Int?
+    let corporationId: Int?
+    let factionId: Int?
+}
+
+/// An active or upcoming sovereignty campaign from GET /sovereignty/campaigns/.
+nonisolated struct ESISovereigntyCampaign: Codable, Sendable, Identifiable {
+    let campaignId: Int
+    let structureId: Int
+    let solarSystemId: Int
+    let constellationId: Int
+    let eventType: String        // tcu_defense | ihub_defense | station_defense | station_freeport
+    let startTime: Date
+    let defenderId: Int?
+    let defenderScore: Double?
+    let attackersScore: Double?
+    let participants: [Participant]?
+
+    struct Participant: Codable, Sendable, Identifiable {
+        let allianceId: Int
+        let score: Double
+        var id: Int { allianceId }
+    }
+
+    var id: Int { campaignId }
+}
+
+/// A claimed sovereignty structure (TCU / Infrastructure Hub) from GET /sovereignty/structures/.
+nonisolated struct ESISovereigntyStructure: Codable, Sendable, Identifiable {
+    let structureId: Int
+    let structureTypeId: Int
+    let allianceId: Int
+    let solarSystemId: Int
+    /// Activity Defense Multiplier, 1.0–6.0. Higher = harder to attack.
+    let vulnerabilityOccupancyLevel: Double?
+    let vulnerableStartTime: Date?
+    let vulnerableEndTime: Date?
+
+    var id: Int { structureId }
+}
+
 // MARK:  Market Orders
 
 nonisolated struct ESIMarketOrder: Codable, Sendable, Identifiable {

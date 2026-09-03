@@ -310,15 +310,17 @@ struct FinancesView: View {
         // Tab content
         Picker("View", selection: $selectedTab) {
             Text("Journal (\(finance.journal.count))").tag(0)
+            Text("Breakdown").tag(4)
             Text("Transactions (\(finance.transactions.count))").tag(1)
             Text("Market Orders (\(finance.marketOrders.count))").tag(2)
             Text("Loyalty Points (\(finance.loyaltyPoints.count))").tag(3)
         }
         .pickerStyle(.segmented)
-        .frame(maxWidth: 600)
+        .frame(maxWidth: 640)
 
         switch selectedTab {
         case 0: journalSection(finance.journal)
+        case 4: breakdownSection(finance.journal)
         case 1: transactionSection(finance.transactions)
         case 2: marketOrdersSection(finance.marketOrders)
         case 3: loyaltyPointsSection(finance.loyaltyPoints)
@@ -476,6 +478,124 @@ struct FinancesView: View {
                 Text(EVEFormatters.dateFormatter.string(from: entry.date))
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+    }
+
+    // MARK:  Breakdown
+
+    private struct WalletFlowDatum: Identifiable {
+        let flow: String          // "Income" or "Expenses"
+        let categoryLabel: String
+        let amount: Double
+        var id: String { flow + "·" + categoryLabel }
+    }
+
+    @ViewBuilder
+    private func breakdownSection(_ journal: [ESIWalletJournalEntry]) -> some View {
+        if journal.isEmpty {
+            Text("No journal entries")
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, minHeight: 100)
+        } else {
+            let bd = WalletBreakdown(journal: journal)
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 12) {
+                    breakdownStat("Income", bd.totalIncome, .green)
+                    breakdownStat("Expenses", -bd.totalExpense, .red)
+                    breakdownStat("Net", bd.net, bd.net >= 0 ? .green : .red)
+                }
+
+                if let earliest = bd.earliest, let latest = bd.latest {
+                    Text("\(bd.entryCount) entries · \(EVEFormatters.dateFormatter.string(from: earliest)) – \(EVEFormatters.dateFormatter.string(from: latest))")
+                        .font(.caption2).foregroundStyle(.tertiary)
+                }
+
+                let cats = bd.categories.map(\.category)
+                Chart(flowData(bd)) { row in
+                    BarMark(
+                        x: .value("Flow", row.flow),
+                        y: .value("ISK", row.amount)
+                    )
+                    .foregroundStyle(by: .value("Category", row.categoryLabel))
+                }
+                .chartForegroundStyleScale(domain: cats.map(\.label), range: cats.map(\.color))
+                .chartYAxis {
+                    AxisMarks { value in
+                        AxisGridLine()
+                        AxisValueLabel {
+                            if let d = value.as(Double.self) {
+                                Text(d.formatted(.number.notation(.compactName))).font(.caption2)
+                            }
+                        }
+                    }
+                }
+                .chartLegend(position: .bottom, spacing: 8)
+                .frame(height: 240)
+                .padding(12)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+
+                VStack(spacing: 1) {
+                    ForEach(bd.categories) { summary in
+                        breakdownRow(summary, maxGross: bd.categories.first?.gross ?? 1)
+                    }
+                }
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+            }
+        }
+    }
+
+    private func flowData(_ bd: WalletBreakdown) -> [WalletFlowDatum] {
+        var rows: [WalletFlowDatum] = []
+        for summary in bd.categories {
+            if summary.income > 0 {
+                rows.append(WalletFlowDatum(flow: "Income", categoryLabel: summary.category.label, amount: summary.income))
+            }
+            if summary.expense > 0 {
+                rows.append(WalletFlowDatum(flow: "Expenses", categoryLabel: summary.category.label, amount: summary.expense))
+            }
+        }
+        return rows
+    }
+
+    private func breakdownStat(_ title: String, _ value: Double, _ color: Color) -> some View {
+        VStack(spacing: 4) {
+            Text(title).font(.caption).foregroundStyle(.secondary)
+            Text(EVEFormatters.formatISKShort(value))
+                .font(.title3.bold().monospacedDigit())
+                .foregroundStyle(color)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
+    }
+
+    private func breakdownRow(_ summary: WalletCategorySummary, maxGross: Double) -> some View {
+        VStack(spacing: 4) {
+            HStack(spacing: 8) {
+                Circle().fill(summary.category.color).frame(width: 8, height: 8)
+                Text(summary.category.label).font(.subheadline)
+                Text("\(summary.count)x").font(.caption2).foregroundStyle(.tertiary)
+                Spacer()
+                Text((summary.net >= 0 ? "+" : "") + EVEFormatters.formatISKShort(summary.net))
+                    .font(.subheadline.bold().monospacedDigit())
+                    .foregroundStyle(summary.net >= 0 ? .green : .red)
+            }
+            HStack(spacing: 6) {
+                GeometryReader { geo in
+                    let frac = maxGross > 0 ? summary.gross / maxGross : 0
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(.quaternary).frame(height: 4)
+                        Capsule().fill(summary.category.color.opacity(0.8))
+                            .frame(width: max(2, geo.size.width * frac), height: 4)
+                    }
+                }
+                .frame(height: 4)
+                Text("in \(EVEFormatters.formatISKShort(summary.income)) · out \(EVEFormatters.formatISKShort(summary.expense))")
+                    .font(.caption2).foregroundStyle(.tertiary)
+                    .fixedSize()
             }
         }
         .padding(.horizontal, 12)
@@ -1083,5 +1203,24 @@ struct FinanceAIInsightCard: View {
             generationError = "Unable to generate insight. Try again later."
         }
         isGenerating = false
+    }
+}
+
+// MARK:  Wallet Category Colours
+
+private extension WalletCategory {
+    var color: Color {
+        switch self {
+        case .bountiesMissions: return .green
+        case .market:           return .blue
+        case .industry:         return .orange
+        case .contracts:        return .purple
+        case .planetary:        return .mint
+        case .insurance:        return .teal
+        case .corporation:      return .indigo
+        case .feesTaxes:        return .red
+        case .transfers:        return .cyan
+        case .other:            return .gray
+        }
     }
 }

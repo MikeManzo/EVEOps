@@ -118,6 +118,7 @@ struct ResolvedAgent: Identifiable {
     var jumpCount: Int?
     var constellationName: String?
     var regionName: String?
+    var access: AgentAccessResult?
     var id: Int { agent.agentID }
 
     var displayName: String   { name     ?? "Agent \(agent.agentID)" }
@@ -143,6 +144,14 @@ struct AgentFinderView: View {
     @State private var dbError: String? = nil
     @State private var availableDivisions: [(id: Int, name: String)] = []
     @State private var availableFactions: [(id: Int, name: String, shortName: String)] = []
+
+    // Standing-based access (from the selected character's standings + social skills)
+    @State private var standingsLoaded = false
+    @State private var standingSkills = StandingSkills()
+    @State private var factionStandings: [Int: Double] = [:]
+    @State private var corpStandings: [Int: Double] = [:]
+    @State private var agentStandings: [Int: Double] = [:]
+    @State private var onlyAccessible = false
 
     // Faction logo cache (pre-loaded so Picker can use them synchronously)
     @State private var factionImages: [Int: NSImage] = [:]
@@ -194,12 +203,16 @@ struct AgentFinderView: View {
         .task {
             await startDatabase()
         }
-        .onChange(of: typeFilter)     { _, _ in divisionFilter = nil; triggerSearch() }
-        .onChange(of: levelFilter)    { _, _ in triggerSearch() }
-        .onChange(of: secFilter)      { _, _ in triggerSearch() }
-        .onChange(of: divisionFilter) { _, _ in triggerSearch() }
-        .onChange(of: factionFilter)  { _, _ in triggerSearch() }
-        .onChange(of: sortOrder)      { _, _ in resolvedAgents = sortedAgents(resolvedAgents) }
+        .task(id: accountManager.selectedCharacterID) {
+            await loadStandings()
+        }
+        .onChange(of: typeFilter)      { _, _ in divisionFilter = nil; triggerSearch() }
+        .onChange(of: levelFilter)     { _, _ in triggerSearch() }
+        .onChange(of: secFilter)       { _, _ in triggerSearch() }
+        .onChange(of: divisionFilter)  { _, _ in triggerSearch() }
+        .onChange(of: factionFilter)   { _, _ in triggerSearch() }
+        .onChange(of: onlyAccessible)  { _, _ in triggerSearch() }
+        .onChange(of: sortOrder)       { _, _ in resolvedAgents = sortedAgents(resolvedAgents) }
     }
 
     // MARK: Left Panel
@@ -313,6 +326,20 @@ struct AgentFinderView: View {
                         .controlSize(.small)
                     }
                 }
+
+                if standingsLoaded {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Standing")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                        Toggle(isOn: $onlyAccessible) {
+                            Text("Accessible only").font(.caption)
+                        }
+                        .toggleStyle(.checkbox)
+                        .controlSize(.small)
+                        .help("Show only agents your current effective standing lets you talk to")
+                    }
+                }
             }
         }
         .padding(.horizontal, 16)
@@ -419,6 +446,9 @@ struct AgentFinderView: View {
                         if let sec = agent.securityStatus {
                             agentSecBadge(sec)
                         }
+                        if let access = agent.access {
+                            agentAccessBadge(access)
+                        }
                     }
                     Text(agent.displayCorp).font(.caption2).foregroundStyle(.tertiary).lineLimit(1)
                 }
@@ -516,6 +546,57 @@ struct AgentFinderView: View {
         }
     }
 
+    // MARK: Standings
+
+    private func loadStandings() async {
+        guard let account = accountManager.selectedAccount,
+              let token = try? await accountManager.validToken(for: account) else {
+            standingsLoaded = false
+            return
+        }
+        let charID = account.characterID
+
+        let standings: [ESIStanding]? = try? await ESIClient.shared.fetch(
+            "/characters/\(charID)/standings/", token: token)
+        let skillsResp: ESISkillsResponse? = try? await ESIClient.shared.fetch(
+            "/characters/\(charID)/skills/", token: token)
+
+        guard let standings else { standingsLoaded = false; return }
+
+        var fac: [Int: Double] = [:]
+        var corp: [Int: Double] = [:]
+        var agent: [Int: Double] = [:]
+        for s in standings {
+            switch s.fromType {
+            case "faction":  fac[s.fromId]  = s.standing
+            case "npc_corp": corp[s.fromId] = s.standing
+            case "agent":    agent[s.fromId] = s.standing
+            default: break
+            }
+        }
+        factionStandings = fac
+        corpStandings    = corp
+        agentStandings   = agent
+        standingSkills   = skillsResp.map { StandingSkills(skills: $0.skills) } ?? StandingSkills()
+        standingsLoaded  = true
+        triggerSearch()
+    }
+
+    private func computeAccess(
+        for agent: AgentDataManager.SDEAgent,
+        corpFactions: [Int: Int]
+    ) -> AgentAccessResult {
+        let factionID = corpFactions[agent.corporationID]
+        return AgentAccess.evaluate(
+            level: agent.level,
+            factionBase: factionID.flatMap { factionStandings[$0] },
+            corpBase: corpStandings[agent.corporationID],
+            agentBase: agentStandings[agent.agentID],
+            skills: standingSkills,
+            pirateFaction: factionID.map { AgentAccess.pirateFactionIDs.contains($0) } ?? false
+        )
+    }
+
     private func loadFactionImages() async {
         // ESI /universe/factions/ gives each faction's corporation_id,
         // which is the correct key for the EVE image server logo.
@@ -588,11 +669,27 @@ struct AgentFinderView: View {
             factionID: factionFilter,
             locatorOnly: typeFilter.isLocatorMode
         )
-        totalFiltered = filtered.count
+
+        // 1b. Standing-based access (needs the character's standings + social skills)
+        let corpFactions = standingsLoaded ? await AgentDataManager.shared.corpFactions : [:]
+        var accessByAgent: [Int: AgentAccessResult] = [:]
+        if standingsLoaded {
+            for a in filtered {
+                accessByAgent[a.agentID] = computeAccess(for: a, corpFactions: corpFactions)
+            }
+        }
+        let visible = (onlyAccessible && standingsLoaded)
+            ? filtered.filter { accessByAgent[$0.agentID]?.canAccess ?? false }
+            : filtered
+        totalFiltered = visible.count
 
         // Take top 50 by level descending (highest quality first before jump sort)
-        let candidates = Array(filtered.sorted { $0.level > $1.level }.prefix(50))
-        var working = candidates.map { ResolvedAgent(agent: $0) }
+        let candidates = Array(visible.sorted { $0.level > $1.level }.prefix(50))
+        var working = candidates.map { a -> ResolvedAgent in
+            var r = ResolvedAgent(agent: a)
+            r.access = accessByAgent[a.agentID]
+            return r
+        }
         resolvedAgents = working
 
         // 2. Resolve station → system in parallel
@@ -655,7 +752,7 @@ struct AgentFinderView: View {
 
         // 4. Apply security filter now that we have security status
         working = working.filter { secFilter.matches($0.securityStatus) }
-        totalFiltered = secFilter == .any ? filtered.count : working.count
+        totalFiltered = secFilter == .any ? visible.count : working.count
         resolvedAgents = working
 
         // 5. Calculate jump counts
@@ -790,6 +887,11 @@ struct AgentDetailView: View {
             infoRow("Agent ID",    "\(agent.agent.agentID)")
             infoRow("Corp ID",     "\(agent.agent.corporationID)")
 
+            if let access = agent.access {
+                Divider()
+                accessSection(access)
+            }
+
             Divider()
             Label("Location", systemImage: "location.fill")
                 .font(.subheadline.bold()).foregroundStyle(.blue)
@@ -814,6 +916,42 @@ struct AgentDetailView: View {
             Text(label).font(.caption).foregroundStyle(.tertiary).frame(width: 90, alignment: .trailing)
             Text(value).font(.caption).foregroundStyle(.secondary)
         }
+    }
+
+    @ViewBuilder
+    private func accessSection(_ access: AgentAccessResult) -> some View {
+        Label("Agent Access", systemImage: access.canAccess ? "checkmark.shield.fill" : "lock.shield.fill")
+            .font(.subheadline.bold())
+            .foregroundStyle(access.canAccess ? .green : .orange)
+
+        if access.level <= 1 {
+            Text("Level 1 agents have no standing requirement.")
+                .font(.caption).foregroundStyle(.secondary)
+        } else {
+            infoRow("Required", String(format: "%.1f", access.requiredStanding))
+            infoRow("Effective", String(format: "%.2f", access.effectiveStanding))
+            if access.hasStandingData {
+                infoRow("Best via", "\(access.basis.rawValue) \(String(format: "%+.2f", access.baseStanding))")
+            } else {
+                infoRow("Best via", "No standing on record")
+            }
+            if access.skillLevel > 0 {
+                infoRow("Skill", "\(access.skillName) \(romanNumeral(access.skillLevel))")
+            }
+            if access.canAccess {
+                Text("You can accept missions from this agent.")
+                    .font(.caption).foregroundStyle(.green)
+            } else {
+                Text("Raise your effective standing by \(String(format: "%.2f", access.gap)) to unlock — via \(access.basis == .neutral ? "any relevant faction, corp or agent" : access.basis.rawValue.lowercased()) standing"
+                     + (access.skillLevel < 5 ? ", or by training \(access.skillName)." : "."))
+                    .font(.caption).foregroundStyle(.orange)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private func romanNumeral(_ n: Int) -> String {
+        ["0", "I", "II", "III", "IV", "V"][max(0, min(5, n))]
     }
 
     // MARK: Autopilot
@@ -849,6 +987,29 @@ func agentSecBadge(_ status: Double) -> some View {
         .foregroundStyle(agentSecColor(status))
         .padding(.horizontal, 7).padding(.vertical, 3)
         .background(agentSecColor(status).opacity(0.15), in: Capsule())
+}
+
+@ViewBuilder
+func agentAccessBadge(_ access: AgentAccessResult) -> some View {
+    if access.canAccess {
+        Label("Access", systemImage: "checkmark.circle.fill")
+            .labelStyle(.iconOnly)
+            .font(.caption)
+            .foregroundStyle(.green)
+            .help(access.level <= 1
+                  ? "Level 1 agents have no standing requirement"
+                  : "Effective standing \(String(format: "%.2f", access.effectiveStanding)) ≥ required \(String(format: "%.1f", access.requiredStanding)) (via \(access.basis.rawValue.lowercased()))")
+    } else {
+        HStack(spacing: 3) {
+            Image(systemName: "lock.fill").font(.system(size: 9))
+            Text("+\(String(format: "%.1f", access.gap))")
+                .font(.caption2.bold().monospacedDigit())
+        }
+        .foregroundStyle(.orange)
+        .padding(.horizontal, 5).padding(.vertical, 1)
+        .background(.orange.opacity(0.15), in: Capsule())
+        .help("Needs \(String(format: "%.1f", access.requiredStanding)) effective standing for a level \(access.level) agent — you have \(String(format: "%.2f", access.effectiveStanding))")
+    }
 }
 
 func agentJumpBadge(_ jumps: Int) -> some View {

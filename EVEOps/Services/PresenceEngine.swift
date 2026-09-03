@@ -257,7 +257,7 @@ actor PresenceEngine {
             return true
         }
         var request = URLRequest(url: url)
-        request.setValue("EVEOps macOS App", forHTTPHeaderField: "User-Agent")
+        request.setValue(HTTPClientInfo.userAgent, forHTTPHeaderField: "User-Agent")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.timeoutInterval = 15
 

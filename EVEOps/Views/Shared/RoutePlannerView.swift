@@ -31,6 +31,12 @@ struct RoutePlannerView: View {
     @State private var route: [RouteSystem] = []
     @State private var isCalculating = false
     @State private var errorMessage: String?
+
+    // Route-danger overlay (ESI system_kills / system_jumps, refreshed hourly by CCP)
+    @State private var avoidDanger = false
+    @State private var dangerThreshold = 5
+    @State private var dangerSnapshotAt: Date?
+    @State private var autoAvoidedCount = 0
     @State private var autopilotMessage: String?
     @State private var isSettingAutopilot = false
     @State private var theraConnections: [EVEScoutConnection] = []
@@ -176,6 +182,10 @@ struct RoutePlannerView: View {
                     }
                 }
 
+                Divider()
+
+                dangerAvoidanceControls
+
                 if let errorMessage {
                     HStack(spacing: 6) {
                         Image(systemName: "exclamationmark.triangle.fill")
@@ -191,6 +201,37 @@ struct RoutePlannerView: View {
         } label: {
             Label("Route Planner", systemImage: "map.fill")
         }
+    }
+
+    // MARK:  Danger Avoidance
+
+    private var dangerAvoidanceControls: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Toggle(isOn: $avoidDanger) {
+                Label("Route around recent kills", systemImage: "flame.fill")
+                    .font(.caption.weight(.medium))
+            }
+            .toggleStyle(.checkbox)
+
+            if avoidDanger {
+                HStack(spacing: 6) {
+                    Text("Avoid systems with more than")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Stepper(value: $dangerThreshold, in: 0...50) {
+                        Text("\(dangerThreshold)")
+                            .font(.caption.bold().monospacedDigit())
+                            .frame(minWidth: 18)
+                    }
+                    .fixedSize()
+                    Text("ship + pod kills in the last hour")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Text("Uses EVE's hourly kill map. Origin and destination are never skipped, even if hot.")
+                    .font(.caption2).foregroundStyle(.tertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var calculatingView: some View {
@@ -214,11 +255,21 @@ struct RoutePlannerView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("\(originSystem?.name ?? "") → \(destinationSystem?.name ?? "")")
                             .font(.headline)
-                        Text("\(route.count - 1) jump\(route.count == 2 ? "" : "s")")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        HStack(spacing: 6) {
+                            Text("\(route.count - 1) jump\(route.count == 2 ? "" : "s")")
+                            if autoAvoidedCount > 0 {
+                                Text("· routed around \(autoAvoidedCount) hot system\(autoAvoidedCount == 1 ? "" : "s")")
+                                    .foregroundStyle(dangerColor(.high))
+                            }
+                            if let dangerSnapshotAt {
+                                Text("· kills as of \(dangerSnapshotAt, format: .relative(presentation: .named))")
+                            }
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                     }
                     Spacer()
+                    routeRiskSummary
                     securitySummary
 
                     if accountManager.selectedAccount != nil {
@@ -285,6 +336,36 @@ struct RoutePlannerView: View {
             .padding(.horizontal, 7)
             .padding(.vertical, 3)
             .background(color.opacity(0.15), in: Capsule())
+    }
+
+    // MARK:  Route Risk
+
+    @ViewBuilder
+    private var routeRiskSummary: some View {
+        let totalKills = route.reduce(0) { $0 + $1.danger.combatKills }
+        let peak = route.max { $0.danger.combatKills < $1.danger.combatKills }
+        let level = DangerLevel(combatKills: peak?.danger.combatKills ?? 0)
+        let color = dangerColor(level)
+
+        HStack(spacing: 5) {
+            Image(systemName: totalKills == 0 ? "checkmark.shield.fill" : "flame.fill")
+                .font(.caption2)
+            Text(totalKills == 0 ? "Clear" : "\(totalKills) kill\(totalKills == 1 ? "" : "s")/h")
+                .font(.caption2.bold().monospacedDigit())
+        }
+        .foregroundStyle(totalKills == 0 ? Color.green : color)
+        .padding(.horizontal, 7)
+        .padding(.vertical, 3)
+        .background((totalKills == 0 ? Color.green : color).opacity(0.15), in: Capsule())
+        .help(riskTooltip(totalKills: totalKills, peak: peak))
+    }
+
+    private func riskTooltip(totalKills: Int, peak: RouteSystem?) -> String {
+        guard totalKills > 0, let peak, peak.danger.combatKills > 0 else {
+            return "No ship or pod kills reported on this route in the last hour."
+        }
+        return "\(totalKills) ship + pod kills across the route in the last hour. "
+             + "Busiest: \(peak.name) (\(peak.danger.shipKills) ship, \(peak.danger.podKills) pod)."
     }
 
     // MARK:  Autopilot
@@ -505,10 +586,25 @@ struct RoutePlannerView: View {
         isCalculating = true
         errorMessage = nil
         route = []
+        autoAvoidedCount = 0
+
+        // Pull the hourly kill/jump map first — used to annotate every hop and,
+        // optionally, to steer the route away from hot systems. Best-effort: a
+        // failure here just means the route has no danger overlay.
+        let danger = try? await SystemDangerService.shared.snapshot()
+        dangerSnapshotAt = danger?.fetchedAt
+
+        var avoidIds = Set(avoidSystems.map(\.id))
+        if avoidDanger, let danger {
+            let hot = danger.hostileSystems(threshold: dangerThreshold)
+                .subtracting([origin.id, destination.id])
+            autoAvoidedCount = hot.subtracting(avoidIds).count
+            avoidIds.formUnion(hot)
+        }
 
         do {
             let systemIds: [Int]
-            if avoidSystems.isEmpty {
+            if avoidIds.isEmpty {
                 // Fast path — ESI's own routing endpoint, unchanged from before.
                 systemIds = try await ESIClient.shared.fetch(
                     "/route/\(origin.id)/\(destination.id)/",
@@ -520,7 +616,7 @@ struct RoutePlannerView: View {
                 systemIds = try await RoutePathfinder.findRoute(
                     from: origin.id,
                     to: destination.id,
-                    avoiding: Set(avoidSystems.map(\.id)),
+                    avoiding: avoidIds,
                     flag: flag
                 )
             }
@@ -533,7 +629,8 @@ struct RoutePlannerView: View {
                         return (index, RouteSystem(
                             id: systemId,
                             name: solarSystem?.name ?? "System #\(systemId)",
-                            securityStatus: solarSystem?.securityStatus ?? 0.0
+                            securityStatus: solarSystem?.securityStatus ?? 0.0,
+                            danger: danger?.danger(for: systemId) ?? .none
                         ))
                     }
                 }
@@ -558,12 +655,14 @@ struct RouteSystem {
     let id: Int
     let name: String
     let securityStatus: Double
+    var danger: SystemDanger = .none
 
     var displaySecurity: String {
         String(format: "%.1f", max(0.0, securityStatus))
     }
 
     var securityColor: Color { eveSecurityColor(securityStatus) }
+    var dangerLevel: DangerLevel { DangerLevel(combatKills: danger.combatKills) }
 }
 
 // MARK:  System Search Field
@@ -864,6 +963,29 @@ struct RouteSystemRow: View {
                     .font(.subheadline)
                     .fontWeight(isFirst || isLast ? .semibold : .regular)
 
+                if system.danger.combatKills > 0 {
+                    HStack(spacing: 3) {
+                        Image(systemName: "flame.fill").font(.system(size: 9))
+                        Text("\(system.danger.combatKills)")
+                            .font(.caption2.bold().monospacedDigit())
+                    }
+                    .foregroundStyle(dangerColor(system.dangerLevel))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(dangerColor(system.dangerLevel).opacity(0.15), in: Capsule())
+                    .help(rowDangerTooltip(system))
+                }
+
+                if system.danger.shipJumps >= 1000 {
+                    HStack(spacing: 3) {
+                        Image(systemName: "arrow.left.arrow.right").font(.system(size: 8))
+                        Text(system.danger.shipJumps.formatted(.number.notation(.compactName)))
+                            .font(.caption2.monospacedDigit())
+                    }
+                    .foregroundStyle(.tertiary)
+                    .help("\(system.danger.shipJumps) ship jumps through \(system.name) in the last hour")
+                }
+
                 Spacer()
 
                 if isFirst {
@@ -1015,6 +1137,23 @@ private struct TheraConnectionRow: View {
 }
 
 // MARK:  Helpers
+
+private func dangerColor(_ level: DangerLevel) -> Color {
+    switch level {
+    case .quiet:    return .green
+    case .elevated: return .yellow
+    case .high:     return .orange
+    case .extreme:  return .red
+    }
+}
+
+private func rowDangerTooltip(_ system: RouteSystem) -> String {
+    let d = system.danger
+    var parts = ["\(system.name): \(d.shipKills) ship / \(d.podKills) pod kill\(d.podKills == 1 ? "" : "s") in the last hour"]
+    if d.npcKills > 0 { parts.append("\(d.npcKills) NPC kills") }
+    if d.shipJumps > 0 { parts.append("\(d.shipJumps) ship jumps") }
+    return parts.joined(separator: " · ")
+}
 
 private func eveSecurityColor(_ status: Double) -> Color {
     switch status {

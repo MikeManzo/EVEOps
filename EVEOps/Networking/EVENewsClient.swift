@@ -41,7 +41,7 @@ actor EVENewsClient {
         let config = URLSessionConfiguration.default
         config.httpAdditionalHeaders = [
             "Accept":     "application/rss+xml, application/xml, text/xml",
-            "User-Agent": "EVEOps macOS App"
+            "User-Agent": HTTPClientInfo.userAgent
         ]
         session = URLSession(configuration: config)
     }

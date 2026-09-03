@@ -12,7 +12,7 @@ import SwiftUI
 
 // MARK:  Map Color Mode
 
-private enum MapColorMode: Hashable { case region, security }
+private enum MapColorMode: Hashable { case region, security, danger }
 
 // MARK:  Private Models
 
@@ -70,6 +70,10 @@ struct GalaxyMapView: View {
     @State private var colorMode: MapColorMode = .region
     @State private var constellationSecMap: [Int: Double] = [:]
     @State private var isLoadingSecMap = false
+    // Kill heat: constellationId → total ship + pod kills across its systems in the last hour
+    @State private var constellationDangerMap: [Int: Int] = [:]
+    @State private var isLoadingDangerMap = false
+    @State private var dangerMapAt: Date?
 
     // Route feature
     @State private var isRouteMode = false
@@ -142,6 +146,9 @@ struct GalaxyMapView: View {
             if newMode == .security && constellationSecMap.isEmpty && !isLoadingSecMap {
                 Task { await loadSecurityMap() }
             }
+            if newMode == .danger && !isLoadingDangerMap {
+                Task { await loadDangerMap() }
+            }
         }
     }
 
@@ -174,15 +181,21 @@ struct GalaxyMapView: View {
                 Picker("Color Mode", selection: $colorMode) {
                     Text("Region").tag(MapColorMode.region)
                     Text("Security").tag(MapColorMode.security)
+                    Text("Kills").tag(MapColorMode.danger)
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
                 .controlSize(.small)
-                .frame(width: 130)
+                .frame(width: 190)
                 .overlay(alignment: .trailing) {
-                    if isLoadingSecMap && colorMode == .security {
+                    if (isLoadingSecMap && colorMode == .security) || (isLoadingDangerMap && colorMode == .danger) {
                         ProgressView().controlSize(.mini).offset(x: -2)
                     }
+                }
+
+                if colorMode == .danger, let dangerMapAt {
+                    Text("as of \(dangerMapAt, format: .relative(presentation: .named))")
+                        .font(.caption2).foregroundStyle(.tertiary)
                 }
 
                 Divider().frame(height: 16)
@@ -323,6 +336,7 @@ struct GalaxyMapView: View {
                 }.map(\.id))
                 let mode = colorMode
                 let secMap = constellationSecMap
+                let dangerMap = constellationDangerMap
                 let routePath = routeConstellationPath
                 let routeOrigin = routeOriginId
                 let routeDest = routeDestId
@@ -422,6 +436,8 @@ struct GalaxyMapView: View {
                         color = .green
                     } else if mode == .security {
                         color = secMap[pt.id].map { securityColor($0) } ?? Color(white: 0.45)
+                    } else if mode == .danger {
+                        color = dangerMap[pt.id].map { killHeatColor($0) } ?? Color(white: 0.28)
                     } else {
                         color = regionColor(pt.regionId)
                     }
@@ -633,6 +649,7 @@ struct GalaxyMapView: View {
         let mmH: CGFloat = 84
         let pts = points
         let secMap = constellationSecMap
+        let dangerMap = constellationDangerMap
         let mode = colorMode
         let hlId = currentConstellationId
         let routePath = routeConstellationPath
@@ -690,6 +707,8 @@ struct GalaxyMapView: View {
                     col = .orange
                 } else if mode == .security, let sec = secMap[pt.id] {
                     col = securityColor(sec)
+                } else if mode == .danger, let kills = dangerMap[pt.id] {
+                    col = killHeatColor(kills)
                 } else {
                     col = regionColor(pt.regionId)
                 }
@@ -820,6 +839,16 @@ struct GalaxyMapView: View {
 
             Label("\(pt.systemCount) solar system\(pt.systemCount == 1 ? "" : "s")", systemImage: "sun.max.fill")
                 .font(.caption2).foregroundStyle(.secondary)
+
+            if dangerMapAt != nil {
+                let kills = constellationDangerMap[pt.id] ?? 0
+                Label(
+                    kills == 0 ? "No kills in the last hour" : "\(kills) ship + pod kill\(kills == 1 ? "" : "s") in the last hour",
+                    systemImage: kills == 0 ? "checkmark.shield.fill" : "flame.fill"
+                )
+                .font(.caption2)
+                .foregroundStyle(kills == 0 ? Color.green : killHeatColor(kills))
+            }
 
             if let adjIds = adjacentConstellations[pt.id] {
                 Label("\(adjIds.count) constellation connection\(adjIds.count == 1 ? "" : "s")", systemImage: "point.3.connected.trianglepath.dotted")
@@ -1059,6 +1088,19 @@ struct GalaxyMapView: View {
         return Color(hue: hue, saturation: 0.65, brightness: 0.95)
     }
 
+    /// Colour for a constellation's total ship + pod kills in the last hour.
+    /// Bands are wider than the per-system ones in `DangerLevel` because a
+    /// constellation aggregates several systems.
+    private func killHeatColor(_ kills: Int) -> Color {
+        switch kills {
+        case ..<1:    return Color(white: 0.30)
+        case 1..<5:   return .green
+        case 5..<20:  return .yellow
+        case 20..<60: return .orange
+        default:      return .red
+        }
+    }
+
     // MARK:  Data Loading
 
     private func loadData() async {
@@ -1164,6 +1206,28 @@ struct GalaxyMapView: View {
 
         constellationSecMap = secMap
         isLoadingSecMap = false
+    }
+
+    /// Sums the hourly ship + pod kills of each constellation's systems.
+    /// Called whenever the user switches to the "Kills" colour mode.
+    private func loadDangerMap() async {
+        guard !isLoadingDangerMap else { return }
+        isLoadingDangerMap = true
+        defer { isLoadingDangerMap = false }
+
+        guard let snapshot = try? await SystemDangerService.shared.snapshot() else { return }
+
+        var map: [Int: Int] = [:]
+        map.reserveCapacity(points.count)
+        for pt in points {
+            var total = 0
+            for sysId in pt.systemIds {
+                total += snapshot.danger(for: sysId).combatKills
+            }
+            if total > 0 { map[pt.id] = total }
+        }
+        constellationDangerMap = map
+        dangerMapAt = snapshot.fetchedAt
     }
 
     /// Loads stargate adjacency for a constellation on first select.

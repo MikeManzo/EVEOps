@@ -50,6 +50,12 @@ struct AssetDetailView: View {
                         marketValueSection
                     }
 
+                    // Recent price trend (Jita) — hidden automatically when the item has no history
+                    MarketMiniHistory(
+                        typeId: asset.typeId,
+                        currentPrice: jitaSellPrice ?? fuzzworkPrice?.sellMin
+                    )
+
                     // Type attributes
                     if let typeInfo {
                         typeAttributesSection(typeInfo)

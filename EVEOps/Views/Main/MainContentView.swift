@@ -28,7 +28,9 @@ struct MainContentView: View {
                 .safeAreaInset(edge: .top) {
                     VStack(spacing: 0) {
                         if !apiStatus.isReachable {
-                            APIStatusBanner(message: apiStatus.statusMessage)
+                            APIStatusBanner(message: apiStatus.statusMessage, severity: .unreachable)
+                        } else if let service = apiStatus.serviceBannerText {
+                            APIStatusBanner(message: service, severity: .service)
                         }
                         if accountManager.hasAccountsNeedingReauth {
                             ReauthBanner(characterNames: accountManager.reauthNeededCharacterNames)
@@ -145,6 +147,8 @@ struct MainContentView: View {
                 GalaxyMapView()
             case .incursions:
                 IncursionsView()
+            case .sovereignty:
+                SovereigntyView()
             case .careerAgents:
                 AgentFinderView()
             case .fleetManager:
@@ -211,10 +215,17 @@ struct ReauthBanner: View {
 
 struct APIStatusBanner: View {
     let message: String
+    var severity: Severity = .unreachable
+
+    enum Severity { case unreachable, service }
+
+    private var icon: String {
+        severity == .unreachable ? "wifi.exclamationmark" : "exclamationmark.triangle.fill"
+    }
 
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: "wifi.exclamationmark")
+            Image(systemName: icon)
                 .foregroundStyle(.orange)
             Text(message.isEmpty ? "Unable to reach EVE servers" : message)
                 .font(.callout)

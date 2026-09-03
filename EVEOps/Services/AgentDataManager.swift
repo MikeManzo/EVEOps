@@ -183,7 +183,7 @@ actor AgentDataManager {
     private func fetchCSV(_ filename: String, session: URLSession) async throws -> Data {
         guard let url = URL(string: Self.baseURL + filename) else { throw URLError(.badURL) }
         var req = URLRequest(url: url)
-        req.setValue("EVEOps macOS", forHTTPHeaderField: "User-Agent")
+        req.setValue(HTTPClientInfo.userAgent, forHTTPHeaderField: "User-Agent")
         let (data, response) = try await session.data(for: req)
         guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw URLError(.badServerResponse) }
         return data

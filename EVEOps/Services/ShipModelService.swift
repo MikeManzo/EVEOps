@@ -161,7 +161,7 @@ actor ShipModelService {
             throw AlbedoError.downloadFailed(0)
         }
         var req = URLRequest(url: cdnURL)
-        req.setValue("EVEOps macOS", forHTTPHeaderField: "User-Agent")
+        req.setValue(HTTPClientInfo.userAgent, forHTTPHeaderField: "User-Agent")
         let (rawData, resp) = try await URLSession.shared.data(for: req)
         guard let http = resp as? HTTPURLResponse, http.statusCode == 200 else {
             throw AlbedoError.downloadFailed((resp as? HTTPURLResponse)?.statusCode ?? -1)
@@ -210,7 +210,7 @@ actor ShipModelService {
     private func fetchModelIndex() async throws -> [String] {
         guard let url = URL(string: Self.modelApiURL) else { throw ShipModelError.badURL }
         var req = URLRequest(url: url)
-        req.setValue("EVEOps macOS", forHTTPHeaderField: "User-Agent")
+        req.setValue(HTTPClientInfo.userAgent, forHTTPHeaderField: "User-Agent")
         req.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
         let (data, resp) = try await URLSession.shared.data(for: req)
         guard let http = resp as? HTTPURLResponse, http.statusCode == 200 else {
@@ -227,7 +227,7 @@ actor ShipModelService {
         if FileManager.default.fileExists(atPath: dest.path) { return dest }
         guard let url = URL(string: Self.modelRawBase + filename) else { throw ShipModelError.badURL }
         var req = URLRequest(url: url)
-        req.setValue("EVEOps macOS", forHTTPHeaderField: "User-Agent")
+        req.setValue(HTTPClientInfo.userAgent, forHTTPHeaderField: "User-Agent")
         let (data, resp) = try await URLSession.shared.data(for: req)
         guard let http = resp as? HTTPURLResponse, http.statusCode == 200 else {
             throw ShipModelError.http((resp as? HTTPURLResponse)?.statusCode ?? -1)
@@ -302,7 +302,7 @@ actor ShipModelService {
         } else {
             guard let url = URL(string: Self.assocURL) else { throw ShipModelError.badURL }
             var req = URLRequest(url: url)
-            req.setValue("EVEOps macOS", forHTTPHeaderField: "User-Agent")
+            req.setValue(HTTPClientInfo.userAgent, forHTTPHeaderField: "User-Agent")
             let (data, resp) = try await URLSession.shared.data(for: req)
             guard let http = resp as? HTTPURLResponse, http.statusCode == 200,
                   let str = String(data: data, encoding: .utf8) else {
@@ -369,7 +369,7 @@ actor ShipModelService {
     private func fetchCurrentBuild() async throws -> String {
         guard let url = URL(string: Self.buildVersionURL) else { throw ShipModelError.badURL }
         var req = URLRequest(url: url)
-        req.setValue("EVEOps macOS", forHTTPHeaderField: "User-Agent")
+        req.setValue(HTTPClientInfo.userAgent, forHTTPHeaderField: "User-Agent")
         let (data, resp) = try await URLSession.shared.data(for: req)
         guard let http = resp as? HTTPURLResponse, http.statusCode == 200,
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
@@ -388,7 +388,7 @@ actor ShipModelService {
             throw ShipModelError.badURL
         }
         var manifestReq = URLRequest(url: manifestURL)
-        manifestReq.setValue("EVEOps macOS", forHTTPHeaderField: "User-Agent")
+        manifestReq.setValue(HTTPClientInfo.userAgent, forHTTPHeaderField: "User-Agent")
         let (manifestData, manifestResp) = try await URLSession.shared.data(for: manifestReq)
         guard let mHttp = manifestResp as? HTTPURLResponse, mHttp.statusCode == 200,
               let manifestText = String(data: manifestData, encoding: .utf8)
@@ -405,7 +405,7 @@ actor ShipModelService {
 
         guard let resURL = URL(string: Self.binaryBase + hash) else { throw ShipModelError.badURL }
         var resReq = URLRequest(url: resURL)
-        resReq.setValue("EVEOps macOS", forHTTPHeaderField: "User-Agent")
+        resReq.setValue(HTTPClientInfo.userAgent, forHTTPHeaderField: "User-Agent")
         let (bytes, resResp) = try await URLSession.shared.bytes(for: resReq)
         guard let rHttp = resResp as? HTTPURLResponse, rHttp.statusCode == 200 else {
             throw AlbedoError.downloadFailed((resResp as? HTTPURLResponse)?.statusCode ?? -1)

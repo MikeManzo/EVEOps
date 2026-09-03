@@ -11,10 +11,12 @@
 import SwiftUI
 
 struct DiagnosticPaneView: View {
+    @Environment(APIStatusMonitor.self) private var apiStatus
     @State private var selectedCategory: String? = nil
     @State private var minLevel: LogEntry.Level = .debug
     @State private var searchText = ""
     @State private var autoScroll = true
+    @State private var showServiceStatus = true
     @State private var selectedEntries: Set<LogEntry.ID> = []
     @State private var expandedDays: Set<String> = {
         let f = DateFormatter()
@@ -59,8 +61,10 @@ struct DiagnosticPaneView: View {
         VStack(spacing: 0) {
             toolbar
             Divider()
+            serviceStatusBar
             logList
         }
+        .task { await apiStatus.checkServiceStatus() }
         .safeAreaInset(edge: .top, spacing: 0) {
             HStack {
                 Text("Diagnostic Logs")
@@ -136,6 +140,90 @@ struct DiagnosticPaneView: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
+    }
+
+    // MARK:  Service Status
+
+    @ViewBuilder
+    private var serviceStatusBar: some View {
+        let routeTotal = apiStatus.esiRoutesGreen + apiStatus.esiRoutesYellow + apiStatus.esiRoutesRed
+        DisclosureGroup(isExpanded: $showServiceStatus) {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 10) {
+                    labelValue("EVE reachable", apiStatus.isReachable ? "yes" : "no",
+                               apiStatus.isReachable ? .green : .red)
+                    if !apiStatus.statusDescription.isEmpty {
+                        labelValue("Status", apiStatus.statusDescription, indicatorColor(apiStatus.statusIndicator))
+                    }
+                    if routeTotal > 0 {
+                        labelValue("ESI routes",
+                                   "\(apiStatus.esiRoutesGreen)✓ \(apiStatus.esiRoutesYellow)! \(apiStatus.esiRoutesRed)✕",
+                                   apiStatus.esiRoutesRed > 0 ? .red : (apiStatus.esiRoutesYellow > 0 ? .yellow : .green))
+                    }
+                    labelValue("Error budget", "\(apiStatus.esiErrorBudgetRemain)",
+                               apiStatus.esiErrorBudgetRemain < 30 ? .orange : .secondary)
+                    Spacer()
+                    if let updated = apiStatus.serviceLastUpdated {
+                        Text("updated \(updated, format: .relative(presentation: .named))")
+                            .font(.system(size: 9)).foregroundStyle(.tertiary)
+                    }
+                }
+
+                if !apiStatus.degradedRoutes.isEmpty {
+                    Text(apiStatus.degradedRoutes.prefix(10)
+                        .map { "\($0.status == "red" ? "✕" : "!") \($0.method.uppercased()) \($0.route)" }
+                        .joined(separator: "   "))
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(3)
+                }
+
+                if let m = apiStatus.maintenanceInProgress {
+                    Text("Maintenance in progress: \(m.name)")
+                        .font(.system(size: 10)).foregroundStyle(.orange)
+                } else if let m = apiStatus.nextMaintenance, let start = m.scheduledFor {
+                    Text("Next maintenance \(start, format: .relative(presentation: .named)): \(m.name)")
+                        .font(.system(size: 10)).foregroundStyle(.secondary)
+                }
+                ForEach(apiStatus.activeIncidents.prefix(3)) { inc in
+                    Text("Incident: \(inc.name)")
+                        .font(.system(size: 10)).foregroundStyle(.orange)
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+        } label: {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(apiStatus.isReachable && !apiStatus.hasServiceIssue ? Color.green : Color.orange)
+                    .frame(width: 7, height: 7)
+                Text("EVE Service Status")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .disclosureGroupStyle(.automatic)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 4)
+        .background(.primary.opacity(0.03))
+        Divider()
+    }
+
+    private func labelValue(_ label: String, _ value: String, _ color: Color) -> some View {
+        HStack(spacing: 4) {
+            Text(label).font(.system(size: 9)).foregroundStyle(.tertiary)
+            Text(value).font(.system(size: 10, weight: .medium).monospacedDigit()).foregroundStyle(color)
+        }
+    }
+
+    private func indicatorColor(_ indicator: String) -> Color {
+        switch indicator {
+        case "none": return .green
+        case "minor": return .yellow
+        case "major": return .orange
+        case "critical": return .red
+        default: return .secondary
+        }
     }
 
     // MARK:  Log List

@@ -135,7 +135,7 @@ actor SDEDataManager {
                 group.addTask {
                     guard let url = URL(string: baseURLString + file) else { return false }
                     var req = URLRequest(url: url)
-                    req.setValue("EVEOps macOS", forHTTPHeaderField: "User-Agent")
+                    req.setValue(HTTPClientInfo.userAgent, forHTTPHeaderField: "User-Agent")
 
                     do {
                         let (data, response) = try await session.data(for: req)
@@ -176,7 +176,7 @@ actor SDEDataManager {
         }
         var req = URLRequest(url: url)
         req.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
-        req.setValue("EVEOps macOS", forHTTPHeaderField: "User-Agent")
+        req.setValue(HTTPClientInfo.userAgent, forHTTPHeaderField: "User-Agent")
 
         guard let (data, _) = try? await URLSession.shared.data(for: req),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
