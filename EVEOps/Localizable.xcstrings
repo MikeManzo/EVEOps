@@ -41,6 +41,9 @@
         }
       }
     },
+    "›" : {
+
+    },
     "\"%@\"" : {
 
     },
@@ -160,6 +163,16 @@
         }
       }
     },
+    "%@ · %lld kills/h" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$lld kills/h"
+          }
+        }
+      }
+    },
     "%@ › %@" : {
       "localizations" : {
         "en" : {
@@ -210,12 +223,25 @@
         }
       }
     },
+    "%@ /u" : {
+
+    },
     "%@ %@" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ %2$@"
+          }
+        }
+      }
+    },
+    "%@ %@ / %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@ / %3$@"
           }
         }
       }
@@ -289,6 +315,9 @@
     "%@ attribute for " : {
 
     },
+    "%@ blast" : {
+
+    },
     "%@ buy" : {
 
     },
@@ -351,6 +380,9 @@
 
     },
     "%@/cycle" : {
+
+    },
+    "%@%%" : {
 
     },
     "%@x %@" : {
@@ -860,6 +892,9 @@
     "%lldj" : {
 
     },
+    "%lldm" : {
+
+    },
     "%lldm ago" : {
 
     },
@@ -1025,6 +1060,9 @@
 
     },
     "A contract status changed to: %@" : {
+
+    },
+    "A failed hack detonates the container for ≈ %@ omni damage." : {
 
     },
     "A new version of EVEOps is ready to install." : {
@@ -1213,6 +1251,9 @@
 
     },
     "Already Trained (%lld)" : {
+
+    },
+    "Also ping Discord at the warning and at zero" : {
 
     },
     "Analyzing asset spread…" : {
@@ -1858,6 +1899,9 @@
     "Couldn't load sovereignty" : {
 
     },
+    "Counts down %llds — the short end of the observed response window. Hit Start the moment you land. Treat 0:30 as your hard bail-out." : {
+
+    },
     "Coverage Tiers" : {
 
     },
@@ -1871,6 +1915,9 @@
 
     },
     "Current constellation" : {
+
+    },
+    "Current Jita average vs its 30-day median" : {
 
     },
     "Current price vs the 30-day median (%@). Above the norm shows red, below shows green." : {
@@ -1970,6 +2017,9 @@
           }
         }
       }
+    },
+    "DEFENSES" : {
+
     },
     "DEGRADED" : {
 
@@ -2095,6 +2145,9 @@
     "ehp" : {
 
     },
+    "EHP" : {
+
+    },
     "EM Cost" : {
 
     },
@@ -2196,6 +2249,9 @@
     "EVE Service Status" : {
 
     },
+    "EVE University wiki" : {
+
+    },
     "EVE: %@" : {
 
     },
@@ -2281,6 +2337,9 @@
 
     },
     "Expires in" : {
+
+    },
+    "Exploration Codex" : {
 
     },
     "Export" : {
@@ -2508,6 +2567,9 @@
     "Hangar is empty" : {
 
     },
+    "Haul value" : {
+
+    },
     "here" : {
 
     },
@@ -2666,6 +2728,9 @@
     "Incursions" : {
 
     },
+    "Indicative consumable value" : {
+
+    },
     "Individual Insights" : {
 
     },
@@ -2772,6 +2837,9 @@
 
     },
     "Janice Pricing" : {
+
+    },
+    "Jita" : {
 
     },
     "Jita (The Forge) best orders" : {
@@ -3021,6 +3089,12 @@
     "Location Overview" : {
 
     },
+    "Log a %@ run" : {
+
+    },
+    "Log a run" : {
+
+    },
     "Log in a character to enable jump-distance filtering" : {
 
     },
@@ -3151,6 +3225,9 @@
 
     },
     "Message" : {
+
+    },
+    "minutes" : {
 
     },
     "Missing skills and total training time shown at a glance" : {
@@ -3402,6 +3479,9 @@
     "No roles assigned" : {
 
     },
+    "No runs logged for this site yet. Log a haul after you run one to start tracking ISK per run and ISK per hour." : {
+
+    },
     "No saved fittings found" : {
 
     },
@@ -3486,6 +3566,9 @@
     "Not Responded" : {
 
     },
+    "Not started" : {
+
+    },
     "Not stocked here" : {
 
     },
@@ -3559,6 +3642,9 @@
 
     },
     "Open EVE Launcher to Update" : {
+
+    },
+    "Open Galaxy Map" : {
 
     },
     "Open in dedicated window" : {
@@ -3721,6 +3807,9 @@
 
     },
     "Price Trend (%@)" : {
+
+    },
+    "Prices" : {
 
     },
     "Prices move — check back later, or redeem manually for an item's use value rather than resale profit." : {
@@ -3921,10 +4010,16 @@
     "Required skills" : {
 
     },
+    "Requires a Discord webhook configured in Settings." : {
+
+    },
     "Research" : {
 
     },
     "Research Agents" : {
+
+    },
+    "Reset" : {
 
     },
     "Resets at local midnight" : {
@@ -3988,6 +4083,9 @@
 
     },
     "Save Fitting to EVE" : {
+
+    },
+    "Save run" : {
 
     },
     "Save to EVE" : {
@@ -4327,6 +4425,9 @@
     "Showing top %lld" : {
 
     },
+    "Sign in with a character to see live activity where you are." : {
+
+    },
     "Signal" : {
 
     },
@@ -4334,6 +4435,9 @@
 
     },
     "Singularity (Test)" : {
+
+    },
+    "Site family" : {
 
     },
     "Size" : {
@@ -4475,6 +4579,9 @@
     "Star" : {
 
     },
+    "Start" : {
+
+    },
     "Started" : {
 
     },
@@ -4515,6 +4622,9 @@
 
     },
     "status.eveonline.com" : {
+
+    },
+    "Stop" : {
 
     },
     "Storage" : {
@@ -4611,6 +4721,9 @@
     "There are no sovereignty campaigns running right now." : {
 
     },
+    "These are scannable signatures in %@. Pick a quiet pocket — the Galaxy Map's Kills mode and the Route Planner's ‘route around recent kills’ toggle shade systems by ship and pod kills in the last hour." : {
+
+    },
     "This character has never used a neural remap." : {
 
     },
@@ -4633,6 +4746,9 @@
 
     },
     "Timer" : {
+
+    },
+    "Timers, blast figures and loot tables are community estimates and shift with balance passes — verify in-game before you commit a ship." : {
 
     },
     "Titles" : {
@@ -4746,6 +4862,9 @@
     "Unit Price" : {
 
     },
+    "Unit prices are Jita daily averages. Loot is probabilistic — starred items are the jackpot rolls and are not summed. A full site is worth far more than the floor when it drops well." : {
+
+    },
     "Universe" : {
 
     },
@@ -4753,6 +4872,9 @@
 
     },
     "Unpackage the ship in-game to view its fitting." : {
+
+    },
+    "unpriced" : {
 
     },
     "Unread" : {
@@ -4795,6 +4917,9 @@
 
     },
     "Use local textures" : {
+
+    },
+    "Use the minimum-resist EHP from the Fitting Simulator's Defense panel. 'Survivable' means at least double the blast — headroom for rat fire while you warp." : {
 
     },
     "Uses EVE's hourly kill map. Origin and destination are never skipped, even if hot." : {
@@ -4954,6 +5079,9 @@
     "You are here" : {
 
     },
+    "You are in %@" : {
+
+    },
     "You can accept missions from this agent." : {
 
     },
@@ -5000,6 +5128,9 @@
 
     },
     "Your Stats" : {
+
+    },
+    "Your worst-case EHP" : {
 
     },
     "zKillboard" : {

@@ -215,6 +215,8 @@ struct MainContentView: View {
                 IncursionsView()
             case .sovereignty:
                 SovereigntyView()
+            case .explorationCodex:
+                ExplorationCodexView()
             case .careerAgents:
                 AgentFinderView()
             case .fleetManager:
