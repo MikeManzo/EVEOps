@@ -125,7 +125,7 @@ struct StandingRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            AsyncImage(url: iconURL) { image in
+            CachedAsyncImage(url: iconURL) { image in
                 image.resizable().scaledToFit()
             } placeholder: {
                 RoundedRectangle(cornerRadius: 6).fill(.quaternary)
@@ -184,7 +184,7 @@ struct FactionPopoverView: View {
         VStack(alignment: .leading, spacing: 12) {
             // Header: logo + name + standing
             HStack(spacing: 12) {
-                AsyncImage(url: EVEImageURL.corporationLogo(standing.fromId, size: 64)) { image in
+                CachedAsyncImage(url: EVEImageURL.corporationLogo(standing.fromId, size: 64)) { image in
                     image.resizable().scaledToFit()
                 } placeholder: {
                     RoundedRectangle(cornerRadius: 6).fill(.quaternary)
@@ -261,7 +261,7 @@ struct NpcCorpPopoverView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 12) {
-                AsyncImage(url: EVEImageURL.corporationLogo(standing.fromId, size: 64)) { image in
+                CachedAsyncImage(url: EVEImageURL.corporationLogo(standing.fromId, size: 64)) { image in
                     image.resizable().scaledToFit()
                 } placeholder: {
                     RoundedRectangle(cornerRadius: 6).fill(.quaternary)
@@ -332,7 +332,7 @@ struct AgentPopoverView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 12) {
-                AsyncImage(url: EVEImageURL.characterPortrait(standing.fromId, size: 64)) { image in
+                CachedAsyncImage(url: EVEImageURL.characterPortrait(standing.fromId, size: 64)) { image in
                     image.resizable().scaledToFit()
                 } placeholder: {
                     RoundedRectangle(cornerRadius: 6).fill(.quaternary)

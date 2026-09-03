@@ -15,7 +15,10 @@ struct MainContentView: View {
     @Environment(AccountManager.self) private var accountManager
     @Environment(APIStatusMonitor.self) private var apiStatus
     @Environment(\.scenePhase) private var scenePhase
-    @State private var selectedSection: NavigationSection? = .dashboard
+    /// Last-viewed section, restored across launches. `nil` (fresh install or all
+    /// characters removed) falls through to the Dashboard.
+    @AppStorage("nav.lastSection") private var selectedSection: NavigationSection?
+    @State private var showCommandPalette = false
 
     var body: some View {
         @Bindable var am = accountManager
@@ -43,13 +46,39 @@ struct MainContentView: View {
         .toolbar {
             ToolbarItem(placement: .automatic) {
                 Button {
+                    showCommandPalette = true
+                } label: {
+                    Image(systemName: "magnifyingglass")
+                }
+                .help("Quick switcher (⌘K)")
+                .accessibilityLabel("Quick switcher")
+            }
+            ToolbarItem(placement: .automatic) {
+                Button {
                     WindowService.shared.showSettings()
                 } label: {
                     Image(systemName: "gear")
                 }
+                .help("Settings")
+                .accessibilityLabel("Settings")
             }
         }
+        .sheet(isPresented: $showCommandPalette) {
+            CommandPaletteView(
+                selectedSection: $selectedSection,
+                onRun: handlePaletteAction,
+                dismiss: { showCommandPalette = false }
+            )
+            .environment(accountManager)
+        }
         .frame(minWidth: 900, minHeight: 600)
+        .task {
+            // Give the sidebar a visible selection on a cold launch when nothing
+            // was persisted yet.
+            if !accountManager.accounts.isEmpty && selectedSection == nil {
+                selectedSection = .dashboard
+            }
+        }
         .onChange(of: accountManager.accounts.count) {
             if accountManager.accounts.isEmpty {
                 selectedSection = nil
@@ -59,7 +88,7 @@ struct MainContentView: View {
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .background {
-                Task { await ESIClient.shared.pruneCache() }
+                Task { await ESIClient.shared.persistCache() }
                 DiagnosticLogStore.shared.flushNow()
             }
         }
@@ -70,6 +99,43 @@ struct MainContentView: View {
             guard let section else { return }
             selectedSection = section
             AppRouter.shared.pendingSection = nil
+        }
+        .onChange(of: AppRouter.shared.commandPaletteTick) { _, _ in
+            showCommandPalette = true
+        }
+        .onChange(of: AppRouter.shared.addCharacterTick) { _, _ in
+            Task { await accountManager.addAccount() }
+        }
+        .onChange(of: AppRouter.shared.sectionStep) { _, step in
+            guard step != 0 else { return }
+            stepSection(step)
+            AppRouter.shared.sectionStep = 0
+        }
+    }
+
+    /// Advance the selected section by `delta` positions through the sidebar's
+    /// declared order, wrapping at both ends.
+    private func stepSection(_ delta: Int) {
+        guard !accountManager.accounts.isEmpty else { return }
+        let all = NavigationSection.allCases
+        let current = selectedSection ?? .dashboard
+        guard let index = all.firstIndex(of: current) else {
+            selectedSection = .dashboard
+            return
+        }
+        selectedSection = all[(index + delta + all.count) % all.count]
+    }
+
+    private func handlePaletteAction(_ action: PaletteAction) {
+        switch action {
+        case .openSettings:
+            WindowService.shared.showSettings()
+        case .addCharacter:
+            Task { await accountManager.addAccount() }
+        case .refresh:
+            AppRouter.shared.requestRefresh()
+        case .diagnostics:
+            selectedSection = .diagnosticLogs
         }
     }
 
@@ -208,6 +274,8 @@ struct ReauthBanner: View {
         .padding(.vertical, 10)
         .background(.red.opacity(0.10))
         .transition(.move(edge: .top).combined(with: .opacity))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Re-authentication required for \(names)")
     }
 }
 
@@ -236,5 +304,7 @@ struct APIStatusBanner: View {
         .background(.orange.opacity(0.12))
         .transition(.move(edge: .top).combined(with: .opacity))
         .animation(.easeInOut(duration: 0.3), value: message)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(message.isEmpty ? "Unable to reach EVE servers" : message)
     }
 }

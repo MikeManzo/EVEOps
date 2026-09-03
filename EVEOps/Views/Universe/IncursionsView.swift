@@ -115,7 +115,7 @@ private struct IncursionRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            AsyncImage(url: EVEImageURL.corporationLogo(inc.factionId, size: 64)) { image in
+            CachedAsyncImage(url: EVEImageURL.corporationLogo(inc.factionId, size: 64)) { image in
                 image.resizable().scaledToFit()
             } placeholder: {
                 RoundedRectangle(cornerRadius: 8).fill(.quaternary)
@@ -295,7 +295,7 @@ private struct IncursionDetailPane: View {
 
     private var factionBox: some View {
         HStack(spacing: 12) {
-            AsyncImage(url: EVEImageURL.corporationLogo(inc.factionId, size: 128)) { $0.resizable().scaledToFit() }
+            CachedAsyncImage(url: EVEImageURL.corporationLogo(inc.factionId, size: 128)) { $0.resizable().scaledToFit() }
             placeholder: { RoundedRectangle(cornerRadius: 8).fill(.quaternary) }
             .frame(width: 48, height: 48).clipShape(RoundedRectangle(cornerRadius: 8))
             VStack(alignment: .leading, spacing: 2) {

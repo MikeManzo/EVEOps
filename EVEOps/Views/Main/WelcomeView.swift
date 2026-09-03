@@ -55,7 +55,7 @@ struct WelcomeView: View {
     private var shipBackdrop: some View {
         LazyVGrid(columns: columns, spacing: 4) {
             ForEach(showcaseShips, id: \.typeId) { ship in
-                AsyncImage(url: URL(string: "https://images.evetech.net/types/\(ship.typeId)/render?size=256")) { phase in
+                CachedAsyncImage(url: URL(string: "https://images.evetech.net/types/\(ship.typeId)/render?size=256")) { phase in
                     switch phase {
                     case .success(let image):
                         image
@@ -81,7 +81,7 @@ struct WelcomeView: View {
     private var welcomeContent: some View {
         VStack(spacing: 28) {
             // EVE Logo from the image server (Caldari State logo as a thematic stand-in)
-            AsyncImage(url: URL(string: "https://images.evetech.net/corporations/1000125/logo?size=128")) { phase in
+            CachedAsyncImage(url: URL(string: "https://images.evetech.net/corporations/1000125/logo?size=128")) { phase in
                 switch phase {
                 case .success(let image):
                     image
@@ -156,7 +156,7 @@ struct WelcomeView: View {
 
     private func factionLogo(corporationId: Int, name: String) -> some View {
         VStack(spacing: 4) {
-            AsyncImage(url: URL(string: "https://images.evetech.net/corporations/\(corporationId)/logo?size=64")) { phase in
+            CachedAsyncImage(url: URL(string: "https://images.evetech.net/corporations/\(corporationId)/logo?size=64")) { phase in
                 switch phase {
                 case .success(let image):
                     image

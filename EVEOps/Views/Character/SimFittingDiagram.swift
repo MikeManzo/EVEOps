@@ -80,7 +80,7 @@ struct SimFittingDiagram: View {
 
     private var shipHero: some View {
         ZStack(alignment: .bottomLeading) {
-            AsyncImage(url: EVEImageURL.typeRender(simState.shipTypeId ?? 0, size: 512)) { img in
+            CachedAsyncImage(url: EVEImageURL.typeRender(simState.shipTypeId ?? 0, size: 512)) { img in
                 img.resizable().aspectRatio(contentMode: .fill)
             } placeholder: {
                 Rectangle().fill(
@@ -344,7 +344,7 @@ struct SimSlotSocketView: View {
                         )
 
                     if let typeId = currentModuleTypeId {
-                        AsyncImage(url: EVEImageURL.typeIcon(typeId, size: 64)) { img in
+                        CachedAsyncImage(url: EVEImageURL.typeIcon(typeId, size: 64)) { img in
                             img.resizable().aspectRatio(contentMode: .fit)
                         } placeholder: {
                             RoundedRectangle(cornerRadius: 6).fill(.quaternary)
@@ -450,7 +450,7 @@ struct SimModuleDragPreview: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            AsyncImage(url: EVEImageURL.typeIcon(type.typeId, size: 64)) { img in
+            CachedAsyncImage(url: EVEImageURL.typeIcon(type.typeId, size: 64)) { img in
                 img.resizable().aspectRatio(contentMode: .fit)
             } placeholder: {
                 RoundedRectangle(cornerRadius: 6).fill(.quaternary)
@@ -514,7 +514,7 @@ struct SimModulePopover: View {
             } else if let t = moduleType, let typeId = liveTypeId {
                 // ── Header ────────────────────────────────────────────────
                 HStack(spacing: 12) {
-                    AsyncImage(url: EVEImageURL.typeIcon(typeId, size: 128)) { img in
+                    CachedAsyncImage(url: EVEImageURL.typeIcon(typeId, size: 128)) { img in
                         img.resizable().aspectRatio(contentMode: .fit)
                     } placeholder: {
                         RoundedRectangle(cornerRadius: 8).fill(.quaternary)

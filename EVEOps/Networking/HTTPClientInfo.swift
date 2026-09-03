@@ -19,7 +19,12 @@ import Foundation
 /// EVERef, EVE-Scout) which have the same expectation.
 enum HTTPClientInfo {
     /// e.g. `EVEOps/0.9.10.6.1 (+https://github.com/MikeManzo/EVEOps; build 42)`
-    static let userAgent: String = {
+    ///
+    /// `nonisolated` because it's an immutable string built once from `Bundle.main`
+    /// and read from every networking client's own actor / detached context. The
+    /// project defaults `static` members to `@MainActor` isolation, which this
+    /// (correctly) opts out of.
+    nonisolated static let userAgent: String = {
         let info    = Bundle.main.infoDictionary
         let version = (info?["CFBundleShortVersionString"] as? String) ?? "dev"
         let build   = (info?["CFBundleVersion"] as? String) ?? "0"

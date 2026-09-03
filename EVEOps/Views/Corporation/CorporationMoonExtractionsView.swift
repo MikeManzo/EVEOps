@@ -138,12 +138,7 @@ struct MoonExtractionRow: View {
             }
         }
         .padding(.vertical, 4)
-        .task {
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(60))
-                now = Date()
-            }
-        }
+        .periodicTick(every: 60) { now = Date() }
     }
 
     enum ExtractionState {

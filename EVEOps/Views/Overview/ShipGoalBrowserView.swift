@@ -377,7 +377,7 @@ struct ShipGoalBrowserView: View {
                 ForEach(searchResults, id: \.id) { result in
                     Button { selectShip(result.id, name: result.name) } label: {
                         HStack(spacing: 12) {
-                            AsyncImage(url: EVEImageURL.typeIcon(result.id, size: 64)) { phase in
+                            CachedAsyncImage(url: EVEImageURL.typeIcon(result.id, size: 64)) { phase in
                                 if let img = phase.image {
                                     img.resizable()
                                         .frame(width: 48, height: 48)
@@ -460,7 +460,7 @@ struct ShipGoalBrowserView: View {
     private func shipHeader(totalSP: Int, totalSecs: Double, completionDate: Date?) -> some View {
         HStack(spacing: 14) {
             if let id = selectedShipId {
-                AsyncImage(url: EVEImageURL.typeIcon(id, size: 128)) { phase in
+                CachedAsyncImage(url: EVEImageURL.typeIcon(id, size: 128)) { phase in
                     if let img = phase.image {
                         img.resizable()
                             .frame(width: 56, height: 56)
@@ -545,7 +545,7 @@ struct ShipGoalBrowserView: View {
         let secs = characterAttributes.map { trainingTime(entry, attrs: $0) } ?? 0.0
 
         return HStack(spacing: 10) {
-            AsyncImage(url: EVEImageURL.typeIcon(entry.skillId, size: 64)) { phase in
+            CachedAsyncImage(url: EVEImageURL.typeIcon(entry.skillId, size: 64)) { phase in
                 if let img = phase.image {
                     img.resizable().frame(width: 28, height: 28).clipShape(RoundedRectangle(cornerRadius: 4))
                 } else {
@@ -588,7 +588,7 @@ struct ShipGoalBrowserView: View {
 
     private func metRow(_ entry: PrereqEntry) -> some View {
         HStack(spacing: 10) {
-            AsyncImage(url: EVEImageURL.typeIcon(entry.skillId, size: 64)) { phase in
+            CachedAsyncImage(url: EVEImageURL.typeIcon(entry.skillId, size: 64)) { phase in
                 if let img = phase.image {
                     img.resizable().frame(width: 28, height: 28)
                         .clipShape(RoundedRectangle(cornerRadius: 4)).opacity(0.5)

@@ -133,7 +133,7 @@ struct CorpMarketOrderRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            AsyncImage(url: EVEImageURL.typeIcon(order.typeId, size: 64)) { image in
+            CachedAsyncImage(url: EVEImageURL.typeIcon(order.typeId, size: 64)) { image in
                 image.resizable()
             } placeholder: {
                 RoundedRectangle(cornerRadius: 4).fill(.quaternary)

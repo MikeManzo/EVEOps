@@ -9,6 +9,13 @@
 //
 
 import Foundation
+import OSLog
+
+/// Plain OSLog channel for the log store's own persistence failures. Deliberately
+/// not routed through `EVELogger` — that writes back into this store.
+private enum DiagStoreLog {
+    nonisolated static let shared = Logger(subsystem: "CitizenCoder.EVEOps", category: "diagnosticStore")
+}
 
 struct LogEntry: Identifiable, Sendable, Codable {
     let id: UUID
@@ -107,7 +114,9 @@ final class DiagnosticLogStore {
             )
             let data = try JSONEncoder().encode(snapshot)
             try data.write(to: url, options: .atomic)
-        } catch {}
+        } catch {
+            DiagStoreLog.shared.error("flushSync failed: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     func clear() {
@@ -130,7 +139,9 @@ final class DiagnosticLogStore {
                 )
                 let data = try JSONEncoder().encode(snapshot)
                 try data.write(to: url, options: .atomic)
-            } catch {}
+            } catch {
+                DiagStoreLog.shared.error("flush failed: \(error.localizedDescription, privacy: .public)")
+            }
         }
     }
 }

@@ -16,8 +16,15 @@ struct LoadingStateView<Content: View>: View {
     let isLoading: Bool
     let error: String?
     let isEmpty: Bool
+    /// When true, cached/previous content is already available: stay on it and
+    /// show only a thin top progress strip while refreshing, instead of a
+    /// full-screen spinner (stale-while-revalidate). Errors and empty states are
+    /// then the caller's responsibility to surface inline.
+    let hasContent: Bool
     let emptyMessage: String
     let loadingMessage: String
+    /// Show a redacted skeleton instead of a centered spinner on cold load.
+    let showsSkeleton: Bool
     let onRetry: (() -> Void)?
     /// Optional clickable link shown below the error text (e.g. a manual fix-it page the
     /// generic retry action can't reach). Rendered only when both label and URL are set.
@@ -29,8 +36,10 @@ struct LoadingStateView<Content: View>: View {
         isLoading: Bool,
         error: String? = nil,
         isEmpty: Bool = false,
+        hasContent: Bool = false,
         emptyMessage: String = "No data available",
         loadingMessage: String = "Loading...",
+        showsSkeleton: Bool = false,
         onRetry: (() -> Void)? = nil,
         errorLinkLabel: String? = nil,
         errorLinkURL: URL? = nil,
@@ -39,8 +48,10 @@ struct LoadingStateView<Content: View>: View {
         self.isLoading = isLoading
         self.error = error
         self.isEmpty = isEmpty
+        self.hasContent = hasContent
         self.emptyMessage = emptyMessage
         self.loadingMessage = loadingMessage
+        self.showsSkeleton = showsSkeleton
         self.onRetry = onRetry
         self.errorLinkLabel = errorLinkLabel
         self.errorLinkURL = errorLinkURL
@@ -49,13 +60,23 @@ struct LoadingStateView<Content: View>: View {
 
     var body: some View {
         Group {
-            if isLoading {
-                VStack(spacing: 12) {
-                    ProgressView()
-                    Text(loadingMessage)
-                        .foregroundStyle(.secondary)
+            if isLoading && hasContent {
+                // Stale-while-revalidate: keep showing what we have.
+                content()
+                    .overlay(alignment: .top) { refreshingStrip }
+            } else if isLoading {
+                if showsSkeleton {
+                    LoadingSkeleton()
+                } else {
+                    VStack(spacing: 12) {
+                        ProgressView()
+                        Text(loadingMessage)
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel(loadingMessage)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if !apiStatus.isReachable && (error != nil || isEmpty) {
                 apiUnreachableView
             } else if let error {
@@ -63,6 +84,7 @@ struct LoadingStateView<Content: View>: View {
                     Image(systemName: "exclamationmark.triangle")
                         .font(.largeTitle)
                         .foregroundStyle(.orange)
+                        .accessibilityHidden(true)
                     Text("Error")
                         .font(.headline)
                     Text(error)
@@ -80,19 +102,33 @@ struct LoadingStateView<Content: View>: View {
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel("Error: \(error)")
             } else if isEmpty {
                 VStack(spacing: 12) {
                     Image(systemName: "tray")
                         .font(.largeTitle)
                         .foregroundStyle(.secondary)
+                        .accessibilityHidden(true)
                     Text(emptyMessage)
                         .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(emptyMessage)
             } else {
                 content()
             }
         }
+    }
+
+    private var refreshingStrip: some View {
+        ProgressView()
+            .progressViewStyle(.linear)
+            .tint(.accentColor)
+            .frame(maxWidth: .infinity)
+            .transition(.opacity)
+            .accessibilityLabel("Refreshing")
     }
 
     private var apiUnreachableView: some View {
@@ -100,6 +136,7 @@ struct LoadingStateView<Content: View>: View {
             Image(systemName: "wifi.exclamationmark")
                 .font(.largeTitle)
                 .foregroundStyle(.orange)
+                .accessibilityHidden(true)
             Text(apiStatus.statusMessage.isEmpty ? "Unable to reach EVE servers" : apiStatus.statusMessage)
                 .font(.headline)
             Text("Data will refresh automatically when the connection is restored.")
@@ -108,5 +145,6 @@ struct LoadingStateView<Content: View>: View {
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityElement(children: .combine)
     }
 }

@@ -78,7 +78,7 @@ struct AssetDetailView: View {
 
     private var headerSection: some View {
         ZStack(alignment: .bottom) {
-            AsyncImage(url: EVEImageURL.typeRender(stationTypeId ?? asset.typeId, size: 1024)) { phase in
+            CachedAsyncImage(url: EVEImageURL.typeRender(stationTypeId ?? asset.typeId, size: 1024)) { phase in
                 if let image = phase.image {
                     image
                         .resizable()
@@ -91,7 +91,7 @@ struct AssetDetailView: View {
                         .fill(Color(white: 0.1))
                         .frame(maxWidth: .infinity, minHeight: 200, maxHeight: 200)
                         .overlay {
-                            AsyncImage(url: EVEImageURL.typeIcon(stationTypeId ?? asset.typeId, size: 256)) { iconPhase in
+                            CachedAsyncImage(url: EVEImageURL.typeIcon(stationTypeId ?? asset.typeId, size: 256)) { iconPhase in
                                 if let icon = iconPhase.image {
                                     icon.resizable()
                                         .interpolation(.high)

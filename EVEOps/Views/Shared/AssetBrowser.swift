@@ -82,10 +82,13 @@ struct AssetBrowser: View {
     let kind: Kind
 
     @Environment(AccountManager.self) private var accountManager
+    @AppStorage("backgroundPollInterval") private var pollInterval: Double = 300
     @State private var assets: [ResolvedAsset] = []
     @State private var assetByID: [Int: ResolvedAsset] = [:]
     @State private var sections: [AssetSection] = []
     @State private var isLoading = true
+    @State private var isRefreshing = false
+    @State private var lastRefresh: Date?
     @State private var error: String?
     @State private var searchText = ""
     @State private var groupMode: AssetGroupMode = .station
@@ -100,7 +103,14 @@ struct AssetBrowser: View {
     }
 
     var body: some View {
-        LoadingStateView(isLoading: isLoading, error: error, isEmpty: assets.isEmpty, emptyMessage: kind.emptyMessage) {
+        LoadingStateView(
+            isLoading: isLoading,
+            error: error,
+            isEmpty: assets.isEmpty,
+            hasContent: !assets.isEmpty,
+            emptyMessage: kind.emptyMessage,
+            onRetry: { Task { await refresh() } }
+        ) {
             HStack(spacing: 0) {
                 VStack(spacing: 0) {
                     toolbar
@@ -114,10 +124,14 @@ struct AssetBrowser: View {
             }
         }
         .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
+            HStack(spacing: 12) {
                 Text(kind.title)
                     .font(.largeTitle.bold())
                 Spacer()
+                RelativeTimestamp(date: lastRefresh)
+                RefreshButton(isRefreshing: isRefreshing) {
+                    Task { await refresh() }
+                }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
@@ -131,6 +145,10 @@ struct AssetBrowser: View {
             selectedAssetID = nil
             isLoading = true
             await loadAssets()
+        }
+        .autoRefresh(every: pollInterval) { await refresh() }
+        .onChange(of: AppRouter.shared.refreshTick) { _, _ in
+            Task { await refresh() }
         }
         .onChange(of: collapsedSections) { saveCollapsedSections() }
         .onChange(of: groupMode) {
@@ -239,7 +257,7 @@ struct AssetBrowser: View {
 
     private func assetRow(_ asset: ResolvedAsset) -> some View {
         HStack(spacing: 8) {
-            AsyncImage(url: EVEImageURL.typeIcon(asset.typeId, size: 64)) { phase in
+            CachedAsyncImage(url: EVEImageURL.typeIcon(asset.typeId, size: 64)) { phase in
                 if let image = phase.image {
                     image.resizable()
                         .frame(width: 28, height: 28)
@@ -338,9 +356,15 @@ struct AssetBrowser: View {
 
     // MARK:  Data loading
 
+    private func refresh() async {
+        isRefreshing = true
+        defer { isRefreshing = false }
+        await loadAssets()
+    }
+
     private func loadAssets() async {
         guard let account = accountManager.selectedAccount else { return }
-        isLoading = true
+        if assets.isEmpty { isLoading = true }
         do {
             let token = try await accountManager.validToken(for: account)
             let rawAssets: [ESIAsset] = try await ESIClient.shared.fetchPages(
@@ -386,6 +410,7 @@ struct AssetBrowser: View {
         } catch {
             self.error = error.localizedDescription
         }
+        lastRefresh = Date()
         isLoading = false
     }
 }

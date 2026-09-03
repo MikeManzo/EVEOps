@@ -44,7 +44,7 @@ struct ImplantDetailView: View {
                 .fill(Color(white: 0.1))
                 .frame(height: 200)
                 .overlay {
-                    AsyncImage(url: EVEImageURL.typeIcon(implant.typeId, size: 256)) { phase in
+                    CachedAsyncImage(url: EVEImageURL.typeIcon(implant.typeId, size: 256)) { phase in
                         if let image = phase.image {
                             image.resizable()
                                 .interpolation(.high)

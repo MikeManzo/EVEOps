@@ -134,7 +134,7 @@ struct StationDetailView: View {
     private var header: some View {
         ZStack(alignment: .bottomLeading) {
             // Station type render as banner
-            AsyncImage(url: EVEImageURL.typeRender(entry.station.typeId, size: 1024)) { phase in
+            CachedAsyncImage(url: EVEImageURL.typeRender(entry.station.typeId, size: 1024)) { phase in
                 if let image = phase.image {
                     image
                         .resizable()
@@ -159,7 +159,7 @@ struct StationDetailView: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 8) {
                     // Station type icon
-                    AsyncImage(url: EVEImageURL.typeIcon(entry.station.typeId, size: 256)) { phase in
+                    CachedAsyncImage(url: EVEImageURL.typeIcon(entry.station.typeId, size: 256)) { phase in
                         if let image = phase.image {
                             image.resizable()
                                 .frame(width: 36, height: 36)
@@ -287,7 +287,7 @@ struct StationDetailView: View {
             VStack(alignment: .leading, spacing: 4) {
                 ForEach(assetsAtStation.prefix(6)) { asset in
                     HStack(spacing: 8) {
-                        AsyncImage(url: EVEImageURL.typeIcon(asset.typeId, size: 64)) { phase in
+                        CachedAsyncImage(url: EVEImageURL.typeIcon(asset.typeId, size: 64)) { phase in
                             if let image = phase.image {
                                 image.resizable()
                                     .frame(width: 20, height: 20)

@@ -16,9 +16,37 @@ import UserNotifications
 @Observable
 @MainActor
 final class AppUpdater: NSObject {
+    /// Set in `init`; lets the non-SwiftUI `AppDelegate` reach the updater when the
+    /// user acts on an "update available" notification.
+    private(set) static weak var shared: AppUpdater?
+
+    /// Notification category + action so the "update available" banner carries an
+    /// actionable "Install Update" button. Registered by `AppDelegate`.
+    nonisolated static let updateNotificationID = "eveops-update"
+    nonisolated static let updateCategoryID = "EVEOPS_UPDATE_AVAILABLE"
+    nonisolated static let installActionID = "EVEOPS_INSTALL_UPDATE"
+
+    static func registerNotificationCategories() {
+        let install = UNNotificationAction(
+            identifier: installActionID,
+            title: String(localized: "Install Update"),
+            options: [.foreground]
+        )
+        let category = UNNotificationCategory(
+            identifier: updateCategoryID,
+            actions: [install],
+            intentIdentifiers: [],
+            options: []
+        )
+        UNUserNotificationCenter.current().setNotificationCategories([category])
+    }
+
     @ObservationIgnored private var controller: SPUStandardUpdaterController!
     @ObservationIgnored private var kvoToken: NSKeyValueObservation?
     @ObservationIgnored private var hasCheckedOnLaunch = false
+    /// True while the user explicitly asked to check (so we don't also fire a
+    /// background "update available" notification on top of Sparkle's own window).
+    @ObservationIgnored private var userInitiatedCheckInFlight = false
 
     var updater: SPUUpdater { controller.updater }
     var canCheckForUpdates = false
@@ -41,6 +69,7 @@ final class AppUpdater: NSObject {
         updateAvailable = UserDefaults.standard.bool(forKey: "updateAvailable")
         availableVersion = UserDefaults.standard.string(forKey: "availableVersion")
         super.init()
+        Self.shared = self
 
         controller = SPUStandardUpdaterController(
             startingUpdater: true,
@@ -55,10 +84,13 @@ final class AppUpdater: NSObject {
                 self.canCheckForUpdates = canCheck
                 if canCheck && !self.hasCheckedOnLaunch {
                     self.hasCheckedOnLaunch = true
-                    Logger.updates.info("Launch check gate — automaticallyChecksForUpdates=\(updater.automaticallyChecksForUpdates), updateCheckInterval=\(Int(updater.updateCheckInterval))s, lastUpdateCheckDate=\(updater.lastUpdateCheckDate?.description ?? "nil")")
-                    if updater.automaticallyChecksForUpdates {
-                        updater.checkForUpdatesInBackground()
-                    }
+                    Logger.updates.info("Launch update check — automaticallyChecksForUpdates=\(updater.automaticallyChecksForUpdates), updateCheckInterval=\(Int(updater.updateCheckInterval))s, lastUpdateCheckDate=\(updater.lastUpdateCheckDate?.description ?? "nil")")
+                    // Always run one quiet check at launch, regardless of the
+                    // recurring-check preference. `checkForUpdatesInBackground()`
+                    // shows no UI unless an update is actually found — at which
+                    // point the gentle-reminder path posts a notification and
+                    // `updateAvailable` lights up the menu-bar banner.
+                    updater.checkForUpdatesInBackground()
                 }
             }
         }
@@ -73,8 +105,47 @@ final class AppUpdater: NSObject {
         }
     }
 
+    /// User asked to check / install (menu bar banner, Settings, ⌘-menu). Bring the
+    /// app forward first — as an `LSUIElement` app the Sparkle window would
+    /// otherwise open unfocused behind everything and read as "nothing happened".
     func checkForUpdates() {
+        userInitiatedCheckInFlight = true
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate(ignoringOtherApps: true)
         updater.checkForUpdates()
+    }
+
+    /// Restore the activation policy the user actually wants once an update
+    /// session ends (Sparkle windows force `.regular` while they're up).
+    private func restoreActivationPolicy() {
+        let showDock = UserDefaults.standard.bool(forKey: "showDockIcon")
+        NSApp.setActivationPolicy(showDock ? .regular : .accessory)
+    }
+
+    /// Post the actionable "update available" system notification. Safe to call
+    /// repeatedly — the fixed identifier means macOS replaces rather than stacks.
+    private func postUpdateNotification(version: String) {
+        guard notificationsAuthorized else {
+            Logger.updates.warning("Update \(version) found but notifications are not authorized — no banner will appear")
+            return
+        }
+        let content = UNMutableNotificationContent()
+        content.title = String(localized: "EVEOps Update Available")
+        content.body = String(localized: "Version \(version) is ready to install.")
+        content.categoryIdentifier = Self.updateCategoryID
+        content.sound = .default
+        let request = UNNotificationRequest(
+            identifier: Self.updateNotificationID,
+            content: content,
+            trigger: nil
+        )
+        UNUserNotificationCenter.current().add(request) { error in
+            guard let error else { return }
+            let message = error.localizedDescription
+            Task { @MainActor in
+                Logger.updates.error("Failed to post update-available notification: \(message)")
+            }
+        }
     }
 
     /// Backstop for Sparkle's own scheduled-check timer. EVEOps is a menu-bar-only app that
@@ -103,6 +174,12 @@ extension AppUpdater: SPUUpdaterDelegate {
         MainActor.assumeIsolated {
             updateAvailable = true
             availableVersion = item.displayVersionString
+            // Fires for every check type. When the user didn't trigger this one
+            // (launch / scheduled background check), make sure they're told — the
+            // gentle-reminder hook doesn't always post depending on app state.
+            if !userInitiatedCheckInFlight {
+                postUpdateNotification(version: item.displayVersionString)
+            }
         }
     }
 
@@ -139,6 +216,7 @@ extension AppUpdater: SPUUpdaterDelegate {
 
     nonisolated func updater(_ updater: SPUUpdater, didFinishUpdateCycleFor updateCheck: SPUUpdateCheck, error: Error?) {
         Task { @MainActor in
+            userInitiatedCheckInFlight = false
             if let error {
                 let nsError = error as NSError
                 Logger.updates.error("Update check (type \(updateCheck.rawValue)) finished with error: \(nsError.domain) \(nsError.code) — \(nsError.localizedDescription)")
@@ -166,17 +244,7 @@ extension AppUpdater: SPUStandardUserDriverDelegate {
             NSApp.setActivationPolicy(.regular)
             NSApp.dockTile.badgeLabel = "1"
 
-            let content = UNMutableNotificationContent()
-            content.title = "EVEOps Update Available"
-            content.body = "Version \(update.displayVersionString) is ready to install."
-            let request = UNNotificationRequest(identifier: "eveops-update", content: content, trigger: nil)
-            UNUserNotificationCenter.current().add(request) { error in
-                guard let error else { return }
-                let message = error.localizedDescription
-                Task { @MainActor in
-                    Logger.updates.error("Failed to post update-available notification: \(message)")
-                }
-            }
+            postUpdateNotification(version: update.displayVersionString)
         }
     }
 
@@ -187,8 +255,8 @@ extension AppUpdater: SPUStandardUserDriverDelegate {
     }
 
     nonisolated func standardUserDriverWillFinishUpdateSession() {
-        _ = MainActor.assumeIsolated {
-            NSApp.setActivationPolicy(.accessory)
+        MainActor.assumeIsolated {
+            restoreActivationPolicy()
         }
     }
 }

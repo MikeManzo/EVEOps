@@ -110,7 +110,7 @@ struct CorporationMembersView: View {
 
     private func memberRow(_ member: ResolvedMember) -> some View {
         HStack(spacing: 10) {
-            AsyncImage(url: EVEImageURL.characterPortrait(member.characterId, size: 128)) { image in
+            CachedAsyncImage(url: EVEImageURL.characterPortrait(member.characterId, size: 128)) { image in
                 image.resizable()
             } placeholder: {
                 RoundedRectangle(cornerRadius: 6).fill(.quaternary)
@@ -155,7 +155,7 @@ struct CorporationMembersView: View {
 
             // Ship icon from tracking
             if let track = tracking[member.characterId], let shipType = track.shipTypeId {
-                AsyncImage(url: EVEImageURL.typeIcon(shipType, size: 64)) { image in
+                CachedAsyncImage(url: EVEImageURL.typeIcon(shipType, size: 64)) { image in
                     image.resizable()
                 } placeholder: {
                     Color.clear
@@ -207,7 +207,7 @@ struct CorporationMembersView: View {
 
     private func memberHeader(_ detail: MemberDetail) -> some View {
         HStack(spacing: 16) {
-            AsyncImage(url: EVEImageURL.characterPortrait(detail.characterId, size: 512)) { image in
+            CachedAsyncImage(url: EVEImageURL.characterPortrait(detail.characterId, size: 512)) { image in
                 image.resizable()
             } placeholder: {
                 RoundedRectangle(cornerRadius: 12).fill(.quaternary)
@@ -255,11 +255,11 @@ struct CorporationMembersView: View {
             // Ship render if available
             if let track = detail.tracking, let shipType = track.shipTypeId {
                 VStack(spacing: 4) {
-                    AsyncImage(url: EVEImageURL.typeRender(shipType, size: 256)) { phase in
+                    CachedAsyncImage(url: EVEImageURL.typeRender(shipType, size: 256)) { phase in
                         if case .success(let image) = phase {
                             image.resizable().aspectRatio(contentMode: .fit)
                         } else {
-                            AsyncImage(url: EVEImageURL.typeIcon(shipType, size: 64)) { image in
+                            CachedAsyncImage(url: EVEImageURL.typeIcon(shipType, size: 64)) { image in
                                 image.resizable()
                             } placeholder: {
                                 Color.clear
@@ -391,7 +391,7 @@ struct CorporationMembersView: View {
                 .font(.headline)
             ForEach(history, id: \.recordId) { entry in
                 HStack(spacing: 10) {
-                    AsyncImage(url: EVEImageURL.corporationLogo(entry.corporationId, size: 64)) { image in
+                    CachedAsyncImage(url: EVEImageURL.corporationLogo(entry.corporationId, size: 64)) { image in
                         image.resizable()
                     } placeholder: {
                         RoundedRectangle(cornerRadius: 4).fill(.quaternary)
@@ -541,7 +541,9 @@ struct CorporationMembersView: View {
                 for entry in trackingData {
                     tracking[entry.characterId] = entry
                 }
-            } catch {}
+            } catch {
+                logSuppressed(error, "Corp Members: member tracking")
+            }
 
             do {
                 let titlesData: [ESIMemberTitle] = try await ESIClient.shared.fetch(
@@ -550,7 +552,9 @@ struct CorporationMembersView: View {
                 for entry in titlesData {
                     memberTitles[entry.characterId] = entry.titles.compactMap(\.name)
                 }
-            } catch {}
+            } catch {
+                logSuppressed(error, "Corp Members: member titles")
+            }
 
             do {
                 let rolesData: [ESIMemberRoles] = try await ESIClient.shared.fetch(
@@ -559,7 +563,9 @@ struct CorporationMembersView: View {
                 for entry in rolesData {
                     memberRoles[entry.characterId] = entry.roles ?? []
                 }
-            } catch {}
+            } catch {
+                logSuppressed(error, "Corp Members: member roles")
+            }
 
         } catch {
             self.error = error.localizedDescription
@@ -580,8 +586,10 @@ struct CorporationMembersView: View {
         var charInfo: ESICharacterPublic?
         var corpHistory: [ESICorporationHistory] = []
 
-        do { charInfo = try await ESIClient.shared.fetch("/characters/\(characterId)/") } catch {}
-        do { corpHistory = try await ESIClient.shared.fetch("/characters/\(characterId)/corporationhistory/") } catch {}
+        do { charInfo = try await ESIClient.shared.fetch("/characters/\(characterId)/") }
+        catch { logSuppressed(error, "Corp Members: public info for \(characterId)") }
+        do { corpHistory = try await ESIClient.shared.fetch("/characters/\(characterId)/corporationhistory/") }
+        catch { logSuppressed(error, "Corp Members: corp history for \(characterId)") }
 
         // Resolve names for location, system, ship, and corp history
         var idsToResolve: [Int] = []

@@ -52,12 +52,7 @@ struct SkillDetailView: View {
         }
         .frame(minWidth: 280, idealWidth: 320)
         .task(id: skillId) { await loadTypeInfo() }
-        .task(id: "timer") {
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(1))
-                now = Date()
-            }
-        }
+        .periodicTick(every: 1) { now = Date() }
     }
 
     // MARK:  Header
@@ -68,7 +63,7 @@ struct SkillDetailView: View {
                 .fill(Color(white: 0.08))
                 .frame(height: 180)
                 .overlay {
-                    AsyncImage(url: EVEImageURL.typeIcon(skillId, size: 256)) { phase in
+                    CachedAsyncImage(url: EVEImageURL.typeIcon(skillId, size: 256)) { phase in
                         if let image = phase.image {
                             image.resizable()
                                 .interpolation(.high)

@@ -64,12 +64,7 @@ struct ColonyDetailView: View {
         }
         .frame(minWidth: 560, minHeight: 480)
         .task { await load() }
-        .task(id: "timer") {
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(60))
-                now = Date()
-            }
-        }
+        .periodicTick(every: 60) { now = Date() }
     }
 
     // MARK:  Stats Bar
@@ -124,7 +119,7 @@ struct ColonyDetailView: View {
         let isExpired = pin.expiryTime.map { $0 < now } ?? true
 
         return HStack(spacing: 12) {
-            AsyncImage(url: details.productTypeId.flatMap { EVEImageURL.typeIcon($0, size: 64) }) { img in
+            CachedAsyncImage(url: details.productTypeId.flatMap { EVEImageURL.typeIcon($0, size: 64) }) { img in
                 img.resizable()
             } placeholder: {
                 RoundedRectangle(cornerRadius: 6).fill(.quaternary)
@@ -192,7 +187,7 @@ struct ColonyDetailView: View {
         let schematic = schematicID.flatMap { schematics[$0] }
 
         return HStack(spacing: 12) {
-            AsyncImage(url: EVEImageURL.typeIcon(pin.typeId, size: 64)) { img in
+            CachedAsyncImage(url: EVEImageURL.typeIcon(pin.typeId, size: 64)) { img in
                 img.resizable()
             } placeholder: {
                 RoundedRectangle(cornerRadius: 6).fill(.quaternary)
@@ -262,7 +257,7 @@ struct ColonyDetailView: View {
         let contents = pin.contents ?? []
 
         return HStack(spacing: 12) {
-            AsyncImage(url: EVEImageURL.typeIcon(pin.typeId, size: 64)) { img in
+            CachedAsyncImage(url: EVEImageURL.typeIcon(pin.typeId, size: 64)) { img in
                 img.resizable()
             } placeholder: {
                 RoundedRectangle(cornerRadius: 6).fill(.quaternary)

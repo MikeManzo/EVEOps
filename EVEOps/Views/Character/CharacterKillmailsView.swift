@@ -200,7 +200,7 @@ struct KillmailRow: View {
                 .foregroundStyle(entry.isKill ? .green : .red)
                 .font(.title3)
                 .frame(width: 20)
-            AsyncImage(url: EVEImageURL.typeIcon(entry.killmail.victim.shipTypeId, size: 64)) { image in
+            CachedAsyncImage(url: EVEImageURL.typeIcon(entry.killmail.victim.shipTypeId, size: 64)) { image in
                 image.resizable()
             } placeholder: {
                 RoundedRectangle(cornerRadius: 4).fill(.quaternary)
@@ -292,7 +292,7 @@ struct KillmailDetailPane: View {
                 VStack(alignment: .leading, spacing: 16) {
                     GroupBox {
                         HStack(spacing: 12) {
-                            AsyncImage(url: EVEImageURL.typeIcon(killmail.victim.shipTypeId, size: 64)) { image in
+                            CachedAsyncImage(url: EVEImageURL.typeIcon(killmail.victim.shipTypeId, size: 64)) { image in
                                 image.resizable()
                             } placeholder: {
                                 RoundedRectangle(cornerRadius: 4).fill(.quaternary)
@@ -431,7 +431,7 @@ struct KillmailCharacterLabel: View {
     @State private var name = ""
     var body: some View {
         HStack(spacing: 6) {
-            AsyncImage(url: EVEImageURL.characterPortrait(id, size: 64)) { image in
+            CachedAsyncImage(url: EVEImageURL.characterPortrait(id, size: 64)) { image in
                 image.resizable()
             } placeholder: { Circle().fill(.quaternary) }
             .frame(width: 22, height: 22).clipShape(Circle())
@@ -451,7 +451,7 @@ struct KillmailAttackerRow: View {
         HStack(spacing: 8) {
             HStack(spacing: 8) {
                 if let charId = attacker.characterId {
-                    AsyncImage(url: EVEImageURL.characterPortrait(charId, size: 64)) { image in
+                    CachedAsyncImage(url: EVEImageURL.characterPortrait(charId, size: 64)) { image in
                         image.resizable()
                     } placeholder: { Circle().fill(.quaternary) }
                     .frame(width: 28, height: 28).clipShape(Circle())
@@ -511,7 +511,7 @@ struct AttackerInfoPopover: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
                 if let charId = attacker.characterId {
-                    AsyncImage(url: EVEImageURL.characterPortrait(charId, size: 256)) { image in
+                    CachedAsyncImage(url: EVEImageURL.characterPortrait(charId, size: 256)) { image in
                         image.resizable()
                     } placeholder: { Circle().fill(.quaternary) }
                     .frame(width: 56, height: 56).clipShape(Circle())
@@ -657,7 +657,7 @@ struct KillmailItemRow: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            AsyncImage(url: EVEImageURL.typeIcon(item.itemTypeId, size: 32)) { image in
+            CachedAsyncImage(url: EVEImageURL.typeIcon(item.itemTypeId, size: 32)) { image in
                 image.resizable()
             } placeholder: {
                 RoundedRectangle(cornerRadius: 3).fill(.quaternary)

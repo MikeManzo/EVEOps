@@ -63,11 +63,72 @@ actor ESIClient {
     /// Revalidatable (ETag-bearing) entries older than this are dropped by `pruneCache()`.
     private static let maxRevalidateAge: TimeInterval = 24 * 3600
 
-    private struct CachedResponse {
+    private struct CachedResponse: Codable, Sendable {
         let data: Data
         let expires: Date
         let etag: String?
         let stored: Date
+    }
+
+    // MARK: Disk persistence
+
+    /// The in-memory cache is mirrored to disk so a relaunch starts warm: fresh
+    /// entries are served immediately and stale-but-revalidatable ones turn into
+    /// cheap `304` round-trips instead of full downloads (and error-budget spend).
+    private static let cacheFileURL: URL = {
+        let dir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
+            .appendingPathComponent("EVEOps", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir.appendingPathComponent("esi_response_cache.json")
+    }()
+
+    /// Fresh 200 responses stored since the last disk write. Persisting every N
+    /// keeps the on-disk copy close to live even without a clean termination.
+    private var writesSincePersist = 0
+    private static let persistThreshold = 25
+    private var didWarmCache = false
+
+    /// Load the persisted cache from disk. Call once, before the first prefetch.
+    /// Existing in-memory entries always win, so a request that raced ahead of
+    /// this load is never clobbered by a staler disk entry.
+    func warmCache() async {
+        guard !didWarmCache else { return }
+        didWarmCache = true
+
+        let url = Self.cacheFileURL
+        let now = Date()
+        let maxAge = Self.maxRevalidateAge
+        let restored: [String: CachedResponse] = await Task.detached(priority: .utility) {
+            guard let data = try? Data(contentsOf: url),
+                  let decoded = try? JSONDecoder().decode([String: CachedResponse].self, from: data)
+            else { return [:] }
+            return decoded.filter { _, entry in
+                entry.expires > now || (entry.etag != nil && now.timeIntervalSince(entry.stored) < maxAge)
+            }
+        }.value
+
+        guard !restored.isEmpty else { return }
+        for (key, entry) in restored where responseCache[key] == nil {
+            responseCache[key] = entry
+        }
+        await Logger.network.debug("ESI cache warmed — \(restored.count) entries restored from disk")
+    }
+
+    /// Write the current cache to disk. Prunes first so junk is never persisted.
+    func persistCache() {
+        writesSincePersist = 0
+        pruneCache()
+        let snapshot = responseCache
+        let url = Self.cacheFileURL
+        Task.detached(priority: .background) {
+            guard let data = try? JSONEncoder().encode(snapshot) else { return }
+            try? data.write(to: url, options: .atomic)
+        }
+    }
+
+    private func notePersistableWrite() {
+        writesSincePersist += 1
+        if writesSincePersist >= Self.persistThreshold { persistCache() }
     }
 
     // MARK: Error-limit budget
@@ -255,8 +316,10 @@ actor ESIClient {
         let etag = http.value(forHTTPHeaderField: "ETag")
         if let expiry = Self.futureExpiry(from: http) {
             responseCache[cacheKey] = CachedResponse(data: data, expires: expiry, etag: etag, stored: Date())
+            notePersistableWrite()
         } else if let etag {
             responseCache[cacheKey] = CachedResponse(data: data, expires: Date(), etag: etag, stored: Date())
+            notePersistableWrite()
         }
 
         do { return try decoder.decode(T.self, from: data) }
@@ -419,8 +482,10 @@ actor ESIClient {
             let etag = http.value(forHTTPHeaderField: "ETag")
             if let expiry = Self.futureExpiry(from: http) {
                 responseCache[cacheKey] = CachedResponse(data: data, expires: expiry, etag: etag, stored: Date())
+                notePersistableWrite()
             } else if let etag {
                 responseCache[cacheKey] = CachedResponse(data: data, expires: Date(), etag: etag, stored: Date())
+                notePersistableWrite()
             }
         }
 
@@ -470,10 +535,16 @@ actor ESIClient {
         responseCache.removeAll()
     }
 
-    /// Clear ALL response caches — both the in-memory cache and URLSession's HTTP disk cache.
-    /// Call this before any forced refresh so stale HTTP responses never mask updated data.
+    /// Clear ALL response caches — the in-memory cache, the persisted disk mirror,
+    /// and URLSession's HTTP disk cache. Call this before any forced refresh so
+    /// stale responses never mask updated data.
     func clearAllCaches() {
         responseCache.removeAll()
+        writesSincePersist = 0
         URLCache.shared.removeAllCachedResponses()
+        let url = Self.cacheFileURL
+        Task.detached(priority: .background) {
+            try? FileManager.default.removeItem(at: url)
+        }
     }
 }

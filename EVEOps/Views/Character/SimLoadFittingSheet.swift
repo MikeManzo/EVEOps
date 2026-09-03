@@ -189,7 +189,7 @@ struct SimLoadFittingSheet: View {
     ) -> some View {
         Button(action: action) {
             HStack(spacing: 12) {
-                AsyncImage(url: imageURL) { img in
+                CachedAsyncImage(url: imageURL) { img in
                     img.resizable().aspectRatio(contentMode: .fill)
                 } placeholder: {
                     RoundedRectangle(cornerRadius: 6).fill(.quaternary)
@@ -332,7 +332,7 @@ struct SimLoadFittingSheet: View {
         VStack(spacing: 0) {
             // Ship summary
             HStack(spacing: 12) {
-                AsyncImage(url: EVEImageURL.typeRender(entry.shipTypeId, size: 128)) { img in
+                CachedAsyncImage(url: EVEImageURL.typeRender(entry.shipTypeId, size: 128)) { img in
                     img.resizable().aspectRatio(contentMode: .fill)
                 } placeholder: {
                     RoundedRectangle(cornerRadius: 6).fill(.quaternary)
@@ -626,7 +626,7 @@ struct EFTImportSaveSheet: View {
             Form {
                 Section("Fitting") {
                     HStack(spacing: 12) {
-                        AsyncImage(url: EVEImageURL.typeRender(entry.shipTypeId, size: 128)) { img in
+                        CachedAsyncImage(url: EVEImageURL.typeRender(entry.shipTypeId, size: 128)) { img in
                             img.resizable().aspectRatio(contentMode: .fill)
                         } placeholder: {
                             RoundedRectangle(cornerRadius: 6).fill(.quaternary)

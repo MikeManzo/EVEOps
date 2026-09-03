@@ -225,7 +225,7 @@ struct CharacterContactsView: View {
             }()
             let isCharacter = detail.contact.contactType == "character"
 
-            AsyncImage(url: imageURL) { image in
+            CachedAsyncImage(url: imageURL) { image in
                 image.resizable().aspectRatio(contentMode: .fill)
             } placeholder: {
                 RoundedRectangle(cornerRadius: isCharacter ? 48 : 12).fill(.quaternary)
@@ -340,7 +340,7 @@ struct CharacterContactsView: View {
                 .font(.headline)
             ForEach(history, id: \.recordId) { entry in
                 HStack(spacing: 10) {
-                    AsyncImage(url: EVEImageURL.corporationLogo(entry.corporationId, size: 64)) { image in
+                    CachedAsyncImage(url: EVEImageURL.corporationLogo(entry.corporationId, size: 64)) { image in
                         image.resizable()
                     } placeholder: {
                         RoundedRectangle(cornerRadius: 4).fill(.quaternary)
@@ -487,11 +487,13 @@ struct CharacterContactsView: View {
         var allianceName: String? = nil
 
         if contact.contactType == "character" {
-            do { charInfo = try await ESIClient.shared.fetch("/characters/\(contactId)/") } catch {}
+            do { charInfo = try await ESIClient.shared.fetch("/characters/\(contactId)/") }
+            catch { logSuppressed(error, "Contacts: public info for \(contactId)") }
 
             if contact.isPlayerCharacter {
                 var corpHistory: [ESICorporationHistory] = []
-                do { corpHistory = try await ESIClient.shared.fetch("/characters/\(contactId)/corporationhistory/") } catch {}
+                do { corpHistory = try await ESIClient.shared.fetch("/characters/\(contactId)/corporationhistory/") }
+                catch { logSuppressed(error, "Contacts: corp history for \(contactId)") }
 
                 var idsToResolve: [Int] = []
                 if let corpId = charInfo?.corporationId { idsToResolve.append(corpId) }
@@ -617,7 +619,7 @@ struct ContactRow: View {
         HStack(spacing: 12) {
             // Portrait with optional presence badge overlay
             ZStack(alignment: .bottomTrailing) {
-                AsyncImage(url: contact.imageURL) { image in
+                CachedAsyncImage(url: contact.imageURL) { image in
                     image.resizable().aspectRatio(contentMode: .fill)
                 } placeholder: {
                     RoundedRectangle(cornerRadius: contact.contactType == "character" ? 20 : 6)

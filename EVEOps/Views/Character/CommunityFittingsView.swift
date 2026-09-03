@@ -532,7 +532,7 @@ struct CommunityShipRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            AsyncImage(url: EVEImageURL.typeRender(type.typeId, size: 256)) { img in
+            CachedAsyncImage(url: EVEImageURL.typeRender(type.typeId, size: 256)) { img in
                 img.resizable().aspectRatio(contentMode: .fill)
             } placeholder: {
                 RoundedRectangle(cornerRadius: 10).fill(.quaternary)
@@ -557,7 +557,7 @@ struct RecentlyDestroyedRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            AsyncImage(url: EVEImageURL.typeRender(entry.typeId, size: 256)) { img in
+            CachedAsyncImage(url: EVEImageURL.typeRender(entry.typeId, size: 256)) { img in
                 img.resizable().aspectRatio(contentMode: .fill)
             } placeholder: {
                 RoundedRectangle(cornerRadius: 10).fill(.quaternary)
@@ -599,7 +599,7 @@ struct CommunityFitDetailPane: View {
         VStack(spacing: 0) {
             // Hero header
             ZStack(alignment: .bottomLeading) {
-                AsyncImage(url: EVEImageURL.typeRender(fit.shipTypeId, size: 512)) { img in
+                CachedAsyncImage(url: EVEImageURL.typeRender(fit.shipTypeId, size: 512)) { img in
                     img.resizable().aspectRatio(contentMode: .fill)
                 } placeholder: {
                     Rectangle().fill(LinearGradient(
@@ -826,7 +826,7 @@ struct CommunityModuleRow: View {
     var body: some View {
         Button { showPopover = true } label: {
             HStack(spacing: 8) {
-                AsyncImage(url: EVEImageURL.typeIcon(module.typeId, size: 64)) { img in
+                CachedAsyncImage(url: EVEImageURL.typeIcon(module.typeId, size: 64)) { img in
                     img.resizable()
                 } placeholder: {
                     RoundedRectangle(cornerRadius: 4).fill(.quaternary)
@@ -875,7 +875,7 @@ struct AttackerShipRow: View {
     var body: some View {
         Button { showPopover = true } label: {
             HStack(spacing: 8) {
-                AsyncImage(url: EVEImageURL.typeRender(typeId, size: 64)) { img in
+                CachedAsyncImage(url: EVEImageURL.typeRender(typeId, size: 64)) { img in
                     img.resizable()
                 } placeholder: {
                     RoundedRectangle(cornerRadius: 4).fill(.quaternary)

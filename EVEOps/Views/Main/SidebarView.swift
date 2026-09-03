@@ -149,8 +149,13 @@ struct SidebarView: View {
                                                 Circle()
                                                     .fill(Color.blue)
                                                     .frame(width: 7, height: 7)
+                                                    .accessibilityHidden(true)
                                             }
                                         }
+                                        .accessibilityValue(
+                                            section == .calendar && todayEventCount > 0
+                                                ? "\(todayEventCount) events today" : ""
+                                        )
                                 }
                             },
                             header: {
@@ -249,7 +254,9 @@ struct SidebarView: View {
                     guard let d = event.eventDate else { return false }
                     return Calendar.current.startOfDay(for: d) == today
                 }.count
-            } catch {}
+            } catch {
+                logSuppressed(error, "Sidebar: today's calendar event count")
+            }
         }
     }
 
@@ -261,6 +268,7 @@ struct SidebarView: View {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundStyle(.orange)
                         .font(.caption)
+                        .accessibilityHidden(true)
 
                     VStack(alignment: .leading, spacing: 1) {
                         Text(account.characterName)
@@ -271,6 +279,7 @@ struct SidebarView: View {
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
+                    .accessibilityElement(children: .combine)
 
                     Spacer()
 
@@ -281,6 +290,7 @@ struct SidebarView: View {
                     .controlSize(.mini)
                     .tint(.orange)
                     .disabled(accountManager.isLoading)
+                    .accessibilityLabel("Re-authenticate \(account.characterName)")
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
@@ -307,7 +317,7 @@ struct SidebarView: View {
                             Label {
                                 Text(account.characterName)
                             } icon: {
-                                AsyncImage(url: EVEImageURL.characterPortrait(account.characterID, size: 32)) { image in
+                                CachedAsyncImage(url: EVEImageURL.characterPortrait(account.characterID, size: 32)) { image in
                                     image.resizable()
                                         .aspectRatio(contentMode: .fill)
                                         .frame(width: 16, height: 16)
@@ -322,7 +332,7 @@ struct SidebarView: View {
                 } label: {
                     HStack(spacing: 6) {
                         if let account = accountManager.selectedAccount {
-                            AsyncImage(url: EVEImageURL.characterPortrait(account.characterID, size: 32)) { image in
+                            CachedAsyncImage(url: EVEImageURL.characterPortrait(account.characterID, size: 32)) { image in
                                 image.resizable()
                                     .aspectRatio(contentMode: .fill)
                                     .frame(width: 20, height: 20)
@@ -331,6 +341,7 @@ struct SidebarView: View {
                                 Circle().fill(.secondary.opacity(0.3))
                                     .frame(width: 20, height: 20)
                             }
+                            .accessibilityHidden(true)
                             Text(account.characterName)
                                 .lineLimit(1)
                                 .font(.title2)
@@ -339,12 +350,15 @@ struct SidebarView: View {
                         Image(systemName: "chevron.up.chevron.down")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
+                            .accessibilityHidden(true)
                     }
                     .frame(maxWidth: .infinity)
                 }
                 .menuStyle(.borderlessButton)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
+                .accessibilityLabel("Switch pilot")
+                .accessibilityValue(accountManager.selectedAccount?.characterName ?? "")
                 Spacer()
             }
         }
@@ -361,6 +375,7 @@ struct SidebarView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
         .disabled(accountManager.isLoading)
+        .accessibilityLabel("Add character")
     }
 
 }

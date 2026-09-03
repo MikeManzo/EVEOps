@@ -368,7 +368,7 @@ struct CorporationHangarsView: View {
     @ViewBuilder
     private func assetRow(_ asset: ResolvedAsset) -> some View {
         HStack(spacing: 8) {
-            AsyncImage(url: EVEImageURL.typeIcon(asset.typeId, size: 256)) { phase in
+            CachedAsyncImage(url: EVEImageURL.typeIcon(asset.typeId, size: 256)) { phase in
                 if let image = phase.image {
                     image.resizable()
                         .frame(width: 28, height: 28)

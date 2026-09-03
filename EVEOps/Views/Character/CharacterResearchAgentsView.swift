@@ -43,12 +43,7 @@ struct CharacterResearchAgentsView: View {
         }
         .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) { await load() }
-        .task(id: "timer") {
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(60))
-                now = Date()
-            }
-        }
+        .periodicTick(every: 60) { now = Date() }
     }
 
     // MARK:  Row
@@ -58,7 +53,7 @@ struct CharacterResearchAgentsView: View {
         let accumulated = agent.remainderPoints + agent.pointsPerDay * elapsed / 86400
 
         return HStack(spacing: 12) {
-            AsyncImage(url: EVEImageURL.characterPortrait(agent.agentId, size: 64)) { img in
+            CachedAsyncImage(url: EVEImageURL.characterPortrait(agent.agentId, size: 64)) { img in
                 img.resizable()
             } placeholder: {
                 Circle().fill(.quaternary)

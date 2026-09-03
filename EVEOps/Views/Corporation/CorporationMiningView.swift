@@ -126,7 +126,7 @@ struct MiningObserverRow: View {
                 LazyVStack(spacing: 4) {
                     ForEach(oreTotals.prefix(20), id: \.typeId) { entry in
                         HStack(spacing: 8) {
-                            AsyncImage(url: EVEImageURL.typeIcon(entry.typeId, size: 32)) { image in
+                            CachedAsyncImage(url: EVEImageURL.typeIcon(entry.typeId, size: 32)) { image in
                                 image.resizable()
                             } placeholder: {
                                 RoundedRectangle(cornerRadius: 3).fill(.quaternary)

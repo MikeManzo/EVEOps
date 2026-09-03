@@ -102,12 +102,7 @@ struct AttributeRemapView: View {
         }
         .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) { await load() }
-        .task(id: "timer") {
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(60))
-                now = Date()
-            }
-        }
+        .periodicTick(every: 60) { now = Date() }
     }
 
     // MARK:  Remap Status

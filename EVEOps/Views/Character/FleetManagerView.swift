@@ -314,7 +314,7 @@ struct FleetMemberRow: View {
             Button {
                 isShowingDetail = true
             } label: {
-                AsyncImage(url: EVEImageURL.characterPortrait(member.characterId, size: 64)) { image in
+                CachedAsyncImage(url: EVEImageURL.characterPortrait(member.characterId, size: 64)) { image in
                     image.resizable()
                 } placeholder: {
                     Circle().fill(.quaternary)
@@ -344,7 +344,7 @@ struct FleetMemberRow: View {
 
             Spacer()
 
-            AsyncImage(url: EVEImageURL.typeIcon(member.shipTypeId, size: 64)) { image in
+            CachedAsyncImage(url: EVEImageURL.typeIcon(member.shipTypeId, size: 64)) { image in
                 image.resizable()
             } placeholder: {
                 Color.clear
@@ -414,7 +414,7 @@ struct FleetMemberDetailPopover: View {
 
     private var header: some View {
         HStack(spacing: 12) {
-            AsyncImage(url: EVEImageURL.characterPortrait(member.characterId, size: 256)) { image in
+            CachedAsyncImage(url: EVEImageURL.characterPortrait(member.characterId, size: 256)) { image in
                 image.resizable()
             } placeholder: {
                 Circle().fill(.quaternary)
@@ -501,7 +501,7 @@ struct FleetMemberDetailPopover: View {
                 .font(.headline)
             ForEach(history, id: \.recordId) { entry in
                 HStack(spacing: 10) {
-                    AsyncImage(url: EVEImageURL.corporationLogo(entry.corporationId, size: 64)) { image in
+                    CachedAsyncImage(url: EVEImageURL.corporationLogo(entry.corporationId, size: 64)) { image in
                         image.resizable()
                     } placeholder: {
                         RoundedRectangle(cornerRadius: 4).fill(.quaternary)
@@ -543,7 +543,7 @@ struct FleetMemberDetailPopover: View {
                 .foregroundStyle(.secondary)
             HStack(spacing: 6) {
                 if let icon {
-                    AsyncImage(url: icon) { image in
+                    CachedAsyncImage(url: icon) { image in
                         image.resizable()
                     } placeholder: {
                         Color.clear
@@ -705,7 +705,7 @@ struct InviteFleetMemberSheet: View {
                     }
                     if let result = searchResult {
                         HStack(spacing: 10) {
-                            AsyncImage(url: EVEImageURL.characterPortrait(result.id, size: 64)) { image in
+                            CachedAsyncImage(url: EVEImageURL.characterPortrait(result.id, size: 64)) { image in
                                 image.resizable()
                             } placeholder: {
                                 Circle().fill(.quaternary)

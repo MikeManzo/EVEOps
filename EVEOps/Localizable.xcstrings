@@ -472,6 +472,9 @@
         }
       }
     },
+    "%lld events today" : {
+
+    },
     "%lld external → %@" : {
       "localizations" : {
         "en" : {
@@ -690,6 +693,9 @@
           }
         }
       }
+    },
+    "%lld ship and pod kills per hour across the route" : {
+
     },
     "%lld ship jumps through %@ in the last hour" : {
       "localizations" : {
@@ -1024,6 +1030,9 @@
     "A new version of EVEOps is ready to install." : {
 
     },
+    "About EVEOps" : {
+
+    },
     "About Remaps" : {
 
     },
@@ -1098,7 +1107,13 @@
     "Add All to Plan" : {
 
     },
+    "Add character" : {
+
+    },
     "Add Character" : {
+
+    },
+    "Add Character…" : {
 
     },
     "Add Contact" : {
@@ -1588,6 +1603,9 @@
     "Clear Model Cache" : {
 
     },
+    "Clear, no kills reported in the last hour" : {
+
+    },
     "Clearing…" : {
 
     },
@@ -1727,6 +1745,9 @@
 
     },
     "Contacts" : {
+
+    },
+    "Contest score" : {
 
     },
     "Contested" : {
@@ -1939,6 +1960,16 @@
     },
     "Defender %@" : {
 
+    },
+    "Defender %@, attackers %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Defender %1$@, attackers %2$@"
+          }
+        }
+      }
     },
     "DEGRADED" : {
 
@@ -2183,10 +2214,16 @@
     "EVEOps is an independent third-party application not affiliated with, endorsed by, or sponsored by Fenris Creations." : {
 
     },
+    "EVEOps on GitHub" : {
+
+    },
     "EVEOps only checks for updates — the real launcher does the actual patching." : {
 
     },
     "EVEOps Test Notification" : {
+
+    },
+    "EVEOps Update Available" : {
 
     },
     "EVERef" : {
@@ -2447,6 +2484,9 @@
     "GetEveModels provides 3D ship model data for EVE Online. Used in accordance with the GetEveModels public API terms of service." : {
 
     },
+    "Go" : {
+
+    },
     "Good" : {
 
     },
@@ -2656,7 +2696,16 @@
     "Install" : {
 
     },
+    "Install available update" : {
+
+    },
+    "Install the available update" : {
+
+    },
     "Install Update" : {
+
+    },
+    "Install update version %@" : {
 
     },
     "Insufficient fitting data" : {
@@ -2750,6 +2799,9 @@
 
     },
     "Jump Clones (%lld)" : {
+
+    },
+    "Jump to a section, action, or EVE name…" : {
 
     },
     "Jumps" : {
@@ -2876,6 +2928,9 @@
     "Load Fitting or Ship" : {
 
     },
+    "Loading" : {
+
+    },
     "Loading colony…" : {
 
     },
@@ -2985,6 +3040,9 @@
 
     },
     "Logout:" : {
+
+    },
+    "Looking up names" : {
 
     },
     "Loss" : {
@@ -3188,6 +3246,9 @@
         }
       }
     },
+    "Next Section" : {
+
+    },
     "Next Skill" : {
 
     },
@@ -3297,6 +3358,9 @@
 
     },
     "No Market Orders" : {
+
+    },
+    "No matches" : {
 
     },
     "No matching items" : {
@@ -3647,6 +3711,9 @@
     "Presence Score" : {
 
     },
+    "Previous Section" : {
+
+    },
     "Price" : {
 
     },
@@ -3707,6 +3774,15 @@
     "Queue Position" : {
 
     },
+    "Quick switcher" : {
+
+    },
+    "Quick switcher (⌘K)" : {
+
+    },
+    "Quick Switcher…" : {
+
+    },
     "Quit" : {
 
     },
@@ -3719,10 +3795,16 @@
     "Re-authenticate" : {
 
     },
+    "Re-authenticate %@" : {
+
+    },
     "Re-authenticate to grant the “esi-corporations.read_divisions.v1” scope and see your corporation’s custom division names." : {
 
     },
     "Re-authenticate to grant the “esi-universe.read_structures.v1” scope. Your token was issued before this scope was required." : {
+
+    },
+    "Re-authentication required for %@" : {
 
     },
     "Re-authentication required: %@" : {
@@ -3777,6 +3859,9 @@
 
     },
     "Refresh Now" : {
+
+    },
+    "Refreshing" : {
 
     },
     "Refreshing…" : {
@@ -3879,6 +3964,9 @@
 
     },
     "Route Planner" : {
+
+    },
+    "Route risk" : {
 
     },
     "Route Type" : {
@@ -4002,6 +4090,9 @@
 
     },
     "Search offers…" : {
+
+    },
+    "Search sections, actions, and EVE names" : {
 
     },
     "Search sell orders, buy orders, or both across all k-space regions." : {
@@ -4168,6 +4259,9 @@
 
     },
     "Settings" : {
+
+    },
+    "Settings…" : {
 
     },
     "Share Fitting" : {
@@ -4450,6 +4544,9 @@
     "Switch" : {
 
     },
+    "Switch pilot" : {
+
+    },
     "Syncing EVE SDE data…" : {
 
     },
@@ -4688,6 +4785,9 @@
     "Update Standing" : {
 
     },
+    "Updated" : {
+
+    },
     "updated %@" : {
 
     },
@@ -4726,6 +4826,9 @@
 
     },
     "Velocity Bonus" : {
+
+    },
+    "Version %@ is ready to install." : {
 
     },
     "via Fuzzwork · Jita buy orders" : {

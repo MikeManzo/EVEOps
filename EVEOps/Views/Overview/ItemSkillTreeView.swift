@@ -196,7 +196,7 @@ struct ItemSkillTreeView: View {
                 ForEach(searchResults, id: \.id) { result in
                     Button { selectItem(result.id, name: result.name) } label: {
                         HStack(spacing: 12) {
-                            AsyncImage(url: EVEImageURL.typeIcon(result.id, size: 64)) { phase in
+                            CachedAsyncImage(url: EVEImageURL.typeIcon(result.id, size: 64)) { phase in
                                 if let img = phase.image {
                                     img.resizable()
                                         .frame(width: 64, height: 64)
@@ -316,7 +316,7 @@ struct ItemSkillTreeView: View {
                     TypeImageView(typeId: selectedTypeId ?? 0,
                                   size: 40, cornerRadius: 7)
                 } else {
-                    AsyncImage(url: EVEImageURL.typeIcon(node.id, size: 64)) { phase in
+                    CachedAsyncImage(url: EVEImageURL.typeIcon(node.id, size: 64)) { phase in
                         if let img = phase.image {
                             img.resizable()
                                 .aspectRatio(contentMode: .fill)
@@ -746,7 +746,7 @@ private struct TypeImageView: View {
     let cornerRadius: CGFloat
 
     var body: some View {
-        AsyncImage(url: EVEImageURL.typeRender(typeId, size: 256)) { phase in
+        CachedAsyncImage(url: EVEImageURL.typeRender(typeId, size: 256)) { phase in
             switch phase {
             case .success(let img):
                 img.resizable()
@@ -754,7 +754,7 @@ private struct TypeImageView: View {
                     .frame(width: size, height: size)
                     .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
             case .failure:
-                AsyncImage(url: EVEImageURL.typeIcon(typeId, size: 64)) { phase2 in
+                CachedAsyncImage(url: EVEImageURL.typeIcon(typeId, size: 64)) { phase2 in
                     if let img = phase2.image {
                         img.resizable()
                             .aspectRatio(contentMode: .fill)
@@ -866,7 +866,7 @@ private struct NodeDetailView: View {
             if isRoot {
                 TypeImageView(typeId: typeId, size: 56, cornerRadius: 10)
             } else {
-                AsyncImage(url: EVEImageURL.typeIcon(node.id, size: 64)) { phase in
+                CachedAsyncImage(url: EVEImageURL.typeIcon(node.id, size: 64)) { phase in
                     if let img = phase.image {
                         img.resizable()
                             .aspectRatio(contentMode: .fill)

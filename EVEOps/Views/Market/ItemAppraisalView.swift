@@ -172,7 +172,7 @@ struct ItemAppraisalView: View {
 
     private func appraisalRow(_ row: AppraisalRow) -> some View {
         HStack(spacing: 10) {
-            AsyncImage(url: EVEImageURL.typeIcon(row.typeID, size: 64)) { img in
+            CachedAsyncImage(url: EVEImageURL.typeIcon(row.typeID, size: 64)) { img in
                 img.resizable()
             } placeholder: {
                 RoundedRectangle(cornerRadius: 4).fill(.quaternary)

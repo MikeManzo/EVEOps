@@ -9,6 +9,7 @@
 //
 
 import SwiftUI
+import OSLog
 
 struct MenuBarView: View {
     @Environment(AccountManager.self) private var accountManager
@@ -66,6 +67,7 @@ struct MenuBarView: View {
 
             if appUpdater.updateAvailable {
                 Button {
+                    dismiss()
                     appUpdater.checkForUpdates()
                 } label: {
                     HStack(spacing: 6) {
@@ -81,14 +83,22 @@ struct MenuBarView: View {
                         }
                         Spacer()
                         Text("Install")
-                            .font(.caption2)
-                            .foregroundStyle(.blue)
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2)
+                            .background(.blue, in: Capsule())
                     }
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .background(.blue.opacity(0.1))
+                .help("Install the available update")
+                .accessibilityLabel(
+                    appUpdater.availableVersion.map { "Install update version \($0)" } ?? "Install available update"
+                )
 
                 Divider()
             }
@@ -183,22 +193,12 @@ struct MenuBarView: View {
             isLoading = summaries.isEmpty
             await loadAllSummaries()
         }
-        .task(id: pollInterval) {
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(pollInterval))
-                await loadAllSummaries()
-            }
-        }
+        .autoRefresh(every: pollInterval) { await loadAllSummaries() }
         .onChange(of: prefetcher.lastRefresh) { _, _ in
             // Prefetcher was refreshed externally (e.g. "Refresh Now" in Settings) — sync immediately
             Task { await loadAllSummaries() }
         }
-        .task(id: "downtime-timer") {
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(30))
-                now = Date()
-            }
-        }
+        .periodicTick(every: 30) { now = Date() }
     }
 
     private var characterSwitcher: some View {
@@ -208,7 +208,7 @@ struct MenuBarView: View {
                     accountManager.selectedCharacterID = account.characterID
                 } label: {
                     HStack(spacing: 8) {
-                        AsyncImage(url: EVEImageURL.characterPortrait(account.characterID, size: 128)) { image in
+                        CachedAsyncImage(url: EVEImageURL.characterPortrait(account.characterID, size: 128)) { image in
                             image.resizable()
                         } placeholder: {
                             RoundedRectangle(cornerRadius: 4).fill(.quaternary)
@@ -387,7 +387,9 @@ struct MenuBarView: View {
                     s.expiredExtractorCount += layout.pins.filter { pin in
                         pin.extractorDetails != nil && (pin.expiryTime ?? .distantPast) < Date()
                     }.count
-                } catch {}
+                } catch {
+                    logSuppressed(error, "MenuBar: colony \(colony.planetId) layout", category: Logger.prefetch)
+                }
             }
 
             if let sysId = loc?.solarSystemId {

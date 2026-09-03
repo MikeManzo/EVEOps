@@ -186,4 +186,10 @@ enum NavigationSection: String, CaseIterable, Identifiable {
     static var utilitySections: [NavigationSection] {
         [.diagnosticLogs]
     }
+
+    /// ⌘1…⌘9 targets — the daily-driver screens, in shortcut order.
+    static var quickJumpSlots: [NavigationSection] {
+        [.location, .training, .skillPlanner, .finances, .assets,
+         .market, .routePlanner, .galaxyMap, .careerAgents]
+    }
 }

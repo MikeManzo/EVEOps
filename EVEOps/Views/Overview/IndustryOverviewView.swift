@@ -14,13 +14,23 @@ import FoundationModels
 struct IndustryOverviewView: View {
     @Environment(AccountManager.self) private var accountManager
     @Environment(DashboardPrefetcher.self) private var prefetcher
+    @AppStorage("backgroundPollInterval") private var pollInterval: Double = 300
     @State private var jobs: [CharacterIndustryGroup] = []
     @State private var isLoading = false
+    @State private var isRefreshing = false
+    @State private var lastRefresh: Date?
     @State private var error: String?
-    @State private var showActiveOnly = true
+    @AppStorage("industry.activeJobsOnly") private var showActiveOnly = true
 
     var body: some View {
-        LoadingStateView(isLoading: isLoading, error: error, isEmpty: jobs.isEmpty, emptyMessage: "No industry jobs found") {
+        LoadingStateView(
+            isLoading: isLoading,
+            error: error,
+            isEmpty: jobs.isEmpty,
+            hasContent: !jobs.isEmpty,
+            emptyMessage: "No industry jobs found",
+            onRetry: { Task { await refresh() } }
+        ) {
             VStack(spacing: 0) {
                 HStack {
                     Toggle("Active jobs only", isOn: $showActiveOnly)
@@ -48,10 +58,14 @@ struct IndustryOverviewView: View {
             }
         }
         .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
+            HStack(spacing: 12) {
                 Text("Industry Overview")
                     .font(.largeTitle.bold())
                 Spacer()
+                RelativeTimestamp(date: lastRefresh)
+                RefreshButton(isRefreshing: isRefreshing) {
+                    Task { await refresh() }
+                }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
@@ -63,6 +77,16 @@ struct IndustryOverviewView: View {
             isLoading = true
             await loadJobs()
         }
+        .autoRefresh(every: pollInterval) { await refresh() }
+        .onChange(of: AppRouter.shared.refreshTick) { _, _ in
+            Task { await refresh() }
+        }
+    }
+
+    private func refresh() async {
+        isRefreshing = true
+        defer { isRefreshing = false }
+        await loadJobs()
     }
 
     private var totalJobCount: Int {
@@ -122,6 +146,7 @@ struct IndustryOverviewView: View {
         if groups.isEmpty, let lastError {
             self.error = lastError.localizedDescription
         }
+        lastRefresh = Date()
         isLoading = false
     }
 }

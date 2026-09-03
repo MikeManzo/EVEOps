@@ -183,7 +183,7 @@ private struct CorpKillmailSectionHeader: View {
     var body: some View {
         Button(action: onToggle) {
             HStack(spacing: 8) {
-                AsyncImage(url: EVEImageURL.characterPortrait(group.characterID, size: 64)) { image in
+                CachedAsyncImage(url: EVEImageURL.characterPortrait(group.characterID, size: 64)) { image in
                     image.resizable()
                 } placeholder: {
                     RoundedRectangle(cornerRadius: 6).fill(.quaternary)

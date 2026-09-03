@@ -769,7 +769,7 @@ private struct SimImplantsBlock: View {
         VStack(alignment: .leading, spacing: 4) {
             ForEach(simState.implantTypeIds.sorted(), id: \.self) { typeId in
                 HStack(spacing: 8) {
-                    AsyncImage(url: EVEImageURL.typeIcon(typeId, size: 64)) { img in
+                    CachedAsyncImage(url: EVEImageURL.typeIcon(typeId, size: 64)) { img in
                         img.resizable().aspectRatio(contentMode: .fit)
                     } placeholder: {
                         RoundedRectangle(cornerRadius: 3).fill(.quaternary)

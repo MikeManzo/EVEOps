@@ -13,23 +13,37 @@ import SwiftUI
 struct ContractsOverviewView: View {
     @Environment(AccountManager.self) private var accountManager
     @Environment(DashboardPrefetcher.self) private var prefetcher
+    @AppStorage("backgroundPollInterval") private var pollInterval: Double = 300
     @State private var contracts: [CharacterContractGroup] = []
     @State private var isLoading = false
+    @State private var isRefreshing = false
+    @State private var lastRefresh: Date?
     @State private var error: String?
-    @State private var filterStatus = "all"
+    @AppStorage("contracts.filterStatus") private var filterStatus = "all"
 
     var body: some View {
-        LoadingStateView(isLoading: isLoading, error: error, isEmpty: contracts.isEmpty, emptyMessage: "No contracts found") {
+        LoadingStateView(
+            isLoading: isLoading,
+            error: error,
+            isEmpty: contracts.isEmpty,
+            hasContent: !contracts.isEmpty,
+            emptyMessage: "No contracts found",
+            onRetry: { Task { await refresh() } }
+        ) {
             VStack(spacing: 0) {
                 filterBar
                 contractList
             }
         }
         .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
+            HStack(spacing: 12) {
                 Text("Contracts Overview")
                     .font(.largeTitle.bold())
                 Spacer()
+                RelativeTimestamp(date: lastRefresh)
+                RefreshButton(isRefreshing: isRefreshing) {
+                    Task { await refresh() }
+                }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
@@ -41,6 +55,16 @@ struct ContractsOverviewView: View {
             isLoading = true
             await loadContracts()
         }
+        .autoRefresh(every: pollInterval) { await refresh() }
+        .onChange(of: AppRouter.shared.refreshTick) { _, _ in
+            Task { await refresh() }
+        }
+    }
+
+    private func refresh() async {
+        isRefreshing = true
+        defer { isRefreshing = false }
+        await loadContracts()
     }
 
     private var filterBar: some View {
@@ -159,6 +183,7 @@ struct ContractsOverviewView: View {
         if groups.isEmpty, let lastError {
             self.error = lastError.localizedDescription
         }
+        lastRefresh = Date()
         isLoading = false
     }
 }

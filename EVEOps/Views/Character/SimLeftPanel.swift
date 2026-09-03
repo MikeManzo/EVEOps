@@ -519,7 +519,7 @@ struct SimShipRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            AsyncImage(url: EVEImageURL.typeRender(type.typeId, size: 128)) { img in
+            CachedAsyncImage(url: EVEImageURL.typeRender(type.typeId, size: 128)) { img in
                 img.resizable().aspectRatio(contentMode: .fill)
             } placeholder: {
                 RoundedRectangle(cornerRadius: 8).fill(.quaternary)
@@ -546,7 +546,7 @@ struct SimModuleRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            AsyncImage(url: EVEImageURL.typeIcon(type.typeId, size: 64)) { img in
+            CachedAsyncImage(url: EVEImageURL.typeIcon(type.typeId, size: 64)) { img in
                 img.resizable().aspectRatio(contentMode: .fit)
             } placeholder: {
                 RoundedRectangle(cornerRadius: 6).fill(.quaternary)

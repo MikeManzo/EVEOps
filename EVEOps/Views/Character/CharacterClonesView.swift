@@ -118,7 +118,7 @@ struct CharacterClonesView: View {
             } else {
                 ForEach(activeImplants) { implant in
                     HStack {
-                        AsyncImage(url: EVEImageURL.typeIcon(implant.typeId, size: 64)) { phase in
+                        CachedAsyncImage(url: EVEImageURL.typeIcon(implant.typeId, size: 64)) { phase in
                             if let image = phase.image {
                                 image.resizable()
                                     .frame(width: 28, height: 28)
@@ -177,7 +177,7 @@ struct CharacterClonesView: View {
 
     /// Hi-res render of the station/structure the clone is parked in.
     private func cloneLocationThumbnail(typeId: Int?) -> some View {
-        AsyncImage(url: typeId.flatMap { EVEImageURL.typeRender($0, size: 256) }) { phase in
+        CachedAsyncImage(url: typeId.flatMap { EVEImageURL.typeRender($0, size: 256) }) { phase in
             if let image = phase.image {
                 image.resizable()
                     .interpolation(.high)
@@ -206,7 +206,7 @@ struct CharacterClonesView: View {
                 Button {
                     stripImplant = implant
                 } label: {
-                    AsyncImage(url: EVEImageURL.typeIcon(implant.typeId, size: 64)) { phase in
+                    CachedAsyncImage(url: EVEImageURL.typeIcon(implant.typeId, size: 64)) { phase in
                         if let image = phase.image {
                             image.resizable().interpolation(.high)
                         } else {

@@ -24,7 +24,7 @@ struct SystemDanger: Sendable, Equatable {
     var combatKills: Int { shipKills + podKills }
     var isHostile: Bool { combatKills > 0 }
 
-    static let none = SystemDanger()
+    nonisolated static let none = SystemDanger()
 }
 
 /// Coarse severity bucket for `SystemDanger.combatKills`, used to drive colour/labels.

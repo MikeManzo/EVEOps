@@ -203,7 +203,7 @@ private struct FWStatsCard: View {
     private var enrollmentHeader: some View {
         HStack(spacing: 12) {
             if let factionId = stats.factionId {
-                AsyncImage(url: EVEImageURL.corporationLogo(factionId, size: 64)) { image in
+                CachedAsyncImage(url: EVEImageURL.corporationLogo(factionId, size: 64)) { image in
                     image.resizable().scaledToFit()
                 } placeholder: {
                     RoundedRectangle(cornerRadius: 8).fill(.quaternary)
@@ -323,7 +323,7 @@ private struct WarzoneRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            AsyncImage(url: EVEImageURL.corporationLogo(stat.factionId, size: 64)) { image in
+            CachedAsyncImage(url: EVEImageURL.corporationLogo(stat.factionId, size: 64)) { image in
                 image.resizable().scaledToFit()
             } placeholder: {
                 RoundedRectangle(cornerRadius: 6).fill(.quaternary)
@@ -442,7 +442,7 @@ private struct WarzoneFactionPopover: View {
 
     private var header: some View {
         HStack(spacing: 12) {
-            AsyncImage(url: EVEImageURL.corporationLogo(stat.factionId, size: 64)) { image in
+            CachedAsyncImage(url: EVEImageURL.corporationLogo(stat.factionId, size: 64)) { image in
                 image.resizable().scaledToFit()
             } placeholder: {
                 RoundedRectangle(cornerRadius: 8).fill(.quaternary)

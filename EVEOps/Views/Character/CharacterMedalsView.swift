@@ -120,7 +120,7 @@ private struct MedalRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            AsyncImage(url: EVEImageURL.corporationLogo(medal.corporationId, size: 64)) { image in
+            CachedAsyncImage(url: EVEImageURL.corporationLogo(medal.corporationId, size: 64)) { image in
                 image.resizable().scaledToFit()
             } placeholder: {
                 RoundedRectangle(cornerRadius: 6).fill(.quaternary)
@@ -168,7 +168,7 @@ private struct MedalRow: View {
     private var medalDetail: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 12) {
-                AsyncImage(url: EVEImageURL.corporationLogo(medal.corporationId, size: 64)) { image in
+                CachedAsyncImage(url: EVEImageURL.corporationLogo(medal.corporationId, size: 64)) { image in
                     image.resizable().scaledToFit()
                 } placeholder: {
                     RoundedRectangle(cornerRadius: 6).fill(.quaternary)

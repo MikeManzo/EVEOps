@@ -397,7 +397,7 @@ private struct CampaignRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             if let defenderId = c.defenderId {
-                AsyncImage(url: EVEImageURL.allianceLogo(defenderId, size: 64)) { $0.resizable().scaledToFit() }
+                CachedAsyncImage(url: EVEImageURL.allianceLogo(defenderId, size: 64)) { $0.resizable().scaledToFit() }
                 placeholder: { RoundedRectangle(cornerRadius: 8).fill(.quaternary) }
                 .frame(width: 44, height: 44)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
@@ -460,6 +460,7 @@ private struct CampaignRow: View {
                 .clipShape(Capsule())
             }
             .frame(height: 5)
+            .accessibilityHidden(true)
             HStack {
                 Text("Defender \(defender.formatted(.percent.precision(.fractionLength(0))))")
                     .foregroundStyle(.green)
@@ -471,6 +472,9 @@ private struct CampaignRow: View {
         }
         .frame(maxWidth: 260)
         .padding(.top, 2)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Contest score")
+        .accessibilityValue("Defender \(defender.formatted(.percent.precision(.fractionLength(0)))), attackers \(attackers.formatted(.percent.precision(.fractionLength(0))))")
     }
 }
 
@@ -486,7 +490,7 @@ private struct StructureRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            AsyncImage(url: EVEImageURL.allianceLogo(item.allianceId, size: 64)) { $0.resizable().scaledToFit() }
+            CachedAsyncImage(url: EVEImageURL.allianceLogo(item.allianceId, size: 64)) { $0.resizable().scaledToFit() }
             placeholder: { RoundedRectangle(cornerRadius: 6).fill(.quaternary) }
             .frame(width: 36, height: 36)
             .clipShape(RoundedRectangle(cornerRadius: 6))
@@ -655,7 +659,7 @@ private struct SovDetailPane: View {
                 Text("ATTACKERS").font(.caption2.bold()).foregroundStyle(.tertiary)
                 ForEach(participants.filter { $0.allianceId != c.defenderId }) { p in
                     HStack(spacing: 8) {
-                        AsyncImage(url: EVEImageURL.allianceLogo(p.allianceId, size: 32)) { $0.resizable().scaledToFit() }
+                        CachedAsyncImage(url: EVEImageURL.allianceLogo(p.allianceId, size: 32)) { $0.resizable().scaledToFit() }
                         placeholder: { RoundedRectangle(cornerRadius: 4).fill(.quaternary) }
                         .frame(width: 22, height: 22).clipShape(RoundedRectangle(cornerRadius: 4))
                         Text(allianceNames[p.allianceId] ?? "Alliance #\(p.allianceId)").font(.caption)
@@ -790,6 +794,7 @@ private struct SovDetailPane: View {
                 .clipShape(Capsule())
             }
             .frame(height: 6)
+            .accessibilityHidden(true)
             HStack {
                 Text("Defender \(defender.formatted(.percent.precision(.fractionLength(0))))").foregroundStyle(.green)
                 Spacer()
@@ -797,6 +802,9 @@ private struct SovDetailPane: View {
             }
             .font(.system(size: 10).monospacedDigit())
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Contest score")
+        .accessibilityValue("Defender \(defender.formatted(.percent.precision(.fractionLength(0)))), attackers \(attackers.formatted(.percent.precision(.fractionLength(0))))")
     }
 
     @ViewBuilder
@@ -901,7 +909,7 @@ private struct AllianceInfoCard: View {
             Text(role.uppercased()).font(.caption2.bold()).foregroundStyle(.tertiary)
             if let allianceId {
                 HStack(spacing: 12) {
-                    AsyncImage(url: EVEImageURL.allianceLogo(allianceId, size: 128)) { $0.resizable().scaledToFit() }
+                    CachedAsyncImage(url: EVEImageURL.allianceLogo(allianceId, size: 128)) { $0.resizable().scaledToFit() }
                     placeholder: { RoundedRectangle(cornerRadius: 8).fill(.quaternary) }
                     .frame(width: 52, height: 52).clipShape(RoundedRectangle(cornerRadius: 8))
 
@@ -960,7 +968,7 @@ private struct HolderRow: View {
                 .foregroundStyle(.secondary)
                 .frame(width: 22, alignment: .trailing)
 
-            AsyncImage(url: EVEImageURL.allianceLogo(holding.allianceId, size: 64)) { $0.resizable().scaledToFit() }
+            CachedAsyncImage(url: EVEImageURL.allianceLogo(holding.allianceId, size: 64)) { $0.resizable().scaledToFit() }
             placeholder: { RoundedRectangle(cornerRadius: 6).fill(.quaternary) }
             .frame(width: 32, height: 32)
             .clipShape(RoundedRectangle(cornerRadius: 6))

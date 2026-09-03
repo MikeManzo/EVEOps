@@ -24,6 +24,25 @@ final class AppRouter {
     /// Set by any view that wants MainContentView to switch the selected sidebar section.
     /// MainContentView consumes it and resets it to nil.
     var pendingSection: NavigationSection?
+
+    /// Bumped by the "Refresh Current View" command (⌘K) and the ⌘R shortcut.
+    /// Views that show live data observe this and re-fetch.
+    var refreshTick = 0
+
+    /// Bumped by the ⌘K menu command; MainContentView opens the quick switcher.
+    var commandPaletteTick = 0
+
+    /// Bumped by the "Add Character…" menu command (⌘N).
+    var addCharacterTick = 0
+
+    /// −1 / +1 from the Previous/Next Section commands (⌘[ / ⌘]); consumed and
+    /// reset to 0 by MainContentView, which owns the ordered section list.
+    var sectionStep = 0
+
+    func requestRefresh() { refreshTick &+= 1 }
+    func openCommandPalette() { commandPaletteTick &+= 1 }
+    func requestAddCharacter() { addCharacterTick &+= 1 }
+    func stepSection(_ delta: Int) { sectionStep = delta }
 }
 
 // Sets itself as the UNUserNotificationCenter delegate so banners are shown
@@ -43,7 +62,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         
         // Set the delegate to handle foreground notifications
         UNUserNotificationCenter.current().delegate = self
-        
+
+        // Register the actionable "Install Update" notification button.
+        AppUpdater.registerNotificationCategories()
+
         // Request permission immediately on launch
         Task {
             do {
@@ -63,6 +85,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
 
     func applicationWillTerminate(_ notification: Notification) {
         DiagnosticLogStore.shared.flushSync()
+        // Best-effort: give the actor a moment to mirror the cache to disk. The
+        // count-based persist during the session is the real guarantee here.
+        Task { await ESIClient.shared.persistCache() }
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {
@@ -88,6 +113,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
+        // Tapping the "update available" banner (or its "Install Update" action)
+        // opens the Sparkle update flow.
+        if response.notification.request.identifier == AppUpdater.updateNotificationID,
+           response.actionIdentifier == AppUpdater.installActionID
+            || response.actionIdentifier == UNNotificationDefaultActionIdentifier {
+            Task { @MainActor in
+                AppUpdater.shared?.checkForUpdates()
+            }
+        }
         completionHandler()
     }
 }
@@ -95,19 +129,46 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
 @main
 struct EVEOpsApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    var sharedModelContainer: ModelContainer = {
+    var sharedModelContainer: ModelContainer = EVEOpsApp.makeModelContainer()
+
+    /// Build the SwiftData store, recovering instead of crashing when the on-disk
+    /// store is corrupt or schema-incompatible: move the old store aside and retry
+    /// once, then fall back to an in-memory store so the app still launches (the
+    /// user re-adds characters — SSO tokens live in the Keychain, not here).
+    private static func makeModelContainer() -> ModelContainer {
         let schema = Schema([
             StoredAccount.self,
             CachedName.self,
             LauncherAccount.self
         ])
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+
         do {
             return try ModelContainer(for: schema, configurations: [config])
         } catch {
-            fatalError("Could not create ModelContainer: \(error)")
+            Logger.app.error("ModelContainer creation failed: \(error.localizedDescription) — resetting local store")
+
+            let storeURL = config.url
+            let stamp = Int(Date().timeIntervalSince1970)
+            let movedAside = storeURL.deletingLastPathComponent()
+                .appendingPathComponent("EVEOps-store-corrupt-\(stamp).store")
+            try? FileManager.default.moveItem(at: storeURL, to: movedAside)
+            for suffix in ["-shm", "-wal"] {
+                try? FileManager.default.removeItem(at: URL(fileURLWithPath: storeURL.path + suffix))
+            }
+
+            if let recovered = try? ModelContainer(for: schema, configurations: [config]) {
+                Logger.app.notice("ModelContainer recovered after resetting the local store")
+                return recovered
+            }
+
+            Logger.app.fault("ModelContainer falling back to an in-memory store — data will not persist this session")
+            let memoryConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+            // An in-memory container effectively never fails; if it does the
+            // process genuinely cannot run.
+            return try! ModelContainer(for: schema, configurations: [memoryConfig])
         }
-    }()
+    }
 
     @State private var accountManager: AccountManager
     @State private var backgroundMonitor: BackgroundMonitor
@@ -167,6 +228,11 @@ struct EVEOpsApp: App {
             tracker.configure(accountManager: manager, prefetcher: pf)
             tracker.startPolling()
 
+            // Restore the persisted ESI response cache before any prefetch so a
+            // relaunch serves fresh entries straight from disk and revalidates the
+            // rest with cheap 304s instead of full re-downloads.
+            await ESIClient.shared.warmCache()
+
             // Refresh public info (corp/alliance) concurrently with the full prefetch
             // so the correct names are visible as soon as possible without waiting
             // for the heavier prefetchAll to complete.
@@ -188,6 +254,7 @@ struct EVEOpsApp: App {
             MenuBarIconLabel(updateAvailable: appUpdater.updateAvailable)
         }
         .menuBarExtraStyle(.window)
+        .commands { AppCommands(updater: appUpdater) }
     }
 }
 

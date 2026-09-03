@@ -21,7 +21,8 @@ import Foundation
 ///   - corp/alliance logo: vector-sourced, crisp at any size
 enum EVEImageURL {
     /// Snaps to a valid power-of-two size within `[32, 1024]`.
-    private static func clamp(_ size: Int) -> Int {
+    /// `nonisolated` to match the URL builders below, which are called off the main actor.
+    nonisolated private static func clamp(_ size: Int) -> Int {
         let steps = [32, 64, 128, 256, 512, 1024]
         return steps.last(where: { $0 <= size }) ?? steps.first!
     }

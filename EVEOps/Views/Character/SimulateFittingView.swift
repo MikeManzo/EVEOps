@@ -111,7 +111,9 @@ struct SimulateFittingView: View {
             )
             importedEFTEntry = entry
             showImportSaveSheet = true
-        } catch {}
+        } catch {
+            logSuppressed(error, "Simulator: import EFT from \(AppRouter.shared.pendingEFTURL?.lastPathComponent ?? "URL")")
+        }
         AppRouter.shared.pendingEFTURL = nil
     }
 }

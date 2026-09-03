@@ -13,13 +13,23 @@ import SwiftUI
 struct ColoniesOverviewView: View {
     @Environment(AccountManager.self) private var accountManager
     @Environment(DashboardPrefetcher.self) private var prefetcher
+    @AppStorage("backgroundPollInterval") private var pollInterval: Double = 300
     @State private var colonies: [CharacterColonyGroup] = []
     @State private var isLoading = false
+    @State private var isRefreshing = false
+    @State private var lastRefresh: Date?
     @State private var error: String?
     @State private var selectedEntry: ColonyDetailEntry?
 
     var body: some View {
-        LoadingStateView(isLoading: isLoading, error: error, isEmpty: colonies.isEmpty, emptyMessage: "No PI colonies found") {
+        LoadingStateView(
+            isLoading: isLoading,
+            error: error,
+            isEmpty: colonies.isEmpty,
+            hasContent: !colonies.isEmpty,
+            emptyMessage: "No PI colonies found",
+            onRetry: { Task { await refresh() } }
+        ) {
             List {
                 ForEach(colonies, id: \.characterName) { group in
                     Section(group.characterName) {
@@ -36,10 +46,14 @@ struct ColoniesOverviewView: View {
             }
         }
         .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
+            HStack(spacing: 12) {
                 Text("Colonies Overview")
                     .font(.largeTitle.bold())
                 Spacer()
+                RelativeTimestamp(date: lastRefresh)
+                RefreshButton(isRefreshing: isRefreshing) {
+                    Task { await refresh() }
+                }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
@@ -54,6 +68,16 @@ struct ColoniesOverviewView: View {
             isLoading = true
             await loadColonies()
         }
+        .autoRefresh(every: pollInterval) { await refresh() }
+        .onChange(of: AppRouter.shared.refreshTick) { _, _ in
+            Task { await refresh() }
+        }
+    }
+
+    private func refresh() async {
+        isRefreshing = true
+        defer { isRefreshing = false }
+        await loadColonies()
     }
 
     private func buildFromPrefetcher() -> Bool {
@@ -126,6 +150,7 @@ struct ColoniesOverviewView: View {
         if groups.isEmpty, let lastError {
             self.error = lastError.localizedDescription
         }
+        lastRefresh = Date()
         isLoading = false
     }
 }

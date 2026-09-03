@@ -80,7 +80,7 @@ struct FittingShopView: View {
 
     private var headerBar: some View {
         HStack(spacing: 15) {
-            AsyncImage(url: EVEImageURL.typeRender(input.shipTypeId, size: 128)) { image in
+            CachedAsyncImage(url: EVEImageURL.typeRender(input.shipTypeId, size: 128)) { image in
                 image.resizable().aspectRatio(contentMode: .fill)
             } placeholder: {
                 RoundedRectangle(cornerRadius: 6).fill(.quaternary)
@@ -367,7 +367,7 @@ struct FittingShopView: View {
 
     private func itemQuoteRow(_ item: ItemQuote) -> some View {
         HStack(spacing: 10) {
-            AsyncImage(url: EVEImageURL.typeIcon(item.typeId, size: 32)) { image in
+            CachedAsyncImage(url: EVEImageURL.typeIcon(item.typeId, size: 32)) { image in
                 image.resizable()
             } placeholder: {
                 RoundedRectangle(cornerRadius: 3).fill(.quaternary)
@@ -708,7 +708,7 @@ private struct ItemShopPopover: View {
         VStack(alignment: .leading, spacing: 0) {
             // Header: icon + name + availability
             HStack(spacing: 12) {
-                AsyncImage(url: EVEImageURL.typeIcon(item.typeId, size: 64)) { image in
+                CachedAsyncImage(url: EVEImageURL.typeIcon(item.typeId, size: 64)) { image in
                     image.resizable().aspectRatio(contentMode: .fit)
                 } placeholder: {
                     RoundedRectangle(cornerRadius: 8).fill(.quaternary)
