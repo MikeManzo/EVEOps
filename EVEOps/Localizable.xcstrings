@@ -84,6 +84,9 @@
     "/ L%lld" : {
 
     },
+    "#%lld" : {
+
+    },
     "% = this hull appeared as an attacker\nin that share of the sampled kills." : {
 
     },
@@ -1624,9 +1627,6 @@
     "Cloning" : {
 
     },
-    "Close" : {
-
-    },
     "Closed" : {
 
     },
@@ -2007,6 +2007,9 @@
 
     },
     "Done" : {
+
+    },
+    "Dotlan" : {
 
     },
     "down" : {
@@ -2474,6 +2477,9 @@
     "High" : {
 
     },
+    "High influence — full rewards, but a stronger Sansha response." : {
+
+    },
     "High Sec" : {
 
     },
@@ -2638,6 +2644,9 @@
     "Industry Overview" : {
 
     },
+    "INFLUENCE" : {
+
+    },
     "Info" : {
 
     },
@@ -2777,9 +2786,6 @@
 
     },
     "Kill/Loss Mails" : {
-
-    },
-    "Killmail #%lld" : {
 
     },
     "Kills" : {
@@ -2990,6 +2996,9 @@
     "Low" : {
 
     },
+    "Low influence — Sansha response is suppressed; rewards are reduced." : {
+
+    },
     "Low Sec" : {
 
     },
@@ -3099,6 +3108,9 @@
 
     },
     "Moon" : {
+
+    },
+    "Mothership present" : {
 
     },
     "Move %lld unused file%@ (%@) to the Trash?" : {
@@ -3489,6 +3501,9 @@
 
     },
     "Open in EVE" : {
+
+    },
+    "Open on zKillboard" : {
 
     },
     "Open Remap Advisor" : {
@@ -4122,6 +4137,9 @@
     "Session expired" : {
 
     },
+    "Set as autopilot destination" : {
+
+    },
     "Set as Destination" : {
 
     },
@@ -4326,6 +4344,9 @@
     "SSO Configuration" : {
 
     },
+    "STAGING" : {
+
+    },
     "Staging: %@" : {
 
     },
@@ -4445,6 +4466,9 @@
 
     },
     "systems" : {
+
+    },
+    "SYSTEMS" : {
 
     },
     "Systems w/ Stations" : {

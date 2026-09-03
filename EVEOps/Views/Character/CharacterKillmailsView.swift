@@ -28,9 +28,17 @@ struct CharacterKillmailsView: View {
             emptyMessage: "No kill/loss mails found",
             loadingMessage: loadingDetail ?? "Loading..."
         ) {
-            VStack(spacing: 0) {
-                filterBar
-                killmailList
+            HStack(spacing: 0) {
+                VStack(spacing: 0) {
+                    filterBar
+                    killmailList
+                }
+                if let entry = selectedEntry {
+                    Divider()
+                    KillmailDetailPane(entry: entry, onClose: { selectedEntry = nil })
+                        .frame(width: 400)
+                        .id(entry.id)
+                }
             }
         }
         .safeAreaInset(edge: .top, spacing: 0) {
@@ -44,8 +52,8 @@ struct CharacterKillmailsView: View {
             .background(.background)
         }
         .navigationTitle("")
-        .sheet(item: $selectedEntry) { entry in
-            KillmailDetailSheet(entry: entry)
+        .onChange(of: filter) { _, f in
+            if let e = selectedEntry, f != "all", (f == "kills") != e.isKill { selectedEntry = nil }
         }
         .task(id: accountManager.selectedCharacterID) {
             groups = []
@@ -92,6 +100,7 @@ struct CharacterKillmailsView: View {
                             KillmailRow(entry: entry)
                                 .contentShape(Rectangle())
                                 .onTapGesture { selectedEntry = entry }
+                                .listRowBackground(selectedEntry?.id == entry.id ? Color.accentColor.opacity(0.12) : Color.clear)
                         }
                     }
                 }
@@ -246,25 +255,37 @@ struct KillmailRow: View {
     }
 }
 
-// MARK:  Kill Mail Detail Sheet
+// MARK:  Kill Mail Detail Pane
 
-struct KillmailDetailSheet: View {
+struct KillmailDetailPane: View {
     let entry: KillmailEntry
+    var onClose: () -> Void = {}
     var killmail: ESIKillmail { entry.killmail }
     @State private var victimShipName = ""
     @State private var systemName = ""
-    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack {
-                Text("Killmail #\(killmail.killmailId)")
+            HStack(spacing: 8) {
+                Image(systemName: entry.isKill ? "flame.fill" : "xmark.circle.fill")
+                    .foregroundStyle(entry.isKill ? .green : .red)
+                Text(entry.isKill ? "Kill" : "Loss")
                     .font(.headline)
+                Text("#\(killmail.killmailId)")
+                    .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
                 Spacer()
-                Button("Close") { dismiss() }
-                    .keyboardShortcut(.escape)
+                if let url = URL(string: "https://zkillboard.com/kill/\(killmail.killmailId)/") {
+                    Link(destination: url) { Image(systemName: "arrow.up.right.square") }
+                        .buttonStyle(.plain).foregroundStyle(.secondary)
+                        .help("Open on zKillboard")
+                }
+                Button { onClose() } label: {
+                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .keyboardShortcut(.escape)
             }
-            .padding()
+            .padding(.horizontal, 14).padding(.vertical, 10)
             Divider()
 
             ScrollView {
@@ -334,9 +355,11 @@ struct KillmailDetailSheet: View {
                     }
                 }
                 .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .frame(minWidth: 520, minHeight: 420)
+        .frame(maxHeight: .infinity)
+        .background(.regularMaterial)
         .task {
             victimShipName = (await UniverseCache.shared.type(id: killmail.victim.shipTypeId))?.name ?? ""
             systemName = await NameResolver.shared.resolve(id: killmail.solarSystemId)

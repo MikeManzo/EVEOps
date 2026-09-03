@@ -60,21 +60,22 @@ struct CharacterStandingsView: View {
 
     private func load() async {
         error = nil
-        var result: [StandingsGroup] = []
-        var lastError: Error?
-        for account in accountManager.accounts {
-            do {
-                let token = try await accountManager.validToken(for: account)
-                let standings: [ESIStanding] = try await ESIClient.shared.fetch(
-                    "/characters/\(account.characterID)/standings/", token: token
-                )
-                if !standings.isEmpty {
-                    result.append(StandingsGroup(characterName: account.characterName, standings: standings))
-                }
-            } catch { lastError = error }
+        guard let account = accountManager.selectedAccount else {
+            groups = []
+            isLoading = false
+            return
         }
-        groups = result
-        if result.isEmpty, let e = lastError { self.error = e.localizedDescription }
+        do {
+            let token = try await accountManager.validToken(for: account)
+            let standings: [ESIStanding] = try await ESIClient.shared.fetch(
+                "/characters/\(account.characterID)/standings/", token: token
+            )
+            groups = standings.isEmpty
+                ? []
+                : [StandingsGroup(characterName: account.characterName, standings: standings)]
+        } catch {
+            self.error = error.localizedDescription
+        }
         isLoading = false
     }
 }
