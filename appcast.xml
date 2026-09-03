@@ -3,25 +3,30 @@
     <channel>
         <title>EVEOps</title>
         <item>
-            <title>0.9.11</title>
-            <pubDate>Wed, 02 Sep 2026 20:21:18 -0400</pubDate>
+            <title>0.9.11.2</title>
+            <pubDate>Thu, 03 Sep 2026 14:21:41 -0400</pubDate>
             <sparkle:version>135</sparkle:version>
-            <sparkle:shortVersionString>0.9.11</sparkle:shortVersionString>
+            <sparkle:shortVersionString>0.9.11.2</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<ul>
-<li>**Sovereignty board** — a new Universe screen with three tabs: **Campaigns** (active and upcoming sov battles with event type, countdown, defender and attacker alliances, and a live score bar), **Structures** (claimed TCUs and Infrastructure Hubs sorted by ADM, with vulnerability windows and an alliance filter), and **Holders** (top alliances by system count). Clicking any row opens a detail pane on the right — same click-to-inspect layout as Agent Finder and Market Browser — showing a full alliance card (ticker, member corps, founding date, executor), cross-referenced holder/ADM/active-campaign info, a Set Destination button, and zKillboard/Dotlan links.</li>
-<li>**Route danger overlay** — the Route Planner now marks every hop with recent ship and pod kills, shows a route-wide risk score, and adds an opt-in &quot;route around recent kills&quot; toggle that reroutes past hot systems (origin and destination are never skipped).</li>
-<li>**Galaxy Map &quot;Kills&quot; mode** — a new colour mode that shades each constellation by ship and pod kills in the last hour, with the exact count shown in the constellation popover.</li>
-<li>**Price trend on assets** — the asset detail panel now includes a Jita price-history chart with a 30 / 90 / 365-day selector and a &quot;vs 30-day median&quot; badge indicating whether an item is currently cheap or expensive.</li>
-<li>**Wallet Breakdown tab** — Finances gains an income vs. expenses view: headline totals, a stacked bar chart broken down by category (bounties, market, industry, contracts, PI, fees, and more), and a per-category table with net ISK and activity bars.</li>
-<li>**Standing-aware Agent Finder** — each agent now shows whether your character can actually accept missions from it, based on effective standing (Connections, Criminal Connections, and Diplomacy included). Locked agents display the standing shortfall, the detail pane explains how to unlock them, and an &quot;Accessible only&quot; filter hides the rest.</li>
-<li>**Actionable service status** — EVEOps now reads the official EVE status page and per-route ESI health. The top banner surfaces active maintenance and major incidents (not just &quot;servers unreachable&quot;), the Dashboard server card lists incidents, scheduled maintenance, ESI route health, and error-budget state, and the Diagnostic Logs pane shows a live &quot;EVE Service Status&quot; bar so an empty screen has a visible cause.</li>
-</ul>
-<p>## Under the Hood</p>
+            <description><![CDATA[<p>Quality-of-life features</p>
 <ul>
-<li>**ESI request hygiene** — conditional requests (ETag / `If-None-Match`, so unchanged data returns a cheap `304`), automatic back-off when the ESI error budget runs low, a spec-compliant versioned `User-Agent` across every API client, and a single place to change the ESI route version.</li>
+<li>Command palette (⌘K): a fuzzy quick-switcher over all ~50 navigation sections, with recents, quick actions (Settings, Add Character, Refresh), and live EVE name lookup via /universe/ids/ that jumps to the market window or opens Dotlan/zKillboard.</li>
+<li>Standard macOS menu + keyboard shortcuts: a new AppCommands scene adds an EVEOps/File/Go/Window/Help menu and wires ⌘K, ⌘R, ⌘0, ⌘[/⌘], ⌘1–9, ⌘N and ⌘, (the app previously had no menu bar and zero shortcuts).</li>
+<li>Last-viewed section is remembered across launches (plus a couple of filter toggles), instead of always resetting to the Dashboard.</li>
+<li>Unified refresh &amp; freshness UI:  new shared RefreshButton, live &quot;Updated 3m ago&quot; label, .autoRefresh(every:) and .periodicTick(every:) modifiers, adopted across the main daily-use screens.</li>
+<li>Stale-while-revalidate loading: LoadingStateView now keeps cached content on screen with a thin progress strip (and an optional skeleton) instead of flashing a full-screen spinner on every navigation.</li>
+<li>Launch update check is now unconditional: it no longer depends on the &quot;automatic checks&quot; toggle, so an available version is found on every launch.</li>
+<li>Update notifications are reliable and actionable: posted from didFindValidUpdate (not just the gentle-reminder hook), carrying an &quot;Install Update&quot; action button, and checkForUpdates() now brings the app forward so the Sparkle window isn&#x27;t buried.</li>
+<li>The menu-bar &quot;Update available&quot; banner dismisses the popover and launches the installer, with a clearer &quot;Install&quot; affordance.</li>
+</ul>
+<p>Reliability &amp; performance</p>
+<ul>
+<li>ESI response cache persisted to disk: the ETag cache is now mirrored to Caches/EVEOps/ and restored before the first prefetch, so relaunch serves fresh data instantly and revalidates the rest with cheap 304s.</li>
+<li>Shared cached image loader: a drop-in CachedAsyncImage (memory + disk) replaced all 130 AsyncImage call sites across 42 files, removing portrait/icon flicker and re-downloads.</li>
+<li>Better error handling</li>
+<li>First VoiceOver pass: labels/values/hidden-decoration added to the toolbar buttons, status/reauth banners, LoadingStateView states, the sidebar (portraits, pilot switcher, reauth, calendar badge), the command palette rows, the Dashboard hero card, and the Sovereignty score bars and Route-risk pill.</li>
 </ul>]]></description>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.11/EVEOps.dmg" length="34665196" type="application/octet-stream" sparkle:edSignature="/9zCGVzVlINYbSRncKcrZsRHMfjtGXoKTYfHBgILsrXAR43PiEvOMtjun0WpobwiTRnyrAx51ZT/JPeWeA4/Dg=="/>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.11.2/EVEOps.dmg" length="34534248" type="application/octet-stream" sparkle:edSignature="8c4RXf0IQ0waZiMdH1mSkHwSjpS/LRXJRF9unhdwYnhvk4J9NHImf+w9KyZwDnamJI/vMTdMMCKnghu/LsKQAQ=="/>
         </item>
     </channel>
 </rss>
