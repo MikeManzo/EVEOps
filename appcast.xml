@@ -3,18 +3,25 @@
     <channel>
         <title>EVEOps</title>
         <item>
-            <title>0.9.10.6.1</title>
-            <pubDate>Mon, 31 Aug 2026 18:18:57 -0400</pubDate>
-            <sparkle:version>134</sparkle:version>
-            <sparkle:shortVersionString>0.9.10.6.1</sparkle:shortVersionString>
+            <title>0.9.11</title>
+            <pubDate>Wed, 02 Sep 2026 20:21:18 -0400</pubDate>
+            <sparkle:version>135</sparkle:version>
+            <sparkle:shortVersionString>0.9.11</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
             <description><![CDATA[<ul>
-<li>Various quality of life enhacements</li>
-<li>All Images rendered are the highest quality available from ESI</li>
-<li>Location screen has been optimized for space</li>
-<li>Assets now sort better</li>
+<li>**Sovereignty board** — a new Universe screen with three tabs: **Campaigns** (active and upcoming sov battles with event type, countdown, defender and attacker alliances, and a live score bar), **Structures** (claimed TCUs and Infrastructure Hubs sorted by ADM, with vulnerability windows and an alliance filter), and **Holders** (top alliances by system count). Clicking any row opens a detail pane on the right — same click-to-inspect layout as Agent Finder and Market Browser — showing a full alliance card (ticker, member corps, founding date, executor), cross-referenced holder/ADM/active-campaign info, a Set Destination button, and zKillboard/Dotlan links.</li>
+<li>**Route danger overlay** — the Route Planner now marks every hop with recent ship and pod kills, shows a route-wide risk score, and adds an opt-in &quot;route around recent kills&quot; toggle that reroutes past hot systems (origin and destination are never skipped).</li>
+<li>**Galaxy Map &quot;Kills&quot; mode** — a new colour mode that shades each constellation by ship and pod kills in the last hour, with the exact count shown in the constellation popover.</li>
+<li>**Price trend on assets** — the asset detail panel now includes a Jita price-history chart with a 30 / 90 / 365-day selector and a &quot;vs 30-day median&quot; badge indicating whether an item is currently cheap or expensive.</li>
+<li>**Wallet Breakdown tab** — Finances gains an income vs. expenses view: headline totals, a stacked bar chart broken down by category (bounties, market, industry, contracts, PI, fees, and more), and a per-category table with net ISK and activity bars.</li>
+<li>**Standing-aware Agent Finder** — each agent now shows whether your character can actually accept missions from it, based on effective standing (Connections, Criminal Connections, and Diplomacy included). Locked agents display the standing shortfall, the detail pane explains how to unlock them, and an &quot;Accessible only&quot; filter hides the rest.</li>
+<li>**Actionable service status** — EVEOps now reads the official EVE status page and per-route ESI health. The top banner surfaces active maintenance and major incidents (not just &quot;servers unreachable&quot;), the Dashboard server card lists incidents, scheduled maintenance, ESI route health, and error-budget state, and the Diagnostic Logs pane shows a live &quot;EVE Service Status&quot; bar so an empty screen has a visible cause.</li>
+</ul>
+<p>## Under the Hood</p>
+<ul>
+<li>**ESI request hygiene** — conditional requests (ETag / `If-None-Match`, so unchanged data returns a cheap `304`), automatic back-off when the ESI error budget runs low, a spec-compliant versioned `User-Agent` across every API client, and a single place to change the ESI route version.</li>
 </ul>]]></description>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.10.6.1/EVEOps.dmg" length="32598579" type="application/octet-stream" sparkle:edSignature="8DKh9gz9I1MJOFUfFOk7fRGtfMRYtHyr32oNoOfPx7OqIsSMplEp5DpMLhN6hqncRc2Lhr21gHDpECDouuF+Cw=="/>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.11/EVEOps.dmg" length="34665196" type="application/octet-stream" sparkle:edSignature="/9zCGVzVlINYbSRncKcrZsRHMfjtGXoKTYfHBgILsrXAR43PiEvOMtjun0WpobwiTRnyrAx51ZT/JPeWeA4/Dg=="/>
         </item>
     </channel>
 </rss>
