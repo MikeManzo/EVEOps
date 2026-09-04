@@ -3,22 +3,18 @@
     <channel>
         <title>EVEOps</title>
         <item>
-            <title>0.9.11.3</title>
-            <pubDate>Thu, 03 Sep 2026 19:59:01 -0400</pubDate>
-            <sparkle:version>136</sparkle:version>
-            <sparkle:shortVersionString>0.9.11.3</sparkle:shortVersionString>
+            <title>0.9.11.4</title>
+            <pubDate>Fri, 04 Sep 2026 12:30:06 -0400</pubDate>
+            <sparkle:version>138</sparkle:version>
+            <sparkle:shortVersionString>0.9.11.4</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<ul>
-<li>Exploration Codex: a new Universe screen for Ghost Sites (all four Covert Research Facility tiers) and Sleeper Caches (Limited / Standard / Superior). Pick a site on the left and a resizable click-to-inspect pane on the right.  Lays out its security band, defenses, mechanics, severity-graded hazards, tactics and recommended ships. Loot values are cross-referenced live so the reference is always current.</li>
-<li>Readiness check: reads the signed-in character&#x27;s Hacking / Archaeology / Astrometrics levels and active implants and gives each site a Ready / Marginal / Under-skilled verdict, with specific advice (&quot;train Hacking to V&quot;, &quot;fit a virus-coherence implant&quot;). The verdict also shows on every row in the list.</li>
-<li>Ghost Site response timer: start it the moment you land; it counts down the response-fleet window and fires a notification (plus an optional Discord ping) at the 30-second warning and at zero.</li>
-<li>Blast survivability: enter your worst-case EHP and get a Survivable / Risky / Lethal call against each tier&#x27;s failed-hack explosion (≈1k in high-sec up to ≈7.6k in wormhole space).</li>
-<li>Live loot values: every drop is priced from Jita daily history, with an indicative consumables floor and the jackpot rolls flagged separately.</li>
-<li>Market signal: each site&#x27;s drops are scored against their 30-day median (Spiking / Elevated / In line / Soft) so you know when it&#x27;s worth selling, with per-item change badges and a price-history chart for the headline item.</li>
-<li>Run ledger: log a haul after a run (tick what dropped, valued live at Jita, optional duration); tracks run count, total ISK, best run and ISK/hour per site, stored on-device.</li>
-<li>Scouting: a live &quot;is it hot where I am&quot; read for your current system, alongside a jump to the Galaxy Map&#x27;s Kills mode.</li>
-</ul>]]></description>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.11.3/EVEOps.dmg" length="35350273" type="application/octet-stream" sparkle:edSignature="AGLX6t4Kx47ogCNXpj/WCdB0U/J1ihdMC+R1XSm/jdIYak63eu6txEWHDeJsZsS7wnuztmWOq1xJBiBCil8sCw=="/>
+            <description><![CDATA[<p>3-D Galaxy Map: the Galaxy Map gains a rotatable, zoomable 3-D star map alongside the existing 2-D view (toggle in the toolbar). Drag to orbit, scroll or pinch to zoom, ⌥-drag to pan.</p>
+<p>Every k-space solar system (~5,500) and stargate connection (~7,000) is rendered, not just constellations — pulled back you see ~800 constellation-level dots for a clean overview; click one, or just zoom in, to drop down to individual systems with name labels.</p>
+<p>* Four colour modes shared with the 2-D map: Region, Space (high/low/null-sec + Pochven), Security, and Kills.</p>
+<p>* Click any system for a detail panel: security, region/constellation, recent kill activity, one-click View Constellation Map, Set Destination, and Plan Route. Clicking also lights up that whole region&#x27;s gate network while dimming the rest, so local structure is easy to trace.</p>
+<p>* Find Me zooms straight to your current system, marked with a small pulsing &quot;you are here&quot; ring that stays a consistent size at any zoom level.</p>
+<p>* A Gates toggle hides the stargate web when you just want to look at the systems.</p>]]></description>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.11.4/EVEOps.dmg" length="35597719" type="application/octet-stream" sparkle:edSignature="lTMv6qPS/mNt5Tb+EIVhoY7SIIfLxLo0uCcP93cv0GXqczkQMj9B9qB7eE2D+Ay7xFD46ePaLsykvGyW78X1Aw=="/>
         </item>
     </channel>
 </rss>
