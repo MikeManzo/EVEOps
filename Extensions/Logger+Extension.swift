@@ -17,6 +17,7 @@ extension Logger {
     static var prefetch: EVELogger { EVELogger(category: "prefetch") }
     static var api: EVELogger { EVELogger(category: "api") }
     static var sdeData: EVELogger { EVELogger(category: "sdeData") }
+    static var universe: EVELogger { EVELogger(category: "universe") }
     static var dogmaEngine: EVELogger { EVELogger(category: "dogmaEngine") }
     static var systemSearch: EVELogger { EVELogger(category: "systemSearch") }
     static var eveRef: EVELogger { EVELogger(category: "eveRef") }

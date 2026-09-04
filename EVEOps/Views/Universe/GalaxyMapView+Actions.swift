@@ -131,6 +131,16 @@ extension GalaxyMapView {
         return Color(hue: hue, saturation: 0.65, brightness: 0.95)
     }
 
+    /// Coarse "kind of space" colouring: high-sec / low-sec / null-sec.
+    /// Uses EVE's true-security bands (high ≥ 0.45, low 0.0–0.45, null < 0.0).
+    func spaceColor(_ value: Double) -> Color {
+        switch value {
+        case 0.45...:      return Color(red: 0.30, green: 0.75, blue: 0.95)
+        case 0.0..<0.45:   return Color(red: 0.98, green: 0.68, blue: 0.20)
+        default:           return Color(red: 0.85, green: 0.28, blue: 0.30)
+        }
+    }
+
     /// Colour for a constellation's total ship + pod kills in the last hour.
     /// Bands are wider than the per-system ones in `DangerLevel` because a
     /// constellation aggregates several systems.

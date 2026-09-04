@@ -211,6 +211,7 @@ extension GalaxyMapView {
 
     func applyLocationInfo(sys: ESISolarSystem, ship: ESICharacterShip?, charID: Int) {
         currentConstellationId = sys.constellationId
+        currentSystemId = sys.systemId
         currentSystemName = sys.name
         currentSystemSecurity = sys.securityStatus
 

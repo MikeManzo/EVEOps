@@ -131,6 +131,8 @@ extension GalaxyMapView {
                         color = .green
                     } else if mode == .security {
                         color = secMap[pt.id].map { securityColor($0) } ?? Color(white: 0.45)
+                    } else if mode == .space {
+                        color = secMap[pt.id].map { spaceColor($0) } ?? Color(white: 0.45)
                     } else if mode == .danger {
                         color = dangerMap[pt.id].map { killHeatColor($0) } ?? Color(white: 0.28)
                     } else {
@@ -402,6 +404,8 @@ extension GalaxyMapView {
                     col = .orange
                 } else if mode == .security, let sec = secMap[pt.id] {
                     col = securityColor(sec)
+                } else if mode == .space, let sec = secMap[pt.id] {
+                    col = spaceColor(sec)
                 } else if mode == .danger, let kills = dangerMap[pt.id] {
                     col = killHeatColor(kills)
                 } else {

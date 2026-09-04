@@ -36,18 +36,32 @@ extension GalaxyMapView {
             Spacer()
 
             if drillConstellationId == nil && !isLoading {
+                // 2-D / 3-D map toggle
+                Picker("Map Mode", selection: $is3D) {
+                    Image(systemName: "map").tag(false)
+                    Image(systemName: "move.3d").tag(true)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .controlSize(.small)
+                .frame(width: 72)
+                .help(is3D ? "3-D star map (solar systems)" : "2-D constellation map")
+
+                Divider().frame(height: 16)
+
                 // Color mode
                 Picker("Color Mode", selection: $colorMode) {
                     Text("Region").tag(MapColorMode.region)
+                    Text("Space").tag(MapColorMode.space)
                     Text("Security").tag(MapColorMode.security)
                     Text("Kills").tag(MapColorMode.danger)
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
                 .controlSize(.small)
-                .frame(width: 190)
+                .frame(width: 244)
                 .overlay(alignment: .trailing) {
-                    if (isLoadingSecMap && colorMode == .security) || (isLoadingDangerMap && colorMode == .danger) {
+                    if (isLoadingSecMap && (colorMode == .security || colorMode == .space)) || (isLoadingDangerMap && colorMode == .danger) {
                         ProgressView().controlSize(.mini).offset(x: -2)
                     }
                 }
@@ -57,6 +71,7 @@ extension GalaxyMapView {
                         .font(.caption2).foregroundStyle(.tertiary)
                 }
 
+              if !is3D {
                 Divider().frame(height: 16)
 
                 // Route mode toggle
@@ -114,6 +129,7 @@ extension GalaxyMapView {
                         Image(systemName: "arrow.counterclockwise").font(.caption)
                     }.buttonStyle(.plain)
                 }
+              }
             }
         }
         .padding(.horizontal, 16).padding(.vertical, 8)

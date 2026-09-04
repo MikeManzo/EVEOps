@@ -716,6 +716,16 @@
     "%lld sell" : {
 
     },
+    "%lld ship + pod kill%@ · last hour" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld ship + pod kill%2$@ · last hour"
+          }
+        }
+      }
+    },
     "%lld ship + pod kill%@ in the last hour" : {
       "localizations" : {
         "en" : {
@@ -999,10 +1009,16 @@
     "2 minutes" : {
 
     },
+    "2-D constellation map" : {
+
+    },
     "2,500" : {
 
     },
     "3 days" : {
+
+    },
+    "3-D star map (solar systems)" : {
 
     },
     "3D Ship Model" : {
@@ -1596,6 +1612,9 @@
     "Check interval" : {
 
     },
+    "Check your connection and try again." : {
+
+    },
     "Checking for updates…" : {
 
     },
@@ -1899,6 +1918,9 @@
     "Couldn't load sovereignty" : {
 
     },
+    "Couldn't load the star-map data." : {
+
+    },
     "Counts down %llds — the short end of the observed response window. Hit Start the moment you land. Treat 0:30 as your hard bail-out." : {
 
     },
@@ -1918,6 +1940,9 @@
 
     },
     "Current Jita average vs its 30-day median" : {
+
+    },
+    "Current location not available yet — sign in and let character data sync" : {
 
     },
     "Current price vs the 30-day median (%@). Above the norm shows red, below shows green." : {
@@ -1941,6 +1966,9 @@
           }
         }
       }
+    },
+    "Current system" : {
+
     },
     "Current training" : {
 
@@ -2102,6 +2130,9 @@
     "Downloading agent database…" : {
 
     },
+    "Downloading star-map data…" : {
+
+    },
     "Downloads are cached after the first view" : {
 
     },
@@ -2109,6 +2140,9 @@
 
     },
     "DPS calculation requires ammo selection" : {
+
+    },
+    "Drag to orbit · scroll to zoom · ⌥-drag to pan · click a constellation to dive in" : {
 
     },
     "Drag to rotate  ·  Scroll to zoom  ·  Pinch to zoom" : {
@@ -2426,6 +2460,9 @@
     "Find in Galaxy" : {
 
     },
+    "Find Me" : {
+
+    },
     "Find My Location" : {
 
     },
@@ -2442,6 +2479,9 @@
 
     },
     "First launch only — cached for 7 days" : {
+
+    },
+    "First run only — cached on disk afterwards." : {
 
     },
     "Fit all 4 subsystems below to unlock this ship's High, Medium, and Low slots." : {
@@ -2495,6 +2535,9 @@
     "Flow" : {
 
     },
+    "Frame Galaxy" : {
+
+    },
     "Frequency Key" : {
 
     },
@@ -2526,6 +2569,9 @@
 
     },
     "Galaxy Search" : {
+
+    },
+    "Gates" : {
 
     },
     "Gathering trend data…" : {
@@ -3171,6 +3217,9 @@
 
     },
     "Manufacturing" : {
+
+    },
+    "Map Mode" : {
 
     },
     "Margin" : {
@@ -4521,6 +4570,9 @@
     "SP per minute = primary + floor(secondary ÷ 2). Higher is faster." : {
 
     },
+    "Space" : {
+
+    },
     "Sparkle" : {
 
     },
@@ -5143,6 +5195,9 @@
 
     },
     "Zoom to %@" : {
+
+    },
+    "Zoom to your current system" : {
 
     },
     "Δ %@ GJ/s (%@)" : {

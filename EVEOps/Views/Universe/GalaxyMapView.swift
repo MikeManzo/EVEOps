@@ -12,7 +12,7 @@ import SwiftUI
 
 // MARK:  Map Color Mode
 
-enum MapColorMode: Hashable { case region, security, danger }
+enum MapColorMode: Hashable { case region, security, danger, space }
 
 // MARK:  Private Models
 
@@ -58,6 +58,7 @@ struct GalaxyMapView: View {
     @State var starfieldSeeds: [(CGFloat, CGFloat, CGFloat)] = []
     @State var canvasSize: CGSize = .zero
     @State var currentConstellationId: Int?
+    @State var currentSystemId: Int?
     @State var currentSystemName: String?
     @State var currentSystemSecurity: Double?
     @State var currentShipTypeName: String?
@@ -86,6 +87,9 @@ struct GalaxyMapView: View {
     // Minimap
     @State var showMinimap = true
 
+    // 2-D / 3-D toggle (persisted). 3-D shows the system-level SceneKit star map.
+    @AppStorage("galaxyMap.is3D") var is3D = false
+
     // Autopilot toast
     @State var autopilotToast: String?
 
@@ -101,7 +105,7 @@ struct GalaxyMapView: View {
         VStack(spacing: 0) {
             toolbar
             Divider()
-            if isRouteMode && !isLoading && drillConstellationId == nil {
+            if isRouteMode && !isLoading && drillConstellationId == nil && !is3D {
                 routeBanner
                 Divider()
             }
@@ -114,6 +118,30 @@ struct GalaxyMapView: View {
                     constellationName: drillConstellationName
                 )
                 .padding()
+            } else if is3D {
+                GalaxyMap3DView(
+                    currentSystemId: currentSystemId,
+                    colorMode: colorMode,
+                    onOpenConstellation: { id, name in
+                        withAnimation {
+                            drillConstellationId = id
+                            drillConstellationName = name
+                        }
+                    },
+                    onPlanRoute: { sysId in
+                        withAnimation {
+                            is3D = false
+                            isRouteMode = true
+                            routeOriginId = points.first { $0.systemIds.contains(sysId) }?.id
+                            routeDestId = nil
+                            routeConstellationPath = []
+                            routeMessage = nil
+                        }
+                    },
+                    onSetDestination: { sysId, label in
+                        Task { await setAutopilotDestination(systemId: sysId, label: label) }
+                    }
+                )
             } else {
                 ZStack(alignment: .topTrailing) {
                     galaxyCanvas
@@ -135,6 +163,14 @@ struct GalaxyMapView: View {
         }
         .navigationTitle("")
         .task { await loadData() }
+        .task {
+            // Location (and prefetch/token) may not be ready on first pass — keep
+            // retrying for a while so "Find My Location" / the 3-D "Find Me" light up.
+            for _ in 0..<12 where currentSystemId == nil {
+                try? await Task.sleep(for: .seconds(4))
+                await resolveCurrentLocation()
+            }
+        }
         .onAppear {
             if starfieldSeeds.isEmpty {
                 starfieldSeeds = (0..<250).map { _ in
@@ -143,7 +179,7 @@ struct GalaxyMapView: View {
             }
         }
         .onChange(of: colorMode) { _, newMode in
-            if newMode == .security && constellationSecMap.isEmpty && !isLoadingSecMap {
+            if (newMode == .security || newMode == .space) && constellationSecMap.isEmpty && !isLoadingSecMap {
                 Task { await loadSecurityMap() }
             }
             if newMode == .danger && !isLoadingDangerMap {
