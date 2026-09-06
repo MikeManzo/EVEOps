@@ -109,6 +109,31 @@ nonisolated extension Array where Element == ESIWalletJournalEntry {
         }
         return (made, spent)
     }
+
+    /// ISK made/spent per calendar day for the `count` days immediately preceding today
+    /// (most recent first). Days with no journal activity are still returned with zeroes.
+    func dailyISKSummaries(precedingDays count: Int) -> [(date: Date, made: Double, spent: Double)] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        var buckets: [Date: (made: Double, spent: Double)] = [:]
+
+        for entry in self {
+            let day = calendar.startOfDay(for: entry.date)
+            guard day < today,
+                  let daysBetween = calendar.dateComponents([.day], from: day, to: today).day,
+                  daysBetween >= 1, daysBetween <= count,
+                  let amount = entry.amount else { continue }
+            var bucket = buckets[day] ?? (0, 0)
+            if amount > 0 { bucket.made += amount } else { bucket.spent += -amount }
+            buckets[day] = bucket
+        }
+
+        return (1...count).compactMap { offset in
+            guard let day = calendar.date(byAdding: .day, value: -offset, to: today) else { return nil }
+            let bucket = buckets[day] ?? (0, 0)
+            return (day, bucket.made, bucket.spent)
+        }
+    }
 }
 
 nonisolated struct ESIWalletTransaction: Codable, Sendable, Identifiable {

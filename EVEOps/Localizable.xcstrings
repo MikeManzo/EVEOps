@@ -408,6 +408,16 @@
         }
       }
     },
+    "%lld %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld %2$@"
+          }
+        }
+      }
+    },
     "%lld × %@" : {
       "localizations" : {
         "en" : {
@@ -1529,6 +1539,9 @@
 
     },
     "Buy Value" : {
+
+    },
+    "By Category" : {
 
     },
     "Cal" : {
@@ -2973,6 +2986,9 @@
     "L%lld" : {
 
     },
+    "Last 7 Days" : {
+
+    },
     "Last active character" : {
 
     },
@@ -3574,6 +3590,9 @@
 
     },
     "No upcoming events" : {
+
+    },
+    "No wallet activity yet today" : {
 
     },
     "No wealth data" : {
@@ -5060,6 +5079,9 @@
 
     },
     "Wallet" : {
+
+    },
+    "Wallet Today" : {
 
     },
     "Wallet Transaction" : {
