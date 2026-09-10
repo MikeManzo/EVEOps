@@ -336,20 +336,15 @@ private struct IncursionDetailPane: View {
     }
 
     private func setDestination(systemId: Int) async {
-        guard let account = accountManager.selectedAccount,
-              let token = try? await accountManager.validToken(for: account) else {
-            destMessage = "Sign in to set a destination."
-            return
-        }
-        do {
-            try await ESIClient.shared.postAction("/ui/autopilot/waypoint/", token: token, queryItems: [
-                URLQueryItem(name: "add_to_beginning", value: "false"),
-                URLQueryItem(name: "clear_other_waypoints", value: "true"),
-                URLQueryItem(name: "destination_id", value: "\(systemId)")
-            ])
+        switch await AutopilotService.setDestination(systemId: systemId, accountManager: accountManager) {
+        case .ok:
             destMessage = "Destination set in the EVE client."
-        } catch {
+        case .notSignedIn:
+            destMessage = "Sign in to set a destination."
+        case .missingScope:
             destMessage = "Couldn't set destination (needs esi-ui.write_waypoint.v1)."
+        case .failed(let message):
+            destMessage = message
         }
     }
 }

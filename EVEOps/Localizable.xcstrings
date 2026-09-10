@@ -28,6 +28,9 @@
     "· %lld unpriced" : {
 
     },
+    "· %lldj" : {
+
+    },
     "· kills as of %@" : {
 
     },
@@ -615,6 +618,36 @@
         }
       }
     },
+    "%lld jump%@ away" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld jump%2$@ away"
+          }
+        }
+      }
+    },
+    "%lld jump%@ from %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld jump%2$@ from %3$@"
+          }
+        }
+      }
+    },
+    "%lld jump%@ of %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld jump%2$@ of %3$@"
+          }
+        }
+      }
+    },
     "%lld jumps" : {
 
     },
@@ -749,6 +782,16 @@
     "%lld ship and pod kills per hour across the route" : {
 
     },
+    "%lld ship jump%@/h" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld ship jump%2$@/h"
+          }
+        }
+      }
+    },
     "%lld ship jumps through %@ in the last hour" : {
       "localizations" : {
         "en" : {
@@ -844,6 +887,16 @@
         }
       }
     },
+    "%lld system%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld system%2$@"
+          }
+        }
+      }
+    },
     "%lld systems · %lld contested · %lld occupied" : {
       "localizations" : {
         "en" : {
@@ -855,6 +908,9 @@
       }
     },
     "%lld total" : {
+
+    },
+    "%lld traffic/h" : {
 
     },
     "%lld unresolved" : {
@@ -991,6 +1047,16 @@
     },
     "≈ %@" : {
 
+    },
+    "≤ %lld kill%@/h" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "≤ %1$lld kill%2$@/h"
+          }
+        }
+      }
     },
     "≤0" : {
 
@@ -1150,6 +1216,9 @@
 
     },
     "Activity" : {
+
+    },
+    "ACTIVITY" : {
 
     },
     "Add" : {
@@ -1730,6 +1799,9 @@
     "Collapse All" : {
 
     },
+    "Collapse all sections" : {
+
+    },
     "Collateral" : {
 
     },
@@ -1818,6 +1890,9 @@
 
     },
     "Contacts" : {
+
+    },
+    "Content" : {
 
     },
     "Contest score" : {
@@ -1926,6 +2001,9 @@
 
     },
     "Could not load model" : {
+
+    },
+    "Couldn't load" : {
 
     },
     "Couldn't load sovereignty" : {
@@ -2377,6 +2455,9 @@
     "Expand All" : {
 
     },
+    "Expand all sections" : {
+
+    },
     "Expired" : {
 
     },
@@ -2492,6 +2573,9 @@
 
     },
     "Find on Market" : {
+
+    },
+    "Find Quiet Systems" : {
 
     },
     "Finding…" : {
@@ -2633,6 +2717,9 @@
 
     },
     "Group items by category" : {
+
+    },
+    "Group: %@" : {
 
     },
     "Hangar" : {
@@ -3091,6 +3178,9 @@
     "Loading details…" : {
 
     },
+    "Loading galaxy activity…" : {
+
+    },
     "Loading galaxy map…" : {
 
     },
@@ -3194,6 +3284,9 @@
 
     },
     "Looking up names" : {
+
+    },
+    "Loosen the filters — raise the kill limit, widen the jump radius, or add a security band." : {
 
     },
     "Loss" : {
@@ -3595,6 +3688,9 @@
     "No systems found" : {
 
     },
+    "No systems match" : {
+
+    },
     "No tracking data available" : {
 
     },
@@ -3850,6 +3946,9 @@
     "Pilot Name" : {
 
     },
+    "Plan Route" : {
+
+    },
     "Plan Route From Here" : {
 
     },
@@ -3953,6 +4052,12 @@
 
     },
     "Quick Switcher…" : {
+
+    },
+    "Quiet — no PvP in the last hour" : {
+
+    },
+    "quietest %lld/h" : {
 
     },
     "Quit" : {
@@ -4885,6 +4990,9 @@
     "Trade Hubs" : {
 
     },
+    "Traffic and kill figures come from EVE's hourly aggregates — a low count means quiet in the last ~60 minutes, not a guarantee." : {
+
+    },
     "Training" : {
 
     },
@@ -5142,6 +5250,9 @@
 
     },
     "Wing %lld" : {
+
+    },
+    "Within" : {
 
     },
     "Wormhole" : {

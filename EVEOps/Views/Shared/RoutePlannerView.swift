@@ -73,6 +73,26 @@ struct RoutePlannerView: View {
         }
         .navigationTitle("")
         .task { await loadTheraConnections() }
+        .task(id: AppRouter.shared.pendingRoute) { await applyPendingRoute() }
+    }
+
+    /// Consumes a route request handed over from another view (Quiet Systems list,
+    /// Galaxy Map, …): fills the origin/destination fields and optionally plots.
+    private func applyPendingRoute() async {
+        guard let pending = AppRouter.shared.pendingRoute else { return }
+        AppRouter.shared.pendingRoute = nil
+
+        if let originId = pending.originId,
+           let sys = await UniverseCache.shared.solarSystem(id: originId) {
+            originSystem = SelectedSystem(id: originId, name: sys.name, securityStatus: sys.securityStatus)
+        }
+        if let destId = pending.destinationId,
+           let sys = await UniverseCache.shared.solarSystem(id: destId) {
+            destinationSystem = SelectedSystem(id: destId, name: sys.name, securityStatus: sys.securityStatus)
+        }
+        if pending.autoPlot, originSystem != nil, destinationSystem != nil {
+            await plotRoute()
+        }
     }
 
     // MARK:  Input Panel
@@ -398,63 +418,51 @@ struct RoutePlannerView: View {
     // MARK:  Autopilot
 
     private func setWaypoint(systemId: Int, clear: Bool) async {
-        guard let account = accountManager.selectedAccount else { return }
         autopilotMessage = nil
-        do {
-            let token = try await accountManager.validToken(for: account)
-            try await ESIClient.shared.postAction(
-                "/ui/autopilot/waypoint/",
-                token: token,
-                queryItems: [
-                    URLQueryItem(name: "add_to_beginning", value: "false"),
-                    URLQueryItem(name: "clear_other_waypoints", value: clear ? "true" : "false"),
-                    URLQueryItem(name: "destination_id", value: "\(systemId)")
-                ]
-            )
+        let result = clear
+            ? await AutopilotService.setDestination(systemId: systemId, accountManager: accountManager)
+            : await AutopilotService.addWaypoint(systemId: systemId, accountManager: accountManager)
+        switch result {
+        case .ok:
             autopilotMessage = clear ? "Destination set in EVE client." : "Waypoint added in EVE client."
-        } catch ESIError.unauthorized {
+        case .notSignedIn:
+            break
+        case .missingScope:
             autopilotMessage = "Requires esi-ui.write_waypoint.v1 scope — re-add your character with updated permissions."
-        } catch {
-            autopilotMessage = error.localizedDescription
+        case .failed(let message):
+            autopilotMessage = message
         }
     }
 
     /// Sends the entire route to the EVE client autopilot, clearing existing waypoints.
     private func setFullAutopilotRoute() async {
-        guard !route.isEmpty, let account = accountManager.selectedAccount else { return }
+        guard !route.isEmpty else { return }
         isSettingAutopilot = true
         autopilotMessage = nil
-        do {
-            let token = try await accountManager.validToken(for: account)
-            try await ESIClient.shared.postAction(
-                "/ui/autopilot/waypoint/",
-                token: token,
-                queryItems: [
-                    URLQueryItem(name: "add_to_beginning", value: "false"),
-                    URLQueryItem(name: "clear_other_waypoints", value: "true"),
-                    URLQueryItem(name: "destination_id", value: "\(route.last!.id)")
-                ]
-            )
-            if route.count > 2 {
-                for system in route.dropFirst().dropLast().reversed() {
-                    try await ESIClient.shared.postAction(
-                        "/ui/autopilot/waypoint/",
-                        token: token,
-                        queryItems: [
-                            URLQueryItem(name: "add_to_beginning", value: "true"),
-                            URLQueryItem(name: "clear_other_waypoints", value: "false"),
-                            URLQueryItem(name: "destination_id", value: "\(system.id)")
-                        ]
-                    )
-                }
+        defer { isSettingAutopilot = false }
+
+        // Destination first (clears the old route), then the intermediate hops
+        // prepended in reverse so the in-client order matches the plotted route.
+        var result = await AutopilotService.setDestination(systemId: route.last!.id, accountManager: accountManager)
+        if case .ok = result, route.count > 2 {
+            for system in route.dropFirst().dropLast().reversed() {
+                result = await AutopilotService.addWaypoint(
+                    systemId: system.id, addToBeginning: true, accountManager: accountManager
+                )
+                if case .ok = result { continue } else { break }
             }
-            autopilotMessage = "Route set in EVE client (\(route.count - 1) jump\(route.count == 2 ? "" : "s"))."
-        } catch ESIError.unauthorized {
-            autopilotMessage = "Requires esi-ui.write_waypoint.v1 scope — re-add your character with updated permissions."
-        } catch {
-            autopilotMessage = error.localizedDescription
         }
-        isSettingAutopilot = false
+
+        switch result {
+        case .ok:
+            autopilotMessage = "Route set in EVE client (\(route.count - 1) jump\(route.count == 2 ? "" : "s"))."
+        case .notSignedIn:
+            break
+        case .missingScope:
+            autopilotMessage = "Requires esi-ui.write_waypoint.v1 scope — re-add your character with updated permissions."
+        case .failed(let message):
+            autopilotMessage = message
+        }
     }
 
     // MARK:  Thera / EVE Scout

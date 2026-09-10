@@ -25,6 +25,17 @@ final class AppRouter {
     /// MainContentView consumes it and resets it to nil.
     var pendingSection: NavigationSection?
 
+    /// A route request handed to the Route Planner from another view (e.g. the
+    /// Exploration Codex quiet-systems list). RoutePlannerView resolves the system
+    /// IDs, fills its origin/destination fields, and clears this back to nil.
+    struct PendingRoute: Equatable {
+        var originId: Int?
+        var destinationId: Int?
+        /// Plot immediately once both endpoints resolve.
+        var autoPlot: Bool = true
+    }
+    var pendingRoute: PendingRoute?
+
     /// Bumped by the "Refresh Current View" command (⌘K) and the ⌘R shortcut.
     /// Views that show live data observe this and re-fetch.
     var refreshTick = 0

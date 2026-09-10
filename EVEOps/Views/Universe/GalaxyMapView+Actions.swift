@@ -14,27 +14,12 @@ extension GalaxyMapView {
     // MARK:  Autopilot
 
     func setAutopilotDestination(systemId: Int, label: String) async {
-        guard let account = accountManager.selectedAccount, !account.isTokenExpired else { return }
-        do {
-            let token = try await accountManager.validToken(for: account)
-            try await ESIClient.shared.postAction(
-                "/ui/autopilot/waypoint/",
-                token: token,
-                queryItems: [
-                    URLQueryItem(name: "add_to_beginning",    value: "false"),
-                    URLQueryItem(name: "clear_other_waypoints", value: "true"),
-                    URLQueryItem(name: "destination_id",       value: "\(systemId)")
-                ]
-            )
+        switch await AutopilotService.setDestination(systemId: systemId, accountManager: accountManager) {
+        case .ok:
             withAnimation { autopilotToast = "Destination set: \(label)" }
-        } catch let err as ESIError {
-            switch err {
-            case .serverError(let code, _) where code == 403:
-                withAnimation { autopilotToast = "Requires esi-ui.write_waypoint.v1 scope" }
-            default:
-                withAnimation { autopilotToast = "Could not set destination" }
-            }
-        } catch {
+        case .missingScope:
+            withAnimation { autopilotToast = "Requires esi-ui.write_waypoint.v1 scope" }
+        case .notSignedIn, .failed:
             withAnimation { autopilotToast = "Could not set destination" }
         }
         try? await Task.sleep(for: .seconds(3))

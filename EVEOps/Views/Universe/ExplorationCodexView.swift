@@ -22,6 +22,15 @@ import UserNotifications
 struct ExplorationCodexView: View {
     @Environment(AccountManager.self) private var accountManager
 
+    /// Top-level content switch: the curated site catalogue, or the live
+    /// low-traffic system finder for picking a place to scan signatures.
+    enum CodexContent: String, CaseIterable, Identifiable {
+        case sites = "Site Catalogue"
+        case quietSystems = "Quiet Systems"
+        var id: String { rawValue }
+    }
+    @State private var content: CodexContent = .sites
+
     @State private var kind: ExplorationSiteKind = .ghostSite
     @State private var selectedID: String?
 
@@ -49,6 +58,25 @@ struct ExplorationCodexView: View {
     }
 
     var body: some View {
+        Group {
+            switch content {
+            case .sites:        siteCatalogue
+            case .quietSystems: QuietSystemsView()
+            }
+        }
+        .safeAreaInset(edge: .top, spacing: 0) { header }
+        .navigationTitle("")
+        .task {
+            await loadPrices()
+            await loadSkills()
+        }
+        .onChange(of: kind) { _, _ in selectedID = nil }
+        .onChange(of: accountManager.selectedAccount?.characterID) { _, _ in
+            Task { await loadSkills() }
+        }
+    }
+
+    private var siteCatalogue: some View {
         HStack(spacing: 0) {
             VStack(spacing: 0) {
                 Picker("Site family", selection: $kind) {
@@ -87,21 +115,12 @@ struct ExplorationCodexView: View {
                     signal: marketSignal(for: selected),
                     pricesFetchedAt: pricesFetchedAt,
                     readiness: SiteReadiness.evaluate(site: selected, profile: skillProfile),
-                    onClose: { selectedID = nil }
+                    onClose: { selectedID = nil },
+                    onShowQuietSystems: { content = .quietSystems }
                 )
                 .frame(width: detailWidth)
                 .id(selected.id)
             }
-        }
-        .safeAreaInset(edge: .top, spacing: 0) { header }
-        .navigationTitle("")
-        .task {
-            await loadPrices()
-            await loadSkills()
-        }
-        .onChange(of: kind) { _, _ in selectedID = nil }
-        .onChange(of: accountManager.selectedAccount?.characterID) { _, _ in
-            Task { await loadSkills() }
         }
     }
 
@@ -111,10 +130,21 @@ struct ExplorationCodexView: View {
         HStack(spacing: 12) {
             Text("Exploration Codex")
                 .font(.largeTitle.bold())
+
+            Picker("Content", selection: $content) {
+                ForEach(CodexContent.allCases) { Text($0.rawValue).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .fixedSize()
+            .labelsHidden()
+
             Spacer()
-            RelativeTimestamp(date: pricesFetchedAt, prefix: "Prices")
-            RefreshButton(isRefreshing: pricesLoading) {
-                Task { await loadPrices(force: true); await loadSkills() }
+
+            if content == .sites {
+                RelativeTimestamp(date: pricesFetchedAt, prefix: "Prices")
+                RefreshButton(isRefreshing: pricesLoading) {
+                    Task { await loadPrices(force: true); await loadSkills() }
+                }
             }
         }
         .padding(.horizontal, 16)
@@ -311,6 +341,7 @@ private struct ExplorationSiteDetailPane: View {
     let pricesFetchedAt: Date?
     let readiness: SiteReadiness
     var onClose: () -> Void = {}
+    var onShowQuietSystems: () -> Void = {}
 
     /// name -> current Jita average, for the haul logger.
     private var unitPrices: [String: Double] {
@@ -390,7 +421,7 @@ private struct ExplorationSiteDetailPane: View {
                     }
 
                     section("SCOUTING") {
-                        ScoutingView(site: site)
+                        ScoutingView(site: site, onShowQuietSystems: onShowQuietSystems)
                     }
 
                     linksRow
@@ -1045,6 +1076,7 @@ private struct HaulLogSheet: View {
 
 private struct ScoutingView: View {
     let site: ExplorationSite
+    var onShowQuietSystems: () -> Void = {}
 
     @Environment(AccountManager.self) private var accountManager
     @State private var systemName: String?
@@ -1084,13 +1116,21 @@ private struct ScoutingView: View {
                     .font(.caption2).foregroundStyle(.tertiary)
             }
 
-            Button {
-                AppRouter.shared.pendingSection = .galaxyMap
-            } label: {
-                Label("Open Galaxy Map", systemImage: "globe").font(.caption)
+            HStack(spacing: 8) {
+                Button(action: onShowQuietSystems) {
+                    Label("Find Quiet Systems", systemImage: "sparkle.magnifyingglass").font(.caption)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+
+                Button {
+                    AppRouter.shared.pendingSection = .galaxyMap
+                } label: {
+                    Label("Open Galaxy Map", systemImage: "globe").font(.caption)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
             }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
