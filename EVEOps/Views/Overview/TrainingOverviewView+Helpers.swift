@@ -10,6 +10,7 @@
 
 import SwiftUI
 import UniformTypeIdentifiers
+import OSLog
 
 extension TrainingOverviewView {
     // MARK:  Helpers
@@ -99,7 +100,18 @@ extension TrainingOverviewView {
         }
     }
 
-    func exportSkillsToCSV() {
+    func exportSkillsToCSV() async {
+        guard !isExportingSkills else { return }
+        isExportingSkills = true
+        defer { isExportingSkills = false }
+
+        // Resolve every known skill's type so we can list its training attributes.
+        // These are already warm in the universe cache from the view's own load.
+        let allSkillIds = trainingData.flatMap { info in
+            info.skillGroups.flatMap { $0.skills.map(\.skillId) }
+        }
+        let types = await UniverseCache.shared.types(ids: allSkillIds)
+
         let panel = NSSavePanel()
         panel.title = "Export Known Skills"
         let baseName = trainingData.count == 1
@@ -107,21 +119,102 @@ extension TrainingOverviewView {
             : "eve_skills"
         panel.nameFieldStringValue = "\(baseName)_skills.csv"
         panel.allowedContentTypes = [UTType.commaSeparatedText]
-        panel.begin { response in
-            guard response == .OK, let url = panel.url else { return }
-            var lines = ["Character,Group,Skill Name,Trained Level,Active Level,Skillpoints"]
-            for info in trainingData {
-                for group in info.skillGroups.sorted(by: { $0.groupName < $1.groupName }) {
-                    for skill in group.skills.sorted(by: { $0.name < $1.name }) {
-                        let char = info.characterName.replacingOccurrences(of: "\"", with: "\"\"")
-                        let grp = group.groupName.replacingOccurrences(of: "\"", with: "\"\"")
-                        let sName = skill.name.replacingOccurrences(of: "\"", with: "\"\"")
-                        lines.append("\"\(char)\",\"\(grp)\",\"\(sName)\",\(skill.trainedLevel),\(skill.activeLevel),\(skill.skillpoints)")
-                    }
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+
+        var lines = ["Character,Group,Skill Name,Trained Level,Active Level,Skillpoints,Primary Attribute,Secondary Attribute"]
+        for info in trainingData {
+            for group in info.skillGroups.sorted(by: { $0.groupName < $1.groupName }) {
+                for skill in group.skills.sorted(by: { $0.name < $1.name }) {
+                    let char = info.characterName.replacingOccurrences(of: "\"", with: "\"\"")
+                    let grp = group.groupName.replacingOccurrences(of: "\"", with: "\"\"")
+                    let sName = skill.name.replacingOccurrences(of: "\"", with: "\"\"")
+                    let dogma = types[skill.skillId]?.dogmaAttributes ?? []
+                    let primary = dogma.first { $0.attributeId == 180 }.map { Int($0.value) }.map(trainingAttrName) ?? ""
+                    let secondary = dogma.first { $0.attributeId == 181 }.map { Int($0.value) }.map(trainingAttrName) ?? ""
+                    lines.append("\"\(char)\",\"\(grp)\",\"\(sName)\",\(skill.trainedLevel),\(skill.activeLevel),\(skill.skillpoints),\(primary),\(secondary)")
                 }
             }
-            try? lines.joined(separator: "\n").write(to: url, atomically: true, encoding: .utf8)
         }
+        try? lines.joined(separator: "\n").write(to: url, atomically: true, encoding: .utf8)
+    }
+
+    // MARK:  Export the full EVE skill catalog
+
+    /// Human-readable name for a skill's training dogma attribute (dogma IDs 164–168).
+    private func trainingAttrName(_ id: Int) -> String {
+        switch id {
+        case 164: return "Charisma"
+        case 165: return "Intelligence"
+        case 166: return "Memory"
+        case 167: return "Perception"
+        case 168: return "Willpower"
+        default:  return ""
+        }
+    }
+
+    /// Exports every published skill in EVE — not just the selected character's known
+    /// skills — resolved from the Skills category (16) via the universe cache.
+    func exportAllSkillsToCSV() async {
+        guard !isExportingAllSkills else { return }
+        isExportingAllSkills = true
+        defer { isExportingAllSkills = false }
+
+        // 1. Skills category → skill group IDs.
+        guard let skillCategory = await UniverseCache.shared.category(id: 16) else {
+            Logger.universe.error("[AllSkillsExport] could not load category 16")
+            return
+        }
+        let groups = await UniverseCache.shared.groups(ids: Set(skillCategory.groups))
+
+        // 2. Every type ID across the published skill groups.
+        let publishedGroups = groups.values.filter { $0.published }
+        let allTypeIds = publishedGroups.flatMap(\.types)
+        let types = await UniverseCache.shared.types(ids: allTypeIds)
+
+        // 3. Build one row per published skill, sorted by group then skill name.
+        struct Row { let group: String; let name: String; let typeId: Int; let rank: Int; let primary: String; let secondary: String; let spToV: Int }
+        var rows: [Row] = []
+        for group in publishedGroups.sorted(by: { $0.name < $1.name }) {
+            let skills = group.types
+                .compactMap { types[$0] }
+                .filter { $0.published }
+                .sorted { $0.name < $1.name }
+            for skill in skills {
+                let dogma = skill.dogmaAttributes ?? []
+                let rank = dogma.first { $0.attributeId == 275 }.map { Int($0.value) } ?? 1
+                let primaryId = dogma.first { $0.attributeId == 180 }.map { Int($0.value) }
+                let secondaryId = dogma.first { $0.attributeId == 181 }.map { Int($0.value) }
+                rows.append(Row(
+                    group: group.name,
+                    name: skill.name,
+                    typeId: skill.typeId,
+                    rank: rank,
+                    primary: primaryId.map(trainingAttrName) ?? "",
+                    secondary: secondaryId.map(trainingAttrName) ?? "",
+                    spToV: rank * 256_000
+                ))
+            }
+        }
+
+        guard !rows.isEmpty else {
+            Logger.universe.error("[AllSkillsExport] resolved 0 skills")
+            return
+        }
+
+        // 4. Save panel + write.
+        let panel = NSSavePanel()
+        panel.title = "Export All Skills"
+        panel.nameFieldStringValue = "eve_all_skills.csv"
+        panel.allowedContentTypes = [UTType.commaSeparatedText]
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+
+        func esc(_ s: String) -> String { "\"\(s.replacingOccurrences(of: "\"", with: "\"\""))\"" }
+        var lines = ["Group,Skill Name,Type ID,Rank,Primary Attribute,Secondary Attribute,SP to Level 5"]
+        for r in rows {
+            lines.append("\(esc(r.group)),\(esc(r.name)),\(r.typeId),\(r.rank),\(r.primary),\(r.secondary),\(r.spToV)")
+        }
+        try? lines.joined(separator: "\n").write(to: url, atomically: true, encoding: .utf8)
+        Logger.universe.info("[AllSkillsExport] wrote \(rows.count) skills to \(url.lastPathComponent)")
     }
 
 }

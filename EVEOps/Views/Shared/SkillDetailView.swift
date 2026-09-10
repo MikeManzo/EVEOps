@@ -310,8 +310,8 @@ struct SkillDetailView: View {
 
     private func attributeName(_ id: Int) -> String? {
         switch id {
-        case 164: return "Intelligence"
-        case 165: return "Charisma"
+        case 164: return "Charisma"
+        case 165: return "Intelligence"
         case 166: return "Memory"
         case 167: return "Perception"
         case 168: return "Willpower"

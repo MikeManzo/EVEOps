@@ -2392,13 +2392,22 @@
     "Export" : {
 
     },
+    "Export All Skills" : {
+
+    },
     "Export CSV" : {
+
+    },
+    "Export every published skill in EVE (name, group, rank, training attributes) to CSV" : {
 
     },
     "Export your plan, switch to EVE, then open the skill queue and choose:" : {
 
     },
     "Export…" : {
+
+    },
+    "Exporting…" : {
 
     },
     "Extend to L%lld" : {
@@ -2476,10 +2485,16 @@
     "Find Me" : {
 
     },
+    "Find me — use my current system as origin" : {
+
+    },
     "Find My Location" : {
 
     },
     "Find on Market" : {
+
+    },
+    "Finding…" : {
 
     },
     "Finishes" : {

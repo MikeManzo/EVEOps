@@ -25,6 +25,8 @@ struct TrainingOverviewView: View {
     @AppStorage("collapsedSkillGroups") var collapsedSkillGroupsRaw: String = ""
     @State var selectedSkill: SkillSelection?
     @State var skillSearchText: String = ""
+    @State var isExportingSkills = false
+    @State var isExportingAllSkills = false
 
     struct SkillSelection: Equatable {
         let skillId: Int
@@ -104,12 +106,41 @@ struct TrainingOverviewView: View {
                     if !trainingData.isEmpty {
                         Divider()
                             .frame(height: 16)
-                        Button(action: exportSkillsToCSV) {
-                            Label("Export CSV", systemImage: "square.and.arrow.up")
-                                .font(.caption)
+                        Button {
+                            Task { await exportSkillsToCSV() }
+                        } label: {
+                            HStack(spacing: 4) {
+                                if isExportingSkills {
+                                    ProgressView().controlSize(.small)
+                                } else {
+                                    Image(systemName: "square.and.arrow.up")
+                                }
+                                Text(isExportingSkills ? "Exporting…" : "Export CSV")
+                            }
+                            .font(.caption)
                         }
                         .buttonStyle(.borderless)
+                        .disabled(isExportingSkills)
                     }
+
+                    Divider()
+                        .frame(height: 16)
+                    Button {
+                        Task { await exportAllSkillsToCSV() }
+                    } label: {
+                        HStack(spacing: 4) {
+                            if isExportingAllSkills {
+                                ProgressView().controlSize(.small)
+                            } else {
+                                Image(systemName: "square.and.arrow.up.on.square")
+                            }
+                            Text(isExportingAllSkills ? "Exporting…" : "Export All Skills")
+                        }
+                        .font(.caption)
+                    }
+                    .buttonStyle(.borderless)
+                    .disabled(isExportingAllSkills)
+                    .help("Export every published skill in EVE (name, group, rank, training attributes) to CSV")
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 7)

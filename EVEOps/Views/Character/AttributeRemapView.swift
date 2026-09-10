@@ -15,7 +15,7 @@ import Charts
 private let kPrimaryAttrID = 180
 private let kSecondaryAttrID = 181
 private let attrIDToKey: [Int: String] = [
-    164: "intelligence", 165: "charisma", 166: "memory",
+    164: "charisma", 165: "intelligence", 166: "memory",
     167: "perception", 168: "willpower"
 ]
 

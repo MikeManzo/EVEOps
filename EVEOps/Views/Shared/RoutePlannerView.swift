@@ -30,6 +30,7 @@ struct RoutePlannerView: View {
     @State private var avoidSystemPicker: SelectedSystem?
     @State private var route: [RouteSystem] = []
     @State private var isCalculating = false
+    @State private var isLocating = false
     @State private var errorMessage: String?
 
     // Route-danger overlay (ESI system_kills / system_jumps, refreshed hourly by CCP)
@@ -111,6 +112,26 @@ struct RoutePlannerView: View {
                         placeholder: "e.g. Amarr",
                         selectedSystem: $destinationSystem
                     )
+                }
+
+                if accountManager.selectedAccount != nil {
+                    Button {
+                        Task { await useCurrentLocation() }
+                    } label: {
+                        HStack(spacing: 4) {
+                            if isLocating {
+                                ProgressView().controlSize(.small)
+                            } else {
+                                Image(systemName: "location.fill")
+                            }
+                            Text(isLocating ? "Finding…" : "Find me — use my current system as origin")
+                        }
+                        .font(.caption)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.blue)
+                    .disabled(isLocating)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
                 Divider()
@@ -582,6 +603,41 @@ struct RoutePlannerView: View {
         default:        sec = -0.1
         }
         return SelectedSystem(id: conn.destinationSystemId, name: conn.destinationSystemName, securityStatus: sec)
+    }
+
+    // MARK:  Find Me
+
+    /// Resolves the selected character's current solar system and uses it as the route origin.
+    private func useCurrentLocation() async {
+        guard let account = accountManager.selectedAccount else {
+            errorMessage = "Sign in to use your current location."
+            return
+        }
+        isLocating = true
+        errorMessage = nil
+        defer { isLocating = false }
+
+        do {
+            let token = try await accountManager.validToken(for: account)
+            let location: ESICharacterLocation = try await ESIClient.shared.fetch(
+                "/characters/\(account.characterID)/location/",
+                token: token,
+                bypassCache: true
+            )
+            guard let system = await UniverseCache.shared.solarSystem(id: location.solarSystemId) else {
+                errorMessage = "Couldn't resolve your current system."
+                return
+            }
+            originSystem = SelectedSystem(
+                id: location.solarSystemId,
+                name: system.name,
+                securityStatus: system.securityStatus
+            )
+        } catch ESIError.unauthorized {
+            errorMessage = "Requires esi-location.read_location.v1 scope — re-add your character with updated permissions."
+        } catch {
+            errorMessage = "Couldn't fetch your location: \(error.localizedDescription)"
+        }
     }
 
     // MARK:  Route Calculation

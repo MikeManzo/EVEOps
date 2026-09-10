@@ -23,8 +23,8 @@ enum SkillTrainingAttribute: String, CaseIterable, Identifiable {
     /// ESI dogma attribute ID for this neural attribute.
     var dogmaID: Int {
         switch self {
-        case .intelligence: 164
-        case .charisma:     165
+        case .charisma:     164
+        case .intelligence: 165
         case .memory:       166
         case .perception:   167
         case .willpower:    168
