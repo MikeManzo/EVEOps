@@ -3,15 +3,16 @@
     <channel>
         <title>EVEOps</title>
         <item>
-            <title>0.9.11.5</title>
-            <pubDate>Sun, 06 Sep 2026 16:24:07 -0400</pubDate>
-            <sparkle:version>140</sparkle:version>
-            <sparkle:shortVersionString>0.9.11.5</sparkle:shortVersionString>
+            <title>0.9.11.6</title>
+            <pubDate>Wed, 09 Sep 2026 20:45:04 -0400</pubDate>
+            <sparkle:version>141</sparkle:version>
+            <sparkle:shortVersionString>0.9.11.6</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
             <description><![CDATA[<ul>
-<li>Expanded teh finance tab; added 7-day spend</li>
+<li>Fix bug in primary / secondary attributes for any training that had Memory as either attribute (This also affected Remap Advisor)</li>
+<li>Added Export all Training under &quot;Training Overview&quot;</li>
 </ul>]]></description>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.11.5/EVEOps.dmg" length="35650419" type="application/octet-stream" sparkle:edSignature="4in9gbUjav+SopFF7Kz9NtI4A9Pty3b1M9oAKIfyb9/0/r1ZYETUdIxDrGNAAXtPvaHqwsKaLqkxeAMoNypuDQ=="/>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.11.6/EVEOps.dmg" length="35690224" type="application/octet-stream" sparkle:edSignature="0psWxBcxX/AlEeUGG63/MYHyi3j84zPqn/VNRqYZqlsoEdaXl0ufXVLiWDygn4C4Z3cXsE8cy+CfWj/E54IqDw=="/>
         </item>
     </channel>
 </rss>
