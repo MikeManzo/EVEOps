@@ -3,15 +3,15 @@
     <channel>
         <title>EVEOps</title>
         <item>
-            <title>0.9.11.7</title>
-            <pubDate>Wed, 09 Sep 2026 21:33:25 -0400</pubDate>
-            <sparkle:version>142</sparkle:version>
-            <sparkle:shortVersionString>0.9.11.7</sparkle:shortVersionString>
+            <title>0.9.11.8</title>
+            <pubDate>Fri, 11 Sep 2026 17:25:51 -0400</pubDate>
+            <sparkle:version>143</sparkle:version>
+            <sparkle:shortVersionString>0.9.11.8</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
             <description><![CDATA[<ul>
-<li>Added Quiet Systems to Ecploration Codex to find systmes with low traffic and/or fighting (PvP &amp; PvE)</li>
+<li>Added a Daily Briefing section to the Dashboard</li>
 </ul>]]></description>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.11.7/EVEOps.dmg" length="35855781" type="application/octet-stream" sparkle:edSignature="ul/O7PeZvMqIDkYAvfbpZhOARzatOCjXGXgeq7x1YpMTdTtmSXsWcM1BvTtAvFuSg+hMliv+Olw3qz4viBs2Bw=="/>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.11.8/EVEOps.dmg" length="35981604" type="application/octet-stream" sparkle:edSignature="C6bhp07fzLaYZF5u1YgXvtJiNJO0zglTkWIVAUV81jwJERW6qAA1eW7C0sCYJoFc4uue2PMXMQ5TKgpqpeROBA=="/>
         </item>
     </channel>
 </rss>
