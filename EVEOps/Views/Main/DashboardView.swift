@@ -28,6 +28,7 @@ struct DashboardView: View {
     @AppStorage("dashboard.news.expanded") private var newsExpanded = true
     @AppStorage("dashboard.news.readIDs") private var readIDsRaw = ""
     @AppStorage("dashboard.serverStatus.expanded") private var serverStatusExpanded = true
+    @AppStorage("dashboard.briefing.expanded") private var briefingExpanded = true
 
     private var readIDs: Binding<Set<String>> {
         Binding(
@@ -53,6 +54,13 @@ struct DashboardView: View {
                         )
                     }
                 }
+                .padding(.horizontal)
+
+                DashboardBriefingWidgetView(
+                    summaries: summaries,
+                    characterNames: Dictionary(uniqueKeysWithValues: accountManager.accounts.map { ($0.characterID, $0.characterName) }),
+                    isExpanded: $briefingExpanded
+                )
                 .padding(.horizontal)
 
                 ServerStatusWidgetView(isExpanded: $serverStatusExpanded)

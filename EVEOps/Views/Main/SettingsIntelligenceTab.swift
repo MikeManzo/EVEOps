@@ -48,6 +48,7 @@ struct IntelligenceTabContent: View {
     @AppStorage("aiInsightCommunityFittings") private var aiInsightCommunityFittings = true
     @AppStorage("aiInsightMarket")            private var aiInsightMarket            = true
     @AppStorage("aiInsightClones")            private var aiInsightClones            = true
+    @AppStorage("aiInsightBriefing")          private var aiInsightBriefing          = true
 
     var body: some View {
         Form {
@@ -141,6 +142,9 @@ struct IntelligenceTabContent: View {
                     }
                     Toggle(isOn: $aiInsightClones) {
                         Label("Clones & Implants", systemImage: "brain.head.profile")
+                    }
+                    Toggle(isOn: $aiInsightBriefing) {
+                        Label("Dashboard Daily Briefing", systemImage: "list.bullet.clipboard")
                     }
                 }
             }
