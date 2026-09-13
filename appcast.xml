@@ -3,18 +3,17 @@
     <channel>
         <title>EVEOps</title>
         <item>
-            <title>0.9.11.9</title>
-            <pubDate>Sun, 13 Sep 2026 09:46:46 -0400</pubDate>
-            <sparkle:version>144</sparkle:version>
-            <sparkle:shortVersionString>0.9.11.9</sparkle:shortVersionString>
+            <title>0.9.11.10</title>
+            <pubDate>Sun, 13 Sep 2026 10:48:45 -0400</pubDate>
+            <sparkle:version>145</sparkle:version>
+            <sparkle:shortVersionString>0.9.11.10</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
             <description><![CDATA[<ul>
-<li>Richer Discord webhook alerts: category-colored embeds with character name, timestamp</li>
-<li>Discord Rich Presence: shows current ship + system</li>
-<li>Discord connected status in menubar</li>
-<li>Add Terms of Service and Privacy Policy</li>
+<li>Reorganized sidebar: added a customizable &quot;Pinned&quot; section (up to 9 favorites)</li>
+<li>Added Character/Corporation switch to keep your personal navigation separate from corp screens, plus a filter field to quickly jump to any section</li>
+<li>Drag to reorder in each section: Every sidebar section (Pinned, Pilot, Economy, Combat &amp; Fleet, Social &amp; Comms, Universe, Corporation, Utility) can now be rearranged by dragging items into the order you prefer</li>
 </ul>]]></description>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.11.9/EVEOps.dmg" length="35485472" type="application/octet-stream" sparkle:edSignature="6gtcX9PLLvsMQPL3ShccBmyw+Sx51uU/2hAANX6yuKInRT0XSTYiG7IEjSvrGUqtHqDtPqf8bn5hKGurvw6AAw=="/>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.11.10/EVEOps.dmg" length="35533795" type="application/octet-stream" sparkle:edSignature="bVMKVGMVtwnzEykdNZaFTFHVsziyXzQ/xodXNYS/6zh7D4Ei0zQVXMsZqMYKLQdarQQw1sL8V7/Abr3R3tsDDQ=="/>
         </item>
     </channel>
 </rss>
