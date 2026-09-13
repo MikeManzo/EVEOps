@@ -3,15 +3,18 @@
     <channel>
         <title>EVEOps</title>
         <item>
-            <title>0.9.11.8</title>
-            <pubDate>Fri, 11 Sep 2026 17:25:51 -0400</pubDate>
-            <sparkle:version>143</sparkle:version>
-            <sparkle:shortVersionString>0.9.11.8</sparkle:shortVersionString>
+            <title>0.9.11.9</title>
+            <pubDate>Sun, 13 Sep 2026 09:46:46 -0400</pubDate>
+            <sparkle:version>144</sparkle:version>
+            <sparkle:shortVersionString>0.9.11.9</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
             <description><![CDATA[<ul>
-<li>Added a Daily Briefing section to the Dashboard</li>
+<li>Richer Discord webhook alerts: category-colored embeds with character name, timestamp</li>
+<li>Discord Rich Presence: shows current ship + system</li>
+<li>Discord connected status in menubar</li>
+<li>Add Terms of Service and Privacy Policy</li>
 </ul>]]></description>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.11.8/EVEOps.dmg" length="35981604" type="application/octet-stream" sparkle:edSignature="C6bhp07fzLaYZF5u1YgXvtJiNJO0zglTkWIVAUV81jwJERW6qAA1eW7C0sCYJoFc4uue2PMXMQ5TKgpqpeROBA=="/>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.11.9/EVEOps.dmg" length="35485472" type="application/octet-stream" sparkle:edSignature="6gtcX9PLLvsMQPL3ShccBmyw+Sx51uU/2hAANX6yuKInRT0XSTYiG7IEjSvrGUqtHqDtPqf8bn5hKGurvw6AAw=="/>
         </item>
     </channel>
 </rss>
