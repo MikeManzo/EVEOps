@@ -84,6 +84,7 @@ struct RegionStationBrowserView: View {
             HStack {
                 Text("Station Browser")
                     .font(.largeTitle.bold())
+                PinToggleButton(section: .stationBrowser)
                 Spacer()
             }
             .padding(.horizontal, 16)

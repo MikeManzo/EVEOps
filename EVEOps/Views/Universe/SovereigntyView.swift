@@ -81,6 +81,7 @@ struct SovereigntyView: View {
         .safeAreaInset(edge: .top, spacing: 0) {
             HStack {
                 Text("Sovereignty").font(.largeTitle.bold())
+                PinToggleButton(section: .sovereignty)
                 Spacer()
                 if !isLoading && error == nil {
                     Text("\(campaigns.count) campaigns · \(structuresLoading ? "…" : "\(structures.count)") structures")

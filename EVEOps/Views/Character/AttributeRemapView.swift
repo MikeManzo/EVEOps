@@ -94,6 +94,7 @@ struct AttributeRemapView: View {
             HStack {
                 Text("Remap Advisor")
                     .font(.largeTitle.bold())
+                PinToggleButton(section: .remapAdvisor)
                 Spacer()
             }
             .padding(.horizontal, 16)

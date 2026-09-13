@@ -39,6 +39,7 @@ struct IncursionsView: View {
             HStack {
                 Text("Incursions")
                     .font(.largeTitle.bold())
+                PinToggleButton(section: .incursions)
                 Spacer()
                 if !incursions.isEmpty {
                     Text("\(incursions.count) active")

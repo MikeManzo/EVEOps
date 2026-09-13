@@ -44,6 +44,7 @@ struct LocationOverviewView: View {
                     HStack(alignment: .firstTextBaseline) {
                         Text("Location Overview")
                             .font(.largeTitle.bold())
+                        PinToggleButton(section: .location)
                         Spacer()
                         RelativeTimestamp(date: lastRefresh)
                         RefreshButton(isRefreshing: isRefreshing) {

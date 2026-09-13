@@ -65,6 +65,7 @@ struct CharacterClonesView: View {
             HStack {
                 Text("Clones")
                     .font(.largeTitle.bold())
+                PinToggleButton(section: .clones)
                 Spacer()
             }
             .padding(.horizontal, 16)

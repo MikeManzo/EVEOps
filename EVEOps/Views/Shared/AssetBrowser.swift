@@ -64,6 +64,13 @@ struct AssetBrowser: View {
 
         var showsAIInsight: Bool { self == .character }
 
+        var navigationSection: NavigationSection {
+            switch self {
+            case .character:   return .assets
+            case .corporation: return .corpAssets
+            }
+        }
+
         func endpoint(for account: StoredAccount) -> String {
             switch self {
             case .character:   return "/characters/\(account.characterID)/assets/"
@@ -127,6 +134,7 @@ struct AssetBrowser: View {
             HStack(spacing: 12) {
                 Text(kind.title)
                     .font(.largeTitle.bold())
+                PinToggleButton(section: kind.navigationSection)
                 Spacer()
                 RelativeTimestamp(date: lastRefresh)
                 RefreshButton(isRefreshing: isRefreshing) {

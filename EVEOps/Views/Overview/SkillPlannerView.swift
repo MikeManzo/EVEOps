@@ -54,6 +54,7 @@ struct SkillPlannerView: View {
             HStack {
                 Text("Skill Planner")
                     .font(.largeTitle.bold())
+                PinToggleButton(section: .skillPlanner)
                 Spacer()
             }
             .padding(.horizontal, 16)

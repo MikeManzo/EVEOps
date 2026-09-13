@@ -83,6 +83,7 @@ struct CorporationHangarsView: View {
             HStack {
                 Text("Corp Hangars")
                     .font(.largeTitle.bold())
+                PinToggleButton(section: .corpHangars)
                 Spacer()
             }
             .padding(.horizontal, 16)

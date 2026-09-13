@@ -90,6 +90,7 @@ struct CharacterContactsView: View {
             HStack {
                 Text("Contacts")
                     .font(.largeTitle.bold())
+                PinToggleButton(section: .contacts)
                 Spacer()
             }
             .padding(.horizontal, 16)

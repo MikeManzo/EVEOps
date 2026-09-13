@@ -40,6 +40,7 @@ struct CorporationMoonExtractionsView: View {
             HStack {
                 Text("Corp Moon Mining")
                     .font(.largeTitle.bold())
+                PinToggleButton(section: .corpMoonExtractions)
                 Spacer()
             }
             .padding(.horizontal, 16)

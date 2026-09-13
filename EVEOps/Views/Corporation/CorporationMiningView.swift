@@ -33,6 +33,7 @@ struct CorporationMiningView: View {
             HStack {
                 Text("Corp Mining Ledger")
                     .font(.largeTitle.bold())
+                PinToggleButton(section: .corpMining)
                 Spacer()
             }
             .padding(.horizontal, 16)

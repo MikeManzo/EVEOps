@@ -39,6 +39,7 @@ struct CharacterMedalsView: View {
             HStack {
                 Text("Medals")
                     .font(.largeTitle.bold())
+                PinToggleButton(section: .medals)
                 Spacer()
             }
             .padding(.horizontal, 16)

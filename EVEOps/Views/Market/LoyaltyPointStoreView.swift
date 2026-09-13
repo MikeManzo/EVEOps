@@ -79,6 +79,7 @@ struct LoyaltyPointStoreView: View {
             HStack {
                 Text("LP Store")
                     .font(.largeTitle.bold())
+                PinToggleButton(section: .lpStore)
                 Spacer()
             }
             .padding(.horizontal, 16)

@@ -56,6 +56,7 @@ struct CorporationWalletsView: View {
             HStack {
                 Text("Corp Wallets")
                     .font(.largeTitle.bold())
+                PinToggleButton(section: .corpWallets)
                 Spacer()
             }
             .padding(.horizontal, 16)

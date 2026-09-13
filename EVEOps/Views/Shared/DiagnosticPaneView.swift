@@ -69,6 +69,7 @@ struct DiagnosticPaneView: View {
             HStack {
                 Text("Diagnostic Logs")
                     .font(.largeTitle.bold())
+                PinToggleButton(section: .diagnosticLogs)
                 Spacer()
             }
             .padding(.horizontal, 16)

@@ -79,6 +79,7 @@ struct TrainingOverviewView: View {
                 HStack(spacing: 12) {
                     Text("Training Overview")
                         .font(.largeTitle.bold())
+                    PinToggleButton(section: .training)
                     Spacer()
                     RelativeTimestamp(date: lastRefresh)
                     RefreshButton(isRefreshing: isRefreshing) {

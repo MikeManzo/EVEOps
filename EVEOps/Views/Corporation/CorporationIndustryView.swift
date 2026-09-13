@@ -38,6 +38,7 @@ struct CorporationIndustryView: View {
             HStack {
                 Text("Corp Industry")
                     .font(.largeTitle.bold())
+                PinToggleButton(section: .corpIndustry)
                 Spacer()
             }
             .padding(.horizontal, 16)

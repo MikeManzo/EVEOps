@@ -65,6 +65,7 @@ struct RoutePlannerView: View {
             HStack {
                 Text("Route Planner")
                     .font(.largeTitle.bold())
+                PinToggleButton(section: .routePlanner)
                 Spacer()
             }
             .padding(.horizontal, 16)

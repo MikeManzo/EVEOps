@@ -45,6 +45,7 @@ struct CharacterKillmailsView: View {
             HStack {
                 Text("Kill/Loss Mails")
                     .font(.largeTitle.bold())
+                PinToggleButton(section: .killmails)
                 Spacer()
             }
             .padding(.horizontal, 16)

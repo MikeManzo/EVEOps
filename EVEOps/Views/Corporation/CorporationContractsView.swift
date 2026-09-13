@@ -28,6 +28,7 @@ struct CorporationContractsView: View {
             HStack {
                 Text("Corp Contracts")
                     .font(.largeTitle.bold())
+                PinToggleButton(section: .corpContracts)
                 Spacer()
             }
             .padding(.horizontal, 16)

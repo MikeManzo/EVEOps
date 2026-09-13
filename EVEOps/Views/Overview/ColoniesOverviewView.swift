@@ -49,6 +49,7 @@ struct ColoniesOverviewView: View {
             HStack(spacing: 12) {
                 Text("Colonies Overview")
                     .font(.largeTitle.bold())
+                PinToggleButton(section: .colonies)
                 Spacer()
                 RelativeTimestamp(date: lastRefresh)
                 RefreshButton(isRefreshing: isRefreshing) {

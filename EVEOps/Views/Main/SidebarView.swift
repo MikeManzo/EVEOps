@@ -15,6 +15,12 @@ struct SidebarView: View {
     @Bindable var accountManager: AccountManager
     @Binding var selectedSection: NavigationSection?
 
+    private enum NavScope: Hashable {
+        case character
+        case corporation
+    }
+
+    @AppStorage("sidebar.pinnedExpanded") private var pinnedExpanded = true
     @AppStorage("sidebar.pilotExpanded") private var pilotExpanded = true
     @AppStorage("sidebar.economyExpanded") private var economyExpanded = true
     @AppStorage("sidebar.combatExpanded") private var combatExpanded = true
@@ -23,6 +29,7 @@ struct SidebarView: View {
     @AppStorage("sidebar.corpExpanded") private var corpExpanded = true
     @AppStorage("sidebar.utilityExpanded") private var utilityExpanded = true
 
+    @AppStorage("sidebar.showPinned") private var showPinnedSection = true
     @AppStorage("sidebar.showPilot") private var showPilotSection = true
     @AppStorage("sidebar.showEconomy") private var showEconomySection = true
     @AppStorage("sidebar.showCombat") private var showCombatSection = true
@@ -30,7 +37,22 @@ struct SidebarView: View {
     @AppStorage("sidebar.showUniverse") private var showUniverseSection = true
     @AppStorage("sidebar.showCorp") private var showCorpSection = true
     @AppStorage("sidebar.showUtility") private var showUtilitySection = true
+    @AppStorage("sidebar.pinnedSections") private var pinnedSectionsRaw =
+        NavigationSection.quickJumpSlots.map(\.rawValue).joined(separator: ",")
+
+    @AppStorage("sidebar.orderPilot") private var pilotOrderRaw = ""
+    @AppStorage("sidebar.orderEconomy") private var economyOrderRaw = ""
+    @AppStorage("sidebar.orderCombat") private var combatOrderRaw = ""
+    @AppStorage("sidebar.orderSocial") private var socialOrderRaw = ""
+    @AppStorage("sidebar.orderUniverse") private var universeOrderRaw = ""
+    @AppStorage("sidebar.orderCorp") private var corpOrderRaw = ""
+    @AppStorage("sidebar.orderUtility") private var utilityOrderRaw = ""
+
+    private static let maxPinned = 9
+
     @State private var todayEventCount = 0
+    @State private var filterText = ""
+    @State private var navScope: NavScope = .character
 
     var body: some View {
         VStack(spacing: 0) {
@@ -41,171 +63,156 @@ struct SidebarView: View {
                 reauthBanner(reauthAccounts)
             }
 
+            if accountManager.selectedAccount != nil {
+                scopePicker
+                filterField
+            }
+
             List(selection: $selectedSection) {
                 Label("Dashboard", systemImage: "square.grid.2x2.fill")
                     .tag(NavigationSection.dashboard)
 
                 if let account = accountManager.selectedAccount {
-//                    Section("Pilot — \(account.characterName)", isExpanded: $pilotExpanded) {
-//                        ForEach(NavigationSection.pilotSections) { section in
-//                            Label(section.rawValue, systemImage: section.iconName)
-//                                .tag(section)
-//                        }
-//                    }
-
-                    if showPilotSection {
-                        Section(
-                            isExpanded: $pilotExpanded,
-                            content: {
-                                ForEach(NavigationSection.pilotSections) { section in
-                                    Label(section.title, systemImage: section.iconName)
-                                        .tag(section)
-                                }
-                            },
-                            header: {
-                                Text("Pilot — \(account.characterName)")
-                                    .font(.title3)
-                                    .textCase(.none)
-                            }
-                        )
-                    }
-                    
-//                    Section("Economy", isExpanded: $economyExpanded) {
-//                        ForEach(NavigationSection.economySections) { section in
-//                            Label(section.rawValue, systemImage: section.iconName)
-//                                .tag(section)
-//                        }
-//                    }
-
-                    if showEconomySection {
-                        Section(
-                            isExpanded: $economyExpanded,
-                            content: {
-                                ForEach(NavigationSection.economySections) { section in
-                                    Label(section.title, systemImage: section.iconName)
-                                        .tag(section)
-                                }
-                            },
-                            header: {
-                                Text("Economy")
-                                    .font(.title3)
-                                    .textCase(.none)
-                            }
-                        )
-                    }
-
-                    
-//                   Section("Combat & Fleet", isExpanded: $combatExpanded) {
-//                       ForEach(NavigationSection.combatSections) { section in
-//                           Label(section.rawValue, systemImage: section.iconName)
-//                                .tag(section)
-//                        }
-//                    }
-
-                    if showCombatSection {
-                        Section(
-                            isExpanded: $combatExpanded,
-                            content: {
-                                ForEach(NavigationSection.combatSections) { section in
-                                    Label(section.title, systemImage: section.iconName)
-                                        .tag(section)
-                                }
-                            },
-                            header: {
-                                Text("Combat & Fleet")
-                                    .font(.title3)
-                                    .textCase(.none)
-                            }
-                        )
-                    }
-
-/*
-                    Section("Social & Comms", isExpanded: $socialExpanded) {
-                        ForEach(NavigationSection.socialSections) { section in
-                            Label(section.rawValue, systemImage: section.iconName)
-                                .tag(section)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .overlay(alignment: .trailing) {
-                                    if section == .calendar && todayEventCount > 0 {
-                                        Circle()
-                                            .fill(Color.blue)
-                                            .frame(width: 7, height: 7)
+                    if navScope == .character || !showCorpSection {
+                        if showPinnedSection && shouldShow(pinnedSections) {
+                            Section(
+                                isExpanded: expandedBinding($pinnedExpanded),
+                                content: {
+                                    ForEach(rows(filtered(pinnedSections), group: "pinned")) { row in
+                                        navRow(row.section)
                                     }
+                                    .onMove { indices, offset in
+                                        let updated = reordered(pinnedSections, move: indices, to: offset)
+                                        pinnedSectionsRaw = updated.map(\.rawValue).joined(separator: ",")
+                                    }
+                                    .moveDisabled(!filterText.isEmpty)
+                                },
+                                header: {
+                                    Text("Pinned (\(pinnedSections.count)/\(Self.maxPinned))")
+                                        .font(.title3)
+                                        .textCase(.none)
                                 }
+                            )
+                        }
+
+                        if showPilotSection && shouldShow(pilotSectionsOrdered) {
+                            Section(
+                                isExpanded: expandedBinding($pilotExpanded),
+                                content: {
+                                    ForEach(rows(filtered(pilotSectionsOrdered), group: "pilot")) { row in
+                                        navRow(row.section)
+                                    }
+                                    .onMove { indices, offset in
+                                        let updated = reordered(pilotSectionsOrdered, move: indices, to: offset)
+                                        pilotOrderRaw = updated.map(\.rawValue).joined(separator: ",")
+                                    }
+                                    .moveDisabled(!filterText.isEmpty)
+                                },
+                                header: {
+                                    Text("Pilot — \(account.characterName)")
+                                        .font(.title3)
+                                        .textCase(.none)
+                                }
+                            )
+                        }
+
+                        if showEconomySection && shouldShow(economySectionsOrdered) {
+                            Section(
+                                isExpanded: expandedBinding($economyExpanded),
+                                content: {
+                                    ForEach(rows(filtered(economySectionsOrdered), group: "economy")) { row in
+                                        navRow(row.section)
+                                    }
+                                    .onMove { indices, offset in
+                                        let updated = reordered(economySectionsOrdered, move: indices, to: offset)
+                                        economyOrderRaw = updated.map(\.rawValue).joined(separator: ",")
+                                    }
+                                    .moveDisabled(!filterText.isEmpty)
+                                },
+                                header: {
+                                    Text("Economy")
+                                        .font(.title3)
+                                        .textCase(.none)
+                                }
+                            )
+                        }
+
+                        if showCombatSection && shouldShow(combatSectionsOrdered) {
+                            Section(
+                                isExpanded: expandedBinding($combatExpanded),
+                                content: {
+                                    ForEach(rows(filtered(combatSectionsOrdered), group: "combat")) { row in
+                                        navRow(row.section)
+                                    }
+                                    .onMove { indices, offset in
+                                        let updated = reordered(combatSectionsOrdered, move: indices, to: offset)
+                                        combatOrderRaw = updated.map(\.rawValue).joined(separator: ",")
+                                    }
+                                    .moveDisabled(!filterText.isEmpty)
+                                },
+                                header: {
+                                    Text("Combat & Fleet")
+                                        .font(.title3)
+                                        .textCase(.none)
+                                }
+                            )
+                        }
+
+                        if showSocialSection && shouldShow(socialSectionsOrdered) {
+                            Section(
+                                isExpanded: expandedBinding($socialExpanded),
+                                content: {
+                                    ForEach(rows(filtered(socialSectionsOrdered), group: "social")) { row in
+                                        navRow(row.section)
+                                    }
+                                    .onMove { indices, offset in
+                                        let updated = reordered(socialSectionsOrdered, move: indices, to: offset)
+                                        socialOrderRaw = updated.map(\.rawValue).joined(separator: ",")
+                                    }
+                                    .moveDisabled(!filterText.isEmpty)
+                                },
+                                header: {
+                                    Text("Social & Comms")
+                                        .font(.title3)
+                                        .textCase(.none)
+                                }
+                            )
+                        }
+
+                        if showUniverseSection && shouldShow(universeSectionsOrdered) {
+                            Section(
+                                isExpanded: expandedBinding($universeExpanded),
+                                content: {
+                                    ForEach(rows(filtered(universeSectionsOrdered), group: "universe")) { row in
+                                        navRow(row.section)
+                                    }
+                                    .onMove { indices, offset in
+                                        let updated = reordered(universeSectionsOrdered, move: indices, to: offset)
+                                        universeOrderRaw = updated.map(\.rawValue).joined(separator: ",")
+                                    }
+                                    .moveDisabled(!filterText.isEmpty)
+                                },
+                                header: {
+                                    Text("Universe")
+                                        .font(.title3)
+                                        .textCase(.none)
+                                }
+                            )
                         }
                     }
-*/
-                    
-                    if showSocialSection {
-                        Section(
-                            isExpanded: $socialExpanded,
-                            content: {
-                                ForEach(NavigationSection.socialSections) { section in
-                                    Label(section.title, systemImage: section.iconName)
-                                        .tag(section)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .overlay(alignment: .trailing) {
-                                            if section == .calendar && todayEventCount > 0 {
-                                                Circle()
-                                                    .fill(Color.blue)
-                                                    .frame(width: 7, height: 7)
-                                                    .accessibilityHidden(true)
-                                            }
-                                        }
-                                        .accessibilityValue(
-                                            section == .calendar && todayEventCount > 0
-                                                ? "\(todayEventCount) events today" : ""
-                                        )
-                                }
-                            },
-                            header: {
-                                Text("Social & Comms")
-                                    .font(.title3)
-                                    .textCase(.none)
-                            }
-                        )
-                    }
-                    
-//                    Section("Universe", isExpanded: $universeExpanded) {
-//                        ForEach(NavigationSection.universeSections) { section in
-//                            Label(section.rawValue, systemImage: section.iconName)
-//                                .tag(section)
-//                        }
-//                    }
 
-                    if showUniverseSection {
+                    if showCorpSection && navScope == .corporation && shouldShow(corporationSectionsOrdered) {
                         Section(
-                            isExpanded: $universeExpanded,
+                            isExpanded: expandedBinding($corpExpanded),
                             content: {
-                                ForEach(NavigationSection.universeSections) { section in
-                                    Label(section.title, systemImage: section.iconName)
-                                        .tag(section)
+                                ForEach(rows(filtered(corporationSectionsOrdered), group: "corp")) { row in
+                                    navRow(row.section)
                                 }
-                            },
-                            header: {
-                                Text("Universe")
-                                    .font(.title3)
-                                    .textCase(.none)
-                            }
-                        )
-                    }
-
-                    
-//                   Section("Corporation — \(account.corporationName)", isExpanded: $corpExpanded) {
-//                        ForEach(NavigationSection.corporationSections) { section in
-//                            Label(displayName(for: section), systemImage: section.iconName)
-//                                .tag(section)
-//                        }
-//                    }
-                    
-                    if showCorpSection {
-                        Section(
-                            isExpanded: $corpExpanded,
-                            content: {
-                                ForEach(NavigationSection.corporationSections) { section in
-                                    Label(section.title, systemImage: section.iconName)
-                                        .tag(section)
+                                .onMove { indices, offset in
+                                    let updated = reordered(corporationSectionsOrdered, move: indices, to: offset)
+                                    corpOrderRaw = updated.map(\.rawValue).joined(separator: ",")
                                 }
+                                .moveDisabled(!filterText.isEmpty)
                             },
                             header: {
                                 Text("Corp: \(account.corporationName)")
@@ -216,14 +223,18 @@ struct SidebarView: View {
                     }
                 }
 
-                if showUtilitySection {
+                if showUtilitySection && shouldShow(utilitySectionsOrdered) {
                     Section(
-                        isExpanded: $utilityExpanded,
+                        isExpanded: expandedBinding($utilityExpanded),
                         content: {
-                            ForEach(NavigationSection.utilitySections) { section in
-                                Label(section.rawValue, systemImage: section.iconName)
-                                    .tag(section)
+                            ForEach(rows(filtered(utilitySectionsOrdered), group: "utility")) { row in
+                                navRow(row.section)
                             }
+                            .onMove { indices, offset in
+                                let updated = reordered(utilitySectionsOrdered, move: indices, to: offset)
+                                utilityOrderRaw = updated.map(\.rawValue).joined(separator: ",")
+                            }
+                            .moveDisabled(!filterText.isEmpty)
                         },
                         header: {
                             Text("Utility")
@@ -258,6 +269,161 @@ struct SidebarView: View {
                 logSuppressed(error, "Sidebar: today's calendar event count")
             }
         }
+    }
+
+    // MARK:  User-defined ordering
+
+    private var pilotSectionsOrdered: [NavigationSection] {
+        applyCustomOrder(NavigationSection.pilotSections, raw: pilotOrderRaw)
+    }
+    private var economySectionsOrdered: [NavigationSection] {
+        applyCustomOrder(NavigationSection.economySections, raw: economyOrderRaw)
+    }
+    private var combatSectionsOrdered: [NavigationSection] {
+        applyCustomOrder(NavigationSection.combatSections, raw: combatOrderRaw)
+    }
+    private var socialSectionsOrdered: [NavigationSection] {
+        applyCustomOrder(NavigationSection.socialSections, raw: socialOrderRaw)
+    }
+    private var universeSectionsOrdered: [NavigationSection] {
+        applyCustomOrder(NavigationSection.universeSections, raw: universeOrderRaw)
+    }
+    private var corporationSectionsOrdered: [NavigationSection] {
+        applyCustomOrder(NavigationSection.corporationSections, raw: corpOrderRaw)
+    }
+    private var utilitySectionsOrdered: [NavigationSection] {
+        applyCustomOrder(NavigationSection.utilitySections, raw: utilityOrderRaw)
+    }
+
+    /// Applies a stored custom order on top of a section's default array, dropping
+    /// any stale entries and appending items the user hasn't touched (new sections
+    /// added in an app update) to the end in their default order.
+    private func applyCustomOrder(_ base: [NavigationSection], raw: String) -> [NavigationSection] {
+        guard !raw.isEmpty else { return base }
+        let stored = raw.split(separator: ",").compactMap { NavigationSection(rawValue: String($0)) }
+        var ordered = stored.filter { base.contains($0) }
+        ordered.append(contentsOf: base.filter { !ordered.contains($0) })
+        return ordered
+    }
+
+    private func reordered(_ current: [NavigationSection], move indices: IndexSet, to offset: Int) -> [NavigationSection] {
+        var updated = current
+        updated.move(fromOffsets: indices, toOffset: offset)
+        return updated
+    }
+
+    /// A section can appear in more than one group (Pinned duplicates items from
+    /// their home section). `NavigationSection`'s own id is shared in that case,
+    /// and two `ForEach`s in the same `List` sharing ids confuses SwiftUI's
+    /// diffing — a drag in one group can get misattributed to the other. Scoping
+    /// the id by group keeps every `ForEach`'s rows uniquely identified.
+    private struct SidebarRow: Identifiable {
+        let id: String
+        let section: NavigationSection
+    }
+
+    private func rows(_ sections: [NavigationSection], group: String) -> [SidebarRow] {
+        sections.map { SidebarRow(id: "\(group).\($0.rawValue)", section: $0) }
+    }
+
+    // MARK:  Pinning
+
+    private var pinnedSections: [NavigationSection] {
+        pinnedSectionsRaw
+            .split(separator: ",")
+            .compactMap { NavigationSection(rawValue: String($0)) }
+    }
+
+    /// One sidebar row: the destination's label and an optional "today" badge.
+    /// The pin toggle itself lives on the destination's own page now, not here —
+    /// it was too much visual noise repeated across every row.
+    @ViewBuilder
+    private func navRow(_ section: NavigationSection) -> some View {
+        HStack(spacing: 6) {
+            Label(section.title, systemImage: section.iconName)
+            if section == .calendar && todayEventCount > 0 {
+                Circle()
+                    .fill(Color.blue)
+                    .frame(width: 7, height: 7)
+                    .accessibilityHidden(true)
+            }
+        }
+        .tag(section)
+        .accessibilityValue(
+            section == .calendar && todayEventCount > 0 ? "\(todayEventCount) events today" : ""
+        )
+    }
+
+    // MARK:  Filtering & scope helpers
+
+    /// Narrows a section group to entries matching `filterText`; returns the group
+    /// unchanged when the filter is empty.
+    private func filtered(_ sections: [NavigationSection]) -> [NavigationSection] {
+        guard !filterText.isEmpty else { return sections }
+        return sections.filter { $0.rawValue.localizedCaseInsensitiveContains(filterText) }
+    }
+
+    private func shouldShow(_ sections: [NavigationSection]) -> Bool {
+        !filtered(sections).isEmpty
+    }
+
+    /// While filtering, sections stay expanded (so matches are visible) without
+    /// overwriting the user's own collapsed/expanded preference underneath.
+    private func expandedBinding(_ base: Binding<Bool>) -> Binding<Bool> {
+        Binding(
+            get: { filterText.isEmpty ? base.wrappedValue : true },
+            set: { newValue in
+                if filterText.isEmpty { base.wrappedValue = newValue }
+            }
+        )
+    }
+
+    @ViewBuilder
+    private var scopePicker: some View {
+        if showCorpSection {
+            Picker("", selection: $navScope) {
+                Image(systemName: "person.fill")
+                    .accessibilityLabel("Character")
+                    .tag(NavScope.character)
+                Image(systemName: "building.2.fill")
+                    .accessibilityLabel("Corporation")
+                    .tag(NavScope.corporation)
+            }
+            .labelsHidden()
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 10)
+            .padding(.top, 6)
+            .accessibilityLabel("Sidebar scope")
+        }
+    }
+
+    private var filterField: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+                .font(.caption)
+                .accessibilityHidden(true)
+            TextField("Filter", text: $filterText)
+                .textFieldStyle(.plain)
+                .font(.callout)
+            if !filterText.isEmpty {
+                Button {
+                    filterText = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Clear filter")
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
+        .background(RoundedRectangle(cornerRadius: 6).fill(.quaternary.opacity(0.5)))
+        .padding(.horizontal, 10)
+        .padding(.top, 6)
+        .padding(.bottom, 4)
+        .accessibilityLabel("Filter sidebar")
     }
 
     @ViewBuilder

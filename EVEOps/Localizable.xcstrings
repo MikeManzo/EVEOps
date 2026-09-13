@@ -1736,6 +1736,9 @@
     "Clear Caches" : {
 
     },
+    "Clear filter" : {
+
+    },
     "Clear Fit" : {
 
     },
@@ -2200,6 +2203,12 @@
     "Discord Rich Presence" : {
 
     },
+    "Discord: Connected" : {
+
+    },
+    "Discord: Not connected" : {
+
+    },
     "Displays the Utility section containing the Diagnostic Logs viewer" : {
 
     },
@@ -2567,6 +2576,9 @@
 
     },
     "Filter contacts" : {
+
+    },
+    "Filter sidebar" : {
 
     },
     "Final Blow" : {
@@ -3964,6 +3976,28 @@
     "Pilot Name" : {
 
     },
+    "Pin %@" : {
+
+    },
+    "Pin to the top of the sidebar" : {
+
+    },
+    "Pinned" : {
+
+    },
+    "Pinned (%lld/%lld)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Pinned (%1$lld/%2$lld)"
+          }
+        }
+      }
+    },
+    "Pinned is full — unpin something first (%lld max)" : {
+
+    },
     "Plan Route" : {
 
     },
@@ -4643,6 +4677,9 @@
     "Shows your current ship and system as your Discord activity status — visible to anyone who can see your Discord profile." : {
 
     },
+    "Sidebar scope" : {
+
+    },
     "Sign in with a character to see live activity where you are." : {
 
     },
@@ -5099,6 +5136,12 @@
 
     },
     "Unpackage the ship in-game to view its fitting." : {
+
+    },
+    "Unpin %@" : {
+
+    },
+    "Unpin from the sidebar's Pinned section" : {
 
     },
     "unpriced" : {

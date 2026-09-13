@@ -35,6 +35,7 @@ struct CharacterResearchAgentsView: View {
             HStack {
                 Text("Research Agents")
                     .font(.largeTitle.bold())
+                PinToggleButton(section: .research)
                 Spacer()
             }
             .padding(.horizontal, 16)

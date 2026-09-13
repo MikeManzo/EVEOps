@@ -74,6 +74,7 @@ struct AgentFinderView: View {
             HStack {
                 Text("Agent Finder")
                     .font(.largeTitle.bold())
+                PinToggleButton(section: .careerAgents)
                 Spacer()
                 if dbLoading || isResolvingResults {
                     ProgressView().scaleEffect(0.7)

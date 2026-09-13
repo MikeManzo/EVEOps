@@ -39,6 +39,7 @@ struct ContractsOverviewView: View {
             HStack(spacing: 12) {
                 Text("Contracts Overview")
                     .font(.largeTitle.bold())
+                PinToggleButton(section: .contracts)
                 Spacer()
                 RelativeTimestamp(date: lastRefresh)
                 RefreshButton(isRefreshing: isRefreshing) {

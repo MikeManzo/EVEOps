@@ -155,6 +155,7 @@ struct GalaxyMapView: View {
             HStack {
                 Text("Galaxy Map")
                     .font(.largeTitle.bold())
+                PinToggleButton(section: .galaxyMap)
                 Spacer()
             }
             .padding(.horizontal, 16)

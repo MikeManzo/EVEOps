@@ -61,6 +61,7 @@ struct IndustryOverviewView: View {
             HStack(spacing: 12) {
                 Text("Industry Overview")
                     .font(.largeTitle.bold())
+                PinToggleButton(section: .industry)
                 Spacer()
                 RelativeTimestamp(date: lastRefresh)
                 RefreshButton(isRefreshing: isRefreshing) {

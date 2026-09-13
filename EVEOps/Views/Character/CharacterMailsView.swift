@@ -58,6 +58,7 @@ struct CharacterMailsView: View {
             HStack {
                 Text("Mails")
                     .font(.largeTitle.bold())
+                PinToggleButton(section: .mails)
                 Spacer()
             }
             .padding(.horizontal, 16)

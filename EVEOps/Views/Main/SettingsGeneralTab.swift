@@ -161,6 +161,7 @@ struct AppearanceTab: View {
     @AppStorage("menuBarShowShip") private var menuBarShowShip = true
     @AppStorage("menuBarCompact") private var menuBarCompact = false
 
+    @AppStorage("sidebar.showPinned") private var showPinned = true
     @AppStorage("sidebar.showPilot") private var showPilot = true
     @AppStorage("sidebar.showEconomy") private var showEconomy = true
     @AppStorage("sidebar.showCombat") private var showCombat = true
@@ -190,6 +191,7 @@ struct AppearanceTab: View {
             }
 
             Section("View / Hide Sidebar Sections") {
+                Toggle("Pinned", isOn: $showPinned)
                 Toggle("Pilot", isOn: $showPilot)
                 Toggle("Economy", isOn: $showEconomy)
                 Toggle("Combat & Fleet", isOn: $showCombat)

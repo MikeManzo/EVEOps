@@ -173,6 +173,7 @@ struct MarketBrowserView: View {
             HStack {
                 Text("Market Browser")
                     .font(.largeTitle.bold())
+                PinToggleButton(section: .market)
                 Spacer()
             }
             .padding(.horizontal, 16)

@@ -63,6 +63,7 @@ struct FleetManagerView: View {
             HStack {
                 Text("Fleet Manager")
                     .font(.largeTitle.bold())
+                PinToggleButton(section: .fleetManager)
                 Spacer()
             }
             .padding(.horizontal, 16)

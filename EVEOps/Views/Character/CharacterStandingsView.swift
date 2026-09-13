@@ -35,6 +35,7 @@ struct CharacterStandingsView: View {
             HStack {
                 Text("Standings")
                     .font(.largeTitle.bold())
+                PinToggleButton(section: .standings)
                 Spacer()
             }
             .padding(.horizontal, 16)

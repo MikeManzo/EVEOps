@@ -95,6 +95,7 @@ struct CorporationStructuresView: View {
             HStack {
                 Text("Corp Structures")
                     .font(.largeTitle.bold())
+                PinToggleButton(section: .corpStructures)
                 Spacer()
             }
             .padding(.horizontal, 16)

@@ -41,6 +41,7 @@ struct CorporationWarsView: View {
             HStack {
                 Text("Corp Wars")
                     .font(.largeTitle.bold())
+                PinToggleButton(section: .corpWars)
                 Spacer()
             }
             .padding(.horizontal, 16)

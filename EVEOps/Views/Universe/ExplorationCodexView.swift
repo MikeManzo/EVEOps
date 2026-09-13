@@ -130,6 +130,7 @@ struct ExplorationCodexView: View {
         HStack(spacing: 12) {
             Text("Exploration Codex")
                 .font(.largeTitle.bold())
+            PinToggleButton(section: .explorationCodex)
 
             Picker("Content", selection: $content) {
                 ForEach(CodexContent.allCases) { Text($0.rawValue).tag($0) }

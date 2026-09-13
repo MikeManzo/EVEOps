@@ -187,6 +187,7 @@ struct CharacterFittingsView: View {
             HStack {
                 Text("Ships & Fittings")
                     .font(.largeTitle.bold())
+                PinToggleButton(section: .fittings)
                 Spacer()
             }
             .padding(.horizontal, 16)

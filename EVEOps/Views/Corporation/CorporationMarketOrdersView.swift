@@ -47,6 +47,7 @@ struct CorporationMarketOrdersView: View {
             HStack {
                 Text("Corp Market Orders")
                     .font(.largeTitle.bold())
+                PinToggleButton(section: .corpMarketOrders)
                 Spacer()
             }
             .padding(.horizontal, 16)

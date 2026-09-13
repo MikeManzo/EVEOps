@@ -173,6 +173,7 @@ struct CharacterCalendarView: View {
             HStack {
                 Text("Calendar")
                     .font(.largeTitle.bold())
+                PinToggleButton(section: .calendar)
                 Spacer()
             }
             .padding(.horizontal, 16)

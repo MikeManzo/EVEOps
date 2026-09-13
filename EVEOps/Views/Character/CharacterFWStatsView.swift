@@ -47,6 +47,7 @@ struct CharacterFWStatsView: View {
             HStack {
                 Text("Faction Warfare")
                     .font(.largeTitle.bold())
+                PinToggleButton(section: .factionWarfare)
                 Spacer()
             }
             .padding(.horizontal, 16)

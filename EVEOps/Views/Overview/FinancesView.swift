@@ -92,6 +92,7 @@ struct FinancesView: View {
             HStack(spacing: 12) {
                 Text("Finances")
                     .font(.largeTitle.bold())
+                PinToggleButton(section: .finances)
                 Spacer()
                 RelativeTimestamp(date: lastRefresh)
                 RefreshButton(isRefreshing: isRefreshing) {
