@@ -160,6 +160,10 @@ struct MenuBarView: View {
 
                 Spacer()
 
+                discordStatusIndicator
+
+                Spacer()
+
                 Button {
                     dismiss()
                     WindowService.shared.showSettings()
@@ -199,6 +203,21 @@ struct MenuBarView: View {
             Task { await loadAllSummaries() }
         }
         .periodicTick(every: 30) { now = Date() }
+    }
+
+    /// Static status glyph (not a button — Rich Presence is configured from Settings,
+    /// this just answers "is it actually working right now"). Discord's brand blurple
+    /// when connected, the same secondary gray as the other icons otherwise — covers
+    /// both "disabled" and "enabled but not reaching Discord" as one glyph, matching
+    /// what was asked for: connected vs. not, not a three-state breakdown.
+    private var discordStatusIndicator: some View {
+        let isConnected = DiscordRichPresenceStatus.shared.state == .connected
+        return Image("DiscordGlyph")
+            .resizable()
+            .scaledToFit()
+            .frame(width: 14, height: 14)
+            .foregroundStyle(isConnected ? Color(red: 0x58/255, green: 0x65/255, blue: 0xF2/255) : .secondary)
+            .help(isConnected ? "Discord: Connected" : "Discord: Not connected")
     }
 
     private var characterSwitcher: some View {

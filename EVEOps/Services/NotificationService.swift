@@ -76,7 +76,9 @@ actor NotificationService {
                 await sendNotification(
                     title: String(localized: "Training Queue Empty"),
                     body: String(localized: "\(account.characterName)'s training queue has become empty!"),
-                    identifier: "skillqueue-\(account.characterID)"
+                    identifier: "skillqueue-\(account.characterID)",
+                    category: .skillQueue,
+                    characterName: account.characterName
                 )
             }
 
@@ -95,7 +97,9 @@ actor NotificationService {
                         await sendNotification(
                             title: String(localized: "Skill Queue Alert — \(account.characterName)"),
                             body: String(localized: "Training queue completes in ~\(hoursLeft)h. Add skills to keep training!"),
-                            identifier: "skillqueue-warning-\(account.characterID)-\(Int(queueEnd.timeIntervalSince1970))"
+                            identifier: "skillqueue-warning-\(account.characterID)-\(Int(queueEnd.timeIntervalSince1970))",
+                            category: .skillQueue,
+                            characterName: account.characterName
                         )
                         lastQueueWarningSent[account.characterID] = Date()
                     }
@@ -136,7 +140,9 @@ actor NotificationService {
                     await sendNotification(
                         title: String(localized: "EVE: \(account.characterName)"),
                         body: formatNotificationType(notification.type),
-                        identifier: "notification-\(notification.notificationId)"
+                        identifier: "notification-\(notification.notificationId)",
+                        category: isWar ? .war : .structureAlert,
+                        characterName: account.characterName
                     )
                 }
             }
@@ -165,7 +171,9 @@ actor NotificationService {
                 await sendNotification(
                     title: String(localized: "Industry Complete — \(account.characterName)"),
                     body: String(localized: "\(newlyDone.count) industry jobs finished"),
-                    identifier: "industry-\(account.characterID)-\(Date().timeIntervalSince1970)"
+                    identifier: "industry-\(account.characterID)-\(Date().timeIntervalSince1970)",
+                    category: .industry,
+                    characterName: account.characterName
                 )
             }
 
@@ -209,7 +217,9 @@ actor NotificationService {
                 await sendNotification(
                     title: String(localized: "Structure Fuel Low — \(account.characterName)"),
                     body: body,
-                    identifier: "structurefuel-\(structure.structureId)-\(Int(fuelExpires.timeIntervalSince1970))"
+                    identifier: "structurefuel-\(structure.structureId)-\(Int(fuelExpires.timeIntervalSince1970))",
+                    category: .structureFuel,
+                    characterName: account.characterName
                 )
                 lastFuelWarningSent[structure.structureId] = Date()
             }
@@ -226,7 +236,8 @@ actor NotificationService {
         await sendNotification(
             title: String(localized: "EVE Servers Online"),
             body: String(localized: "Tranquility is back up."),
-            identifier: "server-status-online-\(Int(Date().timeIntervalSince1970))"
+            identifier: "server-status-online-\(Int(Date().timeIntervalSince1970))",
+            category: .serverStatus
         )
     }
 
@@ -243,7 +254,9 @@ actor NotificationService {
         await sendNotification(
             title: title,
             body: body,
-            identifier: "presence-\(characterID)-\(suffix)-\(Int(Date().timeIntervalSince1970))"
+            identifier: "presence-\(characterID)-\(suffix)-\(Int(Date().timeIntervalSince1970))",
+            category: .presence,
+            characterName: characterName
         )
     }
 
@@ -267,7 +280,9 @@ actor NotificationService {
                             await sendNotification(
                                 title: String(localized: "Contract Update - \(account.characterName)"),
                                 body: String(localized: "A contract status changed to: \(status.replacingOccurrences(of: "_", with: " "))"),
-                                identifier: "contract-\(change)"
+                                identifier: "contract-\(change)",
+                                category: .contracts,
+                                characterName: account.characterName
                             )
                         }
                     }
@@ -334,7 +349,9 @@ actor NotificationService {
                     await sendNotification(
                         title: String(localized: "Standing Change — \(account.characterName)"),
                         body: String(localized: "Standing with \(name) \(direction) by \(String(format: "%.2f", abs(change.delta))) (\(String(format: "%+.2f", change.old)) → \(String(format: "%+.2f", change.standing.standing)))"),
-                        identifier: "standing-\(account.characterID)-\(change.standing.fromType)-\(change.standing.fromId)-\(stamp)"
+                        identifier: "standing-\(account.characterID)-\(change.standing.fromType)-\(change.standing.fromId)-\(stamp)",
+                        category: .standings,
+                        characterName: account.characterName
                     )
                 }
             } else {
@@ -346,7 +363,9 @@ actor NotificationService {
                 await sendNotification(
                     title: String(localized: "Standings Changed — \(account.characterName)"),
                     body: String(localized: "\(changes.count) standings shifted. Largest: \(topName) \(topDirection) \(String(format: "%.2f", abs(top.delta)))."),
-                    identifier: "standings-\(account.characterID)-\(stamp)"
+                    identifier: "standings-\(account.characterID)-\(stamp)",
+                    category: .standings,
+                    characterName: account.characterName
                 )
             }
         } catch ESIError.unauthorized {
@@ -356,7 +375,13 @@ actor NotificationService {
         }
     }
 
-    private func sendNotification(title: String, body: String, identifier: String) async {
+    private func sendNotification(
+        title: String,
+        body: String,
+        identifier: String,
+        category: DiscordAlertCategory = .general,
+        characterName: String? = nil
+    ) async {
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
@@ -369,7 +394,7 @@ actor NotificationService {
         )
 
         try? await UNUserNotificationCenter.current().add(request)
-        await DiscordNotifier.shared.enqueue(title: title, body: body)
+        await DiscordNotifier.shared.enqueue(title: title, body: body, category: category, characterName: characterName)
     }
 
     private func formatNotificationType(_ type: String) -> String {

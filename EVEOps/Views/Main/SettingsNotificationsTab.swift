@@ -13,6 +13,9 @@ import SwiftUI
 // MARK:  Notifications Tab
 
 struct NotificationsTab: View {
+    @Environment(AccountManager.self) private var accountManager
+    @Environment(DashboardPrefetcher.self) private var prefetcher
+
     @AppStorage("notificationsEnabled") private var notificationsEnabled = true
     @AppStorage("notifySkillQueueEmpty") private var notifySkillQueueEmpty = true
     @AppStorage("notifyExtractorsExpired") private var notifyExtractorsExpired = true
@@ -25,10 +28,12 @@ struct NotificationsTab: View {
     @AppStorage("notifyStandingsChanged") private var notifyStandingsChanged = true
     @AppStorage("notifyServerStatus") private var notifyServerStatus = true
     @AppStorage("discordNotificationsEnabled") private var discordNotificationsEnabled = false
+    @AppStorage("discordRichPresenceEnabled") private var discordRichPresenceEnabled = false
 
     @State private var discordWebhookURL: String = ""
     @State private var testState: DiscordTestState = .idle
     @State private var showDiscordInfo = false
+    @State private var showRichPresenceInfo = false
 
     private enum DiscordTestState: Equatable {
         case idle, sending, success, failure
@@ -128,10 +133,51 @@ struct NotificationsTab: View {
                     }
                 }
             }
+
+            Section {
+                HStack {
+                    Toggle("Show current character in Discord status", isOn: $discordRichPresenceEnabled)
+                        .onChange(of: discordRichPresenceEnabled) { _, enabled in
+                            if enabled {
+                                Task { await DiscordRichPresence.refresh(accountManager: accountManager, prefetcher: prefetcher) }
+                            } else {
+                                Task { await DiscordRichPresence.shared.disconnect() }
+                            }
+                        }
+                    Spacer()
+                    richPresenceStatusBadge
+                }
+
+                Text("Requires the Discord desktop app running on this Mac. Status updates on the same interval as background polling.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } header: {
+                HStack(spacing: 4) {
+                    Text("Rich Presence")
+                    Button {
+                        showRichPresenceInfo.toggle()
+                    } label: {
+                        Image(systemName: "info.circle")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .popover(isPresented: $showRichPresenceInfo, arrowEdge: .top) {
+                        richPresenceInfoPopover
+                    }
+                }
+            }
         }
         .formStyle(.grouped)
         .task {
             discordWebhookURL = (try? KeychainHelper.loadString(for: DiscordNotifier.webhookURLKeychainAccount)) ?? ""
+            // Rich Presence's status badge only updates from the toggle's onChange or the
+            // next background poll (up to several minutes away) — if the feature was left
+            // on from a previous session, reflect its real status as soon as this pane opens
+            // instead of showing nothing until one of those fires.
+            if discordRichPresenceEnabled {
+                await DiscordRichPresence.refresh(accountManager: accountManager, prefetcher: prefetcher)
+            }
         }
     }
 
@@ -154,6 +200,50 @@ struct NotificationsTab: View {
                 Image(systemName: "bell.badge")
                     .foregroundStyle(.secondary)
                 Text("The Categories above decide which events fire — Discord receives the same ones as your native notifications.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(16)
+        .frame(width: 320)
+    }
+
+    @ViewBuilder
+    private var richPresenceStatusBadge: some View {
+        if discordRichPresenceEnabled {
+            switch DiscordRichPresenceStatus.shared.state {
+            case .off:
+                EmptyView()
+            case .searching:
+                Label("Waiting for Discord…", systemImage: "circle.dotted")
+                    .foregroundStyle(.secondary)
+                    .font(.caption)
+            case .connected:
+                Label("Connected", systemImage: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+                    .font(.caption)
+            }
+        }
+    }
+
+    private var richPresenceInfoPopover: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Discord Rich Presence")
+                .font(.headline)
+            Text("Shows your current ship and system as your Discord activity status — visible to anyone who can see your Discord profile.")
+                .font(.callout)
+                .fixedSize(horizontal: false, vertical: true)
+            Divider()
+            VStack(alignment: .leading, spacing: 8) {
+                discordStep(number: 1, text: "Make sure the Discord desktop app is running on this Mac.")
+                discordStep(number: 2, text: "Turn on \u{201c}Show current character in Discord status.\u{201d}")
+            }
+            .font(.caption)
+            Divider()
+            HStack(spacing: 4) {
+                Image(systemName: "person.crop.circle")
+                    .foregroundStyle(.secondary)
+                Text("Uses whichever character is currently selected in EVEOps.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

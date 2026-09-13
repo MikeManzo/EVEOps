@@ -11,6 +11,54 @@
 import Foundation
 import OSLog
 
+/// Groups alerts by source so Discord embeds can be color- and icon-coded, matching
+/// the categories in `NotificationsTab`.
+enum DiscordAlertCategory {
+    case skillQueue
+    case industry
+    case contracts
+    case structureAlert
+    case structureFuel
+    case war
+    case standings
+    case presence
+    case serverStatus
+    case test
+    case general
+
+    var color: Int {
+        switch self {
+        case .skillQueue: return 0x3498DB
+        case .industry: return 0xF39C12
+        case .contracts: return 0x9B59B6
+        case .structureAlert: return 0xE74C3C
+        case .structureFuel: return 0xE67E22
+        case .war: return 0xC0392B
+        case .standings: return 0x1ABC9C
+        case .presence: return 0x2ECC71
+        case .serverStatus: return 0x95A5A6
+        case .test: return 0x2E86DE
+        case .general: return 0x2E86DE
+        }
+    }
+
+    var emoji: String {
+        switch self {
+        case .skillQueue: return "📚"
+        case .industry: return "🏭"
+        case .contracts: return "📜"
+        case .structureAlert: return "🛡️"
+        case .structureFuel: return "⛽"
+        case .war: return "⚔️"
+        case .standings: return "🤝"
+        case .presence: return "🟢"
+        case .serverStatus: return "🖥️"
+        case .test: return "🧪"
+        case .general: return "🔔"
+        }
+    }
+}
+
 /// Fans out alert events to a user-configured Discord webhook, in addition to the
 /// native macOS notification `NotificationService` already posts. Events queued in a
 /// short window are batched into a single webhook POST (as multiple embeds) to stay
@@ -21,13 +69,19 @@ actor DiscordNotifier {
 
     static let webhookURLKeychainAccount = "discordWebhookURL"
 
+    private struct PendingAlert {
+        let title: String
+        let body: String
+        let category: DiscordAlertCategory
+        let characterName: String?
+    }
+
     private let session: URLSession
-    private var pending: [(title: String, body: String)] = []
+    private var pending: [PendingAlert] = []
     private var flushTask: Task<Void, Never>?
     private var retryNotBefore: Date?
 
     private static let flushDelay: Duration = .seconds(2)
-    private static let embedColor = 0x2E86DE  // matches EVEOps accent-ish blue
 
     private init() {
         let config = URLSessionConfiguration.default
@@ -37,12 +91,17 @@ actor DiscordNotifier {
 
     /// Queues an alert for delivery. No-ops silently if Discord notifications are
     /// disabled or no webhook URL is configured — callers don't need to check first.
-    func enqueue(title: String, body: String) async {
+    func enqueue(
+        title: String,
+        body: String,
+        category: DiscordAlertCategory = .general,
+        characterName: String? = nil
+    ) async {
         guard UserDefaults.standard.bool(forKey: "discordNotificationsEnabled"),
               (try? await KeychainHelper.loadString(for: Self.webhookURLKeychainAccount)) != nil
         else { return }
 
-        pending.append((title, body))
+        pending.append(PendingAlert(title: title, body: body, category: category, characterName: characterName))
         scheduleFlush()
     }
 
@@ -53,9 +112,11 @@ actor DiscordNotifier {
               let url = URL(string: urlString)
         else { return false }
 
-        let payload = Self.embedPayload(for: [(
+        let payload = Self.embedPayload(for: [PendingAlert(
             title: String(localized: "EVEOps Test Notification"),
-            body: String(localized: "If you can see this in Discord, your webhook is configured correctly.")
+            body: String(localized: "If you can see this in Discord, your webhook is configured correctly."),
+            category: .test,
+            characterName: nil
         )])
         return await post(payload, to: url)
     }
@@ -131,13 +192,20 @@ actor DiscordNotifier {
 
     // MARK: Payload
 
-    private static func embedPayload(for items: [(title: String, body: String)]) -> [String: Any] {
-        let embeds = items.prefix(10).map { item in
-            [
-                "title": item.title,
+    private static func embedPayload(for items: [PendingAlert]) -> [String: Any] {
+        let timestamp = ISO8601DateFormatter().string(from: Date())
+        let embeds = items.prefix(10).map { item -> [String: Any] in
+            var embed: [String: Any] = [
+                "title": "\(item.category.emoji) \(item.title)",
                 "description": item.body,
-                "color": embedColor
-            ] as [String: Any]
+                "color": item.category.color,
+                "timestamp": timestamp,
+                "footer": ["text": "EVEOps"]
+            ]
+            if let characterName = item.characterName {
+                embed["author"] = ["name": characterName]
+            }
+            return embed
         }
         return ["embeds": embeds]
     }

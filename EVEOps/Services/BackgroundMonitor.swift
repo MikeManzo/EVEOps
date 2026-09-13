@@ -74,6 +74,7 @@ final class BackgroundMonitor {
                 // so screens that read it directly — like the skill-tree and market skill
                 // pills — don't keep showing stale training progress for the whole session.
                 await prefetcher.prefetchAll(accountManager: accountManager)
+                await DiscordRichPresence.refresh(accountManager: accountManager, prefetcher: prefetcher)
                 let accounts = accountManager.accounts
                 await NotificationService.shared.checkForUpdates(
                     accounts: accounts,

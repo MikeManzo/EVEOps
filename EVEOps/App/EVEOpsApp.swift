@@ -99,6 +99,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         // Best-effort: give the actor a moment to mirror the cache to disk. The
         // count-based persist during the session is the real guarantee here.
         Task { await ESIClient.shared.persistCache() }
+        Task { await DiscordRichPresence.shared.disconnect() }
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {
@@ -250,6 +251,12 @@ struct EVEOpsApp: App {
             async let publicInfo: Void = manager.refreshPublicInfo()
             async let prefetch: Void = pf.prefetchAll(accountManager: manager)
             _ = await (publicInfo, prefetch)
+
+            // BackgroundMonitor's poll loop only runs its first cycle after a full
+            // `backgroundPollInterval` (minutes away) — without this, Rich Presence
+            // wouldn't show anything until then, even though the data it needs just
+            // became available above.
+            await DiscordRichPresence.refresh(accountManager: manager, prefetcher: pf)
         }
     }
 

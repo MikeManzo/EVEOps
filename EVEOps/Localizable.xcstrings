@@ -1874,6 +1874,9 @@
     "Confidence: %@" : {
 
     },
+    "Connected" : {
+
+    },
     "Connected Systems" : {
 
     },
@@ -2192,6 +2195,9 @@
 
     },
     "Discord Notifications" : {
+
+    },
+    "Discord Rich Presence" : {
 
     },
     "Displays the Utility section containing the Diagnostic Logs viewer" : {
@@ -3346,6 +3352,9 @@
     "Maintenance in progress: %@" : {
 
     },
+    "Make sure the Discord desktop app is running on this Mac." : {
+
+    },
     "Manage all your characters and corporations.\nTrack assets, skills, industry, contracts, and more." : {
 
     },
@@ -4210,6 +4219,9 @@
     "Requires a Discord webhook configured in Settings." : {
 
     },
+    "Requires the Discord desktop app running on this Mac. Status updates on the same interval as background polling." : {
+
+    },
     "Research" : {
 
     },
@@ -4241,6 +4253,9 @@
 
     },
     "Reward" : {
+
+    },
+    "Rich Presence" : {
 
     },
     "Role" : {
@@ -4598,6 +4613,9 @@
     "Shortest" : {
 
     },
+    "Show current character in Discord status" : {
+
+    },
     "Show current location" : {
 
     },
@@ -4620,6 +4638,9 @@
 
     },
     "Showing top %lld" : {
+
+    },
+    "Shows your current ship and system as your Discord activity status — visible to anyone who can see your Discord profile." : {
 
     },
     "Sign in with a character to see live activity where you are." : {
@@ -5044,6 +5065,9 @@
     "Try Again" : {
 
     },
+    "Turn on “Show current character in Discord status.”" : {
+
+    },
     "Turn on Apple Intelligence in System Settings to use AI Insights." : {
 
     },
@@ -5131,6 +5155,9 @@
     "Uses the on-device Apple Intelligence to analyze your financial and skill training data. All processing is local — no data leaves your Mac." : {
 
     },
+    "Uses whichever character is currently selected in EVEOps." : {
+
+    },
     "Utility" : {
 
     },
@@ -5205,6 +5232,9 @@
 
     },
     "Vulnerable now — ends %@" : {
+
+    },
+    "Waiting for Discord…" : {
 
     },
     "Waiting for login…" : {
