@@ -88,9 +88,7 @@ struct SidebarView: View {
                                     .moveDisabled(!filterText.isEmpty)
                                 },
                                 header: {
-                                    Text("Pinned (\(pinnedSections.count)/\(Self.maxPinned))")
-                                        .font(.title3)
-                                        .textCase(.none)
+                                    sectionHeader("Pinned (\(pinnedSections.count)/\(Self.maxPinned))", systemImage: "pin.fill")
                                 }
                             )
                         }
@@ -109,9 +107,7 @@ struct SidebarView: View {
                                     .moveDisabled(!filterText.isEmpty)
                                 },
                                 header: {
-                                    Text("Pilot — \(account.characterName)")
-                                        .font(.title3)
-                                        .textCase(.none)
+                                    sectionHeader("Pilot — \(account.characterName)", systemImage: "person.fill")
                                 }
                             )
                         }
@@ -130,9 +126,7 @@ struct SidebarView: View {
                                     .moveDisabled(!filterText.isEmpty)
                                 },
                                 header: {
-                                    Text("Economy")
-                                        .font(.title3)
-                                        .textCase(.none)
+                                    sectionHeader("Economy", systemImage: "banknote.fill")
                                 }
                             )
                         }
@@ -151,9 +145,7 @@ struct SidebarView: View {
                                     .moveDisabled(!filterText.isEmpty)
                                 },
                                 header: {
-                                    Text("Combat & Fleet")
-                                        .font(.title3)
-                                        .textCase(.none)
+                                    sectionHeader("Combat & Fleet", systemImage: "bolt.shield.fill")
                                 }
                             )
                         }
@@ -172,9 +164,7 @@ struct SidebarView: View {
                                     .moveDisabled(!filterText.isEmpty)
                                 },
                                 header: {
-                                    Text("Social & Comms")
-                                        .font(.title3)
-                                        .textCase(.none)
+                                    sectionHeader("Social & Comms", systemImage: "bubble.left.and.bubble.right.fill")
                                 }
                             )
                         }
@@ -193,9 +183,7 @@ struct SidebarView: View {
                                     .moveDisabled(!filterText.isEmpty)
                                 },
                                 header: {
-                                    Text("Universe")
-                                        .font(.title3)
-                                        .textCase(.none)
+                                    sectionHeader("Universe", systemImage: "globe")
                                 }
                             )
                         }
@@ -215,9 +203,7 @@ struct SidebarView: View {
                                 .moveDisabled(!filterText.isEmpty)
                             },
                             header: {
-                                Text("Corp: \(account.corporationName)")
-                                    .font(.title3)
-                                    .textCase(.none)
+                                sectionHeader("Corp: \(account.corporationName)", systemImage: "building.2.fill")
                             }
                         )
                     }
@@ -237,9 +223,7 @@ struct SidebarView: View {
                             .moveDisabled(!filterText.isEmpty)
                         },
                         header: {
-                            Text("Utility")
-                                .font(.title3)
-                                .textCase(.none)
+                            sectionHeader("Utility", systemImage: "terminal")
                         }
                     )
                 }
@@ -334,9 +318,25 @@ struct SidebarView: View {
             .compactMap { NavigationSection(rawValue: String($0)) }
     }
 
+    /// A section header: a muted, smaller icon beside the title so it doesn't
+    /// outweigh the row icons nested under it.
+    @ViewBuilder
+    private func sectionHeader(_ title: String, systemImage: String) -> some View {
+        Label {
+            Text(title)
+                .font(.title3)
+        } icon: {
+            Image(systemName: systemImage)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .textCase(.none)
+    }
+
     /// One sidebar row: the destination's label and an optional "today" badge.
     /// The pin toggle itself lives on the destination's own page now, not here —
-    /// it was too much visual noise repeated across every row.
+    /// it was too much visual noise repeated across every row. Indented under
+    /// its section header so the row hierarchy reads clearly.
     @ViewBuilder
     private func navRow(_ section: NavigationSection) -> some View {
         HStack(spacing: 6) {
@@ -348,6 +348,7 @@ struct SidebarView: View {
                     .accessibilityHidden(true)
             }
         }
+        .padding(.leading, 10)
         .tag(section)
         .accessibilityValue(
             section == .calendar && todayEventCount > 0 ? "\(todayEventCount) events today" : ""

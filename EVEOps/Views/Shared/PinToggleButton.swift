@@ -37,6 +37,11 @@ struct PinToggleButton: View {
             Image(systemName: isPinned ? "pin.fill" : "pin")
                 .font(.callout)
                 .foregroundStyle(isPinned ? Color.accentColor : Color.secondary.opacity(0.6))
+                // Unpinned reads as a loose pin lying on its side, tip to the
+                // left; pinned stands upright as if stuck into the sidebar.
+                .rotationEffect(isPinned ? .zero : .degrees(90))
+                .contentTransition(.symbolEffect(.replace))
+                .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isPinned)
         }
         .buttonStyle(.plain)
         .disabled(!isPinned && pinnedSections.count >= Self.maxPinned)

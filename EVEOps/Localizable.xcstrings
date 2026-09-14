@@ -1991,9 +1991,6 @@
     "Corp Wars" : {
 
     },
-    "Corp: %@" : {
-
-    },
     "Corporation" : {
 
     },
@@ -3970,9 +3967,6 @@
     "Pilot" : {
 
     },
-    "Pilot — %@" : {
-
-    },
     "Pilot Name" : {
 
     },
@@ -3984,16 +3978,6 @@
     },
     "Pinned" : {
 
-    },
-    "Pinned (%lld/%lld)" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Pinned (%1$lld/%2$lld)"
-          }
-        }
-      }
     },
     "Pinned is full — unpin something first (%lld max)" : {
 
