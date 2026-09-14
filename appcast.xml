@@ -3,17 +3,15 @@
     <channel>
         <title>EVEOps</title>
         <item>
-            <title>0.9.11.10</title>
-            <pubDate>Sun, 13 Sep 2026 10:48:45 -0400</pubDate>
-            <sparkle:version>145</sparkle:version>
-            <sparkle:shortVersionString>0.9.11.10</sparkle:shortVersionString>
+            <title>0.9.11.10.1</title>
+            <pubDate>Mon, 14 Sep 2026 17:28:42 -0400</pubDate>
+            <sparkle:version>146</sparkle:version>
+            <sparkle:shortVersionString>0.9.11.10.1</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
             <description><![CDATA[<ul>
-<li>Reorganized sidebar: added a customizable &quot;Pinned&quot; section (up to 9 favorites)</li>
-<li>Added Character/Corporation switch to keep your personal navigation separate from corp screens, plus a filter field to quickly jump to any section</li>
-<li>Drag to reorder in each section: Every sidebar section (Pinned, Pilot, Economy, Combat &amp; Fleet, Social &amp; Comms, Universe, Corporation, Utility) can now be rearranged by dragging items into the order you prefer</li>
+<li>UI Tweks</li>
 </ul>]]></description>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.11.10/EVEOps.dmg" length="35533795" type="application/octet-stream" sparkle:edSignature="bVMKVGMVtwnzEykdNZaFTFHVsziyXzQ/xodXNYS/6zh7D4Ei0zQVXMsZqMYKLQdarQQw1sL8V7/Abr3R3tsDDQ=="/>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.11.10.1/EVEOps.dmg" length="35500900" type="application/octet-stream" sparkle:edSignature="R79Hr2DiMC0YvgxUJ9sBTVmFx4t5MFskX7gQ2Kmqggln5DNXmVb2SJTHPGvyyo/YGF9SY26GZddEDZd4F+NKCw=="/>
         </item>
     </channel>
 </rss>
