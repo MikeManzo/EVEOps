@@ -10,6 +10,13 @@
 
 import SwiftUI
 
+extension Color {
+    /// The pin feature's own color — kept apart from `.accentColor` (selection)
+    /// and `.orange` (warnings/reauth) so a pinned state is never ambiguous
+    /// with either.
+    static let pinAccent = Color(red: 0.85, green: 0.65, blue: 0.13)
+}
+
 /// Pin/unpin toggle for a sidebar destination, meant to sit right after a
 /// page's title. Reads and writes the same `sidebar.pinnedSections`
 /// `@AppStorage` key `SidebarView` uses to populate its "Pinned" section, so
@@ -36,7 +43,7 @@ struct PinToggleButton: View {
         } label: {
             Image(systemName: isPinned ? "pin.fill" : "pin")
                 .font(.callout)
-                .foregroundStyle(isPinned ? Color.accentColor : Color.secondary.opacity(0.6))
+                .foregroundStyle(isPinned ? Color.pinAccent : Color.secondary.opacity(0.6))
                 // Unpinned reads as a loose pin lying on its side, tip to the
                 // left; pinned stands upright as if stuck into the sidebar.
                 .rotationEffect(isPinned ? .zero : .degrees(90))

@@ -88,7 +88,7 @@ struct SidebarView: View {
                                     .moveDisabled(!filterText.isEmpty)
                                 },
                                 header: {
-                                    sectionHeader("Pinned (\(pinnedSections.count)/\(Self.maxPinned))", systemImage: "pin.fill")
+                                    sectionHeader("Pinned (\(pinnedSections.count)/\(Self.maxPinned))", systemImage: "pin.fill", tint: .pinAccent)
                                 }
                             )
                         }
@@ -107,7 +107,7 @@ struct SidebarView: View {
                                     .moveDisabled(!filterText.isEmpty)
                                 },
                                 header: {
-                                    sectionHeader("Pilot — \(account.characterName)", systemImage: "person.fill")
+                                    sectionHeader("Pilot — \(account.characterName)", systemImage: "person.fill", tint: .teal)
                                 }
                             )
                         }
@@ -126,7 +126,7 @@ struct SidebarView: View {
                                     .moveDisabled(!filterText.isEmpty)
                                 },
                                 header: {
-                                    sectionHeader("Economy", systemImage: "banknote.fill")
+                                    sectionHeader("Economy", systemImage: "banknote.fill", tint: .green)
                                 }
                             )
                         }
@@ -145,7 +145,7 @@ struct SidebarView: View {
                                     .moveDisabled(!filterText.isEmpty)
                                 },
                                 header: {
-                                    sectionHeader("Combat & Fleet", systemImage: "bolt.shield.fill")
+                                    sectionHeader("Combat & Fleet", systemImage: "bolt.shield.fill", tint: .red)
                                 }
                             )
                         }
@@ -164,7 +164,7 @@ struct SidebarView: View {
                                     .moveDisabled(!filterText.isEmpty)
                                 },
                                 header: {
-                                    sectionHeader("Social & Comms", systemImage: "bubble.left.and.bubble.right.fill")
+                                    sectionHeader("Social & Comms", systemImage: "bubble.left.and.bubble.right.fill", tint: .purple)
                                 }
                             )
                         }
@@ -183,7 +183,7 @@ struct SidebarView: View {
                                     .moveDisabled(!filterText.isEmpty)
                                 },
                                 header: {
-                                    sectionHeader("Universe", systemImage: "globe")
+                                    sectionHeader("Universe", systemImage: "globe", tint: .cyan)
                                 }
                             )
                         }
@@ -203,7 +203,7 @@ struct SidebarView: View {
                                 .moveDisabled(!filterText.isEmpty)
                             },
                             header: {
-                                sectionHeader("Corp: \(account.corporationName)", systemImage: "building.2.fill")
+                                sectionHeader("Corp: \(account.corporationName)", systemImage: "building.2.fill", tint: .brown)
                             }
                         )
                     }
@@ -227,8 +227,13 @@ struct SidebarView: View {
                         }
                     )
                 }
+
+                if filterHasNoMatches {
+                    noFilterMatchesRow
+                }
             }
             .listStyle(.sidebar)
+            .animation(.easeInOut(duration: 0.2), value: navScope)
 
             Divider()
 
@@ -318,17 +323,19 @@ struct SidebarView: View {
             .compactMap { NavigationSection(rawValue: String($0)) }
     }
 
-    /// A section header: a muted, smaller icon beside the title so it doesn't
-    /// outweigh the row icons nested under it.
+    /// A section header: a small, tinted icon beside the title, sized so it
+    /// doesn't outweigh the row icons nested under it. Each section keeps its
+    /// own hue — distinct from `.accentColor` (row selection) and `.orange`
+    /// (warnings) — so a section is identifiable by color alone.
     @ViewBuilder
-    private func sectionHeader(_ title: String, systemImage: String) -> some View {
+    private func sectionHeader(_ title: String, systemImage: String, tint: Color = .secondary) -> some View {
         Label {
             Text(title)
                 .font(.title3)
         } icon: {
             Image(systemName: systemImage)
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(tint)
         }
         .textCase(.none)
     }
@@ -366,6 +373,38 @@ struct SidebarView: View {
 
     private func shouldShow(_ sections: [NavigationSection]) -> Bool {
         !filtered(sections).isEmpty
+    }
+
+    /// True when a filter is active and every group currently in view (given
+    /// the character/corporation scope) came up empty — the sidebar would
+    /// otherwise just go blank with no explanation.
+    private var filterHasNoMatches: Bool {
+        guard !filterText.isEmpty, accountManager.selectedAccount != nil else { return false }
+        let visibleGroups: [[NavigationSection]]
+        if navScope == .character || !showCorpSection {
+            visibleGroups = [
+                pinnedSections, pilotSectionsOrdered, economySectionsOrdered,
+                combatSectionsOrdered, socialSectionsOrdered, universeSectionsOrdered,
+                utilitySectionsOrdered
+            ]
+        } else {
+            visibleGroups = [corporationSectionsOrdered, utilitySectionsOrdered]
+        }
+        return visibleGroups.allSatisfy { !shouldShow($0) }
+    }
+
+    private var noFilterMatchesRow: some View {
+        VStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.tertiary)
+            Text("No matches for \"\(filterText)\"")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 20)
+        .listRowSeparator(.hidden)
     }
 
     /// While filtering, sections stay expanded (so matches are visible) without
