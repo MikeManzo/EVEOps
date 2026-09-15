@@ -229,21 +229,10 @@ extension LocationOverviewView {
     func securityBadge(_ value: Double) -> some View {
         Text(String(format: "%.1f", value))
             .font(.caption.bold().monospacedDigit())
-            .foregroundStyle(securityColor(value))
+            .foregroundStyle(eveSecurityColor(value))
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
-            .background(securityColor(value).opacity(0.15), in: Capsule())
-    }
-
-    func securityColor(_ value: Double) -> Color {
-        switch value {
-        case 0.9...: return .cyan
-        case 0.7..<0.9: return .green
-        case 0.5..<0.7: return .yellow
-        case 0.3..<0.5: return .orange
-        case 0.1..<0.3: return Color(red: 1, green: 0.5, blue: 0)
-        default: return .red
-        }
+            .background(eveSecurityColor(value).opacity(0.15), in: Capsule())
     }
 
     func infoRow(label: String, value: String) -> some View {

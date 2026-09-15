@@ -370,7 +370,7 @@ extension GalaxyMarketSearchView {
                     .foregroundStyle(.white)
                     .padding(.horizontal, 5)
                     .padding(.vertical, 2)
-                    .background(securityColor(sec), in: Capsule())
+                    .background(eveSecurityColor(sec), in: Capsule())
                     .frame(width: 36, alignment: .center)
 
                 if hasLocation {

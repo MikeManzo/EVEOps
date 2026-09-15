@@ -266,14 +266,14 @@ struct RegionStationBrowserView: View {
     private func systemHeader(_ sys: SystemGroup) -> some View {
         HStack(spacing: 6) {
             Circle()
-                .fill(securityColor(sys.securityStatus))
+                .fill(eveSecurityColor(sys.securityStatus))
                 .frame(width: 7, height: 7)
             Text(sys.systemName)
                 .font(.caption.bold())
                 .foregroundStyle(.secondary)
             Text(String(format: "%.1f", sys.securityStatus))
                 .font(.caption2.monospacedDigit())
-                .foregroundStyle(securityColor(sys.securityStatus))
+                .foregroundStyle(eveSecurityColor(sys.securityStatus))
             Spacer()
             // Jump count badge
             if let systemId = sys.stations.first?.systemId,
@@ -470,17 +470,6 @@ struct RegionStationBrowserView: View {
     }
 
     // MARK:  Helpers
-
-    private func securityColor(_ value: Double) -> Color {
-        switch value {
-        case 0.9...: return .cyan
-        case 0.7..<0.9: return .green
-        case 0.5..<0.7: return .yellow
-        case 0.3..<0.5: return .orange
-        case 0.1..<0.3: return Color(red: 1, green: 0.5, blue: 0)
-        default: return .red
-        }
-    }
 
     private func factionColor(_ factionId: Int?) -> Color {
         switch factionId {

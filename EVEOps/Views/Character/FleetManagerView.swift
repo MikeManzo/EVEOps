@@ -436,7 +436,7 @@ struct FleetMemberDetailPopover: View {
                 if let sec = charInfo?.securityStatus {
                     Label(String(format: "%.2f", sec), systemImage: "shield.fill")
                         .font(.caption)
-                        .foregroundStyle(securityColor(sec))
+                        .foregroundStyle(pilotSecurityColor(sec))
                 }
             }
 
@@ -591,12 +591,6 @@ struct FleetMemberDetailPopover: View {
                 )
             }
         isLoading = false
-    }
-
-    private func securityColor(_ sec: Double) -> Color {
-        if sec >= 0.5 { return .green }
-        if sec > 0.0 { return .yellow }
-        return .red
     }
 
     private func raceName(_ id: Int) -> String {

@@ -351,14 +351,6 @@ extension GalaxyMarketSearchView {
 
     // MARK:  Helpers
 
-    func securityColor(_ sec: Double) -> Color {
-        switch sec {
-        case 0.45...: return .green
-        case 0.0..<0.45: return .orange
-        default: return .red
-        }
-    }
-
     func formatCount(_ value: Int) -> String {
         switch value {
         case 1_000_000_000...: return String(format: "%.1fB", Double(value) / 1_000_000_000)

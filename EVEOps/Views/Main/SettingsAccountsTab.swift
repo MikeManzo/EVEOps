@@ -247,7 +247,7 @@ struct CharacterDossierCard: View {
                 stripDivider
                 statCell(
                     icon: "location.fill",
-                    color: securityColor(summary?.securityStatus),
+                    color: eveSecurityColor(summary?.securityStatus),
                     label: "SYSTEM",
                     value: summary.map { $0.systemName.isEmpty ? "--" : $0.systemName } ?? "--"
                 )
@@ -328,10 +328,4 @@ struct CharacterDossierCard: View {
         return "\(sp)"
     }
 
-    private func securityColor(_ sec: Double?) -> Color {
-        guard let sec else { return .orange }
-        if sec >= 0.5 { return .green }
-        if sec > 0.0 { return .yellow }
-        return .red
-    }
 }

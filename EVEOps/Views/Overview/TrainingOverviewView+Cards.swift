@@ -91,7 +91,9 @@ extension TrainingOverviewView {
             Divider().padding(.horizontal, 12)
             knownSkillsSection(info)
         }
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        // #7: The character's training detail is this screen's primary content —
+        // elevated relative to the flat aggregate-summary strip above it.
+        .eveElevatedCard()
     }
 
     func characterHeader(_ info: CharacterTrainingInfo) -> some View {

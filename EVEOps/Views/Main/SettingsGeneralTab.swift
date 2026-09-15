@@ -155,11 +155,6 @@ struct GeneralTab: View {
 
 struct AppearanceTab: View {
     @AppStorage("colorScheme") private var colorSchemePref: String = "system"
-    @AppStorage("menuBarShowWallet") private var menuBarShowWallet = true
-    @AppStorage("menuBarShowSP") private var menuBarShowSP = true
-    @AppStorage("menuBarShowLocation") private var menuBarShowLocation = true
-    @AppStorage("menuBarShowShip") private var menuBarShowShip = true
-    @AppStorage("menuBarCompact") private var menuBarCompact = false
 
     @AppStorage("sidebar.showPinned") private var showPinned = true
     @AppStorage("sidebar.showPilot") private var showPilot = true
@@ -179,15 +174,6 @@ struct AppearanceTab: View {
                     Text("Dark").tag("dark")
                 }
                 .pickerStyle(.radioGroup)
-            }
-
-            Section("Menu Bar Card") {
-                Toggle("Show wallet balance", isOn: $menuBarShowWallet)
-                Toggle("Show skill points", isOn: $menuBarShowSP)
-                Toggle("Show current location", isOn: $menuBarShowLocation)
-                Toggle("Show current ship", isOn: $menuBarShowShip)
-//                Divider()
-//                Toggle("Compact layout", isOn: $menuBarCompact)
             }
 
             Section("View / Hide Sidebar Sections") {

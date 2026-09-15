@@ -87,7 +87,10 @@ struct ServerStatusWidgetView: View {
                                 metricRow(label: "Build", value: version)
                             }
                         }
-                        Spacer()
+                        .fixedSize()
+
+                        // #: Sparkline fills the remaining panel width instead of sitting in a
+                        // fixed-size box, so the population trend actually reads over its full span.
                         populationSparkline
                     }
 
@@ -267,12 +270,13 @@ struct ServerStatusWidgetView: View {
             }
             .chartXAxis(.hidden)
             .chartYAxis(.hidden)
-            .frame(width: 220, height: 50)
+            .frame(maxWidth: .infinity)
+            .frame(height: 60)
         } else {
             Text("Gathering trend data\u{2026}")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
-                .frame(width: 220, height: 50)
+                .frame(maxWidth: .infinity, minHeight: 60, alignment: .center)
         }
     }
 }

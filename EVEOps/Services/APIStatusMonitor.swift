@@ -164,9 +164,10 @@ final class APIStatusMonitor {
         var id: Date { date }
     }
 
-    /// Rolling population history, one sample per check, capped to keep ~an hour of trend data.
+    /// Rolling population history, one sample per check, capped to keep ~4 hours of trend data —
+    /// enough for the dashboard sparkline to show real ebb and flow, not just a few minutes.
     private(set) var populationHistory: [PopulationSample] = []
-    private let maxHistorySamples = 60
+    private let maxHistorySamples = 240
 
     private var monitorTask: Task<Void, Never>?
     private var serviceTask: Task<Void, Never>?

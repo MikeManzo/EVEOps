@@ -11,6 +11,32 @@
 import SwiftUI
 import OSLog
 
+/// Icon-only toolbar button with a hover highlight, since the plain SF Symbol
+/// buttons in the menu bar footer otherwise give no feedback until clicked.
+private struct MenuBarIconButton: View {
+    let systemName: String
+    var tint: Color = .secondary
+    var hoverTint: Color = .primary.opacity(0.1)
+    let help: LocalizedStringKey
+    let action: () -> Void
+
+    @State private var isHovering = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 13))
+                .foregroundStyle(tint)
+                .frame(width: 26, height: 26)
+                .background(isHovering ? hoverTint : .clear, in: Circle())
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovering = $0 }
+        .animation(.easeOut(duration: 0.1), value: isHovering)
+        .help(help)
+    }
+}
+
 struct MenuBarView: View {
     @Environment(AccountManager.self) private var accountManager
     @Environment(DashboardPrefetcher.self) private var prefetcher
@@ -138,52 +164,46 @@ struct MenuBarView: View {
                 Divider()
             }
 
-            HStack {
-                Button {
-                    dismiss()
-                    WindowService.shared.showMain()
-                } label: {
-                    Image(systemName: "macwindow")
+            HStack(spacing: 10) {
+                // Routine actions, evenly spaced
+                HStack {
+                    MenuBarIconButton(systemName: "macwindow", tint: .primary, help: "EVEOps") {
+                        dismiss()
+                        WindowService.shared.showMain()
+                    }
+
+                    Spacer()
+
+                    MenuBarIconButton(systemName: "gamecontroller.fill", help: "Launch EVE") {
+                        dismiss()
+                        Task { try? await GameLauncher.launchOfficialLauncher() }
+                    }
+
+                    Spacer()
+
+                    discordStatusIndicator
+
+                    Spacer()
+
+                    MenuBarIconButton(systemName: "gear", help: "Settings") {
+                        dismiss()
+                        WindowService.shared.showSettings()
+                    }
                 }
-                .help("EVEOps")
 
-                Spacer()
+                Divider()
+                    .frame(height: 14)
 
-                Button {
-                    dismiss()
-                    Task { try? await GameLauncher.launchOfficialLauncher() }
-                } label: {
-                    Image(systemName: "gamecontroller.fill")
-                }
-                .foregroundStyle(.secondary)
-                .help("Launch EVE")
-
-                Spacer()
-
-                discordStatusIndicator
-
-                Spacer()
-
-                Button {
-                    dismiss()
-                    WindowService.shared.showSettings()
-                } label: {
-                    Image(systemName: "gear")
-                }
-                .foregroundStyle(.secondary)
-                .help("Settings")
-
-                Spacer()
-
-                Button {
+                // Quit set apart from routine actions — it's the one irreversible control here
+                MenuBarIconButton(
+                    systemName: "power",
+                    tint: .red.opacity(0.8),
+                    hoverTint: .red.opacity(0.18),
+                    help: "Quit"
+                ) {
                     NSApplication.shared.terminate(nil)
-                } label: {
-                    Image(systemName: "power")
                 }
-                .foregroundStyle(.secondary)
-                .help("Quit")
             }
-            .buttonStyle(.plain)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
         }

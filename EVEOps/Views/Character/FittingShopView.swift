@@ -250,7 +250,7 @@ struct FittingShopView: View {
                     .foregroundStyle(.white)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 3)
-                    .background(securityColor(quote.securityStatus), in: Capsule())
+                    .background(eveSecurityColor(quote.securityStatus), in: Capsule())
                     .frame(width: 55, alignment: .center)
                     .padding(.trailing, 20)
             }
@@ -687,13 +687,6 @@ struct FittingShopView: View {
         NSPasteboard.general.setString(text, forType: .string)
     }
 
-    private func securityColor(_ sec: Double) -> Color {
-        switch sec {
-        case 0.45...: return .green
-        case 0.0..<0.45: return .orange
-        default: return .red
-        }
-    }
 }
 
 // MARK:  Item Shop Popover

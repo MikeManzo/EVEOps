@@ -234,7 +234,7 @@ struct CorporationMembersView: View {
                         if let sec = info.securityStatus {
                             Label(String(format: "%.2f", sec), systemImage: "shield.fill")
                                 .font(.caption)
-                                .foregroundStyle(securityColor(sec))
+                                .foregroundStyle(pilotSecurityColor(sec))
                         }
                     }
                     if let track = detail.tracking {
@@ -444,12 +444,6 @@ struct CorporationMembersView: View {
             .split(separator: " ")
             .map { $0.prefix(1).uppercased() + $0.dropFirst().lowercased() }
             .joined(separator: " ")
-    }
-
-    private func securityColor(_ sec: Double) -> Color {
-        if sec >= 0.5 { return .green }
-        if sec > 0.0 { return .yellow }
-        return .red
     }
 
     private func relativeTime(_ date: Date) -> String {

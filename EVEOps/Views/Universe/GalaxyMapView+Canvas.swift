@@ -130,7 +130,7 @@ extension GalaxyMapView {
                     } else if isRouteDest {
                         color = .green
                     } else if mode == .security {
-                        color = secMap[pt.id].map { securityColor($0) } ?? Color(white: 0.45)
+                        color = secMap[pt.id].map { eveSecurityColor($0) } ?? Color(white: 0.45)
                     } else if mode == .space {
                         color = secMap[pt.id].map { spaceColor($0) } ?? Color(white: 0.45)
                     } else if mode == .danger {
@@ -403,7 +403,7 @@ extension GalaxyMapView {
                 if isOnRoute {
                     col = .orange
                 } else if mode == .security, let sec = secMap[pt.id] {
-                    col = securityColor(sec)
+                    col = eveSecurityColor(sec)
                 } else if mode == .space, let sec = secMap[pt.id] {
                     col = spaceColor(sec)
                 } else if mode == .danger, let kills = dangerMap[pt.id] {
@@ -482,9 +482,9 @@ extension GalaxyMapView {
                     Text(sysName).font(.caption.bold())
                     Text(String(format: "%.1f", sec))
                         .font(.caption2.bold().monospacedDigit())
-                        .foregroundStyle(securityColor(sec))
+                        .foregroundStyle(eveSecurityColor(sec))
                         .padding(.horizontal, 4).padding(.vertical, 1)
-                        .background(securityColor(sec).opacity(0.15), in: Capsule())
+                        .background(eveSecurityColor(sec).opacity(0.15), in: Capsule())
                 }
 
                 if let shipType = currentShipTypeName {

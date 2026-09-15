@@ -1354,25 +1354,7 @@
     "Also ping Discord at the warning and at zero" : {
 
     },
-    "Analyzing asset spread…" : {
-
-    },
-    "Analyzing combat record…" : {
-
-    },
-    "Analyzing finances…" : {
-
-    },
-    "Analyzing fitting…" : {
-
-    },
     "Analyzing implants…" : {
-
-    },
-    "Analyzing industry data…" : {
-
-    },
-    "Analyzing market…" : {
 
     },
     "Analyzing recent losses…" : {
@@ -3421,9 +3403,6 @@
     "Members" : {
 
     },
-    "Menu Bar Card" : {
-
-    },
     "Message" : {
 
     },
@@ -4637,25 +4616,13 @@
     "Show current character in Discord status" : {
 
     },
-    "Show current location" : {
-
-    },
-    "Show current ship" : {
-
-    },
     "Show Dock Icon" : {
 
     },
     "Show only agents your current effective standing lets you talk to" : {
 
     },
-    "Show skill points" : {
-
-    },
     "Show Utility section in sidebar" : {
-
-    },
-    "Show wallet balance" : {
 
     },
     "Showing top %lld" : {

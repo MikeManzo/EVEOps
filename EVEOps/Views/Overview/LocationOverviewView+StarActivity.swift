@@ -456,7 +456,7 @@ extension LocationOverviewView {
         GridRow {
             HStack(spacing: 6) {
                 Circle()
-                    .fill(securityColor(sys.securityStatus))
+                    .fill(eveSecurityColor(sys.securityStatus))
                     .frame(width: 9, height: 9)
                 Text(sys.name)
                     .font(.footnote.bold())
@@ -464,7 +464,7 @@ extension LocationOverviewView {
             }
             Text(String(format: "%.2f", sys.securityStatus))
                 .font(.caption.monospacedDigit())
-                .foregroundStyle(securityColor(sys.securityStatus))
+                .foregroundStyle(eveSecurityColor(sys.securityStatus))
             Text(act == nil ? "—" : "\(playerKills)")
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(playerKills > 0 ? Color.red : Color.secondary.opacity(0.4))

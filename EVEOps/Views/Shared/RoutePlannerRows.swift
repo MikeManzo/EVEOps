@@ -252,17 +252,4 @@ func rowDangerTooltip(_ system: RouteSystem) -> String {
     return parts.joined(separator: " · ")
 }
 
-func eveSecurityColor(_ status: Double) -> Color {
-    switch status {
-    case 0.9...: return Color(red: 0.3, green: 0.9, blue: 1.0)
-    case 0.8..<0.9: return Color(red: 0.0, green: 0.9, blue: 0.8)
-    case 0.7..<0.8: return Color(red: 0.0, green: 0.9, blue: 0.4)
-    case 0.6..<0.7: return Color(red: 0.4, green: 0.9, blue: 0.0)
-    case 0.5..<0.6: return Color(red: 0.9, green: 0.9, blue: 0.0)
-    case 0.4..<0.5: return Color(red: 1.0, green: 0.6, blue: 0.0)
-    case 0.3..<0.4: return Color(red: 1.0, green: 0.4, blue: 0.0)
-    case 0.2..<0.3: return Color(red: 1.0, green: 0.2, blue: 0.0)
-    case 0.1..<0.2: return Color(red: 0.9, green: 0.0, blue: 0.0)
-    default: return Color(red: 0.6, green: 0.0, blue: 0.0)
-    }
-}
+// eveSecurityColor(_:) lives in Utilities/EVETheme.swift — shared across the app.

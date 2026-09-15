@@ -487,14 +487,6 @@ extension MarketBrowserView {
         return ("tag.fill", .secondary)
     }
 
-    func securityColor(_ sec: Double) -> Color {
-        switch sec {
-        case 0.45...: return .green
-        case 0.0..<0.45: return .orange
-        default: return .red
-        }
-    }
-
     func regionEmoji(_ regionId: Int) -> String {
         switch regionId {
         case 10000002, 10000016, 10000033, 10000069:                    return "🔵" // Caldari

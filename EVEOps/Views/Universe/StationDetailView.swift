@@ -199,16 +199,16 @@ struct StationDetailView: View {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 6) {
                     Circle()
-                        .fill(securityColor(entry.securityStatus))
+                        .fill(eveSecurityColor(entry.securityStatus))
                         .frame(width: 8, height: 8)
                     Text(entry.systemName)
                         .font(.body.bold())
                     Text(String(format: "%.1f", entry.securityStatus))
                         .font(.caption.bold().monospacedDigit())
-                        .foregroundStyle(securityColor(entry.securityStatus))
+                        .foregroundStyle(eveSecurityColor(entry.securityStatus))
                         .padding(.horizontal, 5)
                         .padding(.vertical, 2)
-                        .background(securityColor(entry.securityStatus).opacity(0.15), in: Capsule())
+                        .background(eveSecurityColor(entry.securityStatus).opacity(0.15), in: Capsule())
 
                     // Jump count badge
                     if let jumps = jumpCount {
@@ -399,17 +399,6 @@ struct StationDetailView: View {
             Text(value)
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.primary)
-        }
-    }
-
-    private func securityColor(_ value: Double) -> Color {
-        switch value {
-        case 0.9...: return .cyan
-        case 0.7..<0.9: return .green
-        case 0.5..<0.7: return .yellow
-        case 0.3..<0.5: return .orange
-        case 0.1..<0.3: return Color(red: 1, green: 0.5, blue: 0)
-        default: return .red
         }
     }
 

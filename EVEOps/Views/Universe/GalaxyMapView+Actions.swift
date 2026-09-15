@@ -99,17 +99,6 @@ extension GalaxyMapView {
         )
     }
 
-    func securityColor(_ value: Double) -> Color {
-        switch value {
-        case 0.9...: return .cyan
-        case 0.7..<0.9: return .green
-        case 0.5..<0.7: return .yellow
-        case 0.3..<0.5: return .orange
-        case 0.1..<0.3: return Color(red: 1, green: 0.4, blue: 0)
-        default: return .red
-        }
-    }
-
     func regionColor(_ regionId: Int) -> Color {
         let hash = (regionId &* 2654435761) >> 8
         let hue = Double(hash & 0xFFFFFF) / Double(0xFFFFFF)

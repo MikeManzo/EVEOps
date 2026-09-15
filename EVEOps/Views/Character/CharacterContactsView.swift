@@ -245,7 +245,7 @@ struct CharacterContactsView: View {
                 if let info = detail.charInfo, let sec = info.securityStatus {
                     Label(String(format: "%.2f", sec), systemImage: "shield.fill")
                         .font(.caption)
-                        .foregroundStyle(securityColor(sec))
+                        .foregroundStyle(pilotSecurityColor(sec))
                 }
             }
 
@@ -414,12 +414,6 @@ struct CharacterContactsView: View {
         case "faction":     return "Factions"
         default:            return type.capitalized
         }
-    }
-
-    private func securityColor(_ sec: Double) -> Color {
-        if sec >= 0.5 { return .green }
-        if sec > 0.0 { return .yellow }
-        return .red
     }
 
     private func raceName(_ id: Int) -> String {

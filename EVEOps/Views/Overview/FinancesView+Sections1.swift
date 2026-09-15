@@ -19,12 +19,14 @@ extension FinancesView {
             summaryCard("Wallet Balance", value: totalWealth, color: .blue)
             summaryCard("Sell Orders", value: totalSellOrderValue, color: .green)
             summaryCard("Buy Orders (Escrow)", value: totalEscrow, color: .orange)
-            summaryCard("Net Worth", value: netWorth, color: .purple)
+            // #7: Net Worth is the headline figure of this screen — elevated so it reads
+            // as primary next to the three secondary stat tiles beside it.
+            summaryCard("Net Worth", value: netWorth, color: .purple, isPrimary: true)
         }
     }
 
-    func summaryCard(_ title: String, value: Double, color: Color) -> some View {
-        VStack(spacing: 6) {
+    func summaryCard(_ title: String, value: Double, color: Color, isPrimary: Bool = false) -> some View {
+        let card = VStack(spacing: 6) {
             Text(title)
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -34,7 +36,14 @@ extension FinancesView {
         }
         .frame(maxWidth: .infinity)
         .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+
+        return Group {
+            if isPrimary {
+                card.eveElevatedCard()
+            } else {
+                card.eveCard()
+            }
+        }
     }
 
     // MARK:  Today Summary
