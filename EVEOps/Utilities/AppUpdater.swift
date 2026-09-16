@@ -232,6 +232,27 @@ extension AppUpdater: SPUUpdaterDelegate {
 extension AppUpdater: SPUStandardUserDriverDelegate {
     nonisolated var supportsGentleScheduledUpdateReminders: Bool { true }
 
+    /// Take responsibility for showing scheduled (background-found) updates ourselves,
+    /// instead of letting Sparkle's standard driver show its update window right away.
+    ///
+    /// Without this override, Sparkle defaults to handling it — and for a background/
+    /// accessory app like this one with a key window open (e.g. Settings), Sparkle's own
+    /// logic (SPUStandardUserDriver's scheduled-update path) deliberately creates the
+    /// update window and immediately orders it *behind* every other window, so a gentle
+    /// reminder never steals focus. That window then sits invisible, and a later
+    /// `checkForUpdates()` call (from "Install Update" or the notification action) does
+    /// not reliably bring it back to front — reproduced as "dock icon appears, no window."
+    ///
+    /// Returning `false` means Sparkle never creates that window on its own; the only
+    /// window ever created is the one from our own explicit `checkForUpdates()` call,
+    /// which is always a genuine, in-focus, user-initiated presentation.
+    nonisolated func standardUserDriverShouldHandleShowingScheduledUpdate(
+        _ update: SUAppcastItem,
+        andInImmediateFocus immediateFocus: Bool
+    ) -> Bool {
+        false
+    }
+
     nonisolated func standardUserDriverWillHandleShowingUpdate(
         _ handleShowingUpdate: Bool,
         forUpdate update: SUAppcastItem,
