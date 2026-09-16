@@ -48,11 +48,6 @@ struct AdvancedTab: View {
                     .foregroundStyle(.secondary)
             }
 
-            Section("SSO Configuration") {
-                LabeledContent("Client ID", value: "YOUR_CLIENT_ID")
-                LabeledContent("Callback URL", value: "eveops://callback")
-            }
-
             Section("Debug") {
 //                Toggle("Debug mode", isOn: $debugMode)
 //                Text("Logs additional diagnostic information to the console.")

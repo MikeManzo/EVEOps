@@ -1613,9 +1613,6 @@
     "Calibration" : {
 
     },
-    "Callback URL" : {
-
-    },
     "Cancel" : {
 
     },
@@ -1746,9 +1743,6 @@
 
     },
     "Click a constellation to set the route origin" : {
-
-    },
-    "Client ID" : {
 
     },
     "Clipboard Import / Export" : {
@@ -2171,6 +2165,9 @@
 
     },
     "Diagnostic Logs" : {
+
+    },
+    "Disconnected" : {
 
     },
     "Discord" : {
@@ -3952,6 +3949,9 @@
     "Pilot" : {
 
     },
+    "PILOT" : {
+
+    },
     "Pilot Name" : {
 
     },
@@ -4752,9 +4752,6 @@
 
     },
     "Squad %lld" : {
-
-    },
-    "SSO Configuration" : {
 
     },
     "STAGING" : {

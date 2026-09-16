@@ -16,6 +16,7 @@ struct SidebarView: View {
     @Binding var selectedSection: NavigationSection?
 
     @Environment(ThemeManager.self) private var themeManager
+    @Environment(DashboardPrefetcher.self) private var prefetcher
     private var palette: EVEPalette { themeManager.palette }
 
     private enum NavScope: Hashable {
@@ -55,6 +56,7 @@ struct SidebarView: View {
 
     @State private var todayEventCount = 0
     @State private var filterText = ""
+    @State private var showPilotPicker = false
     @State private var navScope: NavScope = .character
 
     var body: some View {
@@ -608,64 +610,125 @@ struct SidebarView: View {
 
     @ViewBuilder
     private var accountSwitcher: some View {
-        if accountManager.accounts.count > 1 {
-            HStack {
-                Spacer(minLength: 3)
-                Text("Pilot")
-                    .font(.title)
-                Menu {
-                    ForEach(accountManager.accounts, id: \.characterID) { account in
+        if accountManager.accounts.count > 1, let account = accountManager.selectedAccount {
+            VStack(spacing: 0) {
+                HStack(spacing: 12) {
+                    // Plain image, entirely outside the Menu — a `Menu`'s custom label
+                    // is measured by AppKit's own button-sizing pass, which does not
+                    // reliably respect SwiftUI `.frame()` on an async-loaded image
+                    // (confirmed: it rendered at the image's native pixel size no
+                    // matter where `.frame`/`.clipShape` were applied inside the
+                    // label). Keeping the portrait out of the label sidesteps that
+                    // entirely — its size is governed by ordinary SwiftUI layout.
+                    CachedAsyncImage(url: EVEImageURL.characterPortrait(account.characterID, size: 128)) { image in
+                        image.resizable().aspectRatio(contentMode: .fill)
+                    } placeholder: {
+                        RoundedRectangle(cornerRadius: 8).fill(.secondary.opacity(0.3))
+                    }
+                    .frame(width: 40, height: 40)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.white.opacity(0.15), lineWidth: 1))
+                    .accessibilityHidden(true)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("PILOT")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+
+                        // A plain Button + .popover instead of Menu — Menu/.borderlessButton
+                        // forces its own accent tint onto label text regardless of
+                        // .foregroundStyle, and appears to add its own native disclosure
+                        // indicator alongside a manually-added chevron. A plain button is
+                        // ordinary SwiftUI content top to bottom, so it renders exactly as styled.
                         Button {
-                            accountManager.selectedCharacterID = account.characterID
+                            showPilotPicker = true
                         } label: {
-                            Label {
+                            HStack(spacing: 5) {
                                 Text(account.characterName)
-                            } icon: {
-                                CachedAsyncImage(url: EVEImageURL.characterPortrait(account.characterID, size: 32)) { image in
-                                    image.resizable()
-                                        .aspectRatio(contentMode: .fill)
-                                        .frame(width: 16, height: 16)
-                                        .clipShape(Circle())
-                                } placeholder: {
-                                    Circle().fill(.secondary.opacity(0.3))
-                                        .frame(width: 16, height: 16)
+                                    .font(.title3.weight(.semibold))
+                                    .foregroundStyle(.primary)
+                                    .lineLimit(1)
+                                Image(systemName: "chevron.down")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .popover(isPresented: $showPilotPicker, arrowEdge: .bottom) {
+                            VStack(alignment: .leading, spacing: 0) {
+                                ForEach(accountManager.accounts, id: \.characterID) { acct in
+                                    Button {
+                                        accountManager.selectedCharacterID = acct.characterID
+                                        showPilotPicker = false
+                                    } label: {
+                                        HStack {
+                                            Text(acct.characterName)
+                                            Spacer()
+                                            if acct.characterID == account.characterID {
+                                                Image(systemName: "checkmark")
+                                                    .foregroundStyle(.secondary)
+                                            }
+                                        }
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .contentShape(Rectangle())
+                                    }
+                                    .buttonStyle(.plain)
                                 }
                             }
+                            .padding(.vertical, 4)
+                            .frame(minWidth: 160)
                         }
+                        .accessibilityLabel("Switch pilot")
+                        .accessibilityValue(account.characterName)
                     }
-                } label: {
-                    HStack(spacing: 6) {
-                        if let account = accountManager.selectedAccount {
-                            CachedAsyncImage(url: EVEImageURL.characterPortrait(account.characterID, size: 32)) { image in
-                                image.resizable()
-                                    .aspectRatio(contentMode: .fill)
-                                    .frame(width: 20, height: 20)
-                                    .clipShape(Circle())
-                            } placeholder: {
-                                Circle().fill(.secondary.opacity(0.3))
-                                    .frame(width: 20, height: 20)
+
+                    Spacer(minLength: 8)
+
+                    VStack(alignment: .leading, spacing: 5) {
+                        if let online = prefetcher.data(for: account.characterID)?.online.online {
+                            HStack(spacing: 5) {
+                                Circle()
+                                    .fill(online ? Color.green : Color.gray)
+                                    .frame(width: 8, height: 8)
+                                    .overlay(Circle().strokeBorder(.white.opacity(0.25), lineWidth: 1))
+                                    .frame(width: 14, alignment: .center)
+                                Text(online ? "Online" : "Offline")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
                             }
-                            .accessibilityHidden(true)
-                            Text(account.characterName)
-                                .lineLimit(1)
-                                .font(.title2)
+                            .accessibilityElement(children: .combine)
                         }
-                        Spacer()
-                        Image(systemName: "chevron.up.chevron.down")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .accessibilityHidden(true)
+
+                        let discordConnected = DiscordRichPresenceStatus.shared.state == .connected
+                        HStack(spacing: 5) {
+                            discordStatusIndicator
+                            Text(discordConnected ? "Connected" : "Disconnected")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .accessibilityElement(children: .combine)
                     }
-                    .frame(maxWidth: .infinity)
                 }
-                .menuStyle(.borderlessButton)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .accessibilityLabel("Switch pilot")
-                .accessibilityValue(accountManager.selectedAccount?.characterName ?? "")
-                Spacer()
+                .padding(.horizontal, 16)
+                .padding(.vertical, 14)
+
+                Divider()
             }
         }
+    }
+
+    /// Static status glyph mirroring `MenuBarView.discordStatusIndicator` — Discord's
+    /// brand blurple when Rich Presence is actually connected, secondary gray otherwise
+    /// (covers both "disabled" and "enabled but not reaching Discord" as one glyph).
+    private var discordStatusIndicator: some View {
+        let isConnected = DiscordRichPresenceStatus.shared.state == .connected
+        return Image("DiscordGlyph")
+            .resizable()
+            .scaledToFit()
+            .frame(width: 14, height: 14)
+            .foregroundStyle(isConnected ? Color(red: 0x58/255, green: 0x65/255, blue: 0xF2/255) : .secondary)
+            .help(isConnected ? "Discord: Connected" : "Discord: Not connected")
     }
 
     private var addAccountButton: some View {
