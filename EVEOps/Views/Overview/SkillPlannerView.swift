@@ -15,6 +15,8 @@ import OSLog
 struct SkillPlannerView: View {
     @Environment(AccountManager.self) var accountManager
     @Environment(DashboardPrefetcher.self) var prefetcher
+    @Environment(ThemeManager.self) var themeManager
+    var palette: EVEPalette { themeManager.palette }
 
     @State var trainingData: [CharacterTrainingInfo] = []
     @State var attributes: ESICharacterAttributes?

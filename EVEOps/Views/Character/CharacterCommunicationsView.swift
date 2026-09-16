@@ -12,6 +12,8 @@ import SwiftUI
 
 struct CharacterCommunicationsView: View {
     @Environment(AccountManager.self) private var accountManager
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
     @State private var notifications: [ESINotification] = []
     @State private var isLoading = true
     @State private var error: String?
@@ -84,7 +86,7 @@ struct CharacterCommunicationsView: View {
                         .font(.subheadline.bold())
                     if notification.isRead != true {
                         Circle()
-                            .fill(.blue)
+                            .fill(palette.accent)
                             .frame(width: 6, height: 6)
                     }
                 }

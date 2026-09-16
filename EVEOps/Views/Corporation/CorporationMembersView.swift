@@ -12,6 +12,8 @@ import SwiftUI
 
 struct CorporationMembersView: View {
     @Environment(AccountManager.self) private var accountManager
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
     @State private var members: [ResolvedMember] = []
     @State private var tracking: [Int: ESIMemberTracking] = [:]
     @State private var memberTitles: [Int: [String]] = [:]
@@ -357,7 +359,7 @@ struct CorporationMembersView: View {
                             .font(.caption)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
-                            .background(.blue.opacity(0.15), in: Capsule())
+                            .background(palette.accent.opacity(0.15), in: Capsule())
                     }
                 }
             }

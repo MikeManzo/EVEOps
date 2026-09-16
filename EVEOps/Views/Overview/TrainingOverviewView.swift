@@ -14,6 +14,8 @@ import UniformTypeIdentifiers
 struct TrainingOverviewView: View {
     @Environment(AccountManager.self) var accountManager
     @Environment(DashboardPrefetcher.self) var prefetcher
+    @Environment(ThemeManager.self) var themeManager
+    var palette: EVEPalette { themeManager.palette }
     @AppStorage("backgroundPollInterval") var pollInterval: Double = 300
     @State var trainingData: [CharacterTrainingInfo] = []
     @State var isLoading = false

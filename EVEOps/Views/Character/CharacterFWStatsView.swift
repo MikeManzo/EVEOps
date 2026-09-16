@@ -12,6 +12,8 @@ import SwiftUI
 
 struct CharacterFWStatsView: View {
     @Environment(AccountManager.self) private var accountManager
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
     @State private var entry: FWStatsEntry?
     @State private var isLoading = false
     @State private var error: String?
@@ -320,6 +322,8 @@ private struct WarzoneRow: View {
     let factionNames: [Int: String]
     let systemNames: [Int: String]
 
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
     @State private var showPopover = false
 
     var body: some View {
@@ -339,7 +343,7 @@ private struct WarzoneRow: View {
                     if isYourFaction {
                         Label("You", systemImage: "star.fill")
                             .font(.caption2.bold())
-                            .foregroundStyle(.blue)
+                            .foregroundStyle(palette.accent)
                     }
                 }
                 if stat.systemsContested > 0 || stat.systemsOccupied > 0 {
@@ -397,6 +401,9 @@ private struct WarzoneFactionPopover: View {
     let leaderboard: ESIFWLeaderboards?
     let factionNames: [Int: String]
     let systemNames: [Int: String]
+
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
 
     private var ownedSystems: [ESIFWSystem] {
         allSystems
@@ -457,7 +464,7 @@ private struct WarzoneFactionPopover: View {
                     if isYourFaction {
                         Label("You", systemImage: "star.fill")
                             .font(.caption2.bold())
-                            .foregroundStyle(.blue)
+                            .foregroundStyle(palette.accent)
                     }
                 }
                 Text("\(stat.systemsOwned) systems · \(stat.systemsContested) contested · \(stat.systemsOccupied) occupied")

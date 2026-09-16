@@ -21,6 +21,8 @@ import UserNotifications
 
 struct ExplorationCodexView: View {
     @Environment(AccountManager.self) private var accountManager
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
 
     /// Top-level content switch: the curated site catalogue, or the live
     /// low-traffic system finder for picking a place to scan signatures.
@@ -95,7 +97,7 @@ struct ExplorationCodexView: View {
                         )
                     }
                     .buttonStyle(.plain)
-                    .listRowBackground(selectedID == site.id ? Color.accentColor.opacity(0.12) : Color.clear)
+                    .listRowBackground(selectedID == site.id ? palette.accent.opacity(0.12) : Color.clear)
                 }
             }
 

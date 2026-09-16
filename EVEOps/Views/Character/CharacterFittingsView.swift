@@ -63,6 +63,8 @@ struct CharacterFittingGroup {
 struct CharacterFittingsView: View {
     @Environment(AccountManager.self) private var accountManager
     @Environment(DashboardPrefetcher.self) private var prefetcher
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
     @AppStorage("backgroundPollInterval") private var pollInterval: Double = 300
 
     // Ships tab
@@ -234,7 +236,9 @@ struct CharacterFittingsView: View {
                         }
                     )) {
                         ForEach(section.ships) { ship in
-                            ShipRow(ship: ship, showCharacterName: multiAccount).tag(ship)
+                            ShipRow(ship: ship, showCharacterName: multiAccount)
+                                .tag(ship)
+                                .themedListRow(isSelected: ship == selectedShip, palette: palette)
                         }
                     } header: {
                         HStack(spacing: 8) {
@@ -283,6 +287,7 @@ struct CharacterFittingsView: View {
                                 Task { await deleteFitting(fitting) }
                             }
                             .tag(fitting)
+                            .themedListRow(isSelected: fitting == selectedFitting, palette: palette)
                         }
                     } header: {
                         HStack(spacing: 8) {
@@ -570,7 +575,7 @@ struct CharacterFittingsView: View {
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
-            .background(activeTab == tab ? Color.accentColor : Color.clear,
+            .background(activeTab == tab ? palette.accent : Color.clear,
                         in: RoundedRectangle(cornerRadius: 6))
             .foregroundStyle(activeTab == tab ? .white : .primary)
             .contentShape(Rectangle())

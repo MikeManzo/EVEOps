@@ -44,6 +44,8 @@ struct RegionStationBrowserView: View {
 
     @Environment(AccountManager.self) private var accountManager
     @Environment(DashboardPrefetcher.self) private var prefetcher
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
 
     @State private var selectedRegionId: Int = 10000002  // The Forge (Jita)
     @State private var availableRegions: [(id: Int, name: String, factionId: Int?)] = []
@@ -244,6 +246,7 @@ struct RegionStationBrowserView: View {
                             ForEach(sys.stations, id: \.station.stationId) { entry in
                                 compactStationRow(entry)
                                     .tag(entry)
+                                    .themedListRow(isSelected: entry == selectedStation, palette: palette)
                             }
                         }
                     } header: {

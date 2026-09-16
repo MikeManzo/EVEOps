@@ -154,6 +154,7 @@ struct GeneralTab: View {
 // MARK:  Appearance Tab
 
 struct AppearanceTab: View {
+    @Environment(ThemeManager.self) private var themeManager
     @AppStorage("colorScheme") private var colorSchemePref: String = "system"
 
     @AppStorage("sidebar.showPinned") private var showPinned = true
@@ -176,6 +177,13 @@ struct AppearanceTab: View {
                 .pickerStyle(.radioGroup)
             }
 
+            Section("Faction Theme") {
+                factionSwatchPicker
+                Text(themeManager.faction.tagline)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section("View / Hide Sidebar Sections") {
                 Toggle("Pinned", isOn: $showPinned)
                 Toggle("Pilot", isOn: $showPilot)
@@ -188,5 +196,77 @@ struct AppearanceTab: View {
             }
         }
         .formStyle(.grouped)
+    }
+
+    private var factionSwatchPicker: some View {
+        HStack(spacing: 16) {
+            ForEach(FactionTheme.allCases) { faction in
+                let isSelected = themeManager.faction == faction
+                Button {
+                    themeManager.faction = faction
+                } label: {
+                    VStack(spacing: 6) {
+                        factionCrestSwatch(faction, size: Self.crestSwatchSize)
+                            .overlay(Circle().strokeBorder(faction.palette.accent, lineWidth: 2))
+                            .overlay {
+                                if isSelected {
+                                    Circle()
+                                        .fill(.black.opacity(0.35))
+                                    Image(systemName: "checkmark")
+                                        .font(.caption.bold())
+                                        .foregroundStyle(.white)
+                                }
+                            }
+                            .overlay {
+                                if isSelected {
+                                    Circle().strokeBorder(faction.palette.accent, lineWidth: 2)
+                                        .padding(-3)
+                                }
+                            }
+                        Text(faction.displayName)
+                            .font(.caption2)
+                            .foregroundStyle(isSelected ? .primary : .secondary)
+                    }
+                }
+                .buttonStyle(.plain)
+                .help(faction.tagline)
+            }
+            Spacer()
+        }
+        .padding(.vertical, 2)
+    }
+
+    private static let crestSwatchSize: CGFloat = 30 * 1.25
+
+    /// The faction's own crest (from CCP's image server) clipped into the swatch circle,
+    /// with the theme accent as a ring around it — reads like a coin/medallion rather than
+    /// a flat color dot. EVEOps' own default isn't one of the four empires, so it falls
+    /// back to a plain accent-filled circle.
+    ///
+    /// The served crest image bakes in a wordmark below the icon (e.g. a "CALDARI" label),
+    /// so this deliberately over-scales and shifts it to keep only the icon in frame — the
+    /// scale/offset were derived from a pixel row-density scan of all four crests (where the
+    /// icon glyph sits vs. where the text starts), not eyeballed, since the icon's exact
+    /// position varies a little faction to faction.
+    @ViewBuilder
+    private func factionCrestSwatch(_ faction: FactionTheme, size: CGFloat) -> some View {
+        if let factionID = faction.factionID {
+            CachedAsyncImage(url: EVEImageURL.factionCrest(factionID, size: 128)) { image in
+                image
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: size * 1.65, height: size * 1.65)
+                    .offset(y: size * 0.2)
+                    .frame(width: size, height: size)
+                    .clipped()
+            } placeholder: {
+                Circle().fill(faction.palette.accent)
+            }
+            .frame(width: size, height: size)
+            .clipShape(Circle())
+        } else {
+            Circle().fill(faction.palette.accent)
+                .frame(width: size, height: size)
+        }
     }
 }

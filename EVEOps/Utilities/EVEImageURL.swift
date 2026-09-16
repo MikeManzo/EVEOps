@@ -39,6 +39,14 @@ enum EVEImageURL {
         URL(string: "https://images.evetech.net/alliances/\(allianceID)/logo?size=\(clamp(size))")
     }
 
+    /// The four playable empires' crests are served from the corporation-logo endpoint
+    /// under their faction ID (Caldari State 500001, Minmatar Republic 500002, Amarr
+    /// Empire 500003, Gallente Federation 500004) — same image server, just a different
+    /// ID namespace than an actual player corporation.
+    nonisolated static func factionCrest(_ factionID: Int, size: Int = 256) -> URL? {
+        corporationLogo(factionID, size: size)
+    }
+
     /// Inventory-grid icon art. Native resolution is 64×64 — anything larger is upscaled.
     /// For ship/structure hulls use `typeRender` instead.
     nonisolated static func typeIcon(_ typeID: Int, size: Int = 64) -> URL? {

@@ -129,6 +129,9 @@ struct TheraConnectionRow: View {
     let onSetAsOrigin: () -> Void
     let onSetAsDestination: () -> Void
 
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 10) {
@@ -198,12 +201,12 @@ struct TheraConnectionRow: View {
             }
         }
         .background(
-            isSelected ? Color.accentColor.opacity(0.1) : isOnRoute ? Color.green.opacity(0.06) : Color.clear,
+            isSelected ? palette.accent.opacity(0.1) : isOnRoute ? Color.green.opacity(0.06) : Color.clear,
             in: RoundedRectangle(cornerRadius: 6)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 6)
-                .strokeBorder(isSelected ? Color.accentColor.opacity(0.3) : Color.clear, lineWidth: 1)
+                .strokeBorder(isSelected ? palette.accent.opacity(0.3) : Color.clear, lineWidth: 1)
         )
         .contentShape(Rectangle())
         .onTapGesture { onTap() }

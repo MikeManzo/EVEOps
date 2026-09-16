@@ -13,6 +13,8 @@ import SwiftUI
 struct LocationOverviewView: View {
     @Environment(AccountManager.self) var accountManager
     @Environment(DashboardPrefetcher.self) var prefetcher
+    @Environment(ThemeManager.self) var themeManager
+    var palette: EVEPalette { themeManager.palette }
     @AppStorage("backgroundPollInterval") var pollInterval: Double = 300
     @State var locations: [CharacterLocationInfo] = []
     @State var isLoading = false

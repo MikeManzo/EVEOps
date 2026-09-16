@@ -190,6 +190,7 @@ struct EVEOpsApp: App {
     @State private var appUpdater: AppUpdater
     @State private var launcherAccountManager: LauncherAccountManager
     @State private var launchManager: EVELaunchManager
+    @State private var themeManager: ThemeManager
     @AppStorage("colorScheme") private var colorSchemePref: String = "system"
 
     private var resolvedColorScheme: ColorScheme? {
@@ -209,6 +210,7 @@ struct EVEOpsApp: App {
         let updater = AppUpdater()
         let launcherAccounts = LauncherAccountManager(modelContext: sharedModelContainer.mainContext)
         let launch = EVELaunchManager(accountManager: launcherAccounts)
+        let theme = ThemeManager()
 
         _accountManager = State(initialValue: manager)
         _backgroundMonitor = State(initialValue: bg)
@@ -218,6 +220,7 @@ struct EVEOpsApp: App {
         _appUpdater = State(initialValue: updater)
         _launcherAccountManager = State(initialValue: launcherAccounts)
         _launchManager = State(initialValue: launch)
+        _themeManager = State(initialValue: theme)
 
         WindowService.shared.configure(
             accountManager: manager,
@@ -226,7 +229,8 @@ struct EVEOpsApp: App {
             presenceTracker: tracker,
             modelContainer: sharedModelContainer,
             appUpdater: updater,
-            launchManager: launch
+            launchManager: launch,
+            themeManager: theme
         )
 
         Task { @MainActor in
@@ -267,6 +271,8 @@ struct EVEOpsApp: App {
                 .environment(prefetcher)
                 .environment(apiStatusMonitor)
                 .environment(appUpdater)
+                .environment(themeManager)
+                .tint(themeManager.palette.accent)
                 .preferredColorScheme(resolvedColorScheme)
         } label: {
             MenuBarIconLabel(updateAvailable: appUpdater.updateAvailable)

@@ -19,6 +19,8 @@ struct CharacterHeroView: View {
     @Environment(AccountManager.self) private var accountManager
     @Environment(APIStatusMonitor.self) private var apiStatus
     @Environment(DashboardPrefetcher.self) private var prefetcher
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
 
     @State private var liveCorpName: String?
     @State private var liveAllianceName: String?
@@ -290,8 +292,8 @@ struct CharacterHeroView: View {
                                     .font(.system(size: 9, weight: .semibold))
                                     .padding(.horizontal, 5)
                                     .padding(.vertical, 2)
-                                    .background(.blue.opacity(0.15), in: Capsule())
-                                    .foregroundStyle(.blue)
+                                    .background(palette.accent.opacity(0.15), in: Capsule())
+                                    .foregroundStyle(palette.accent)
                                     .lineLimit(1)
                             }
                         }
@@ -306,7 +308,7 @@ struct CharacterHeroView: View {
                         HStack(spacing: 10) {
                             HStack(spacing: 6) {
                                 Image(systemName: "mappin.circle.fill")
-                                    .foregroundStyle(.blue)
+                                    .foregroundStyle(palette.location)
                                     .font(.callout)
                                 VStack(alignment: .leading, spacing: 2) {
                                     HStack(spacing: 5) {
@@ -377,7 +379,7 @@ struct CharacterHeroView: View {
                             HStack(spacing: 4) {
                                 Image(systemName: "brain.head.profile.fill")
                                     .font(.caption2)
-                                    .foregroundStyle(.cyan)
+                                    .foregroundStyle(palette.knowledge)
                                 Text(formatSP(summary?.totalSP ?? 0))
                                     .font(.caption2.monospacedDigit())
                                     .foregroundStyle(.secondary)
@@ -413,17 +415,17 @@ struct CharacterHeroView: View {
                     HStack(spacing: 6) {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .font(.caption2)
-                            .foregroundStyle(.red)
+                            .foregroundStyle(palette.critical)
                         Text(err)
                             .font(.caption2)
-                            .foregroundStyle(.red.opacity(0.85))
+                            .foregroundStyle(palette.critical.opacity(0.85))
                             .lineLimit(2)
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 5)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.red.opacity(0.08), in: RoundedRectangle(cornerRadius: 6))
-                    .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(.red.opacity(0.2), lineWidth: 1))
+                    .background(palette.critical.opacity(0.08), in: RoundedRectangle(cornerRadius: 6))
+                    .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(palette.critical.opacity(0.2), lineWidth: 1))
                 }
             }
             .padding(12)
@@ -436,17 +438,17 @@ struct CharacterHeroView: View {
         if queueIsEmpty {
             HStack(spacing: 6) {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(palette.warning)
                     .font(.caption)
                 Text("Training queue is empty")
                     .font(.caption.bold())
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(palette.warning)
             }
         } else {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
                     Image(systemName: "graduationcap.fill")
-                        .foregroundStyle(.blue)
+                        .foregroundStyle(palette.knowledge)
                         .font(.caption)
                     HStack(spacing: 3) {
                         Text(queueSkillName ?? "Training...")
@@ -817,7 +819,7 @@ struct CharacterHeroView: View {
                 VStack(spacing: 6) {
                     Image(systemName: "wifi.exclamationmark")
                         .font(.title2)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(palette.warning)
                     Text(apiStatus.statusMessage.isEmpty ? "No connection" : apiStatus.statusMessage)
                         .font(.caption)
                         .foregroundStyle(.secondary)

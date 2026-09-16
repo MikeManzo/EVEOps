@@ -14,6 +14,8 @@ import SwiftUI
 
 struct AgentFinderView: View {
     @Environment(AccountManager.self) private var accountManager
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
 
     // Filters
     @State private var typeFilter: AgentTypeFilter    = .career
@@ -232,6 +234,10 @@ struct AgentFinderView: View {
         .background(.bar)
     }
 
+    // These act as a tab bar (switching which agent type/division is browsed), so the
+    // *active* tab follows the live theme accent — `color` (the per-type legend hue) still
+    // marks its icon at rest, so the row stays browsable/distinguishable when nothing here
+    // is selected.
     private func filterChip(
         label: String, icon: String, color: Color,
         isSelected: Bool, action: @escaping () -> Void
@@ -242,9 +248,9 @@ struct AgentFinderView: View {
                 Text(label).font(.caption.weight(.semibold))
             }
             .padding(.horizontal, 9).padding(.vertical, 5)
-            .background(isSelected ? color.opacity(0.2) : Color.secondary.opacity(0.08), in: Capsule())
-            .foregroundStyle(isSelected ? color : .secondary)
-            .overlay(Capsule().strokeBorder(isSelected ? color.opacity(0.5) : Color.clear, lineWidth: 1))
+            .background(isSelected ? palette.accent : Color.secondary.opacity(0.08), in: Capsule())
+            .foregroundStyle(isSelected ? .white : color)
+            .overlay(Capsule().strokeBorder(isSelected ? Color.clear : color.opacity(0.35), lineWidth: 1))
         }
         .buttonStyle(.plain)
     }

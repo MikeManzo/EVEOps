@@ -17,6 +17,7 @@ struct CorpHoldingRow: View {
     let isEverMarks: Bool
     let isSelected: Bool
 
+    @Environment(ThemeManager.self) private var themeManager
     @State private var showSpendPlan = false
 
     var body: some View {
@@ -47,9 +48,9 @@ struct CorpHoldingRow: View {
                 } label: {
                     Image(systemName: "wand.and.stars")
                         .font(.system(size: 12))
-                        // accentColor washes out against the selection highlight,
-                        // which is also blue — switch to white when the row is selected.
-                        .foregroundStyle(isSelected ? .white : Color.accentColor)
+                        // The live faction accent washes out against the row's own
+                        // selection fill (same color) — switch to white when selected.
+                        .foregroundStyle(isSelected ? .white : themeManager.palette.accent)
                 }
                 .buttonStyle(.plain)
                 .help("Optimize LP spend for maximum ISK")

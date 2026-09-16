@@ -20,6 +20,8 @@ struct CharacterCardView: View {
     @Environment(AccountManager.self) private var accountManager
     @Environment(APIStatusMonitor.self) private var apiStatus
     @Environment(DashboardPrefetcher.self) private var prefetcher
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
 
     @State private var liveCorpName: String?
     @State private var liveAllianceName: String?
@@ -147,7 +149,7 @@ struct CharacterCardView: View {
                 HStack(spacing: 16) {
                     HStack(spacing: 6) {
                         Image(systemName: "mappin.circle.fill")
-                            .foregroundStyle(EVETheme.location)
+                            .foregroundStyle(palette.location)
                         VStack(alignment: .leading, spacing: 1) {
                             Text(summary?.systemName ?? "---")
                                 .font(.caption)
@@ -201,7 +203,7 @@ struct CharacterCardView: View {
                             .font(.caption.monospacedDigit())
                     } icon: {
                         Image(systemName: "creditcard.fill")
-                            .foregroundStyle(EVETheme.wallet)
+                            .foregroundStyle(palette.wallet)
                             .font(.caption)
                     }
 
@@ -212,7 +214,7 @@ struct CharacterCardView: View {
                             .font(.caption.monospacedDigit())
                     } icon: {
                         Image(systemName: "brain.head.profile.fill")
-                            .foregroundStyle(EVETheme.knowledge)
+                            .foregroundStyle(palette.knowledge)
                             .font(.caption)
                     }
                 }
@@ -271,7 +273,7 @@ struct CharacterCardView: View {
                             }
                         } icon: {
                             Image(systemName: "hammer.fill")
-                                .foregroundStyle(EVETheme.industry)
+                                .foregroundStyle(palette.industry)
                                 .font(.caption)
                         }
                     } else {
@@ -294,7 +296,7 @@ struct CharacterCardView: View {
                                 .font(.caption)
                         } icon: {
                             Image(systemName: "doc.text.fill")
-                                .foregroundStyle(EVETheme.contracts)
+                                .foregroundStyle(palette.contracts)
                                 .font(.caption)
                         }
                     } else {
@@ -318,7 +320,7 @@ struct CharacterCardView: View {
                                 .font(.caption)
                         } icon: {
                             Image(systemName: "globe.americas.fill")
-                                .foregroundStyle(EVETheme.colonies)
+                                .foregroundStyle(palette.colonies)
                                 .font(.caption)
                         }
 
@@ -328,10 +330,10 @@ struct CharacterCardView: View {
                             Label {
                                 Text("\(s.expiredExtractorCount) offline")
                                     .font(.caption.bold())
-                                    .foregroundStyle(EVETheme.critical)
+                                    .foregroundStyle(palette.critical)
                             } icon: {
                                 Image(systemName: "exclamationmark.triangle.fill")
-                                    .foregroundStyle(EVETheme.critical)
+                                    .foregroundStyle(palette.critical)
                                     .font(.caption)
                             }
                         } else {
@@ -347,17 +349,17 @@ struct CharacterCardView: View {
                     HStack(spacing: 6) {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .font(.caption2)
-                            .foregroundStyle(EVETheme.critical)
+                            .foregroundStyle(palette.critical)
                         Text(err)
                             .font(.caption2)
-                            .foregroundStyle(EVETheme.critical.opacity(0.85))
+                            .foregroundStyle(palette.critical.opacity(0.85))
                             .lineLimit(2)
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 5)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(EVETheme.critical.opacity(0.08), in: RoundedRectangle(cornerRadius: 6))
-                    .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(EVETheme.critical.opacity(0.2), lineWidth: 1))
+                    .background(palette.critical.opacity(0.08), in: RoundedRectangle(cornerRadius: 6))
+                    .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(palette.critical.opacity(0.2), lineWidth: 1))
                 }
             }
             .padding(12)
@@ -419,10 +421,10 @@ struct CharacterCardView: View {
     // #3: Accent stripe color based on most critical state
     private var cardAccentColor: Color {
         guard let s = summary else { return Color(white: 0.25) }
-        if s.loadError != nil { return EVETheme.critical }
-        if s.expiredExtractorCount > 0 { return EVETheme.critical }
-        if s.isQueueEmpty { return EVETheme.warning }
-        if s.online { return EVETheme.online }
+        if s.loadError != nil { return palette.critical }
+        if s.expiredExtractorCount > 0 { return palette.critical }
+        if s.isQueueEmpty { return palette.warning }
+        if s.online { return palette.online }
         return Color(white: 0.25)
     }
 
@@ -485,10 +487,10 @@ struct CharacterCardView: View {
             Label {
                 Text("Training Queue empty!")
                     .font(.caption.bold())
-                    .foregroundStyle(EVETheme.warning)
+                    .foregroundStyle(palette.warning)
             } icon: {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(EVETheme.warning)
+                    .foregroundStyle(palette.warning)
                     .font(.caption)
             }
         } else {
@@ -524,7 +526,7 @@ struct CharacterCardView: View {
                 }
             } icon: {
                 Image(systemName: "graduationcap.fill")
-                    .foregroundStyle(EVETheme.knowledge)
+                    .foregroundStyle(palette.knowledge)
                     .font(.caption)
             }
         }

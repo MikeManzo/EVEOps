@@ -27,6 +27,7 @@ final class WindowService: NSObject {
     private var modelContainer: ModelContainer?
     private var appUpdater: AppUpdater?
     private var launchManager: EVELaunchManager?
+    private var themeManager: ThemeManager?
 
     private var mainWindow: NSWindow?
     private var galaxySearchWindow: NSWindow?
@@ -43,7 +44,8 @@ final class WindowService: NSObject {
         presenceTracker: PresenceTracker,
         modelContainer: ModelContainer,
         appUpdater: AppUpdater,
-        launchManager: EVELaunchManager
+        launchManager: EVELaunchManager,
+        themeManager: ThemeManager
     ) {
         self.accountManager = accountManager
         self.prefetcher = prefetcher
@@ -52,6 +54,7 @@ final class WindowService: NSObject {
         self.modelContainer = modelContainer
         self.appUpdater = appUpdater
         self.launchManager = launchManager
+        self.themeManager = themeManager
 
         defaultsObserver = NotificationCenter.default.addObserver(
             forName: UserDefaults.didChangeNotification,
@@ -73,14 +76,17 @@ final class WindowService: NSObject {
 
         guard let am = accountManager, let pf = prefetcher,
               let api = apiStatusMonitor, let pt = presenceTracker,
-              let mc = modelContainer else { return }
+              let mc = modelContainer, let tm = themeManager else { return }
 
-        let content = MainContentView()
-            .environment(am)
-            .environment(pf)
-            .environment(api)
-            .environment(pt)
-            .modelContainer(mc)
+        let content = ThemedRoot {
+            MainContentView()
+                .environment(am)
+                .environment(pf)
+                .environment(api)
+                .environment(pt)
+                .modelContainer(mc)
+        }
+        .environment(tm)
 
         let controller = NSHostingController(rootView: content)
         let window = NSWindow(contentViewController: controller)
@@ -120,11 +126,14 @@ final class WindowService: NSObject {
             return
         }
 
-        guard let am = accountManager, let pf = prefetcher else { return }
+        guard let am = accountManager, let pf = prefetcher, let tm = themeManager else { return }
 
-        let content = GalaxyMarketSearchView(initialTypeId: typeId, initialTypeName: typeName)
-            .environment(am)
-            .environment(pf)
+        let content = ThemedRoot {
+            GalaxyMarketSearchView(initialTypeId: typeId, initialTypeName: typeName)
+                .environment(am)
+                .environment(pf)
+        }
+        .environment(tm)
 
         let controller = NSHostingController(rootView: content)
         let window = NSWindow(contentViewController: controller)
@@ -155,10 +164,13 @@ final class WindowService: NSObject {
             return
         }
 
-        guard let am = accountManager else { return }
+        guard let am = accountManager, let tm = themeManager else { return }
 
-        let content = TradeHubComparisonView(initialTypeId: typeId, initialTypeName: typeName)
-            .environment(am)
+        let content = ThemedRoot {
+            TradeHubComparisonView(initialTypeId: typeId, initialTypeName: typeName)
+                .environment(am)
+        }
+        .environment(tm)
 
         let controller = NSHostingController(rootView: content)
         let window = NSWindow(contentViewController: controller)
@@ -186,7 +198,7 @@ final class WindowService: NSObject {
             itemSkillTreeWindow = nil
         }
 
-        guard let am = accountManager, let pf = prefetcher else { return }
+        guard let am = accountManager, let pf = prefetcher, let tm = themeManager else { return }
 
         let characterSkills: [Int: Int]? = am.selectedAccount.flatMap { account in
             pf.characterData[account.characterID].map {
@@ -194,12 +206,15 @@ final class WindowService: NSObject {
             }
         }
 
-        let content = ItemSkillTreeView(
-            characterSkills: characterSkills,
-            initialTypeId: typeId,
-            initialTypeName: typeName
-        )
-        .environment(am)
+        let content = ThemedRoot {
+            ItemSkillTreeView(
+                characterSkills: characterSkills,
+                initialTypeId: typeId,
+                initialTypeName: typeName
+            )
+            .environment(am)
+        }
+        .environment(tm)
 
         let controller = NSHostingController(rootView: content)
         let window = NSWindow(contentViewController: controller)
@@ -228,7 +243,12 @@ final class WindowService: NSObject {
             return
         }
 
-        let content = ShipModelSheet(shipName: shipName, shipClass: shipClass)
+        guard let tm = themeManager else { return }
+
+        let content = ThemedRoot {
+            ShipModelSheet(shipName: shipName, shipClass: shipClass)
+        }
+        .environment(tm)
         let controller = NSHostingController(rootView: content)
         let window = NSWindow(contentViewController: controller)
         window.appearance = resolvedNSAppearance
@@ -254,13 +274,17 @@ final class WindowService: NSObject {
             return
         }
 
-        guard let am = accountManager, let pf = prefetcher, let au = appUpdater, let lm = launchManager else { return }
+        guard let am = accountManager, let pf = prefetcher, let au = appUpdater,
+              let lm = launchManager, let tm = themeManager else { return }
 
-        let content = SettingsView(openToUpdate: au.updateAvailable)
-            .environment(am)
-            .environment(pf)
-            .environment(au)
-            .environment(lm)
+        let content = ThemedRoot {
+            SettingsView(openToUpdate: au.updateAvailable)
+                .environment(am)
+                .environment(pf)
+                .environment(au)
+                .environment(lm)
+        }
+        .environment(tm)
 
         let controller = NSHostingController(rootView: content)
         let window = NSWindow(contentViewController: controller)
@@ -315,6 +339,31 @@ final class WindowService: NSObject {
         case "dark":  return NSAppearance(named: .darkAqua)
         default:      return nil
         }
+    }
+}
+
+// MARK: Themed Root
+
+/// Applies the faction accent as a live tint. `showX()` methods below run once per window
+/// (they early-return on subsequent calls while the window stays open), so a plain
+/// `.tint(themeManager.palette.accent)` computed inline there is a value baked in at that
+/// one moment — it would never update after a later theme change. Reading the palette from
+/// this view's own `body` instead keeps it wired into SwiftUI's observation graph, so every
+/// open window re-tints immediately when `ThemeManager.faction` changes anywhere.
+///
+/// `.tint(_:)` alone doesn't reach `List` row selection on macOS — the sidebar and any
+/// other `List(selection:)` keep the system/app accent for their highlight regardless of
+/// `.tint()`. `.listItemTint(_:)` is the modifier Apple specifically ships for recoloring
+/// list-row selection (the mechanism behind Reminders/Notes' colored sidebar lists), so it's
+/// applied here too, at the same root, to reach every `List` in the app in one place.
+private struct ThemedRoot<Content: View>: View {
+    @Environment(ThemeManager.self) private var themeManager
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        content()
+            .tint(themeManager.palette.accent)
+            .listItemTint(themeManager.palette.accent)
     }
 }
 

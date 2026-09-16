@@ -11,6 +11,28 @@
 import SwiftUI
 
 extension View {
+    /// Recolors a `List` row's native selection highlight with the live faction accent.
+    ///
+    /// Two `.listRowBackground`-based approaches were tried before this and both failed the
+    /// same way: on macOS, the system's own selection layer paints *on top of* whatever
+    /// `.listRowBackground` supplies, not behind it — screenshots confirmed the native color
+    /// (from the app's static AccentColor asset) stayed visible across most of the row, with
+    /// our fill only showing at the margins. No amount of opacity or padding on a background
+    /// view can win a fight with something drawn after it.
+    ///
+    /// `.listItemTint(_:)` is Apple's actual mechanism for this — it's what backs Reminders'
+    /// and Notes' per-list colored sidebars — but it has to be applied to each row's own
+    /// content directly. Applying it once from a distant ancestor (tried first, before either
+    /// `.listRowBackground` attempt) didn't visibly take, which is presumably why: it needs
+    /// to reach the row itself, not just be present somewhere in the environment.
+    func themedListRow(isSelected: Bool, palette: EVEPalette) -> some View {
+        self
+            .foregroundStyle(isSelected ? .white : .primary)
+            .listItemTint(.fixed(palette.accent))
+    }
+}
+
+extension View {
     /// Standard EVEOps card surface — regular material in a rounded rect. This is the
     /// default look most panels already use via `.background(.regularMaterial, in:
     /// RoundedRectangle(...))`; prefer this modifier for new cards so the corner radius

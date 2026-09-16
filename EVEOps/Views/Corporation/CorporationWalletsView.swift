@@ -12,6 +12,8 @@ import SwiftUI
 
 struct CorporationWalletsView: View {
     @Environment(AccountManager.self) private var accountManager
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
     @State private var wallets: [CorpWalletDivision] = []
     @State private var journal: [ESIWalletJournalEntry] = []
     @State private var isLoading = true
@@ -104,7 +106,7 @@ struct CorporationWalletsView: View {
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
                         .background(
-                            selectedDivision == wallet.division ? Color.accentColor.opacity(0.2) : Color.clear,
+                            selectedDivision == wallet.division ? palette.accent.opacity(0.2) : Color.clear,
                             in: RoundedRectangle(cornerRadius: 8)
                         )
                     }

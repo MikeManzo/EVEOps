@@ -23,6 +23,8 @@ struct SelectedSystem: Equatable {
 
 struct RoutePlannerView: View {
     @Environment(AccountManager.self) private var accountManager
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
     @State private var originSystem: SelectedSystem?
     @State private var destinationSystem: SelectedSystem?
     @State private var routeFlag = "shortest"
@@ -150,7 +152,7 @@ struct RoutePlannerView: View {
                         .font(.caption)
                     }
                     .buttonStyle(.plain)
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(palette.location)
                     .disabled(isLocating)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }

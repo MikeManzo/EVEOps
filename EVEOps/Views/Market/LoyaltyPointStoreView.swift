@@ -16,6 +16,8 @@ import SwiftUI
 struct LoyaltyPointStoreView: View {
     @Environment(AccountManager.self) private var accountManager
     @Environment(DashboardPrefetcher.self) private var prefetcher
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
 
     @State private var lpData: [ResolvedLoyaltyPoints] = []
     @State private var selectedCorpId: Int?
@@ -166,6 +168,7 @@ struct LoyaltyPointStoreView: View {
                         isSelected: lp.corporationId == selectedCorpId
                     )
                     .tag(lp.corporationId)
+                    .themedListRow(isSelected: lp.corporationId == selectedCorpId, palette: palette)
                 }
                 .listStyle(.sidebar)
             }
@@ -371,7 +374,7 @@ struct LoyaltyPointStoreView: View {
                 if !sortByISKLP {
                     Image(systemName: "chevron.up")
                         .font(.system(size: 8, weight: .bold))
-                        .foregroundStyle(Color.accentColor)
+                        .foregroundStyle(palette.accent)
                 }
             }
             .frame(width: 90, alignment: .trailing)
@@ -394,7 +397,7 @@ struct LoyaltyPointStoreView: View {
                     if sortByISKLP {
                         Image(systemName: "chevron.down")
                             .font(.system(size: 8, weight: .bold))
-                            .foregroundStyle(Color.accentColor)
+                            .foregroundStyle(palette.accent)
                     }
                 }
                 .frame(width: 110, alignment: .trailing)

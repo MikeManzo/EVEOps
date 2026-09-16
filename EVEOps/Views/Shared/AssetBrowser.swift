@@ -89,6 +89,8 @@ struct AssetBrowser: View {
     let kind: Kind
 
     @Environment(AccountManager.self) private var accountManager
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
     @AppStorage("backgroundPollInterval") private var pollInterval: Double = 300
     @State private var assets: [ResolvedAsset] = []
     @State private var assetByID: [Int: ResolvedAsset] = [:]
@@ -226,6 +228,7 @@ struct AssetBrowser: View {
                         ForEach(section.items) { asset in
                             assetRow(asset)
                                 .tag(asset.id)
+                                .themedListRow(isSelected: asset.id == selectedAssetID, palette: palette)
                         }
                     }
                 } header: {

@@ -12,6 +12,8 @@ import SwiftUI
 
 struct CharacterBookmarksView: View {
     @Environment(AccountManager.self) private var accountManager
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
     @State private var folders: [ESIBookmarkFolder] = []
     @State private var bookmarks: [ESIBookmark] = []
     @State private var locationNames: [Int: String] = [:]
@@ -97,14 +99,14 @@ struct CharacterBookmarksView: View {
                     .font(.system(size: 9))
                     .padding(.horizontal, 4)
                     .padding(.vertical, 1)
-                    .background(isSelected ? Color.accentColor : Color.gray.opacity(0.25), in: Capsule())
+                    .background(isSelected ? palette.accent : Color.gray.opacity(0.25), in: Capsule())
                     .foregroundStyle(isSelected ? Color.white : Color.gray)
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
-            .background(isSelected ? Color.accentColor.opacity(0.12) : Color.clear)
+            .background(isSelected ? palette.accent.opacity(0.12) : Color.clear)
             .clipShape(Capsule())
-            .overlay(Capsule().stroke(isSelected ? Color.accentColor : Color.clear, lineWidth: 1))
+            .overlay(Capsule().stroke(isSelected ? palette.accent : Color.clear, lineWidth: 1))
         }
         .buttonStyle(.plain)
     }

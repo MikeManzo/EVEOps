@@ -15,6 +15,9 @@ struct ConstellationMapView: View {
     let currentSystemId: Int
     let constellationName: String
 
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
+
     @State private var systems: [MapSystem] = []
     @State private var connections: [MapConnection] = []
     @State private var externalConnections: [ExternalConnection] = []
@@ -367,7 +370,7 @@ struct ConstellationMapView: View {
 
             if sys.systemId == currentSystemId {
                 Label("You are here", systemImage: "location.fill")
-                    .font(.caption2).foregroundStyle(.blue)
+                    .font(.caption2).foregroundStyle(palette.location)
             }
 
             let connCount = connections.filter { $0.fromSystemId == sys.systemId || $0.toSystemId == sys.systemId }.count

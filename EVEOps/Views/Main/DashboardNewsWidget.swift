@@ -87,6 +87,8 @@ struct NewsCardView: View {
     let item: EVENewsItem
     @Binding var readIDs: Set<String>
     @Environment(\.openURL) private var openURL
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
 
     private var isRead: Bool { readIDs.contains(item.id) }
 
@@ -108,7 +110,7 @@ struct NewsCardView: View {
                     .overlay(alignment: .topTrailing) {
                         if !isRead {
                             Circle()
-                                .fill(.blue)
+                                .fill(palette.accent)
                                 .frame(width: 10, height: 10)
                                 .shadow(color: .black.opacity(0.4), radius: 2)
                                 .padding(6)

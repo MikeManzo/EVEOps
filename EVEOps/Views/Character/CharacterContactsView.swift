@@ -13,6 +13,8 @@ import SwiftUI
 struct CharacterContactsView: View {
     @Environment(AccountManager.self) private var accountManager
     @Environment(PresenceTracker.self) private var presenceTracker
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
     @State private var contacts: [ESIContact] = []
     @State private var isLoading = false
     @State private var error: String?
@@ -135,6 +137,7 @@ struct CharacterContactsView: View {
                                     : nil
                             )
                             .tag(contact.contactId)
+                            .themedListRow(isSelected: contact.contactId == selectedContactID, palette: palette)
                             .swipeActions(edge: .leading) {
                                 Button {
                                     contactToEdit = contact

@@ -152,7 +152,7 @@ extension SkillPlannerView {
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 4)
-            .background(isSelected ? Color.accentColor : Color.secondary.opacity(0.15), in: Capsule())
+            .background(isSelected ? palette.accent : Color.secondary.opacity(0.15), in: Capsule())
             .foregroundStyle(isSelected ? .white : .primary)
         }
         .buttonStyle(.plain)
@@ -198,13 +198,13 @@ extension SkillPlannerView {
                 HStack(spacing: 6) {
                     Text("→ L\(existing.targetLevel)")
                         .font(.caption.bold())
-                        .foregroundStyle(Color.accentColor)
+                        .foregroundStyle(palette.accent)
                     Button {
                         planItems.removeAll { $0.skillId == skill.skillId }
                         savePlan()
                     } label: {
                         Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(Color.accentColor)
+                            .foregroundStyle(palette.accent)
                             .font(.title3)
                     }
                     .buttonStyle(.plain)
@@ -227,7 +227,7 @@ extension SkillPlannerView {
                 } label: {
                     Image(systemName: "plus.circle")
                         .font(.title3)
-                        .foregroundStyle(Color.accentColor)
+                        .foregroundStyle(palette.accent)
                 }
                 .menuStyle(.button)
                 .buttonStyle(.plain)

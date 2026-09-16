@@ -12,6 +12,8 @@ import SwiftUI
 
 struct CharacterMailsView: View {
     @Environment(AccountManager.self) private var accountManager
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
     @State private var mails: [ESIMailHeader] = []
     @State private var selectedMail: ESIMailHeader?
     @State private var mailBody: String?
@@ -83,11 +85,12 @@ struct CharacterMailsView: View {
     private var mailList: some View {
         List(selection: $selectedMail) {
             ForEach(mails) { mail in
+                let isSelected = mail == selectedMail
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         if mail.isRead != true {
                             Circle()
-                                .fill(.blue)
+                                .fill(isSelected ? .white : palette.accent)
                                 .frame(width: 8, height: 8)
                         }
                         Text(mail.subject ?? "(No Subject)")
@@ -99,18 +102,19 @@ struct CharacterMailsView: View {
                         if let fromID = mail.from {
                             Text(senderNames[fromID] ?? "#\(fromID)")
                                 .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(isSelected ? AnyShapeStyle(.white.opacity(0.85)) : AnyShapeStyle(.secondary))
                         }
                         Spacer()
                         if let timestamp = mail.timestamp {
                             Text(timestamp, style: .date)
                                 .font(.caption2)
-                                .foregroundStyle(.tertiary)
+                                .foregroundStyle(isSelected ? AnyShapeStyle(.white.opacity(0.7)) : AnyShapeStyle(.tertiary))
                         }
                     }
                 }
                 .padding(.vertical, 2)
                 .tag(mail)
+                .themedListRow(isSelected: isSelected, palette: palette)
                 .swipeActions(edge: .trailing) {
                     Button(role: .destructive) {
                         Task { await deleteMail(mail) }

@@ -252,6 +252,9 @@ private struct PaletteRowView: View {
     let row: PaletteRow
     let isHighlighted: Bool
 
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
+
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
@@ -270,7 +273,7 @@ private struct PaletteRowView: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
-        .background(isHighlighted ? Color.accentColor : Color.clear, in: RoundedRectangle(cornerRadius: 7))
+        .background(isHighlighted ? palette.accent : Color.clear, in: RoundedRectangle(cornerRadius: 7))
     }
 
     private var icon: String {

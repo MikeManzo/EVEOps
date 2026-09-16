@@ -12,6 +12,7 @@ import SwiftUI
 
 struct LoadingStateView<Content: View>: View {
     @Environment(APIStatusMonitor.self) private var apiStatus
+    @Environment(ThemeManager.self) private var themeManager
 
     let isLoading: Bool
     let error: String?
@@ -125,7 +126,7 @@ struct LoadingStateView<Content: View>: View {
     private var refreshingStrip: some View {
         ProgressView()
             .progressViewStyle(.linear)
-            .tint(.accentColor)
+            .tint(themeManager.palette.accent)
             .frame(maxWidth: .infinity)
             .transition(.opacity)
             .accessibilityLabel("Refreshing")

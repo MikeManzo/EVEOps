@@ -135,7 +135,7 @@ extension LocationOverviewView {
                         VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Image(systemName: "location.fill")
-                                .foregroundStyle(.blue)
+                                .foregroundStyle(palette.location)
                             Text("Location")
                                 .font(.subheadline.bold())
                         }

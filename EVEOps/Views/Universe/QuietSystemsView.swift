@@ -20,6 +20,8 @@ import SwiftUI
 
 struct QuietSystemsView: View {
     @Environment(AccountManager.self) private var accountManager
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
 
     // Universe + activity data
     @State private var systems: [TopoSystem] = []
@@ -262,7 +264,7 @@ struct QuietSystemsView: View {
     private func listRow(_ row: Row) -> some View {
         systemRow(row)
             .listRowInsets(.init(top: 6, leading: 12, bottom: 6, trailing: 12))
-            .listRowBackground(selectedId == row.id ? Color.accentColor.opacity(0.12) : Color.clear)
+            .listRowBackground(selectedId == row.id ? palette.accent.opacity(0.12) : Color.clear)
             .contentShape(Rectangle())
             .onTapGesture { selectedId = (selectedId == row.id) ? nil : row.id }
     }

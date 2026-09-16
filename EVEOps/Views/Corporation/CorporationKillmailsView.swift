@@ -12,6 +12,8 @@ import SwiftUI
 
 struct CorporationKillmailsView: View {
     @Environment(AccountManager.self) private var accountManager
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
     @State private var groups: [KillmailGroup] = []
     @State private var isLoading = false
     @State private var error: String?
@@ -102,7 +104,7 @@ struct CorporationKillmailsView: View {
                                 KillmailRow(entry: entry)
                                     .contentShape(Rectangle())
                                     .onTapGesture { selectedEntry = entry }
-                                    .listRowBackground(selectedEntry?.id == entry.id ? Color.accentColor.opacity(0.12) : Color.clear)
+                                    .listRowBackground(selectedEntry?.id == entry.id ? palette.accent.opacity(0.12) : Color.clear)
                             }
                         }
                     } header: {

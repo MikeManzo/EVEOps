@@ -74,7 +74,7 @@ extension TrainingOverviewView {
                         .foregroundStyle(.secondary)
                         .frame(width: 16)
                     Image(systemName: "book.closed.fill")
-                        .foregroundStyle(.blue)
+                        .foregroundStyle(palette.knowledge)
                     if isSearching {
                         Text("Known Skills (\(matchedCount) of \(info.knownSkillCount))")
                             .font(.subheadline.bold())

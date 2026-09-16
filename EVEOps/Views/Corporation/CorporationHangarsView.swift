@@ -27,6 +27,8 @@ enum HangarSortOrder: String, CaseIterable, Identifiable {
 
 struct CorporationHangarsView: View {
     @Environment(AccountManager.self) private var accountManager
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
     @State private var allHangarAssets: [ResolvedAsset] = []
     @State private var divisions: [HangarDivision] = HangarDivision.defaults
     @State private var locations: [HangarLocation] = []
@@ -267,12 +269,12 @@ struct CorporationHangarsView: View {
                     .lineLimit(1)
                 Text("\(count) items")
                     .font(.caption2.monospacedDigit())
-                    .foregroundStyle(isSelected ? Color.accentColor : .secondary)
+                    .foregroundStyle(isSelected ? palette.accent : .secondary)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
             .background(
-                isSelected ? Color.accentColor.opacity(0.2) : Color.clear,
+                isSelected ? palette.accent.opacity(0.2) : Color.clear,
                 in: RoundedRectangle(cornerRadius: 8)
             )
         }
@@ -311,12 +313,12 @@ struct CorporationHangarsView: View {
                     .lineLimit(1)
                 Text("\(count) items")
                     .font(.caption2.monospacedDigit())
-                    .foregroundStyle(isSelected ? Color.accentColor : .secondary)
+                    .foregroundStyle(isSelected ? palette.accent : .secondary)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
             .background(
-                isSelected ? Color.accentColor.opacity(0.2) : Color.clear,
+                isSelected ? palette.accent.opacity(0.2) : Color.clear,
                 in: RoundedRectangle(cornerRadius: 8)
             )
         }
@@ -351,13 +353,17 @@ struct CorporationHangarsView: View {
                         ForEach(groupedVisibleItems, id: \.category) { section in
                             Section(section.category) {
                                 ForEach(section.items) { asset in
-                                    assetRow(asset).tag(asset)
+                                    assetRow(asset)
+                                        .tag(asset)
+                                        .themedListRow(isSelected: asset == selectedAsset, palette: palette)
                                 }
                             }
                         }
                     } else {
                         ForEach(visibleItems) { asset in
-                            assetRow(asset).tag(asset)
+                            assetRow(asset)
+                                .tag(asset)
+                                .themedListRow(isSelected: asset == selectedAsset, palette: palette)
                         }
                     }
                 }

@@ -137,6 +137,8 @@ private func skillRoman(_ level: Int) -> String {
 
 struct CharacterCalendarView: View {
     @Environment(AccountManager.self) private var accountManager
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
     @State private var allItems: [CalendarItem] = []
     @State private var isLoading = false
     @State private var error: String?
@@ -283,7 +285,7 @@ struct CharacterCalendarView: View {
             if let day = selectedDay {
                 Image(systemName: "calendar")
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(palette.accent)
                 Text(day, format: .dateTime.weekday(.abbreviated).month(.abbreviated).day())
                     .font(.subheadline.weight(.medium))
                 Spacer()

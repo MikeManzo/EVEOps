@@ -17,6 +17,8 @@ import FoundationModels
 struct MarketBrowserView: View {
     @Environment(AccountManager.self) var accountManager
     @Environment(DashboardPrefetcher.self) var prefetcher
+    @Environment(ThemeManager.self) var themeManager
+    var palette: EVEPalette { themeManager.palette }
 
     // Region
     @AppStorage("market.selectedRegionId") var selectedRegionId: Int = 10000002

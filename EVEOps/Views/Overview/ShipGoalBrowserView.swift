@@ -61,6 +61,8 @@ private struct ShipGoalAICard: View {
     var onAddToPlan: ((SkillPlanItem) -> Void)?
     let onSearch: (String) -> Void
 
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
     @State private var goalText = ""
     @State private var isLoading = false
     @State private var recommendation: ShipGoalRecommendation?
@@ -86,7 +88,7 @@ private struct ShipGoalAICard: View {
                     Button { Task { await fetch() } } label: {
                         Image(systemName: "arrow.up.circle.fill")
                             .font(.title3)
-                            .foregroundStyle(goalText.count >= 5 ? Color.accentColor : Color.secondary.opacity(0.3))
+                            .foregroundStyle(goalText.count >= 5 ? palette.accent : Color.secondary.opacity(0.3))
                     }
                     .buttonStyle(.plain)
                     .disabled(goalText.count < 5)
@@ -186,7 +188,7 @@ private struct ShipGoalAICard: View {
                         add(SkillPlanItem(skillId: skill.id, skillName: skill.name,
                                          fromLevel: skill.currentLevel, targetLevel: skill.targetLevel))
                     } label: {
-                        Image(systemName: "plus.circle").font(.title3).foregroundStyle(Color.accentColor)
+                        Image(systemName: "plus.circle").font(.title3).foregroundStyle(palette.accent)
                     }
                     .buttonStyle(.plain)
                 }
@@ -263,6 +265,8 @@ struct ShipGoalBrowserView: View {
     var onAddToPlan: ((SkillPlanItem) -> Void)?
 
     @Environment(AccountManager.self) private var accountManager
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
 
     @State private var searchText = ""
     @State private var searchResults: [(id: Int, name: String)] = []
@@ -578,7 +582,7 @@ struct ShipGoalBrowserView: View {
                     add(SkillPlanItem(skillId: entry.skillId, skillName: entry.name,
                                      fromLevel: entry.trained, targetLevel: entry.required))
                 } label: {
-                    Image(systemName: "plus.circle").font(.title3).foregroundStyle(Color.accentColor)
+                    Image(systemName: "plus.circle").font(.title3).foregroundStyle(palette.accent)
                 }
                 .buttonStyle(.plain)
             }

@@ -29,6 +29,8 @@ struct FittingShopView: View {
 
     @Environment(AccountManager.self) private var accountManager
     @Environment(\.dismiss) private var dismiss
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
 
     @State private var quotes: [StationQuote] = []
     @State private var isSearchingHubs = false
@@ -257,12 +259,12 @@ struct FittingShopView: View {
             .padding(.vertical, 11)
         }
         .background(isSelected
-            ? Color.accentColor.opacity(0.15)
+            ? palette.accent.opacity(0.15)
             : (isEven ? Color.primary.opacity(0.03) : Color.clear))
         .overlay(
             isSelected
                 ? RoundedRectangle(cornerRadius: 0)
-                    .strokeBorder(Color.accentColor.opacity(0.4), lineWidth: 1)
+                    .strokeBorder(palette.accent.opacity(0.4), lineWidth: 1)
                 : nil
         )
     }
@@ -294,8 +296,8 @@ struct FittingShopView: View {
                         .font(.caption)
                 }
                 .buttonStyle(.plain)
-                .tint(.accentColor)
-                .foregroundStyle(Color.accentColor)
+                .tint(palette.accent)
+                .foregroundStyle(palette.accent)
             }
             .padding(.horizontal, 15)
             .padding(.top, 12)
@@ -317,7 +319,7 @@ struct FittingShopView: View {
                             } label: {
                                 Image(systemName: included ? "checkmark.square.fill" : "square")
                                     .font(.system(size: 15))
-                                    .foregroundStyle(included ? Color.accentColor : Color.secondary.opacity(0.4))
+                                    .foregroundStyle(included ? palette.accent : Color.secondary.opacity(0.4))
                                     .frame(width: 38, alignment: .center)
                             }
                             .buttonStyle(.plain)

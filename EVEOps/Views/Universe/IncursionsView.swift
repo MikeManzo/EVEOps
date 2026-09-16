@@ -11,6 +11,8 @@
 import SwiftUI
 
 struct IncursionsView: View {
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
     @State private var incursions: [ResolvedIncursion] = []
     @State private var isLoading = true
     @State private var error: String?
@@ -25,7 +27,7 @@ struct IncursionsView: View {
                         IncursionRow(incursion: incursion)
                     }
                     .buttonStyle(.plain)
-                    .listRowBackground(selected?.id == incursion.id ? Color.accentColor.opacity(0.12) : Color.clear)
+                    .listRowBackground(selected?.id == incursion.id ? palette.accent.opacity(0.12) : Color.clear)
                 }
                 if let selected {
                     Divider()

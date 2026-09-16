@@ -140,6 +140,7 @@ extension MarketBrowserView {
             )) { result in
                 typeRow(typeId: result.typeId, name: result.name)
                     .tag(result.typeId)
+                    .themedListRow(isSelected: result.typeId == selectedTypeId, palette: palette)
             }
             .listStyle(.plain)
         }
@@ -159,6 +160,7 @@ extension MarketBrowserView {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             List(rootNodes, children: \.children, selection: $selectedGroupId) { node in
+                let isSelected = node.id == selectedGroupId
                 Label {
                     Text(node.group.name)
                         .font(.subheadline)
@@ -167,10 +169,10 @@ extension MarketBrowserView {
                         // Root category — distinctive icon + color from marketGroupIcon
                         let (symbol, color) = marketGroupIcon(node.group.name)
                         Image(systemName: symbol)
-                            .foregroundStyle(color)
+                            .foregroundStyle(isSelected ? .white : color)
                     } else if node.children != nil {
                         Image(systemName: "folder.fill")
-                            .foregroundStyle(Color.blue.opacity(0.75))
+                            .foregroundStyle(isSelected ? .white : Color.blue.opacity(0.75))
                     } else if let firstType = node.group.types.first {
                         CachedAsyncImage(url: EVEImageURL.typeIcon(firstType, size: 64)) { image in
                             image.resizable().scaledToFit()
@@ -181,9 +183,10 @@ extension MarketBrowserView {
                         .frame(width: 16, height: 16)
                     } else {
                         Image(systemName: "tag.fill")
-                            .foregroundStyle(Color.secondary)
+                            .foregroundStyle(isSelected ? .white : Color.secondary)
                     }
                 }
+                .themedListRow(isSelected: isSelected, palette: palette)
             }
             .listStyle(.sidebar)
             .onChange(of: selectedGroupId) { _, newId in
@@ -251,6 +254,7 @@ extension MarketBrowserView {
             )) { result in
                 typeRow(typeId: result.typeId, name: result.name)
                     .tag(result.typeId)
+                    .themedListRow(isSelected: result.typeId == selectedTypeId, palette: palette)
             }
             .listStyle(.sidebar)
         }

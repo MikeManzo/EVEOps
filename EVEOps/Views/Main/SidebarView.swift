@@ -15,6 +15,9 @@ struct SidebarView: View {
     @Bindable var accountManager: AccountManager
     @Binding var selectedSection: NavigationSection?
 
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
+
     private enum NavScope: Hashable {
         case character
         case corporation
@@ -68,9 +71,30 @@ struct SidebarView: View {
                 filterField
             }
 
-            List(selection: $selectedSection) {
-                Label("Dashboard", systemImage: "square.grid.2x2.fill")
-                    .tag(NavigationSection.dashboard)
+            // Plain List, no `selection:` binding — deliberately. On macOS, a
+            // `List(selection:)`'s native "selected row" highlight paints *on top of*
+            // whatever `.listRowBackground`/`.listItemTint` supply, so no color we set
+            // ever fully takes; screenshots across several attempts kept showing the
+            // system's own color winning. Managing selection ourselves (state + tap
+            // gesture + a plain, non-competing row background) sidesteps that fight
+            // entirely — the same pattern already working correctly elsewhere in the app
+            // for lists that don't use `selection:`. Trade-off: native arrow-key row
+            // navigation in the sidebar is lost.
+            List {
+                Label {
+                    Text("Dashboard")
+                } icon: {
+                    Image(systemName: "square.grid.2x2.fill")
+                        .foregroundStyle(selectedSection == .dashboard ? .white : palette.accent)
+                }
+                    .contentShape(Rectangle())
+                    .onTapGesture { selectedSection = .dashboard }
+                    .foregroundStyle(selectedSection == .dashboard ? .white : .primary)
+                    .listRowBackground(
+                        selectedSection == .dashboard
+                            ? RoundedRectangle(cornerRadius: 6).fill(palette.accent)
+                            : nil
+                    )
 
                 if let account = accountManager.selectedAccount {
                     if navScope == .character || !showCorpSection {
@@ -234,6 +258,9 @@ struct SidebarView: View {
             }
             .listStyle(.sidebar)
             .animation(.easeInOut(duration: 0.2), value: navScope)
+            .focusable()
+            .onKeyPress(.upArrow) { moveSelection(-1); return .handled }
+            .onKeyPress(.downArrow) { moveSelection(1); return .handled }
 
             Divider()
 
@@ -346,17 +373,33 @@ struct SidebarView: View {
     /// its section header so the row hierarchy reads clearly.
     @ViewBuilder
     private func navRow(_ section: NavigationSection) -> some View {
+        let isSelected = section == selectedSection
         HStack(spacing: 6) {
-            Label(section.title, systemImage: section.iconName)
+            // macOS's sidebar List style auto-tints Label icons with the app's static
+            // AccentColor asset regardless of ancestor `.foregroundStyle`/`.tint` — an
+            // explicit icon closure is what actually overrides that.
+            Label {
+                Text(section.title)
+            } icon: {
+                Image(systemName: section.iconName)
+                    .foregroundStyle(isSelected ? .white : palette.accent)
+            }
             if section == .calendar && todayEventCount > 0 {
                 Circle()
-                    .fill(Color.blue)
+                    .fill(isSelected ? .white : palette.accent)
                     .frame(width: 7, height: 7)
                     .accessibilityHidden(true)
             }
         }
         .padding(.leading, 10)
-        .tag(section)
+        .contentShape(Rectangle())
+        .onTapGesture { selectedSection = section }
+        .foregroundStyle(isSelected ? .white : .primary)
+        .listRowBackground(
+            isSelected
+                ? RoundedRectangle(cornerRadius: 6).fill(palette.accent)
+                : nil
+        )
         .accessibilityValue(
             section == .calendar && todayEventCount > 0 ? "\(todayEventCount) events today" : ""
         )
@@ -391,6 +434,61 @@ struct SidebarView: View {
             visibleGroups = [corporationSectionsOrdered, utilitySectionsOrdered]
         }
         return visibleGroups.allSatisfy { !shouldShow($0) }
+    }
+
+    // MARK:  Keyboard navigation
+
+    /// Every navigable row currently on screen, top to bottom — mirrors the List body's
+    /// own visibility logic (scope, show/hide toggles, filter, collapsed sections) exactly,
+    /// since arrow-key movement needs to land only on rows the user can actually see.
+    private var visibleSections: [NavigationSection] {
+        var result: [NavigationSection] = [.dashboard]
+        guard accountManager.selectedAccount != nil else { return result }
+
+        if navScope == .character || !showCorpSection {
+            if showPinnedSection && pinnedExpanded && shouldShow(pinnedSections) {
+                result += filtered(pinnedSections)
+            }
+            if showPilotSection && pilotExpanded && shouldShow(pilotSectionsOrdered) {
+                result += filtered(pilotSectionsOrdered)
+            }
+            if showEconomySection && economyExpanded && shouldShow(economySectionsOrdered) {
+                result += filtered(economySectionsOrdered)
+            }
+            if showCombatSection && combatExpanded && shouldShow(combatSectionsOrdered) {
+                result += filtered(combatSectionsOrdered)
+            }
+            if showSocialSection && socialExpanded && shouldShow(socialSectionsOrdered) {
+                result += filtered(socialSectionsOrdered)
+            }
+            if showUniverseSection && universeExpanded && shouldShow(universeSectionsOrdered) {
+                result += filtered(universeSectionsOrdered)
+            }
+        }
+
+        if showCorpSection && navScope == .corporation && corpExpanded && shouldShow(corporationSectionsOrdered) {
+            result += filtered(corporationSectionsOrdered)
+        }
+
+        if showUtilitySection && utilityExpanded && shouldShow(utilitySectionsOrdered) {
+            result += filtered(utilitySectionsOrdered)
+        }
+
+        return result
+    }
+
+    /// Moves `selectedSection` by `delta` rows through `visibleSections`, clamped at both
+    /// ends (matching how a native list responds to arrow keys at its boundary, rather than
+    /// wrapping — that's `stepSection`'s job, for ⌘[ / ⌘]). Selecting nothing yet, the first
+    /// press lands on the top or bottom row depending on direction.
+    private func moveSelection(_ delta: Int) {
+        let sections = visibleSections
+        guard !sections.isEmpty else { return }
+        guard let current = selectedSection, let index = sections.firstIndex(of: current) else {
+            selectedSection = delta > 0 ? sections.first : sections.last
+            return
+        }
+        selectedSection = sections[max(0, min(sections.count - 1, index + delta))]
     }
 
     private var noFilterMatchesRow: some View {

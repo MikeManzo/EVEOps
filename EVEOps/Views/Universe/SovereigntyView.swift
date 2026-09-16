@@ -13,6 +13,9 @@ import SwiftUI
 // MARK:  Sovereignty View
 
 struct SovereigntyView: View {
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
+
     private enum Tab: String, CaseIterable, Identifiable {
         case campaigns = "Campaigns"
         case structures = "Structures"
@@ -197,7 +200,7 @@ struct SovereigntyView: View {
 
     @ViewBuilder
     private func rowBackground(selected: Bool) -> some View {
-        if selected { Color.accentColor.opacity(0.12) } else { Color.clear }
+        if selected { palette.accent.opacity(0.12) } else { Color.clear }
     }
 
     // MARK: Load

@@ -41,6 +41,8 @@ struct CalendarGridView: View {
     @Binding var selectedDay: Date?
     let itemsByDay: [Date: [CalendarItem]]
 
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
     private let cal = Calendar.current
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 2), count: 7)
     private let weekdayLabels = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
@@ -74,7 +76,7 @@ struct CalendarGridView: View {
                     Button("Today") { jumpToToday() }
                         .buttonStyle(.borderless)
                         .font(.system(size: 11))
-                        .foregroundStyle(Color.accentColor)
+                        .foregroundStyle(palette.accent)
                 }
             }
 
@@ -174,19 +176,21 @@ struct CalendarDayCell: View {
     let isToday: Bool
     let items: [CalendarItem]
 
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
     private let cal = Calendar.current
 
     var body: some View {
         VStack(spacing: 3) {
             ZStack {
                 if isSelected {
-                    Circle().fill(Color.accentColor).frame(width: 28, height: 28)
+                    Circle().fill(palette.accent).frame(width: 28, height: 28)
                 } else if isToday {
-                    Circle().strokeBorder(Color.accentColor, lineWidth: 1.5).frame(width: 28, height: 28)
+                    Circle().strokeBorder(palette.accent, lineWidth: 1.5).frame(width: 28, height: 28)
                 }
                 Text("\(cal.component(.day, from: date))")
                     .font(.system(size: 12, weight: isSelected || isToday ? .semibold : .regular))
-                    .foregroundStyle(isSelected ? Color.white : (isToday ? Color.accentColor : Color.primary))
+                    .foregroundStyle(isSelected ? Color.white : (isToday ? palette.accent : Color.primary))
                     .monospacedDigit()
             }
             // One dot per distinct source category present on this day

@@ -14,6 +14,8 @@ import FoundationModels
 struct CharacterClonesView: View {
     @Environment(AccountManager.self) private var accountManager
     @Environment(DashboardPrefetcher.self) private var prefetcher
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
     @State private var clonesResponse: ESIClonesResponse?
     @State private var activeImplants: [ResolvedImplant] = []
     @State private var jumpClones: [ResolvedJumpClone] = []
@@ -118,6 +120,7 @@ struct CharacterClonesView: View {
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(activeImplants) { implant in
+                    let isSelected = implant == selectedImplant
                     HStack {
                         CachedAsyncImage(url: EVEImageURL.typeIcon(implant.typeId, size: 64)) { phase in
                             if let image = phase.image {
@@ -126,13 +129,14 @@ struct CharacterClonesView: View {
                                     .clipShape(RoundedRectangle(cornerRadius: 4))
                             } else {
                                 Image(systemName: "brain.head.profile")
-                                    .foregroundStyle(.purple)
+                                    .foregroundStyle(isSelected ? .white : .purple)
                                     .frame(width: 28, height: 28)
                             }
                         }
                         Text(implant.name)
                     }
                     .tag(implant)
+                    .themedListRow(isSelected: isSelected, palette: palette)
                 }
             }
         }
