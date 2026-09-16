@@ -3,15 +3,16 @@
     <channel>
         <title>EVEOps</title>
         <item>
-            <title>0.9.11.10.1</title>
-            <pubDate>Mon, 14 Sep 2026 17:28:42 -0400</pubDate>
-            <sparkle:version>146</sparkle:version>
-            <sparkle:shortVersionString>0.9.11.10.1</sparkle:shortVersionString>
+            <title>0.9.12</title>
+            <pubDate>Wed, 16 Sep 2026 09:31:35 -0400</pubDate>
+            <sparkle:version>147</sparkle:version>
+            <sparkle:shortVersionString>0.9.12</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
             <description><![CDATA[<ul>
-<li>UI Tweks</li>
+<li>Added &quot;app theming&quot; based on EVE Faction colors</li>
+<li>Comprehensive UI tweaks</li>
 </ul>]]></description>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.11.10.1/EVEOps.dmg" length="35500900" type="application/octet-stream" sparkle:edSignature="R79Hr2DiMC0YvgxUJ9sBTVmFx4t5MFskX7gQ2Kmqggln5DNXmVb2SJTHPGvyyo/YGF9SY26GZddEDZd4F+NKCw=="/>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.12/EVEOps.dmg" length="35555167" type="application/octet-stream" sparkle:edSignature="ribHeZFIWAWo/Gj57GVBznuBnp78wM/CZm8/hoWU/Onnqgfme1CaWIwJt6ItlKDke0AEVXNtTTn7DE2Vcys/Bg=="/>
         </item>
     </channel>
 </rss>
