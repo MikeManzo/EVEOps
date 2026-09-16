@@ -33,6 +33,27 @@ actor FuzzworkClient {
     private var cache: [Int: [Int: (price: FuzzworkPrice, expiry: Date)]] = [:]
     private var stationCache: [Int: [Int: (price: FuzzworkPrice, expiry: Date)]] = [:]
 
+    /// Concurrent requests for the exact same (region/station, type set) share one
+    /// network round trip — e.g. two characters holding identical cargo, or a view
+    /// re-rendering and re-triggering a price fetch before the first one lands.
+    private var pendingRequests: [String: Task<[FuzzworkPrice], Error>] = [:]
+
+    private func fetchAggregates(url: URL, key: String) async throws -> [FuzzworkPrice] {
+        if let pending = pendingRequests[key] {
+            return try await pending.value
+        }
+        let task = Task<[FuzzworkPrice], Error> {
+            let (data, response) = try await self.session.data(for: URLRequest(url: url))
+            guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+                throw URLError(.badServerResponse)
+            }
+            return try self.parsePrices(data)
+        }
+        pendingRequests[key] = task
+        defer { pendingRequests[key] = nil }
+        return try await task.value
+    }
+
     private init() {
         let config = URLSessionConfiguration.default
         config.httpAdditionalHeaders = [
@@ -50,15 +71,12 @@ actor FuzzworkClient {
         let uncached = typeIds.filter { entry[$0].map { $0.expiry <= now } ?? true }
 
         if !uncached.isEmpty {
-            let typeString = uncached.map(String.init).joined(separator: ",")
+            let sortedIds = uncached.sorted()
+            let typeString = sortedIds.map(String.init).joined(separator: ",")
             guard let url = URL(string: "https://market.fuzzwork.co.uk/aggregates/?region=\(regionId)&types=\(typeString)") else {
                 throw URLError(.badURL)
             }
-            let (data, response) = try await session.data(for: URLRequest(url: url))
-            guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-                throw URLError(.badServerResponse)
-            }
-            let fetched = try parsePrices(data)
+            let fetched = try await fetchAggregates(url: url, key: "region:\(regionId):\(typeString)")
             let expiry = now.addingTimeInterval(600)
             for price in fetched {
                 entry[price.typeId] = (price: price, expiry: expiry)
@@ -83,15 +101,12 @@ actor FuzzworkClient {
         let uncached = typeIds.filter { entry[$0].map { $0.expiry <= now } ?? true }
 
         if !uncached.isEmpty {
-            let typeString = uncached.map(String.init).joined(separator: ",")
+            let sortedIds = uncached.sorted()
+            let typeString = sortedIds.map(String.init).joined(separator: ",")
             guard let url = URL(string: "https://market.fuzzwork.co.uk/aggregates/?station=\(stationId)&types=\(typeString)") else {
                 throw URLError(.badURL)
             }
-            let (data, response) = try await session.data(for: URLRequest(url: url))
-            guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-                throw URLError(.badServerResponse)
-            }
-            let fetched = try parsePrices(data)
+            let fetched = try await fetchAggregates(url: url, key: "station:\(stationId):\(typeString)")
             let expiry = now.addingTimeInterval(600)
             for price in fetched {
                 entry[price.typeId] = (price: price, expiry: expiry)

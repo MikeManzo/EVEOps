@@ -75,6 +75,15 @@ final class BackgroundMonitor {
                 // pills — don't keep showing stale training progress for the whole session.
                 await prefetcher.prefetchAll(accountManager: accountManager)
                 await DiscordRichPresence.refresh(accountManager: accountManager, prefetcher: prefetcher)
+                // News has its own 15-minute cache, so this only hits the network
+                // when that's actually expired — keeps Dashboard's feed warm across
+                // the long stretches the app just sits idle in the menu bar.
+                _ = try? await EVENewsClient.shared.fetchNews()
+                // Same idea for the Daily Briefing's AI insights: the cheap domains
+                // (Industry, Skills) re-run every cycle but only actually regenerate
+                // when the underlying data changed; the expensive ones (Finances,
+                // Combat, Implants) run once per character per session.
+                await prefetcher.prefetchAIInsights(accountManager: accountManager)
                 let accounts = accountManager.accounts
                 await NotificationService.shared.checkForUpdates(
                     accounts: accounts,

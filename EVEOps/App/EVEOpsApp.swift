@@ -261,6 +261,36 @@ struct EVEOpsApp: App {
             // wouldn't show anything until then, even though the data it needs just
             // became available above.
             await DiscordRichPresence.refresh(accountManager: manager, prefetcher: pf)
+
+            // Warm caches for slow-changing reference data (game-patch cadence, not
+            // minute-to-minute) so the first visit to Market Browser, Career Agents,
+            // or anything faction-labeled doesn't stall on a cold fetch.
+            Task(priority: .utility) { await AgentDataManager.shared.ensureLoaded() }
+            Task(priority: .utility) { _ = await UniverseCache.shared.allMarketGroups() }
+            Task(priority: .utility) { await UniverseCache.shared.warmFactions() }
+
+            // The app spends most of its life idling in the menu bar — a great time
+            // to have EVE News ready before Dashboard is ever opened.
+            Task(priority: .utility) { _ = try? await EVENewsClient.shared.fetchNews() }
+
+            // Same idle-time logic for the Daily Briefing's AI insights — runs only
+            // if the user has AI Insights (and briefing) enabled in Settings.
+            Task(priority: .utility) { await pf.prefetchAIInsights(accountManager: manager) }
+
+            // Warm the 3D model + textures for each character's current ship so
+            // opening the ship viewer for "your ship" doesn't stall on a cold,
+            // multi-MB download. Deduped by name since alts often fly the same hull.
+            let currentShipNames = Set(pf.characterData.values.compactMap { pf.resolvedTypes[$0.ship.shipTypeId]?.name })
+            for shipName in currentShipNames {
+                Task(priority: .utility) {
+                    _ = try? await ShipModelService.shared.modelURL(for: shipName)
+                    async let albedo = try? await ShipModelService.shared.localAlbedoURL(for: shipName)
+                    async let normal = try? await ShipModelService.shared.localNormalURL(for: shipName)
+                    async let rough = try? await ShipModelService.shared.localRoughnessURL(for: shipName)
+                    async let emissive = try? await ShipModelService.shared.localEmissiveURL(for: shipName)
+                    _ = await (albedo, normal, rough, emissive)
+                }
+            }
         }
     }
 

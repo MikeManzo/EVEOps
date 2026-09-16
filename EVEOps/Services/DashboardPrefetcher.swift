@@ -55,6 +55,10 @@ final class DashboardPrefetcher {
     /// How long prefetched data is considered fresh (2 minutes)
     private let freshness: TimeInterval = 120
 
+    /// Characters whose one-time (assets/killmails/implants) AI insight prefetch
+    /// has already run this session — see `prefetchAIInsights`.
+    private var expensiveInsightsDone: Set<Int> = []
+
     func data(for characterID: Int) -> PrefetchedCharacterData? {
         guard let d = characterData[characterID],
               Date().timeIntervalSince(d.fetchedAt) < freshness else { return nil }
@@ -245,28 +249,43 @@ final class DashboardPrefetcher {
         let groups = await UniverseCache.shared.groups(ids: allGroupIDs)
         resolvedGroups = groups
 
-        // Resolve solar systems
-        for sysID in allSystemIDs {
-            if let sys = await UniverseCache.shared.solarSystem(id: sysID) {
-                resolvedSystems[sysID] = sys
+        // Resolve solar systems concurrently
+        resolvedSystems = await withTaskGroup(of: (Int, ESISolarSystem?).self) { group in
+            for sysID in allSystemIDs {
+                group.addTask { (sysID, await UniverseCache.shared.solarSystem(id: sysID)) }
             }
+            var out: [Int: ESISolarSystem] = [:]
+            for await (id, sys) in group {
+                if let sys { out[id] = sys }
+            }
+            return out
         }
 
-        // Resolve constellations and regions from systems
+        // Resolve constellations concurrently, then their regions
         var constellationIDs: Set<Int> = []
         for (_, sys) in resolvedSystems {
             constellationIDs.insert(sys.constellationId)
         }
-        for cID in constellationIDs {
-            if let c = await UniverseCache.shared.constellation(id: cID) {
-                resolvedConstellations[cID] = c
-                let rID = c.regionId
-                if resolvedRegions[rID] == nil {
-                    if let r = await UniverseCache.shared.region(id: rID) {
-                        resolvedRegions[rID] = r
-                    }
-                }
+        resolvedConstellations = await withTaskGroup(of: (Int, ESIConstellation?).self) { group in
+            for cID in constellationIDs {
+                group.addTask { (cID, await UniverseCache.shared.constellation(id: cID)) }
             }
+            var out: [Int: ESIConstellation] = [:]
+            for await (id, c) in group {
+                if let c { out[id] = c }
+            }
+            return out
+        }
+        let regionIDs = Set(resolvedConstellations.values.map(\.regionId))
+        resolvedRegions = await withTaskGroup(of: (Int, ESIRegion?).self) { group in
+            for rID in regionIDs {
+                group.addTask { (rID, await UniverseCache.shared.region(id: rID)) }
+            }
+            var out: [Int: ESIRegion] = [:]
+            for await (id, r) in group {
+                if let r { out[id] = r }
+            }
+            return out
         }
 
         // Build menu bar summaries now that all data is resolved
@@ -336,5 +355,278 @@ final class DashboardPrefetcher {
 
             menuBarSummaries[account.characterID] = s
         }
+    }
+
+    // MARK:  AI Insight Prefetch
+
+    /// Proactively runs the on-device AI analyses that feed the Dashboard's Daily
+    /// Briefing widget, so they're already cached by the time the user opens it.
+    /// Respects the same AI Insights toggles as the manual per-tab views.
+    ///
+    /// Industry and Skills need nothing beyond what's already sitting in
+    /// `characterData`/`resolvedTypes`/`resolvedGroups`, so they re-run every poll
+    /// cycle — `IntelligenceService`'s own per-prompt cache makes that a no-op
+    /// unless the underlying jobs/skills actually changed. Finances, Combat, and
+    /// Implants each need an extra fetch (assets + market prices, killmail
+    /// history, active implants) that doesn't change minute to minute, so those
+    /// run once per character per session via `expensiveInsightsDone`.
+    func prefetchAIInsights(accountManager: AccountManager) async {
+        guard UserDefaults.standard.bool(forKey: "aiInsightsEnabled") else { return }
+        guard (UserDefaults.standard.object(forKey: "aiInsightBriefing") as? Bool) ?? true else { return }
+        guard #available(macOS 26.0, *), IntelligenceService.isSupported else { return }
+
+        let industryEnabled = (UserDefaults.standard.object(forKey: "aiInsightIndustry") as? Bool) ?? true
+        let skillsEnabled = (UserDefaults.standard.object(forKey: "aiInsightSkills") as? Bool) ?? true
+        let financeEnabled = (UserDefaults.standard.object(forKey: "aiInsightFinances") as? Bool) ?? true
+        let combatEnabled = (UserDefaults.standard.object(forKey: "aiInsightKillmails") as? Bool) ?? true
+        let implantsEnabled = (UserDefaults.standard.object(forKey: "aiInsightClones") as? Bool) ?? true
+
+        for account in accountManager.accounts {
+            guard let data = characterData[account.characterID] else { continue }
+
+            if industryEnabled, !data.industryJobs.isEmpty {
+                await prefetchIndustryInsight(characterName: account.characterName, data: data)
+            }
+            if skillsEnabled, !data.skills.skills.isEmpty {
+                await prefetchSkillInsight(characterName: account.characterName, data: data)
+            }
+
+            guard !expensiveInsightsDone.contains(account.characterID) else { continue }
+            guard financeEnabled || combatEnabled || implantsEnabled else { continue }
+            expensiveInsightsDone.insert(account.characterID)
+
+            guard !account.needsReauth, let token = try? await accountManager.validToken(for: account) else { continue }
+
+            if financeEnabled {
+                await prefetchFinanceInsight(characterName: account.characterName, characterID: account.characterID, data: data, token: token)
+            }
+            if combatEnabled {
+                await prefetchCombatInsight(characterName: account.characterName, characterID: account.characterID, token: token)
+            }
+            if implantsEnabled {
+                await prefetchImplantsInsight(characterName: account.characterName, characterID: account.characterID, data: data, token: token)
+            }
+        }
+    }
+
+    /// One-time asset valuation + finance insight. Mirrors FinancesView's
+    /// `loadAssetValues()` + `FinanceAIInsightCard.generate()`.
+    @available(macOS 26.0, *)
+    private func prefetchFinanceInsight(characterName: String, characterID: Int, data: PrefetchedCharacterData, token: String) async {
+        let marketPrices: [ESIMarketPrice] = (try? await ESIClient.shared.fetch("/markets/prices/")) ?? []
+        let priceMap = Dictionary(
+            marketPrices.map { ($0.typeId, $0.averagePrice ?? $0.adjustedPrice ?? 0.0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+
+        let assets: [ESIAsset] = (try? await ESIClient.shared.fetchPages("/characters/\(characterID)/assets/", token: token)) ?? []
+        let assetValue = assets
+            .filter { !($0.isBlueprintCopy ?? false) }
+            .reduce(0.0) { $0 + (priceMap[$1.typeId] ?? 0) * Double($1.quantity) }
+
+        let totalEscrow = data.marketOrders.filter { $0.isBuyOrder ?? false }.compactMap(\.escrow).reduce(0, +)
+        let totalSellOrderValue = data.marketOrders
+            .filter { !($0.isBuyOrder ?? false) }
+            .reduce(0.0) { $0 + $1.price * Double($1.volumeRemain) }
+        let netWorth = data.wallet + totalEscrow + totalSellOrderValue + assetValue
+
+        let topRefs = Dictionary(grouping: data.journal, by: { $0.refType })
+            .map { refType, entries in
+                (name: refType.replacingOccurrences(of: "_", with: " ").capitalized,
+                 total: entries.compactMap(\.amount).reduce(0, +))
+            }
+            .sorted { abs($0.total) > abs($1.total) }
+            .prefix(5)
+            .map { (name: $0.name, totalFormatted: EVEFormatters.formatISKShort($0.total)) }
+
+        _ = try? await IntelligenceService.shared.analyzeFinances(
+            characterName: characterName,
+            balanceFormatted: EVEFormatters.formatISKShort(data.wallet),
+            netWorthFormatted: EVEFormatters.formatISKShort(netWorth),
+            sellOrderCount: data.marketOrders.filter { !($0.isBuyOrder ?? false) }.count,
+            buyOrderCount: data.marketOrders.filter { $0.isBuyOrder ?? false }.count,
+            topRefTypes: Array(topRefs)
+        )
+    }
+
+    /// One-time combat insight. Mirrors `CombatAIInsightCard.generate()`, but
+    /// bounded to the 50 most recent killmails — the interactive Killmails tab
+    /// still pulls full lifetime history; a briefing summary doesn't need it.
+    @available(macOS 26.0, *)
+    private func prefetchCombatInsight(characterName: String, characterID: Int, token: String) async {
+        var killRefs: [(killmailId: Int, hash: String)] = []
+        if let zkbRefs = try? await ZKillboardClient.shared.fetchKillRefs(characterID: characterID), !zkbRefs.isEmpty {
+            killRefs = zkbRefs.map { ($0.killmailId, $0.zkb.hash) }
+        } else if let esiRefs: [ESIKillmailRef] = try? await ESIClient.shared.fetchPages(
+            "/characters/\(characterID)/killmails/recent/", token: token
+        ) {
+            killRefs = esiRefs.map { ($0.killmailId, $0.killmailHash) }
+        }
+        guard !killRefs.isEmpty else { return }
+        let bounded = Array(killRefs.prefix(50))
+
+        var killmails: [(killmail: ESIKillmail, isKill: Bool)] = []
+        await withTaskGroup(of: (killmail: ESIKillmail, isKill: Bool)?.self) { group in
+            for ref in bounded {
+                group.addTask {
+                    guard let km: ESIKillmail = try? await ESIClient.shared.fetch(
+                        "/killmails/\(ref.killmailId)/\(ref.hash)/"
+                    ) else { return nil }
+                    return (killmail: km, isKill: km.victim.characterId != characterID)
+                }
+            }
+            for await entry in group { if let e = entry { killmails.append(e) } }
+        }
+        guard !killmails.isEmpty else { return }
+
+        let kills = killmails.filter(\.isKill)
+        let losses = killmails.filter { !$0.isKill }
+
+        let lostShipCounts = Dictionary(grouping: losses, by: { $0.killmail.victim.shipTypeId })
+            .map { typeId, entries in (typeId: typeId, count: entries.count) }
+            .sorted { $0.count > $1.count }
+            .prefix(4)
+        let lostShipTypes = await UniverseCache.shared.types(ids: lostShipCounts.map(\.typeId))
+        let topLostShips = lostShipCounts.map { item in
+            (name: lostShipTypes[item.typeId]?.name ?? "Ship #\(item.typeId)", count: item.count)
+        }
+
+        let avgAttackers = losses.isEmpty ? 0.0
+            : Double(losses.reduce(0) { $0 + $1.killmail.attackers.count }) / Double(losses.count)
+
+        let systemCounts = Dictionary(grouping: killmails, by: { $0.killmail.solarSystemId })
+            .map { systemId, entries in (systemId: systemId, count: entries.count) }
+            .sorted { $0.count > $1.count }
+            .prefix(4)
+        let systemNames = await NameResolver.shared.resolve(ids: systemCounts.map(\.systemId))
+        let activeSystemNames = systemCounts.map { systemNames[$0.systemId] ?? "System #\($0.systemId)" }
+
+        let threatShipIds = losses.flatMap { $0.killmail.attackers.compactMap(\.shipTypeId) }
+        let threatCounts = Dictionary(grouping: threatShipIds, by: { $0 })
+            .map { typeId, arr in (typeId: typeId, count: arr.count) }
+            .sorted { $0.count > $1.count }
+            .prefix(4)
+        let threatShipTypes = await UniverseCache.shared.types(ids: threatCounts.map(\.typeId))
+        let commonThreatShips = threatCounts.map { threatShipTypes[$0.typeId]?.name ?? "Ship #\($0.typeId)" }
+
+        _ = try? await IntelligenceService.shared.analyzeCombat(
+            characterName: characterName,
+            killCount: kills.count,
+            lossCount: losses.count,
+            topLostShips: Array(topLostShips),
+            activeSystemNames: Array(activeSystemNames),
+            avgAttackersOnLoss: avgAttackers,
+            commonThreatShips: Array(commonThreatShips)
+        )
+    }
+
+    /// One-time implants insight. Jump clone implants come free from the already-
+    /// prefetched `clones` response; only the active-implant list is an extra call.
+    @available(macOS 26.0, *)
+    private func prefetchImplantsInsight(characterName: String, characterID: Int, data: PrefetchedCharacterData, token: String) async {
+        let implantIDs: [Int] = (try? await ESIClient.shared.fetch("/characters/\(characterID)/implants/", token: token)) ?? []
+        let jumpClones = data.clones?.jumpClones ?? []
+        guard !implantIDs.isEmpty || !jumpClones.isEmpty else { return }
+
+        let allImplantIDs = Array(Set(implantIDs + jumpClones.flatMap(\.implants)))
+        let types = await UniverseCache.shared.types(ids: allImplantIDs)
+
+        let activeImplantNames = implantIDs.map { types[$0]?.name ?? "Implant #\($0)" }
+        let jumpCloneImplantNames = jumpClones.map { jc in jc.implants.map { types[$0]?.name ?? "Implant #\($0)" } }
+
+        let topSkillAreas = Dictionary(grouping: data.skills.skills) { resolvedTypes[$0.skillId]?.groupId }
+            .compactMap { groupId, skills -> (name: String, sp: Int)? in
+                guard let groupId, let groupName = resolvedGroups[groupId]?.name else { return nil }
+                return (name: groupName, sp: skills.reduce(0) { $0 + $1.skillpointsInSkill })
+            }
+            .sorted { $0.sp > $1.sp }
+            .prefix(5)
+            .map { (name: $0.name, spFormatted: Self.formatSP($0.sp)) }
+
+        _ = try? await IntelligenceService.shared.analyzeImplants(
+            characterName: characterName,
+            activeImplantNames: activeImplantNames,
+            jumpCloneImplantNames: jumpCloneImplantNames,
+            totalSP: data.skills.totalSp,
+            topSkillAreas: Array(topSkillAreas)
+        )
+    }
+
+    @available(macOS 26.0, *)
+    private func prefetchIndustryInsight(characterName: String, data: PrefetchedCharacterData) async {
+        func activityLabel(_ id: Int) -> String {
+            switch id {
+            case 1: return "Manufacturing"
+            case 3: return "TE Research"
+            case 4: return "ME Research"
+            case 5: return "Copying"
+            case 8: return "Invention"
+            case 9: return "Reactions"
+            default: return "Activity \(id)"
+            }
+        }
+
+        let activityBreakdown = Dictionary(grouping: data.industryJobs, by: { activityLabel($0.activityId) })
+            .map { activity, jobList in (activity: activity, count: jobList.count) }
+            .sorted { $0.count > $1.count }
+
+        let topBlueprints = Dictionary(grouping: data.industryJobs, by: { $0.blueprintTypeId })
+            .map { typeId, jobList in (typeId: typeId, count: jobList.count) }
+            .sorted { $0.count > $1.count }
+            .prefix(8)
+            .map { resolvedTypes[$0.typeId]?.name ?? "Blueprint #\($0.typeId)" }
+
+        _ = try? await IntelligenceService.shared.analyzeIndustry(
+            characterName: characterName,
+            totalJobs: data.industryJobs.count,
+            activeJobs: data.industryJobs.filter { $0.status == "active" }.count,
+            activityBreakdown: activityBreakdown,
+            topBlueprints: topBlueprints
+        )
+    }
+
+    @available(macOS 26.0, *)
+    private func prefetchSkillInsight(characterName: String, data: PrefetchedCharacterData) async {
+        let allSkills = data.skills.skills
+
+        let topGroups = Dictionary(grouping: allSkills) { resolvedTypes[$0.skillId]?.groupId }
+            .compactMap { groupId, skills -> (name: String, sp: Int, skillCount: Int, maxedCount: Int)? in
+                guard let groupId, let groupName = resolvedGroups[groupId]?.name else { return nil }
+                let sp = skills.reduce(0) { $0 + $1.skillpointsInSkill }
+                let maxed = skills.filter { $0.trainedSkillLevel == 5 }.count
+                return (name: groupName, sp: sp, skillCount: skills.count, maxedCount: maxed)
+            }
+            .sorted { $0.sp > $1.sp }
+            .prefix(6)
+            .map { (name: $0.name, spFormatted: Self.formatSP($0.sp), skillCount: $0.skillCount, maxedCount: $0.maxedCount) }
+
+        let partialSkills = allSkills
+            .filter { (1...4).contains($0.trainedSkillLevel) }
+            .sorted { $0.skillpointsInSkill > $1.skillpointsInSkill }
+            .prefix(60)
+            .compactMap { skill -> (name: String, level: Int)? in
+                guard let name = resolvedTypes[skill.skillId]?.name else { return nil }
+                return (name: name, level: skill.trainedSkillLevel)
+            }
+
+        let maxedSkills = allSkills
+            .filter { $0.trainedSkillLevel == 5 }
+            .sorted { $0.skillpointsInSkill > $1.skillpointsInSkill }
+            .prefix(40)
+            .compactMap { resolvedTypes[$0.skillId]?.name }
+
+        _ = try? await IntelligenceService.shared.analyzeTrainedSkills(
+            characterName: characterName,
+            totalSP: data.skills.totalSp,
+            topGroups: Array(topGroups),
+            partialSkills: Array(partialSkills),
+            maxedSkills: Array(maxedSkills)
+        )
+    }
+
+    private static func formatSP(_ sp: Int) -> String {
+        if sp >= 1_000_000 { return String(format: "%.1fM SP", Double(sp) / 1_000_000) }
+        if sp >= 1_000 { return String(format: "%.0fK SP", Double(sp) / 1_000) }
+        return "\(sp) SP"
     }
 }

@@ -70,20 +70,26 @@ struct IncursionsView: View {
             async let systemNames = NameResolver.shared.resolve(ids: stagingIds)
             let (fNames, sNames) = await (factionNames, systemNames)
 
-            var resolved: [ResolvedIncursion] = []
-            for inc in raw {
-                let constellation = await UniverseCache.shared.constellation(id: inc.constellationId)
-                var region: ESIRegion?
-                if let constellation {
-                    region = await UniverseCache.shared.region(id: constellation.regionId)
+            let resolved: [ResolvedIncursion] = await withTaskGroup(of: ResolvedIncursion.self) { group in
+                for inc in raw {
+                    group.addTask {
+                        let constellation = await UniverseCache.shared.constellation(id: inc.constellationId)
+                        var region: ESIRegion?
+                        if let constellation {
+                            region = await UniverseCache.shared.region(id: constellation.regionId)
+                        }
+                        return ResolvedIncursion(
+                            incursion: inc,
+                            factionName: fNames[inc.factionId] ?? "Faction #\(inc.factionId)",
+                            stagingSystemName: sNames[inc.stagingSolarSystemId] ?? "System #\(inc.stagingSolarSystemId)",
+                            constellationName: constellation?.name ?? "Constellation #\(inc.constellationId)",
+                            regionName: region?.name ?? "Unknown Region"
+                        )
+                    }
                 }
-                resolved.append(ResolvedIncursion(
-                    incursion: inc,
-                    factionName: fNames[inc.factionId] ?? "Faction #\(inc.factionId)",
-                    stagingSystemName: sNames[inc.stagingSolarSystemId] ?? "System #\(inc.stagingSolarSystemId)",
-                    constellationName: constellation?.name ?? "Constellation #\(inc.constellationId)",
-                    regionName: region?.name ?? "Unknown Region"
-                ))
+                var out: [ResolvedIncursion] = []
+                for await item in group { out.append(item) }
+                return out
             }
 
             incursions = resolved.sorted { lhs, rhs in

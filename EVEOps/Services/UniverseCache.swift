@@ -189,12 +189,17 @@ actor UniverseCache {
         return result
     }
 
+    /// Loads the full faction list from ESI if it isn't already in memory. The list is
+    /// small (~25 entries) and rarely changes, so callers may warm it speculatively.
+    func warmFactions() async {
+        guard factions.isEmpty else { return }
+        guard let all: [ESIFaction] = try? await ESIClient.shared.fetch("/universe/factions/", bypassCache: true) else { return }
+        for f in all { factions[f.factionId] = f }
+    }
+
     /// Returns a single faction by ID, loading all factions from ESI on first call.
     func faction(id: Int) async -> ESIFaction? {
-        if factions.isEmpty {
-            guard let all: [ESIFaction] = try? await ESIClient.shared.fetch("/universe/factions/", bypassCache: true) else { return nil }
-            for f in all { factions[f.factionId] = f }
-        }
+        await warmFactions()
         return factions[id]
     }
 

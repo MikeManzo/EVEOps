@@ -168,10 +168,12 @@ struct DashboardBriefingWidgetView: View {
                     .foregroundStyle(.secondary)
             }
         } else {
-            VStack(alignment: .leading, spacing: 8) {
-                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+            LazyVGrid(
+                columns: [GridItem(.flexible(), spacing: 16, alignment: .top), GridItem(.flexible(), alignment: .top)],
+                alignment: .leading, spacing: 10
+            ) {
+                ForEach(items) { item in
                     itemRow(item)
-                    if index < items.count - 1 { Divider() }
                 }
             }
         }

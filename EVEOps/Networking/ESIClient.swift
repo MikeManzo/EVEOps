@@ -88,6 +88,29 @@ actor ESIClient {
     private static let persistThreshold = 25
     private var didWarmCache = false
 
+    // MARK: In-flight request coalescing
+
+    /// Concurrent unauthenticated GETs to the same URL (e.g. two accounts in the
+    /// same corp both resolving that corp's name during prefetch) share one network
+    /// round trip instead of firing a duplicate request each. Scoped to `token == nil`
+    /// so an authenticated request's success/failure is never shared across accounts.
+    private var pendingRequests: [String: Task<(Data, HTTPURLResponse), Error>] = [:]
+
+    private func send(_ request: URLRequest, cacheKey: String, coalesce: Bool) async throws -> (Data, HTTPURLResponse) {
+        if coalesce, let pending = pendingRequests[cacheKey] {
+            return try await pending.value
+        }
+
+        let task = Task<(Data, HTTPURLResponse), Error> {
+            let (data, response) = try await session.data(for: request)
+            guard let http = response as? HTTPURLResponse else { throw ESIError.noData }
+            return (data, http)
+        }
+        if coalesce { pendingRequests[cacheKey] = task }
+        defer { if coalesce { pendingRequests[cacheKey] = nil } }
+        return try await task.value
+    }
+
     /// Load the persisted cache from disk. Call once, before the first prefetch.
     /// Existing in-memory entries always win, so a request that raced ahead of
     /// this load is never clobbered by a staler disk entry.
@@ -280,9 +303,9 @@ actor ESIClient {
             request.setValue(etag, forHTTPHeaderField: "If-None-Match")
         }
 
-        let (data, response): (Data, URLResponse)
+        let (data, http): (Data, HTTPURLResponse)
         do {
-            (data, response) = try await session.data(for: request)
+            (data, http) = try await send(request, cacheKey: cacheKey, coalesce: token == nil)
         } catch {
             if (error as? URLError)?.code != .cancelled {
                 await Logger.network.error("ESI network error for \(endpoint): \(error.localizedDescription)")
@@ -290,7 +313,6 @@ actor ESIClient {
             throw ESIError.networkError(error)
         }
 
-        guard let http = response as? HTTPURLResponse else { throw ESIError.noData }
         noteResponse(http)
 
         // Not modified — serve the cached body, refresh its freshness window.
@@ -451,10 +473,9 @@ actor ESIClient {
             request.setValue(etag, forHTTPHeaderField: "If-None-Match")
         }
 
-        let (data, response): (Data, URLResponse)
-        do { (data, response) = try await session.data(for: request) } catch { throw ESIError.networkError(error) }
+        let (data, http): (Data, HTTPURLResponse)
+        do { (data, http) = try await send(request, cacheKey: cacheKey, coalesce: token == nil) } catch { throw ESIError.networkError(error) }
 
-        guard let http = response as? HTTPURLResponse else { throw ESIError.noData }
         noteResponse(http)
 
         if http.statusCode == 304, let cached {

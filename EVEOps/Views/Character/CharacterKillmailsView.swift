@@ -723,10 +723,9 @@ struct CombatAIInsightCard: View {
             .map { typeId, entries in (typeId: typeId, count: entries.count) }
             .sorted { $0.count > $1.count }
             .prefix(4)
-        var topLostShips: [(name: String, count: Int)] = []
-        for item in lostShipCounts {
-            let name = (await UniverseCache.shared.type(id: item.typeId))?.name ?? "Ship #\(item.typeId)"
-            topLostShips.append((name: name, count: item.count))
+        let lostShipTypes = await UniverseCache.shared.types(ids: lostShipCounts.map(\.typeId))
+        let topLostShips: [(name: String, count: Int)] = lostShipCounts.map { item in
+            (name: lostShipTypes[item.typeId]?.name ?? "Ship #\(item.typeId)", count: item.count)
         }
 
         // Average attackers on losses
@@ -750,10 +749,9 @@ struct CombatAIInsightCard: View {
             .map { typeId, arr in (typeId: typeId, count: arr.count) }
             .sorted { $0.count > $1.count }
             .prefix(4)
-        var commonThreatShips: [String] = []
-        for item in threatCounts {
-            let name = (await UniverseCache.shared.type(id: item.typeId))?.name ?? "Ship #\(item.typeId)"
-            commonThreatShips.append(name)
+        let threatShipTypes = await UniverseCache.shared.types(ids: threatCounts.map(\.typeId))
+        let commonThreatShips: [String] = threatCounts.map { item in
+            threatShipTypes[item.typeId]?.name ?? "Ship #\(item.typeId)"
         }
 
         let characterName = groups.count == 1

@@ -285,10 +285,9 @@ struct IndustryAIInsightCard: View {
             .map { typeId, jobList in (typeId: typeId, count: jobList.count) }
             .sorted { $0.count > $1.count }
             .prefix(8)
-        var topBlueprints: [String] = []
-        for item in bpCounts {
-            let name = (await UniverseCache.shared.type(id: item.typeId))?.name ?? "Blueprint #\(item.typeId)"
-            topBlueprints.append(name)
+        let bpTypes = await UniverseCache.shared.types(ids: bpCounts.map(\.typeId))
+        let topBlueprints: [String] = bpCounts.map { item in
+            bpTypes[item.typeId]?.name ?? "Blueprint #\(item.typeId)"
         }
 
         let characterName = jobs.count == 1

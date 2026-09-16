@@ -138,26 +138,22 @@ struct CorporationStructuresView: View {
                 "/corporations/\(account.corporationID)/structures/", token: token
             )
 
-            var resolved: [ResolvedStructure] = []
-            for structure in rawStructures {
-                let systemName = await NameResolver.shared.resolve(id: structure.systemId)
-                var typeName = "Structure #\(structure.typeId)"
-                if let typeInfo = await UniverseCache.shared.type(id: structure.typeId) {
-                    typeName = typeInfo.name
-                }
+            async let systemNames = NameResolver.shared.resolve(ids: rawStructures.map(\.systemId))
+            async let typeInfos = UniverseCache.shared.types(ids: rawStructures.map(\.typeId))
+            let (names, types) = await (systemNames, typeInfos)
 
-                resolved.append(ResolvedStructure(
+            structures = rawStructures.map { structure in
+                ResolvedStructure(
                     structureId: structure.structureId,
                     name: structure.name,
-                    typeName: typeName,
-                    systemName: systemName,
+                    typeName: types[structure.typeId]?.name ?? "Structure #\(structure.typeId)",
+                    systemName: names[structure.systemId] ?? "System #\(structure.systemId)",
                     state: structure.state,
                     fuelExpires: structure.fuelExpires,
                     stateTimerEnd: structure.stateTimerEnd,
                     services: structure.services ?? []
-                ))
+                )
             }
-            structures = resolved
         } catch {
             self.error = error.localizedDescription
         }
