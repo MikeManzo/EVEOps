@@ -69,8 +69,7 @@ struct SidebarView: View {
             }
 
             if accountManager.selectedAccount != nil {
-                scopePicker
-                filterField
+                scopeAndFilterRow
             }
 
             // Plain List, no `selection:` binding — deliberately. On macOS, a
@@ -518,52 +517,56 @@ struct SidebarView: View {
         )
     }
 
-    @ViewBuilder
-    private var scopePicker: some View {
-        if showCorpSection {
-            Picker("", selection: $navScope) {
-                Image(systemName: "person.fill")
-                    .accessibilityLabel("Character")
-                    .tag(NavScope.character)
-                Image(systemName: "building.2.fill")
-                    .accessibilityLabel("Corporation")
-                    .tag(NavScope.corporation)
-            }
-            .labelsHidden()
-            .pickerStyle(.segmented)
-            .padding(.horizontal, 10)
-            .padding(.top, 6)
-            .accessibilityLabel("Sidebar scope")
-        }
-    }
-
-    private var filterField: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
-                .font(.caption)
-                .accessibilityHidden(true)
-            TextField("Filter", text: $filterText)
-                .textFieldStyle(.plain)
-                .font(.callout)
-            if !filterText.isEmpty {
-                Button {
-                    filterText = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
+    /// Search field and character/corporation scope toggle share one row —
+    /// the scope toggle used to sit on its own full-width row above the filter,
+    /// which looked sparse for just two small icons. A compact segmented
+    /// control beside the search field reads as one cohesive control bar.
+    private var scopeAndFilterRow: some View {
+        HStack(spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
+                    .font(.caption)
+                    .accessibilityHidden(true)
+                TextField("Filter", text: $filterText)
+                    .textFieldStyle(.plain)
+                    .font(.callout)
+                if !filterText.isEmpty {
+                    Button {
+                        filterText = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Clear filter")
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Clear filter")
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(RoundedRectangle(cornerRadius: 6).fill(.quaternary.opacity(0.5)))
+            .accessibilityLabel("Filter sidebar")
+
+            if showCorpSection {
+                Picker("", selection: $navScope) {
+                    Image(systemName: "person.fill")
+                        .accessibilityLabel("Character")
+                        .help("Character")
+                        .tag(NavScope.character)
+                    Image(systemName: "building.2.fill")
+                        .accessibilityLabel("Corporation")
+                        .help("Corporation")
+                        .tag(NavScope.corporation)
+                }
+                .labelsHidden()
+                .pickerStyle(.segmented)
+                .fixedSize()
+                .accessibilityLabel("Sidebar scope")
             }
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 5)
-        .background(RoundedRectangle(cornerRadius: 6).fill(.quaternary.opacity(0.5)))
         .padding(.horizontal, 10)
         .padding(.top, 6)
         .padding(.bottom, 4)
-        .accessibilityLabel("Filter sidebar")
     }
 
     @ViewBuilder
@@ -686,8 +689,13 @@ struct SidebarView: View {
                     Spacer(minLength: 8)
 
                     VStack(alignment: .leading, spacing: 5) {
-                        if let online = prefetcher.data(for: account.characterID)?.online.online {
-                            HStack(spacing: 5) {
+                        // Rendered unconditionally (with a "Loading…" placeholder) rather
+                        // than omitted while `data(for:)` is still nil — on first launch,
+                        // the initial prefetch hasn't completed yet, and hiding the row
+                        // made the sidebar look broken (Discord status with a gap above it)
+                        // for the several seconds that takes.
+                        HStack(spacing: 5) {
+                            if let online = prefetcher.data(for: account.characterID)?.online.online {
                                 Circle()
                                     .fill(online ? Color.green : Color.gray)
                                     .frame(width: 8, height: 8)
@@ -696,9 +704,16 @@ struct SidebarView: View {
                                 Text(online ? "Online" : "Offline")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
+                            } else {
+                                ProgressView()
+                                    .controlSize(.mini)
+                                    .frame(width: 14, alignment: .center)
+                                Text("Loading…")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
                             }
-                            .accessibilityElement(children: .combine)
                         }
+                        .accessibilityElement(children: .combine)
 
                         let discordConnected = DiscordRichPresenceStatus.shared.state == .connected
                         HStack(spacing: 5) {

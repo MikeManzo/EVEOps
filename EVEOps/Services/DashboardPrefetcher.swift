@@ -52,8 +52,17 @@ final class DashboardPrefetcher {
         let fetchedAt: Date
     }
 
-    /// How long prefetched data is considered fresh (2 minutes)
-    private let freshness: TimeInterval = 120
+    /// How long prefetched data is considered fresh. Tracks `BackgroundMonitor`'s
+    /// own poll interval (default 300s, user-adjustable down to 60s) plus a grace
+    /// window — pinning this to a fixed value shorter than the poll interval meant
+    /// `data(for:)` went nil for the last minute-plus of every cycle, which is why
+    /// things like the sidebar's online/offline dot kept blinking out and coming
+    /// back on its own.
+    private var freshness: TimeInterval {
+        let stored = UserDefaults.standard.double(forKey: "backgroundPollInterval")
+        let pollInterval = stored >= 60 ? stored : 300
+        return pollInterval + 60
+    }
 
     /// Characters whose one-time (assets/killmails/implants) AI insight prefetch
     /// has already run this session — see `prefetchAIInsights`.

@@ -161,14 +161,14 @@ struct RoutePlannerView: View {
 
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Route Type").font(.caption).foregroundStyle(.secondary)
+                        Text("Route Type").font(.caption).foregroundStyle(.secondary).fixedSize()
                         Picker("Route Type", selection: $routeFlag) {
                             Text("Shortest").tag("shortest")
                             Text("Secure (0.5+)").tag("secure")
                             Text("Insecure (<0.5)").tag("insecure")
                         }
                         .pickerStyle(.segmented)
-                        .frame(maxWidth: 360)
+                        .fixedSize()
                     }
 
                     Spacer()
