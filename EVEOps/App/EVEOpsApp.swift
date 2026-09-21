@@ -143,43 +143,19 @@ struct EVEOpsApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     var sharedModelContainer: ModelContainer = EVEOpsApp.makeModelContainer()
 
-    /// Build the SwiftData store, recovering instead of crashing when the on-disk
-    /// store is corrupt or schema-incompatible: move the old store aside and retry
-    /// once, then fall back to an in-memory store so the app still launches (the
-    /// user re-adds characters — SSO tokens live in the Keychain, not here).
+    /// Build the SwiftData store. If the on-disk store can't be opened, `StoreBootstrap`
+    /// moves it aside and starts fresh rather than crashing; `AccountManager` then brings
+    /// the pilots back from `PilotArchive` (Keychain). Account tokens are in the store,
+    /// not the Keychain, which is why that archive exists.
     private static func makeModelContainer() -> ModelContainer {
         let schema = Schema([
             StoredAccount.self,
             CachedName.self,
             LauncherAccount.self
         ])
-        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
-        do {
-            return try ModelContainer(for: schema, configurations: [config])
-        } catch {
-            Logger.app.error("ModelContainer creation failed: \(error.localizedDescription) — resetting local store")
-
-            let storeURL = config.url
-            let stamp = Int(Date().timeIntervalSince1970)
-            let movedAside = storeURL.deletingLastPathComponent()
-                .appendingPathComponent("EVEOps-store-corrupt-\(stamp).store")
-            try? FileManager.default.moveItem(at: storeURL, to: movedAside)
-            for suffix in ["-shm", "-wal"] {
-                try? FileManager.default.removeItem(at: URL(fileURLWithPath: storeURL.path + suffix))
-            }
-
-            if let recovered = try? ModelContainer(for: schema, configurations: [config]) {
-                Logger.app.notice("ModelContainer recovered after resetting the local store")
-                return recovered
-            }
-
-            Logger.app.fault("ModelContainer falling back to an in-memory store — data will not persist this session")
-            let memoryConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-            // An in-memory container effectively never fails; if it does the
-            // process genuinely cannot run.
-            return try! ModelContainer(for: schema, configurations: [memoryConfig])
-        }
+        let result = StoreBootstrap.makeContainer(schema: schema)
+        StoreBootstrap.lastOutcome = result.outcome
+        return result.container
     }
 
     @State private var accountManager: AccountManager
@@ -236,7 +212,7 @@ struct EVEOpsApp: App {
         Task { @MainActor in
             bg.start(accountManager: manager, prefetcher: pf, appUpdater: updater)
             api.start()
-            DiagnosticLogStore.shared.load()
+            await DiagnosticLogStore.shared.load()
             Logger.app.info("EVEOps started — diagnostic log active")
 
             // Configure presence tracker before starting the poll loop so it

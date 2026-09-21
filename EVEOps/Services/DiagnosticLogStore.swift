@@ -44,6 +44,9 @@ final class DiagnosticLogStore {
 
     private(set) var entries: [LogEntry] = []
     private var unsavedCount = 0
+    /// False until the on-disk history has been read. Nothing is flushed before then:
+    /// a flush of only the entries logged so far would overwrite the file's history.
+    private var hasLoaded = false
 
     static let maxEntriesKey = "diagMaxEntries"
     static let maxDaysKey    = "diagMaxDays"
@@ -59,28 +62,38 @@ final class DiagnosticLogStore {
 
     // MARK:  Startup
 
-    func load() {
+    /// Reads the saved history. Entries logged before this finishes — startup messages
+    /// such as "restored N pilots" — are newer than anything on disk, so they are kept
+    /// after the loaded history rather than replaced by it.
+    func load() async {
         let url = Self.storageURL
         let maxDaysKey = Self.maxDaysKey
-        Task { [weak self] in
-            let filtered: [LogEntry] = await Task.detached(priority: .utility) {
-                guard let data = try? Data(contentsOf: url),
-                      let decoded = try? JSONDecoder().decode([LogEntry].self, from: data)
-                else { return [] }
-                let rawDays = UserDefaults.standard.integer(forKey: maxDaysKey)
-                let days = rawDays > 0 ? max(1, min(30, rawDays)) : 7
-                let cutoff = Date().addingTimeInterval(-Double(days) * 86400)
-                return decoded.filter { $0.date > cutoff }
-            }.value
-            self?.entries = filtered
+        let filtered: [LogEntry] = await Task.detached(priority: .utility) {
+            guard let data = try? Data(contentsOf: url),
+                  let decoded = try? JSONDecoder().decode([LogEntry].self, from: data)
+            else { return [] }
+            let rawDays = UserDefaults.standard.integer(forKey: maxDaysKey)
+            let days = rawDays > 0 ? max(1, min(30, rawDays)) : 7
+            let cutoff = Date().addingTimeInterval(-Double(days) * 86400)
+            return decoded.filter { $0.date > cutoff }
+        }.value
+
+        entries = filtered + entries
+        if entries.count > maxEntries {
+            entries.removeFirst(entries.count - maxEntries)
         }
+        hasLoaded = true
     }
 
     // MARK:  Write
 
-    func write(date: Date, category: String, level: LogEntry.Level, message: String) {
+    private var maxEntries: Int {
         let rawMax = UserDefaults.standard.integer(forKey: Self.maxEntriesKey)
-        let maxEntries = rawMax > 0 ? max(100, min(5000, rawMax)) : 1000
+        return rawMax > 0 ? max(100, min(5000, rawMax)) : 1000
+    }
+
+    func write(date: Date, category: String, level: LogEntry.Level, message: String) {
+        let maxEntries = self.maxEntries
 
         entries.append(LogEntry(date: date, category: category, level: level, message: message))
         if entries.count > maxEntries {
@@ -103,7 +116,7 @@ final class DiagnosticLogStore {
     }
 
     func flushSync() {
-        guard !entries.isEmpty else { return }
+        guard hasLoaded, !entries.isEmpty else { return }
         unsavedCount = 0
         let snapshot = entries
         let url = Self.storageURL
@@ -129,6 +142,7 @@ final class DiagnosticLogStore {
     }
 
     private func flush() {
+        guard hasLoaded else { return }
         let snapshot = entries
         let url = Self.storageURL
         Task.detached(priority: .background) {

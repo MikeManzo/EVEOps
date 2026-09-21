@@ -35,6 +35,11 @@ struct MainContentView: View {
                         } else if let service = apiStatus.serviceBannerText {
                             APIStatusBanner(message: service, severity: .service)
                         }
+                        ForEach(accountManager.notices) { notice in
+                            AccountNoticeBanner(notice: notice) {
+                                accountManager.dismissNotice(notice)
+                            }
+                        }
                         if accountManager.hasAccountsNeedingReauth {
                             ReauthBanner(characterNames: accountManager.reauthNeededCharacterNames)
                         }
@@ -201,6 +206,8 @@ struct MainContentView: View {
                 CharacterKillmailsView()
             case .fittings:
                 CharacterFittingsView()
+            case .localIntel:
+                LocalIntelView()
             case .calendar:
                 CharacterCalendarView()
             case .standings:
@@ -252,7 +259,6 @@ struct MainContentView: View {
 
 struct ReauthBanner: View {
     let characterNames: [String]
-    @Environment(\.openSettings) private var openSettings
 
     private var names: String {
         characterNames.joined(separator: ", ")
@@ -266,7 +272,7 @@ struct ReauthBanner: View {
                 .font(.callout)
             Spacer()
             Button("Settings") {
-                openSettings()
+                WindowService.shared.showSettings()
             }
             .font(.callout)
             .buttonStyle(.plain)

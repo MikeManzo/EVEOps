@@ -47,6 +47,15 @@ func pilotSecurityColor(_ status: Double) -> Color {
     return EVEUniversalColor.critical
 }
 
+/// zKillboard's 0–100 "danger rating" for a character — its own derived threat
+/// score, not an ESI/CCP value, so it gets its own traffic-light mapping rather
+/// than reusing `pilotSecurityColor`'s -10...5 scale.
+func zkbDangerColor(_ rating: Double) -> Color {
+    if rating >= 67 { return EVEUniversalColor.critical }
+    if rating >= 34 { return EVEUniversalColor.warning }
+    return EVEUniversalColor.online
+}
+
 /// Colors whose meaning is a universal traffic-light signal (positive/caution/danger),
 /// not a category label — these stay the same across every faction theme so "is this
 /// good or bad" always reads the same way regardless of the chosen palette.

@@ -49,7 +49,7 @@ xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" > /dev/null 2>&1 |
   xcrun notarytool store-credentials \"EVEOpsRelease\" --apple-id \"$APPLE_ID\" --team-id \"$TEAM_ID\""
 
 # ── Paths ────────────────────────────────────────────────────
-WORK_DIR=~/Desktop/EVEOpsRelease
+WORK_DIR="${TMPDIR:-/tmp}/EVEOpsRelease"
 ARCHIVE_PATH="$WORK_DIR/$SCHEME.xcarchive"
 EXPORT_PATH="$WORK_DIR/export"
 APP_PATH="$EXPORT_PATH/$SCHEME.app"

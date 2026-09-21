@@ -34,6 +34,24 @@ struct ZKBMeta: Decodable, Sendable {
     var isAWOX: Bool { awox ?? false }
 }
 
+/// A subset of zKillboard's aggregate character stats — the rest of the payload
+/// (top ships/systems, monthly breakdowns, trophy history, etc.) isn't needed here,
+/// and `Decodable` just ignores keys this struct doesn't declare. All optional
+/// because a character with no killboard history at all returns a much smaller
+/// payload missing every one of these fields, rather than zeros.
+nonisolated struct ZKBCharacterStats: Decodable, Sendable, Hashable {
+    let shipsDestroyed: Int?
+    let shipsLost: Int?
+    let iskDestroyed: Double?
+    let iskLost: Double?
+    /// zKillboard's own 0–100 "how much of a threat" score, derived from their
+    /// kill/loss/gang history — not an ESI/CCP value.
+    let dangerRatio: Double?
+    /// 0–100: how often they fight in a gang vs. alone.
+    let gangRatio: Double?
+    let soloRatio: Double?
+}
+
 // Mark:  Client
 
 actor ZKillboardClient {
@@ -106,5 +124,17 @@ actor ZKillboardClient {
         }
 
         return allRefs
+    }
+
+    /// Fetches zKillboard's aggregate PvP stats for a character (kills/losses,
+    /// ISK destroyed/lost, danger/gang/solo ratios). Public JSON API, no key
+    /// required. Returns `nil` for a character zKillboard has no data for, or
+    /// on any request failure — callers treat this the same as "unknown", not
+    /// an error worth surfacing.
+    func fetchCharacterStats(characterID: Int) async throws -> ZKBCharacterStats? {
+        let url = URL(string: "https://zkillboard.com/api/stats/characterID/\(characterID)/")!
+        let (data, response) = try await session.data(for: URLRequest(url: url))
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else { return nil }
+        return try? JSONDecoder().decode(ZKBCharacterStats.self, from: data)
     }
 }

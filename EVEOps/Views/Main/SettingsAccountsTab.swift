@@ -68,6 +68,8 @@ struct AccountsTab: View {
                 }
                 .disabled(accountManager.isLoading)
 
+                PilotBackupMenu()
+
                 if accountManager.isLoading {
                     ProgressView()
                         .controlSize(.small)

@@ -1045,6 +1045,9 @@
     "×%lld" : {
 
     },
+    "<%@>" : {
+
+    },
     "≈ %@" : {
 
     },
@@ -1504,6 +1507,9 @@
     "Background Refresh" : {
 
     },
+    "Backup" : {
+
+    },
     "Bad" : {
 
     },
@@ -1769,6 +1775,9 @@
     "Cloning" : {
 
     },
+    "Close" : {
+
+    },
     "Closed" : {
 
     },
@@ -1851,6 +1860,9 @@
 
     },
     "Confidence: %@" : {
+
+    },
+    "Confirm passphrase" : {
 
     },
     "Connected" : {
@@ -2185,6 +2197,9 @@
     "Discord: Not connected" : {
 
     },
+    "Dismiss" : {
+
+    },
     "Displays the Utility section containing the Diagnostic Logs viewer" : {
 
     },
@@ -2285,6 +2300,9 @@
     "Enable Notifications" : {
 
     },
+    "Encrypt Pilot Backup" : {
+
+    },
     "Ends %@" : {
 
     },
@@ -2295,6 +2313,9 @@
 
     },
     "Enter in EVE's Remap Screen" : {
+
+    },
+    "Enter the passphrase this backup was encrypted with." : {
 
     },
     "Error" : {
@@ -2474,6 +2495,9 @@
 
     },
     "Export All Skills" : {
+
+    },
+    "Export Backup…" : {
 
     },
     "Export CSV" : {
@@ -2824,6 +2848,9 @@
     "Import a .eft fitting file" : {
 
     },
+    "Import Backup…" : {
+
+    },
     "Import Fitting" : {
 
     },
@@ -2844,6 +2871,9 @@
 
     },
     "In Escrow" : {
+
+    },
+    "In EVE, select-all and copy the Local member list (⌘A, ⌘C), then paste it below." : {
 
     },
     "In EVE: Character Sheet → Neural Remap → Manually Remap. Set each attribute to the value shown in the table above. EVE's remap screen shows the floor automatically — just drag each slider to the target number. This uses all 14 remap points (10 to %@, 4 to %@)." : {
@@ -3253,6 +3283,9 @@
     "Loading…" : {
 
     },
+    "Local Intel" : {
+
+    },
     "Location" : {
 
     },
@@ -3643,6 +3676,9 @@
     "No office rent, sovereignty, or maintenance fees found in this division's journal." : {
 
     },
+    "No Pilots Found" : {
+
+    },
     "No price history available" : {
 
     },
@@ -3665,6 +3701,9 @@
 
     },
     "No saved fittings found" : {
+
+    },
+    "No Scan Yet" : {
 
     },
     "No Ship Selected" : {
@@ -3742,6 +3781,9 @@
     "Not enough recent history" : {
 
     },
+    "Not Found" : {
+
+    },
     "not in queue" : {
 
     },
@@ -3764,6 +3806,9 @@
 
     },
     "Note: if an implant is not detected, its floor may show slightly low. The allocations (+10 / +4 / +0) are always correct regardless." : {
+
+    },
+    "Nothing in the pasted text resolved to a known pilot." : {
 
     },
     "Nothing to show" : {
@@ -3806,6 +3851,9 @@
 
     },
     "Offline" : {
+
+    },
+    "OK" : {
 
     },
     "On launch, select" : {
@@ -3913,6 +3961,12 @@
     "Passive shield recharge" : {
 
     },
+    "Passphrase" : {
+
+    },
+    "Paste a Local member list and tap Scan Local." : {
+
+    },
     "Paste EFT" : {
 
     },
@@ -3952,7 +4006,13 @@
     "PILOT" : {
 
     },
+    "Pilot Backup" : {
+
+    },
     "Pilot Name" : {
+
+    },
+    "Pilots" : {
 
     },
     "Pin %@" : {
@@ -4252,6 +4312,9 @@
     "Response" : {
 
     },
+    "Restore Missing Pilots" : {
+
+    },
     "Retry" : {
 
     },
@@ -4310,6 +4373,9 @@
 
     },
     "Saved Fittings" : {
+
+    },
+    "Scan Local" : {
 
     },
     "Scan Res. Bonus" : {
@@ -4912,6 +4978,9 @@
     "Terrible" : {
 
     },
+    "The backup contains login tokens for your characters. This passphrase encrypts them — there's no way to recover it if you forget it." : {
+
+    },
     "The Categories above decide which events fire — Discord receives the same ones as your native notifications." : {
 
     },
@@ -5087,6 +5156,9 @@
 
     },
     "Unlimited" : {
+
+    },
+    "Unlock Pilot Backup" : {
 
     },
     "Unpackage the ship in-game to view its fitting." : {
@@ -5370,6 +5442,9 @@
 
     },
     "zKillboard" : {
+
+    },
+    "zKillboard danger rating" : {
 
     },
     "zKillboard is a service provided by zKillboard.com. Killmail data is consumed via the public zKillboard API." : {

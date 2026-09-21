@@ -63,6 +63,27 @@ struct KeychainHelper {
         return data
     }
 
+    /// Like `load`, but distinguishes "no such item" (returns nil) from a real failure
+    /// (locked keychain, access denied, …), which throws. Callers that write back what
+    /// they read must use this so a transient failure is never mistaken for "empty".
+    static func loadOptional(for account: String) throws -> Data? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        if status == errSecItemNotFound { return nil }
+        guard status == errSecSuccess, let data = result as? Data else {
+            throw KeychainError.unexpectedStatus(status)
+        }
+        return data
+    }
+
     static func delete(for account: String) throws {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
