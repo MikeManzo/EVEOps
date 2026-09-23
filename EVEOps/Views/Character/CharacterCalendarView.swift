@@ -177,6 +177,7 @@ struct CharacterCalendarView: View {
                     .font(.largeTitle.bold())
                 PinToggleButton(section: .calendar)
                 Spacer()
+                FreshnessIndicator(isLoading: isLoading) { await loadAll() }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
@@ -228,7 +229,7 @@ struct CharacterCalendarView: View {
                         Text("Declined").tag("declined")
                     }
                     .labelsHidden()
-                    .pickerStyle(.segmented)
+                    .eveSegmentedPicker()
                     .frame(maxWidth: 460)
                 }
                 Spacer()
@@ -267,15 +268,7 @@ struct CharacterCalendarView: View {
     }
 
     private var emptyDetail: some View {
-        VStack(spacing: 10) {
-            Image(systemName: "calendar.badge.clock")
-                .font(.system(size: 36))
-                .foregroundStyle(.tertiary)
-            Text("Select an item to view details")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        EVEEmptyState("Select an item to view details", systemImage: "calendar.badge.clock")
     }
 
     // MARK: List
@@ -284,7 +277,7 @@ struct CharacterCalendarView: View {
         HStack(spacing: 8) {
             if let day = selectedDay {
                 Image(systemName: "calendar")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.eveCalloutMedium)
                     .foregroundStyle(palette.accent)
                 Text(day, format: .dateTime.weekday(.abbreviated).month(.abbreviated).day())
                     .font(.subheadline.weight(.medium))
@@ -300,7 +293,7 @@ struct CharacterCalendarView: View {
             Text("\(dayFilteredItems.count)")
                 .font(.caption).foregroundStyle(.tertiary).monospacedDigit()
         }
-        .padding(.horizontal, 12).padding(.vertical, 9).background(.bar)
+        .padding(.horizontal, 12).padding(.vertical, 10).background(.bar)
     }
 
     private var listBody: some View {

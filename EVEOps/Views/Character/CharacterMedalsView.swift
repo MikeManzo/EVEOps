@@ -21,7 +21,7 @@ struct CharacterMedalsView: View {
 
     var body: some View {
         LoadingStateView(isLoading: isLoading, error: error,
-                         isEmpty: groups.isEmpty, emptyMessage: "No medals awarded",
+                         isEmpty: groups.isEmpty, emptyMessage: "No Medals Awarded", emptySystemImage: "medal",
                          onRetry: { Task { await repairScopeAndReload() } },
                          errorLinkLabel: repairAttempted ? "developers.eveonline.com/authorized-apps" : nil,
                          errorLinkURL: repairAttempted ? Self.authorizedAppsURL : nil) {
@@ -41,6 +41,7 @@ struct CharacterMedalsView: View {
                     .font(.largeTitle.bold())
                 PinToggleButton(section: .medals)
                 Spacer()
+                FreshnessIndicator(isLoading: isLoading) { await load() }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
@@ -124,10 +125,10 @@ private struct MedalRow: View {
             CachedAsyncImage(url: EVEImageURL.corporationLogo(medal.corporationId, size: 64)) { image in
                 image.resizable().scaledToFit()
             } placeholder: {
-                RoundedRectangle(cornerRadius: 6).fill(.quaternary)
+                RoundedRectangle(cornerRadius: EVERadius.sm).fill(.quaternary)
             }
             .frame(width: 40, height: 40)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(medal.title)
@@ -172,10 +173,10 @@ private struct MedalRow: View {
                 CachedAsyncImage(url: EVEImageURL.corporationLogo(medal.corporationId, size: 64)) { image in
                     image.resizable().scaledToFit()
                 } placeholder: {
-                    RoundedRectangle(cornerRadius: 6).fill(.quaternary)
+                    RoundedRectangle(cornerRadius: EVERadius.sm).fill(.quaternary)
                 }
                 .frame(width: 64, height: 64)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(medal.title).font(.headline)

@@ -51,7 +51,7 @@ struct AttributeRemapView: View {
 
     var body: some View {
         LoadingStateView(isLoading: isLoading, error: error,
-                         isEmpty: characterData.isEmpty, emptyMessage: "No training data") {
+                         isEmpty: characterData.isEmpty, emptyMessage: "No Training Data", emptySystemImage: "brain.head.profile") {
             ScrollView {
                 VStack(spacing: 20) {
                     HStack {
@@ -73,7 +73,7 @@ struct AttributeRemapView: View {
                                 Text(d.characterName).tag(Optional(d.characterID))
                             }
                         }
-                        .pickerStyle(.segmented)
+                        .eveSegmentedPicker()
                         .frame(maxWidth: 500)
                     }
 
@@ -96,6 +96,7 @@ struct AttributeRemapView: View {
                     .font(.largeTitle.bold())
                 PinToggleButton(section: .remapAdvisor)
                 Spacer()
+                FreshnessIndicator(isLoading: isLoading) { await load() }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
@@ -155,7 +156,7 @@ struct AttributeRemapView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+        .eveCard(cornerRadius: EVERadius.md)
     }
 
     // MARK:  Attributes Section
@@ -195,8 +196,8 @@ struct AttributeRemapView: View {
                                 .frame(width: 100, alignment: .trailing)
                             GeometryReader { geo in
                                 ZStack(alignment: .leading) {
-                                    RoundedRectangle(cornerRadius: 4).fill(.quaternary)
-                                    RoundedRectangle(cornerRadius: 4)
+                                    RoundedRectangle(cornerRadius: EVERadius.xs).fill(.quaternary)
+                                    RoundedRectangle(cornerRadius: EVERadius.xs)
                                         .fill(color)
                                         .frame(width: geo.size.width * Double(total) / Double(maxVal + 5))
                                 }
@@ -227,7 +228,7 @@ struct AttributeRemapView: View {
 
                             Text(bonus > 0 ? "+\(bonus)" : "—")
                                 .font(.caption2.bold())
-                                .padding(.horizontal, 5).padding(.vertical, 2)
+                                .padding(.horizontal, 6).padding(.vertical, 2)
                                 .background(gradeColor(bonus).opacity(0.15))
                                 .foregroundStyle(gradeColor(bonus))
                                 .clipShape(Capsule())
@@ -238,14 +239,14 @@ struct AttributeRemapView: View {
                                 let baseW = geo.size.width * Double(base) / scale
                                 let bonusW = geo.size.width * Double(bonus) / scale
                                 ZStack(alignment: .leading) {
-                                    RoundedRectangle(cornerRadius: 4).fill(.quaternary)
+                                    RoundedRectangle(cornerRadius: EVERadius.xs).fill(.quaternary)
                                     HStack(spacing: 0) {
                                         Rectangle().fill(color.opacity(0.35)).frame(width: baseW)
                                         if bonus > 0 {
                                             Rectangle().fill(color).frame(width: bonusW)
                                         }
                                     }
-                                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                                    .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
                                 }
                             }
                             .frame(height: 16)
@@ -281,7 +282,7 @@ struct AttributeRemapView: View {
             }
         }
         .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .eveCard()
     }
 
     private func gradeColor(_ bonus: Int) -> Color {
@@ -320,8 +321,8 @@ struct AttributeRemapView: View {
                         .frame(width: 180, alignment: .leading)
                         GeometryReader { geo in
                             ZStack(alignment: .leading) {
-                                RoundedRectangle(cornerRadius: 4).fill(.quaternary)
-                                RoundedRectangle(cornerRadius: 4)
+                                RoundedRectangle(cornerRadius: EVERadius.xs).fill(.quaternary)
+                                RoundedRectangle(cornerRadius: EVERadius.xs)
                                     .fill(pairColor(pair))
                                     .frame(width: geo.size.width * fraction)
                             }
@@ -357,7 +358,7 @@ struct AttributeRemapView: View {
             }
         }
         .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .eveCard()
     }
 
     // MARK:  Training Speed Card
@@ -431,8 +432,8 @@ struct AttributeRemapView: View {
                     .frame(width: 200, alignment: .leading)
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
-                            RoundedRectangle(cornerRadius: 4).fill(.quaternary)
-                            RoundedRectangle(cornerRadius: 4)
+                            RoundedRectangle(cornerRadius: EVERadius.xs).fill(.quaternary)
+                            RoundedRectangle(cornerRadius: EVERadius.xs)
                                 .fill(inQueue ? (entry.rate == best ? Color.green : Color.blue.opacity(0.7))
                                              : Color.secondary.opacity(0.3))
                                 .frame(width: geo.size.width * Double(entry.rate) / Double(best))
@@ -447,7 +448,7 @@ struct AttributeRemapView: View {
             }
         }
         .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .eveCard()
     }
 
     // MARK:  Recommendation Card
@@ -546,7 +547,7 @@ struct AttributeRemapView: View {
                                     let floorW = geo.size.width * Double(floor) / scale
                                     let allocW = geo.size.width * Double(alloc) / scale
                                     ZStack(alignment: .leading) {
-                                        RoundedRectangle(cornerRadius: 4).fill(.quaternary)
+                                        RoundedRectangle(cornerRadius: EVERadius.xs).fill(.quaternary)
                                         HStack(spacing: 0) {
                                             Rectangle()
                                                 .fill(isPrimary || isSecondary ? color.opacity(0.3) : Color.secondary.opacity(0.2))
@@ -557,7 +558,7 @@ struct AttributeRemapView: View {
                                                     .frame(width: allocW)
                                             }
                                         }
-                                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                                        .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
                                     }
                                 }
                                 .frame(height: 16)
@@ -629,7 +630,7 @@ struct AttributeRemapView: View {
                 }
             }
             .padding()
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+            .eveCard()
         )
     }
 

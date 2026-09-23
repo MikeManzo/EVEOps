@@ -88,12 +88,13 @@ struct SidebarView: View {
                     Image(systemName: "square.grid.2x2.fill")
                         .foregroundStyle(selectedSection == .dashboard ? .white : palette.accent)
                 }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .contentShape(Rectangle())
                     .onTapGesture { selectedSection = .dashboard }
                     .foregroundStyle(selectedSection == .dashboard ? .white : .primary)
                     .listRowBackground(
                         selectedSection == .dashboard
-                            ? RoundedRectangle(cornerRadius: 6).fill(palette.accent)
+                            ? RoundedRectangle(cornerRadius: EVERadius.sm).fill(palette.accent)
                             : nil
                     )
 
@@ -391,19 +392,91 @@ struct SidebarView: View {
                     .frame(width: 7, height: 7)
                     .accessibilityHidden(true)
             }
+            if let badge = badge(for: section) {
+                Spacer(minLength: 4)
+                badgeView(badge, isSelected: isSelected)
+            }
         }
         .padding(.leading, 10)
+        // Stretch to the full row width so the whole row — not just the label's
+        // text/icon — is the tap target.
+        .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
         .onTapGesture { selectedSection = section }
         .foregroundStyle(isSelected ? .white : .primary)
         .listRowBackground(
             isSelected
-                ? RoundedRectangle(cornerRadius: 6).fill(palette.accent)
+                ? RoundedRectangle(cornerRadius: EVERadius.sm).fill(palette.accent)
                 : nil
         )
         .accessibilityValue(
-            section == .calendar && todayEventCount > 0 ? "\(todayEventCount) events today" : ""
+            section == .calendar && todayEventCount > 0
+                ? "\(todayEventCount) events today"
+                : (badge(for: section)?.accessibilityText ?? "")
         )
+    }
+
+    // MARK:  Row badges
+
+    /// Status surfaced next to a sidebar row for the selected character — alerts (things
+    /// that need attention) render as a filled pill, plain counts as quiet trailing digits
+    /// in the style of Mail's unread counts.
+    private enum RowBadge {
+        case alert(String, Color, accessibility: String)
+        case count(Int, accessibility: String)
+
+        var accessibilityText: String {
+            switch self {
+            case .alert(_, _, let text), .count(_, let text): return text
+            }
+        }
+    }
+
+    private func badge(for section: NavigationSection) -> RowBadge? {
+        guard let id = accountManager.selectedAccount?.characterID,
+              let s = prefetcher.menuBarSummaries[id],
+              s.loadError == nil else { return nil }
+        switch section {
+        case .training:
+            // totalSP > 0 guards against a summary that hasn't finished loading yet,
+            // whose `isQueueEmpty` still holds its default `true`.
+            return s.isQueueEmpty && s.totalSP > 0
+                ? .alert("!", .orange, accessibility: String(localized: "Skill queue empty"))
+                : nil
+        case .colonies:
+            return s.expiredExtractorCount > 0
+                ? .alert("\(s.expiredExtractorCount)", .red, accessibility: String(localized: "\(s.expiredExtractorCount) extractors offline"))
+                : nil
+        case .industry:
+            return s.activeIndustryJobCount > 0
+                ? .count(s.activeIndustryJobCount, accessibility: String(localized: "\(s.activeIndustryJobCount) active jobs"))
+                : nil
+        case .contracts:
+            return s.activeContractCount > 0
+                ? .count(s.activeContractCount, accessibility: String(localized: "\(s.activeContractCount) active contracts"))
+                : nil
+        default:
+            return nil
+        }
+    }
+
+    @ViewBuilder
+    private func badgeView(_ badge: RowBadge, isSelected: Bool) -> some View {
+        switch badge {
+        case .alert(let text, let color, _):
+            Text(text)
+                .font(.eveLabelSemibold.monospacedDigit())
+                .foregroundStyle(isSelected ? color : .white)
+                .padding(.horizontal, EVESpacing.sm)
+                .padding(.vertical, 1)
+                .background(isSelected ? .white : color, in: Capsule())
+                .accessibilityHidden(true)
+        case .count(let n, _):
+            Text("\(n)")
+                .font(.callout.monospacedDigit())
+                .foregroundStyle(isSelected ? .white.opacity(0.85) : .secondary)
+                .accessibilityHidden(true)
+        }
     }
 
     // MARK:  Filtering & scope helpers
@@ -543,8 +616,8 @@ struct SidebarView: View {
                 }
             }
             .padding(.horizontal, 8)
-            .padding(.vertical, 5)
-            .background(RoundedRectangle(cornerRadius: 6).fill(.quaternary.opacity(0.5)))
+            .padding(.vertical, 6)
+            .background(RoundedRectangle(cornerRadius: EVERadius.sm).fill(.quaternary.opacity(0.5)))
             .accessibilityLabel("Filter sidebar")
 
             if showCorpSection {
@@ -626,11 +699,11 @@ struct SidebarView: View {
                     CachedAsyncImage(url: EVEImageURL.characterPortrait(account.characterID, size: 128)) { image in
                         image.resizable().aspectRatio(contentMode: .fill)
                     } placeholder: {
-                        RoundedRectangle(cornerRadius: 8).fill(.secondary.opacity(0.3))
+                        RoundedRectangle(cornerRadius: EVERadius.md).fill(.secondary.opacity(0.3))
                     }
                     .frame(width: 40, height: 40)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.white.opacity(0.15), lineWidth: 1))
+                    .clipShape(RoundedRectangle(cornerRadius: EVERadius.md))
+                    .overlay(RoundedRectangle(cornerRadius: EVERadius.md).strokeBorder(.white.opacity(0.15), lineWidth: 1))
                     .accessibilityHidden(true)
 
                     VStack(alignment: .leading, spacing: 2) {
@@ -652,7 +725,7 @@ struct SidebarView: View {
                                     .foregroundStyle(.primary)
                                     .lineLimit(1)
                                 Image(systemName: "chevron.down")
-                                    .font(.system(size: 11, weight: .semibold))
+                                    .font(.eveCaptionSemibold)
                                     .foregroundStyle(.secondary)
                             }
                         }

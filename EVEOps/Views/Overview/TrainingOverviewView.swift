@@ -48,7 +48,8 @@ struct TrainingOverviewView: View {
             error: error,
             isEmpty: trainingData.isEmpty,
             hasContent: !trainingData.isEmpty,
-            emptyMessage: "No training data",
+            emptyMessage: "No Training Data",
+            emptySystemImage: "brain.head.profile",
             onRetry: { Task { await refresh() } }
         ) {
             HStack(spacing: 0) {
@@ -104,6 +105,7 @@ struct TrainingOverviewView: View {
                             Image(systemName: "xmark.circle.fill")
                                 .foregroundStyle(.secondary)
                         }
+                        .accessibilityLabel("Clear")
                         .buttonStyle(.plain)
                     }
                     if !trainingData.isEmpty {
@@ -146,8 +148,8 @@ struct TrainingOverviewView: View {
                     .help("Export every published skill in EVE (name, group, rank, training attributes) to CSV")
                 }
                 .padding(.horizontal, 10)
-                .padding(.vertical, 7)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+                .padding(.vertical, 8)
+                .eveCard(cornerRadius: EVERadius.md)
                 .padding(.horizontal, 16)
                 .padding(.bottom, 8)
 

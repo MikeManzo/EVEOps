@@ -47,7 +47,7 @@ extension FinancesView {
                             }
                             .frame(maxWidth: .infinity)
                             .padding(8)
-                            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+                            .eveCard(cornerRadius: EVERadius.md)
                         }
                     }
                 }
@@ -58,7 +58,7 @@ extension FinancesView {
                         journalRow(entry)
                     }
                 }
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+                .eveCard()
             }
         }
     }
@@ -146,27 +146,18 @@ extension FinancesView {
                     .foregroundStyle(by: .value("Category", row.categoryLabel))
                 }
                 .chartForegroundStyleScale(domain: cats.map(\.label), range: cats.map(\.color))
-                .chartYAxis {
-                    AxisMarks { value in
-                        AxisGridLine()
-                        AxisValueLabel {
-                            if let d = value.as(Double.self) {
-                                Text(d.formatted(.number.notation(.compactName))).font(.caption2)
-                            }
-                        }
-                    }
-                }
+                .eveISKYAxis()
                 .chartLegend(position: .bottom, spacing: 8)
                 .frame(height: 240)
                 .padding(12)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+                .eveCard()
 
                 VStack(spacing: 1) {
                     ForEach(bd.categories) { summary in
                         breakdownRow(summary, maxGross: bd.categories.first?.gross ?? 1)
                     }
                 }
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+                .eveCard()
             }
         }
     }
@@ -188,12 +179,13 @@ extension FinancesView {
         VStack(spacing: 4) {
             Text(title).font(.caption).foregroundStyle(.secondary)
             Text(EVEFormatters.formatISKShort(value))
-                .font(.title3.bold().monospacedDigit())
+                .font(.eveStatCompact)
                 .foregroundStyle(color)
+                .eveNumeric(value)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 10)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
+        .eveCard(cornerRadius: EVERadius.lg)
     }
 
     func breakdownRow(_ summary: WalletCategorySummary, maxGross: Double) -> some View {
@@ -247,13 +239,14 @@ extension FinancesView {
                         Text(EVEFormatters.formatISKShort(buyTotal))
                             .font(.subheadline.bold().monospacedDigit())
                             .foregroundStyle(.orange)
+                            .eveNumeric(buyTotal)
                         Text("\(transactions.filter(\.isBuy).count) orders")
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(10)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+                    .eveCard(cornerRadius: EVERadius.md)
 
                     VStack(spacing: 2) {
                         Text("Sold")
@@ -262,13 +255,14 @@ extension FinancesView {
                         Text(EVEFormatters.formatISKShort(sellTotal))
                             .font(.subheadline.bold().monospacedDigit())
                             .foregroundStyle(.green)
+                            .eveNumeric(sellTotal)
                         Text("\(transactions.filter { !$0.isBuy }.count) orders")
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(10)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+                    .eveCard(cornerRadius: EVERadius.md)
 
                     VStack(spacing: 2) {
                         Text("Net")
@@ -278,10 +272,11 @@ extension FinancesView {
                         Text(EVEFormatters.formatISKShort(net))
                             .font(.subheadline.bold().monospacedDigit())
                             .foregroundStyle(net >= 0 ? .green : .red)
+                            .eveNumeric(net)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(10)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+                    .eveCard(cornerRadius: EVERadius.md)
                 }
 
                 LazyVStack(spacing: 1) {
@@ -289,7 +284,7 @@ extension FinancesView {
                         transactionRow(tx)
                     }
                 }
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+                .eveCard()
             }
         }
     }
@@ -299,10 +294,10 @@ extension FinancesView {
             CachedAsyncImage(url: EVEImageURL.typeIcon(tx.typeId, size: 64)) { image in
                 image.resizable()
             } placeholder: {
-                RoundedRectangle(cornerRadius: 4).fill(.quaternary)
+                RoundedRectangle(cornerRadius: EVERadius.xs).fill(.quaternary)
             }
             .frame(width: 32, height: 32)
-            .clipShape(RoundedRectangle(cornerRadius: 4))
+            .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(typeNames[tx.typeId] ?? "Type #\(tx.typeId)")
@@ -319,6 +314,7 @@ extension FinancesView {
                 Text(EVEFormatters.formatISKShort(total))
                     .font(.subheadline.bold().monospacedDigit())
                     .foregroundStyle(tx.isBuy ? .red : .green)
+                    .eveNumeric(total)
                 Text(tx.isBuy ? "Buy" : "Sell")
                     .font(.caption2)
                     .foregroundStyle(tx.isBuy ? .orange : .green)
@@ -358,7 +354,7 @@ extension FinancesView {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(10)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+                    .eveCard(cornerRadius: EVERadius.md)
 
                     VStack(spacing: 2) {
                         Text("Buy Orders")
@@ -373,19 +369,19 @@ extension FinancesView {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(10)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+                    .eveCard(cornerRadius: EVERadius.md)
 
                     VStack(spacing: 2) {
                         Text("In Escrow")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         Text(EVEFormatters.formatISKShort(buyOrders.compactMap(\.escrow).reduce(0, +)))
-                            .font(.title3.bold().monospacedDigit())
+                            .font(.eveStatCompact)
                             .foregroundStyle(.orange)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(10)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+                    .eveCard(cornerRadius: EVERadius.md)
                 }
 
                 // Order list
@@ -398,7 +394,7 @@ extension FinancesView {
                             marketOrderRow(order)
                         }
                     }
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+                    .eveCard()
                 }
 
                 if !buyOrders.isEmpty {
@@ -410,7 +406,7 @@ extension FinancesView {
                             marketOrderRow(order)
                         }
                     }
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+                    .eveCard()
                 }
             }
         }
@@ -422,10 +418,10 @@ extension FinancesView {
             CachedAsyncImage(url: EVEImageURL.typeIcon(order.typeId, size: 64)) { image in
                 image.resizable()
             } placeholder: {
-                RoundedRectangle(cornerRadius: 4).fill(.quaternary)
+                RoundedRectangle(cornerRadius: EVERadius.xs).fill(.quaternary)
             }
             .frame(width: 32, height: 32)
-            .clipShape(RoundedRectangle(cornerRadius: 4))
+            .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(typeNames[order.typeId] ?? "Type #\(order.typeId)")
@@ -436,9 +432,9 @@ extension FinancesView {
                 // Progress bar
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 2)
+                        RoundedRectangle(cornerRadius: EVERadius.hairline)
                             .fill(.quaternary)
-                        RoundedRectangle(cornerRadius: 2)
+                        RoundedRectangle(cornerRadius: EVERadius.hairline)
                             .fill(isBuy ? .orange : .green)
                             .frame(width: geo.size.width * Double(order.volumeTotal - order.volumeRemain) / max(Double(order.volumeTotal), 1))
                     }

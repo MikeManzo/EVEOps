@@ -21,7 +21,7 @@ struct CharacterCommunicationsView: View {
     @State private var selectedNotification: ESINotification?
 
     var body: some View {
-        LoadingStateView(isLoading: isLoading, error: error, isEmpty: notifications.isEmpty, emptyMessage: "No notifications") {
+        LoadingStateView(isLoading: isLoading, error: error, isEmpty: notifications.isEmpty, emptyMessage: "No Notifications", emptySystemImage: "bell.slash") {
             HStack(spacing: 0) {
                 VStack(spacing: 0) {
                     HStack {
@@ -31,7 +31,7 @@ struct CharacterCommunicationsView: View {
                             Text("Structure").tag("structure")
                             Text("War").tag("war")
                         }
-                        .pickerStyle(.segmented)
+                        .eveSegmentedPicker()
                         .frame(maxWidth: 400)
                         Spacer()
                         Text("\(filteredNotifications.count) notifications")
@@ -60,6 +60,7 @@ struct CharacterCommunicationsView: View {
                     .font(.largeTitle.bold())
                 PinToggleButton(section: .communications)
                 Spacer()
+                FreshnessIndicator(isLoading: isLoading) { await loadNotifications() }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
@@ -189,7 +190,7 @@ struct NotificationDetailView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(8)
                                 .background(.quaternary.opacity(0.4))
-                                .clipShape(RoundedRectangle(cornerRadius: 6))
+                                .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
                         }
                     }
                 }

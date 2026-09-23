@@ -21,7 +21,7 @@ extension FinancesView {
             summaryCard("Buy Orders (Escrow)", value: totalEscrow, color: .orange)
             // #7: Net Worth is the headline figure of this screen — elevated so it reads
             // as primary next to the three secondary stat tiles beside it.
-            summaryCard("Net Worth", value: netWorth, color: .purple, isPrimary: true)
+            summaryCard("Net Worth", value: netWorth, color: palette.accent, isPrimary: true)
         }
     }
 
@@ -31,8 +31,9 @@ extension FinancesView {
                 .font(.caption)
                 .foregroundStyle(.secondary)
             Text(EVEFormatters.formatISKShort(value))
-                .font(.title3.bold().monospacedDigit())
+                .font(.eveStatCompact)
                 .foregroundStyle(color)
+                .eveNumeric(value)
         }
         .frame(maxWidth: .infinity)
         .padding()
@@ -70,7 +71,7 @@ extension FinancesView {
                 .frame(maxWidth: .infinity, alignment: .topLeading)
         }
         .padding(10)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .eveCard()
     }
 
     // MARK:  Today column
@@ -88,7 +89,7 @@ extension FinancesView {
                     .font(.subheadline.bold())
                 Spacer()
                 Text("Resets at local midnight")
-                    .font(.system(size: 9))
+                    .font(.eveMicro)
                     .foregroundStyle(.tertiary)
             }
             iskStatCard("Made", value: daily.made, color: .green)
@@ -112,19 +113,19 @@ extension FinancesView {
                     .foregroundStyle(.secondary)
                 Spacer()
                 Text((signed && value >= 0 ? "+" : "") + EVEFormatters.formatISKShort(value))
-                    .font(.title3.bold().monospacedDigit())
+                    .font(.eveStatCompact)
                     .foregroundStyle(color)
             }
             if let footnote {
                 Text(footnote)
-                    .font(.system(size: 9))
+                    .font(.eveMicro)
                     .foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, alignment: .trailing)
             }
         }
         .padding(10)
         .frame(maxWidth: .infinity)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+        .eveCard(cornerRadius: EVERadius.md)
     }
 
     /// "▲ 34% vs 7-day avg (…)" — nil when there is no meaningful 7-day baseline.
@@ -169,12 +170,12 @@ extension FinancesView {
                 Spacer()
                 Text("Now " + EVEFormatters.formatISKShort(current))
             }
-            .font(.system(size: 9).monospacedDigit())
+            .font(.eveMicro.monospacedDigit())
             .foregroundStyle(.tertiary)
         }
         .padding(10)
         .frame(maxWidth: .infinity)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+        .eveCard(cornerRadius: EVERadius.md)
     }
 
     // MARK:  Today column — category breakdown
@@ -208,7 +209,7 @@ extension FinancesView {
         }
         .padding(10)
         .frame(maxWidth: .infinity)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+        .eveCard(cornerRadius: EVERadius.md)
     }
 
     // MARK:  Today column — activity
@@ -244,7 +245,7 @@ extension FinancesView {
         }
         .padding(10)
         .frame(maxWidth: .infinity)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+        .eveCard(cornerRadius: EVERadius.md)
     }
 
     private func activityLine(label: String, entry: ESIWalletJournalEntry, color: Color) -> some View {
@@ -252,7 +253,7 @@ extension FinancesView {
         return HStack(spacing: 6) {
             VStack(alignment: .leading, spacing: 0) {
                 Text(label)
-                    .font(.system(size: 9))
+                    .font(.eveMicro)
                     .foregroundStyle(.tertiary)
                 Text(formatRefType(entry.refType))
                     .font(.caption2)
@@ -281,7 +282,7 @@ extension FinancesView {
                     Text("Net")
                         .frame(width: 64, alignment: .trailing)
                 }
-                .font(.system(size: 9))
+                .font(.eveMicro)
                 .foregroundStyle(.tertiary)
             }
             VStack(spacing: 0) {
@@ -292,7 +293,7 @@ extension FinancesView {
             }
             .padding(.vertical, 4)
             .padding(.horizontal, 10)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+            .eveCard(cornerRadius: EVERadius.md)
         }
     }
 
@@ -303,7 +304,7 @@ extension FinancesView {
                 Text(day.date, format: .dateTime.weekday(.abbreviated))
                     .font(.caption.bold())
                 Text(day.date, format: .dateTime.month(.abbreviated).day())
-                    .font(.system(size: 9))
+                    .font(.eveMicro)
                     .foregroundStyle(.secondary)
             }
             Spacer()
@@ -318,7 +319,7 @@ extension FinancesView {
                 .frame(width: 64, alignment: .trailing)
         }
         .font(.caption.monospacedDigit())
-        .padding(.vertical, 5)
+        .padding(.vertical, 6)
     }
 
     // MARK:  Wealth Distribution
@@ -351,7 +352,7 @@ extension FinancesView {
                             angularInset: 2
                         )
                         .foregroundStyle(cat.color)
-                        .cornerRadius(4)
+                        .cornerRadius(EVERadius.xs)
                     }
                     .chartLegend(.hidden)
                     .frame(width: 100, height: 100)
@@ -367,8 +368,7 @@ extension FinancesView {
                                     .foregroundStyle(.secondary)
                                 if cat.name == "Assets" && isLoadingAssets {
                                     ProgressView()
-                                        .scaleEffect(0.4)
-                                        .frame(width: 10, height: 10)
+                                        .controlSize(.mini)
                                 }
                                 Spacer()
                                 VStack(alignment: .trailing, spacing: 0) {
@@ -377,7 +377,7 @@ extension FinancesView {
                                         .foregroundStyle(cat.color)
                                     if netWorth > 0 {
                                         Text((cat.value / netWorth).formatted(.percent.precision(.fractionLength(1))))
-                                            .font(.system(size: 9))
+                                            .font(.eveMicro)
                                             .foregroundStyle(.secondary)
                                     }
                                 }
@@ -386,15 +386,15 @@ extension FinancesView {
 
                         if isLoadingAssets && totalAssetValue == 0 {
                             HStack(spacing: 4) {
-                                ProgressView().scaleEffect(0.5)
+                                ProgressView().controlSize(.mini)
                                 Text("Valuing assets...")
-                                    .font(.system(size: 9))
+                                    .font(.eveMicro)
                                     .foregroundStyle(.tertiary)
                             }
                         }
 
                         Text("Asset values estimated using current market average prices")
-                            .font(.system(size: 9))
+                            .font(.eveMicro)
                             .foregroundStyle(.tertiary)
                             .padding(.top, 1)
                     }
@@ -402,7 +402,7 @@ extension FinancesView {
             }
         }
         .padding(10)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .eveCard()
     }
 
     // MARK:  Character Detail
@@ -425,7 +425,7 @@ extension FinancesView {
             Text("Market Orders (\(finance.marketOrders.count))").tag(2)
             Text("Loyalty Points (\(finance.loyaltyPoints.count))").tag(3)
         }
-        .pickerStyle(.segmented)
+        .eveSegmentedPicker()
         .frame(maxWidth: 640)
 
         switch selectedTab {
@@ -443,17 +443,18 @@ extension FinancesView {
             CachedAsyncImage(url: EVEImageURL.characterPortrait(finance.characterID, size: 256)) { image in
                 image.resizable()
             } placeholder: {
-                RoundedRectangle(cornerRadius: 8).fill(.quaternary)
+                RoundedRectangle(cornerRadius: EVERadius.md).fill(.quaternary)
             }
             .frame(width: 64, height: 64)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .clipShape(RoundedRectangle(cornerRadius: EVERadius.md))
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(finance.characterName)
                     .font(.title3.bold())
                 Text(EVEFormatters.formatISK(finance.balance))
-                    .font(.title.bold().monospacedDigit())
+                    .font(.eveHeroStat)
                     .foregroundStyle(.blue)
+                    .eveNumeric(finance.balance)
             }
 
             Spacer()
@@ -476,7 +477,7 @@ extension FinancesView {
             }
         }
         .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .eveCard()
     }
 
     @ViewBuilder
@@ -486,15 +487,8 @@ extension FinancesView {
             return BalancePoint(date: entry.date, balance: bal)
         }
         if points.count > 1 {
-            Chart(points, id: \.date) { point in
-                LineMark(x: .value("Date", point.date), y: .value("Balance", point.balance))
-                    .foregroundStyle(.blue)
-                AreaMark(x: .value("Date", point.date), y: .value("Balance", point.balance))
-                    .foregroundStyle(.blue.opacity(0.1))
-            }
-            .chartXAxis(.hidden)
-            .chartYAxis(.hidden)
-            .frame(width: 220, height: 60)
+            BalanceSparkline(points: Array(points), tint: palette.accent)
+                .frame(width: 220, height: 60)
         }
     }
 

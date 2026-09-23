@@ -17,7 +17,7 @@ struct CharacterStandingsView: View {
     @State private var error: String?
 
     var body: some View {
-        LoadingStateView(isLoading: isLoading, error: error, isEmpty: groups.isEmpty, emptyMessage: "No standings found") {
+        LoadingStateView(isLoading: isLoading, error: error, isEmpty: groups.isEmpty, emptyMessage: "No Standings", emptySystemImage: "hand.thumbsup") {
             List {
                 ForEach(groups, id: \.characterName) { group in
                     Section(header: Text(group.characterName).font(.title3).bold()) {
@@ -37,6 +37,7 @@ struct CharacterStandingsView: View {
                     .font(.largeTitle.bold())
                 PinToggleButton(section: .standings)
                 Spacer()
+                FreshnessIndicator(isLoading: isLoading) { isLoading = true; await load() }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
@@ -129,10 +130,10 @@ struct StandingRow: View {
             CachedAsyncImage(url: iconURL) { image in
                 image.resizable().scaledToFit()
             } placeholder: {
-                RoundedRectangle(cornerRadius: 6).fill(.quaternary)
+                RoundedRectangle(cornerRadius: EVERadius.sm).fill(.quaternary)
             }
             .frame(width: 32, height: 32)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(name.isEmpty ? "ID #\(standing.fromId)" : name).font(.subheadline)
@@ -188,10 +189,10 @@ struct FactionPopoverView: View {
                 CachedAsyncImage(url: EVEImageURL.corporationLogo(standing.fromId, size: 64)) { image in
                     image.resizable().scaledToFit()
                 } placeholder: {
-                    RoundedRectangle(cornerRadius: 6).fill(.quaternary)
+                    RoundedRectangle(cornerRadius: EVERadius.sm).fill(.quaternary)
                 }
                 .frame(width: 64, height: 64)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
 
                 VStack(alignment: .leading, spacing: 4) {
                     if let faction {
@@ -265,10 +266,10 @@ struct NpcCorpPopoverView: View {
                 CachedAsyncImage(url: EVEImageURL.corporationLogo(standing.fromId, size: 64)) { image in
                     image.resizable().scaledToFit()
                 } placeholder: {
-                    RoundedRectangle(cornerRadius: 6).fill(.quaternary)
+                    RoundedRectangle(cornerRadius: EVERadius.sm).fill(.quaternary)
                 }
                 .frame(width: 64, height: 64)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
 
                 VStack(alignment: .leading, spacing: 4) {
                     if let corp {
@@ -336,10 +337,10 @@ struct AgentPopoverView: View {
                 CachedAsyncImage(url: EVEImageURL.characterPortrait(standing.fromId, size: 64)) { image in
                     image.resizable().scaledToFit()
                 } placeholder: {
-                    RoundedRectangle(cornerRadius: 6).fill(.quaternary)
+                    RoundedRectangle(cornerRadius: EVERadius.sm).fill(.quaternary)
                 }
                 .frame(width: 64, height: 64)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
 
                 VStack(alignment: .leading, spacing: 4) {
                     if let agentInfo {

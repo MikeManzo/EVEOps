@@ -23,7 +23,7 @@ struct CorporationWarsView: View {
 
     var body: some View {
         LoadingStateView(isLoading: isLoading, error: error,
-                         isEmpty: wars.isEmpty, emptyMessage: "No wars found for this corporation") {
+                         isEmpty: wars.isEmpty, emptyMessage: "No Wars", emptySystemImage: "shield") {
             List {
                 if !activeWars.isEmpty {
                     Section("Active (\(activeWars.count))") {
@@ -43,6 +43,7 @@ struct CorporationWarsView: View {
                     .font(.largeTitle.bold())
                 PinToggleButton(section: .corpWars)
                 Spacer()
+                FreshnessIndicator(isLoading: isLoading) { await load() }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)

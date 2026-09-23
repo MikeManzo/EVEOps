@@ -46,7 +46,7 @@ struct CorporationWalletsView: View {
     }
 
     var body: some View {
-        LoadingStateView(isLoading: isLoading, error: error, isEmpty: wallets.isEmpty, emptyMessage: "No wallet data or insufficient permissions") {
+        LoadingStateView(isLoading: isLoading, error: error, isEmpty: wallets.isEmpty, emptyMessage: "None were found, or this character lacks the Accountant or Junior Accountant role.", emptyTitle: "No Wallet Data", emptySystemImage: "banknote") {
             VStack(spacing: 0) {
                 walletHeader
                 divisionPicker
@@ -60,6 +60,7 @@ struct CorporationWalletsView: View {
                     .font(.largeTitle.bold())
                 PinToggleButton(section: .corpWallets)
                 Spacer()
+                FreshnessIndicator(isLoading: isLoading) { await loadWallets() }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
@@ -81,7 +82,8 @@ struct CorporationWalletsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Text(EVEFormatters.formatISK(totalBalance))
-                    .font(.title2.bold().monospacedDigit())
+                    .font(.eveStat)
+                    .eveNumeric(totalBalance)
             }
             Spacer()
         }
@@ -107,7 +109,7 @@ struct CorporationWalletsView: View {
                         .padding(.vertical, 6)
                         .background(
                             selectedDivision == wallet.division ? palette.accent.opacity(0.2) : Color.clear,
-                            in: RoundedRectangle(cornerRadius: 8)
+                            in: RoundedRectangle(cornerRadius: EVERadius.md)
                         )
                     }
                     .buttonStyle(.plain)
@@ -125,7 +127,7 @@ struct CorporationWalletsView: View {
             Text("Journal").tag(1)
             Text("Liabilities").tag(2)
         }
-        .pickerStyle(.segmented)
+        .eveSegmentedPicker()
         .padding(10)
         .frame(maxWidth: 350)
     }
@@ -201,6 +203,7 @@ struct CorporationWalletsView: View {
                         Text(EVEFormatters.formatISK(abs(grandTotal)))
                             .font(.subheadline.bold().monospacedDigit())
                             .foregroundStyle(.red)
+                            .eveNumeric(grandTotal)
                     }
                 }
 

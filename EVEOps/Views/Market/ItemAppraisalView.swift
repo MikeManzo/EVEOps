@@ -51,7 +51,7 @@ struct ItemAppraisalView: View {
                     .font(.system(.body, design: .monospaced))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .scrollContentBackground(.hidden)
-                    .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
+                    .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: EVERadius.md))
 
                 HStack {
                     Button("Clear") {
@@ -99,15 +99,17 @@ struct ItemAppraisalView: View {
                                 Text("Sell Value")
                                     .font(.caption).foregroundStyle(.secondary)
                                 Text(EVEFormatters.formatISK(totalSell))
-                                    .font(.title2.bold().monospacedDigit())
+                                    .font(.eveStat)
                                     .foregroundStyle(.green)
+                                    .eveNumeric(totalSell)
                             }
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Buy Value")
                                     .font(.caption).foregroundStyle(.secondary)
                                 Text(EVEFormatters.formatISK(totalBuy))
-                                    .font(.title2.bold().monospacedDigit())
+                                    .font(.eveStat)
                                     .foregroundStyle(.orange)
+                                    .eveNumeric(totalBuy)
                             }
                             Spacer()
                             VStack(alignment: .trailing, spacing: 2) {
@@ -175,10 +177,10 @@ struct ItemAppraisalView: View {
             CachedAsyncImage(url: EVEImageURL.typeIcon(row.typeID, size: 64)) { img in
                 img.resizable()
             } placeholder: {
-                RoundedRectangle(cornerRadius: 4).fill(.quaternary)
+                RoundedRectangle(cornerRadius: EVERadius.xs).fill(.quaternary)
             }
             .frame(width: 32, height: 32)
-            .clipShape(RoundedRectangle(cornerRadius: 4))
+            .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(row.name).font(.subheadline)

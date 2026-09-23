@@ -24,7 +24,7 @@ struct CharacterMailsView: View {
     @State private var deleteError: String?
 
     var body: some View {
-        LoadingStateView(isLoading: isLoading, error: error, isEmpty: mails.isEmpty, emptyMessage: "No mails found") {
+        LoadingStateView(isLoading: isLoading, error: error, isEmpty: mails.isEmpty, emptyMessage: "No Mail", emptySystemImage: "envelope") {
             VStack(spacing: 0) {
                 HStack {
                     Spacer()
@@ -62,6 +62,7 @@ struct CharacterMailsView: View {
                     .font(.largeTitle.bold())
                 PinToggleButton(section: .mails)
                 Spacer()
+                FreshnessIndicator(isLoading: isLoading) { await loadMails() }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
@@ -293,6 +294,7 @@ struct ComposeMailSheet: View {
                                     } label: {
                                         Image(systemName: "xmark").font(.caption2)
                                     }
+                                    .accessibilityLabel("Remove")
                                     .buttonStyle(.plain)
                                 }
                                 .padding(.horizontal, 8)
@@ -336,7 +338,7 @@ struct ComposeMailSheet: View {
                             .font(.body)
                             .frame(minHeight: 200)
                             .overlay(
-                                RoundedRectangle(cornerRadius: 6)
+                                RoundedRectangle(cornerRadius: EVERadius.sm)
                                     .stroke(.quaternary, lineWidth: 1)
                             )
                     }
@@ -350,7 +352,7 @@ struct ComposeMailSheet: View {
                         .font(.caption)
                         .padding(8)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(.red.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+                        .background(.red.opacity(0.08), in: RoundedRectangle(cornerRadius: EVERadius.md))
                     }
                 }
                 .padding()

@@ -250,12 +250,74 @@ info "Stapling notarization ticket to app bundle..."
 staple_with_retry "$APP_PATH"
 
 # ── Create DMG (with already-stapled .app inside) ────────────
+# Styled installer: branded background, app + Applications alias side by side.
+# Finder lays the window out via AppleScript, which needs Automation permission for
+# Terminal → Finder; if any styling step fails we fall back to the plain DMG.
+# Regenerate the background with:
+#   swift Scripts/make_dmg_background.swift Scripts/dmg && \
+#   tiffutil -cathidpicheck Scripts/dmg/background.png Scripts/dmg/background@2x.png -out Scripts/dmg/background.tiff
+DMG_BACKGROUND="$(dirname "$0")/dmg/background.tiff"
+
+create_plain_dmg() {
+  hdiutil create \
+    -volname "$SCHEME" \
+    -srcfolder "$APP_PATH" \
+    -ov -format UDZO \
+    "$DMG_PATH"
+}
+
+create_styled_dmg() {
+  local staging="$WORK_DIR/dmg-staging"
+  local rw_dmg="$WORK_DIR/$SCHEME-rw.dmg"
+  local mount_dir="/Volumes/$SCHEME"
+
+  rm -rf "$staging" "$rw_dmg"
+  mkdir -p "$staging/.background"
+  ditto "$APP_PATH" "$staging/$SCHEME.app"
+  ln -s /Applications "$staging/Applications"
+  cp "$DMG_BACKGROUND" "$staging/.background/background.tiff"
+
+  # Detach any stale mount of the same volume name so Finder targets the right disk.
+  [ -d "$mount_dir" ] && hdiutil detach "$mount_dir" -force >/dev/null 2>&1
+
+  hdiutil create -volname "$SCHEME" -srcfolder "$staging" -ov -format UDRW "$rw_dmg" >/dev/null || return 1
+  hdiutil attach "$rw_dmg" -readwrite -noverify -noautoopen >/dev/null || return 1
+
+  osascript <<APPLESCRIPT || { hdiutil detach "$mount_dir" -force >/dev/null 2>&1; return 1; }
+tell application "Finder"
+  tell disk "$SCHEME"
+    open
+    set current view of container window to icon view
+    set toolbar visible of container window to false
+    set statusbar visible of container window to false
+    set the bounds of container window to {200, 120, 860, 520}
+    set viewOptions to the icon view options of container window
+    set arrangement of viewOptions to not arranged
+    set icon size of viewOptions to 128
+    set text size of viewOptions to 13
+    set background picture of viewOptions to file ".background:background.tiff"
+    set position of item "$SCHEME.app" of container window to {170, 190}
+    set position of item "Applications" of container window to {490, 190}
+    update without registering applications
+    delay 1
+    close
+  end tell
+end tell
+APPLESCRIPT
+
+  sync
+  hdiutil detach "$mount_dir" >/dev/null || hdiutil detach "$mount_dir" -force >/dev/null || return 1
+  hdiutil convert "$rw_dmg" -format UDZO -imagekey zlib-level=9 -ov -o "$DMG_PATH" >/dev/null || return 1
+  rm -rf "$staging" "$rw_dmg"
+}
+
 info "Creating DMG..."
-hdiutil create \
-  -volname "$SCHEME" \
-  -srcfolder "$APP_PATH" \
-  -ov -format UDZO \
-  "$DMG_PATH"
+if [ -f "$DMG_BACKGROUND" ] && create_styled_dmg; then
+  info "Styled DMG created ✓"
+else
+  warning "Styled DMG failed — falling back to a plain DMG"
+  create_plain_dmg
+fi
 
 [ -f "$DMG_PATH" ] || error "DMG creation failed"
 info "DMG created ✓"

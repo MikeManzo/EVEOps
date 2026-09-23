@@ -40,11 +40,11 @@ extension LocationOverviewView {
                         CachedAsyncImage(url: EVEImageURL.characterPortrait(info.characterID, size: 512)) { image in
                             image.resizable()
                         } placeholder: {
-                            RoundedRectangle(cornerRadius: 10).fill(.quaternary)
+                            RoundedRectangle(cornerRadius: EVERadius.lg).fill(.quaternary)
                         }
                         .frame(width: 128, height: 128)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.separator, lineWidth: 1))
+                        .clipShape(RoundedRectangle(cornerRadius: EVERadius.lg))
+                        .evePortraitRing(cornerRadius: EVERadius.lg, accent: palette.location)
 
                         // Name + corp + online status
                         VStack(alignment: .leading, spacing: 2) {
@@ -124,9 +124,9 @@ extension LocationOverviewView {
                                 image.resizable()
                                     .aspectRatio(contentMode: .fill)
                                     .frame(width: 128, height: 128)
-                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                                    .clipShape(RoundedRectangle(cornerRadius: EVERadius.lg))
                             } else {
-                                RoundedRectangle(cornerRadius: 10)
+                                RoundedRectangle(cornerRadius: EVERadius.lg)
                                     .fill(.quaternary)
                                     .frame(width: 128, height: 128)
                             }
@@ -143,6 +143,7 @@ extension LocationOverviewView {
                         VStack(alignment: .leading, spacing: 4) {
                             HStack(spacing: 6) {
                                 Text(info.systemName)
+                                    .eveContextMenu(.system(id: info.systemId, name: info.systemName))
                                     .font(.body.bold())
                                 securityBadge(info.securityValue)
                             }
@@ -187,9 +188,9 @@ extension LocationOverviewView {
                             if let image = phase.image {
                                 image.resizable()
                                     .frame(width: 128, height: 128)
-                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                                    .clipShape(RoundedRectangle(cornerRadius: EVERadius.lg))
                             } else {
-                                RoundedRectangle(cornerRadius: 10)
+                                RoundedRectangle(cornerRadius: EVERadius.lg)
                                     .fill(.quaternary)
                                     .frame(width: 128, height: 128)
                             }
@@ -277,8 +278,8 @@ extension LocationOverviewView {
             }
             .padding(12)
         }
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .eveCard()
+        .clipShape(RoundedRectangle(cornerRadius: EVERadius.xl))
     }
 
     // MARK:  Station Services
@@ -368,10 +369,10 @@ extension LocationOverviewView {
                                     let (label, icon, color) = stationServiceInfo(service)
                                     HStack(spacing: 3) {
                                         Image(systemName: icon)
-                                            .font(.system(size: 9))
+                                            .font(.eveMicro)
                                             .foregroundStyle(color)
                                         Text(label)
-                                            .font(.system(size: 10))
+                                            .font(.eveLabel)
                                             .foregroundStyle(.secondary)
                                     }
                                 }

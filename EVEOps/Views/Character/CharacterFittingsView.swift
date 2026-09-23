@@ -131,7 +131,7 @@ struct CharacterFittingsView: View {
                     fittingsTabButton("Simulate Ships", icon: "slider.horizontal.3", tab: .simulate)
                 }
                 .padding(3)
-                .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
+                .background(.quaternary, in: RoundedRectangle(cornerRadius: EVERadius.md))
                 Spacer()
                 if let transferable = toolbarShareTransferable {
                     ShareLink(
@@ -139,7 +139,7 @@ struct CharacterFittingsView: View {
                         preview: SharePreview(transferable.filename, image: Image(systemName: "doc.text"))
                     ) {
                         Label("Share Fitting", systemImage: "square.and.arrow.up")
-                            .padding(5)
+                            .padding(6)
                     }
                     .buttonStyle(.borderless)
                 }
@@ -166,7 +166,7 @@ struct CharacterFittingsView: View {
             Divider()
 
             if activeTab == .ships {
-                LoadingStateView(isLoading: isLoading, error: error, isEmpty: shipsEmpty, emptyMessage: "No ships found") {
+                LoadingStateView(isLoading: isLoading, error: error, isEmpty: shipsEmpty, emptyMessage: "No Ships Found", emptySystemImage: "airplane") {
                     shipsContent
                 }
             } else if activeTab == .savedFittings {
@@ -174,7 +174,7 @@ struct CharacterFittingsView: View {
                     isLoading: isSavingsLoading || !savedFittingsLoaded,
                     error: savingsError,
                     isEmpty: savedEmpty,
-                    emptyMessage: "No saved fittings — select a ship and use 'Save Fitting'"
+                    emptyMessage: "Select a ship and use 'Save Fitting' to keep it here.", emptyTitle: "No Saved Fittings", emptySystemImage: "wrench.and.screwdriver"
                 ) {
                     savedFittingsContent
                 }
@@ -191,6 +191,7 @@ struct CharacterFittingsView: View {
                     .font(.largeTitle.bold())
                 PinToggleButton(section: .fittings)
                 Spacer()
+                FreshnessIndicator(isLoading: isLoading) { await load() }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
@@ -574,9 +575,9 @@ struct CharacterFittingsView: View {
             .font(.subheadline)
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 10)
-            .padding(.vertical, 5)
+            .padding(.vertical, 6)
             .background(activeTab == tab ? palette.accent : Color.clear,
-                        in: RoundedRectangle(cornerRadius: 6))
+                        in: RoundedRectangle(cornerRadius: EVERadius.sm))
             .foregroundStyle(activeTab == tab ? .white : .primary)
             .contentShape(Rectangle())
             .onTapGesture { activeTab = tab }

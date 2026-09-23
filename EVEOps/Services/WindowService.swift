@@ -34,6 +34,7 @@ final class WindowService: NSObject {
     private var tradeHubWindow: NSWindow?
     private var itemSkillTreeWindow: NSWindow?
     private var settingsWindow: NSWindow?
+    private var aboutWindow: NSWindow?
     private var shipModelWindows: [String: NSWindow] = [:]
     private var defaultsObserver: NSObjectProtocol?
 
@@ -300,6 +301,41 @@ final class WindowService: NSObject {
         bringToFront(window)
     }
 
+    // MARK: About
+
+    /// Standalone About window (App menu > About EVEOps) — the same content as the
+    /// Settings > About tab, in a compact titlebar-less window so the starfield hero runs
+    /// edge to edge, like the About panels of Apple's own apps.
+    func showAbout() {
+        if let window = aboutWindow {
+            bringToFront(window)
+            return
+        }
+        guard let tm = themeManager else { return }
+
+        let content = ThemedRoot {
+            AboutTab()
+                .frame(width: 440, height: 560)
+                .ignoresSafeArea()
+        }
+        .environment(tm)
+
+        let controller = NSHostingController(rootView: content)
+        let window = NSWindow(contentViewController: controller)
+        window.appearance = resolvedNSAppearance
+        window.title = "About EVEOps"
+        window.styleMask = [.titled, .closable, .fullSizeContentView]
+        window.titlebarAppearsTransparent = true
+        window.titleVisibility = .hidden
+        window.isMovableByWindowBackground = true
+        window.isReleasedWhenClosed = false
+        window.delegate = self
+        window.center()
+
+        aboutWindow = window
+        bringToFront(window)
+    }
+
     // MARK: Helpers
 
     // MenuBarExtra popovers dismiss *after* the button action returns, so
@@ -325,6 +361,7 @@ final class WindowService: NSObject {
         tradeHubWindow?.appearance = appearance
         itemSkillTreeWindow?.appearance = appearance
         settingsWindow?.appearance = appearance
+        aboutWindow?.appearance = appearance
         shipModelWindows.values.forEach { $0.appearance = appearance }
     }
 
@@ -374,6 +411,7 @@ extension WindowService: NSWindowDelegate {
         guard let window = notification.object as? NSWindow else { return }
         MainActor.assumeIsolated {
             if window === settingsWindow { settingsWindow = nil }
+            if window === aboutWindow { aboutWindow = nil }
             if window === tradeHubWindow { tradeHubWindow = nil }
             if window === itemSkillTreeWindow { itemSkillTreeWindow = nil }
             shipModelWindows = shipModelWindows.filter { $0.value !== window }

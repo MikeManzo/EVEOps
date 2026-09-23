@@ -26,7 +26,7 @@ extension GalaxyMarketSearchView {
             // Item search + order type + search button
             HStack(spacing: 10) {
                 if let typeId = selectedTypeId {
-                    TypeImage(typeId: typeId, size: 28, cornerRadius: 4)
+                    TypeImage(typeId: typeId, size: 28, cornerRadius: EVERadius.xs)
                 }
 
                 HStack(spacing: 6) {
@@ -44,11 +44,12 @@ extension GalaxyMarketSearchView {
                         Button { clearItemSelection() } label: {
                             Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
                         }
+                        .accessibilityLabel("Clear")
                         .buttonStyle(.plain)
                     }
                 }
-                .padding(7)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+                .padding(8)
+                .eveCard(cornerRadius: EVERadius.md)
                 .frame(maxWidth: 320)
 
                 // Order type picker
@@ -57,7 +58,7 @@ extension GalaxyMarketSearchView {
                     Text("Buy").tag(OrderTypeFilter.buy)
                     Text("Both").tag(OrderTypeFilter.all)
                 }
-                .pickerStyle(.segmented)
+                .eveSegmentedPicker()
                 .labelsHidden()
                 .frame(width: 160)
                 .help("Choose which order types to search for")
@@ -187,7 +188,7 @@ extension GalaxyMarketSearchView {
                 }
             } label: {
                 HStack(spacing: 14) {
-                    TypeImage(typeId: result.typeId, size: 48, cornerRadius: 6)
+                    TypeImage(typeId: result.typeId, size: 48, cornerRadius: EVERadius.sm)
                     Text(result.name).font(.title3)
                     Spacer()
                 }
@@ -203,7 +204,7 @@ extension GalaxyMarketSearchView {
     var searchingView: some View {
         VStack(spacing: 16) {
             if totalRegions > 0 {
-                ProgressView(value: Double(regionsSearched), total: Double(totalRegions))
+                ProgressView(value: Double(min(regionsSearched, totalRegions)), total: Double(totalRegions))
                     .progressViewStyle(.linear)
                     .frame(maxWidth: 420)
             } else {
@@ -299,7 +300,7 @@ extension GalaxyMarketSearchView {
                     .foregroundStyle(sortColumn == column ? .primary : .secondary)
                 if sortColumn == column {
                     Image(systemName: sortAscending ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 8, weight: .bold))
+                        .font(.eveBadge)
                         .foregroundStyle(.secondary)
                 }
                 if alignment == .leading || alignment == .center { Spacer() }
@@ -323,9 +324,9 @@ extension GalaxyMarketSearchView {
                 // Type badge — only when showing both
                 if orderTypeFilter == .all {
                     Text(resolved.isBuyOrder ? "Buy" : "Sell")
-                        .font(.system(size: 9, weight: .bold))
+                        .font(.eveMicroBold)
                         .foregroundStyle(.white)
-                        .padding(.horizontal, 5)
+                        .padding(.horizontal, 6)
                         .padding(.vertical, 2)
                         .background(accentColor, in: Capsule())
                         .frame(width: 40, alignment: .center)
@@ -366,9 +367,9 @@ extension GalaxyMarketSearchView {
                     .padding(.leading, 8)
 
                 Text(String(format: "%.1f", max(0, sec)))
-                    .font(.system(size: 9, weight: .bold).monospacedDigit())
+                    .font(.eveMicroBold.monospacedDigit())
                     .foregroundStyle(.white)
-                    .padding(.horizontal, 5)
+                    .padding(.horizontal, 6)
                     .padding(.vertical, 2)
                     .background(eveSecurityColor(sec), in: Capsule())
                     .frame(width: 36, alignment: .center)
@@ -380,7 +381,7 @@ extension GalaxyMarketSearchView {
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 9)
+            .padding(.vertical, 10)
         }
         .background(isEven ? Color.primary.opacity(0.03) : Color.clear)
     }
@@ -398,8 +399,7 @@ extension GalaxyMarketSearchView {
             }
         } else if isComputingJumps {
             ProgressView()
-                .scaleEffect(0.55)
-                .frame(width: 16, height: 16)
+                .controlSize(.mini)
         } else {
             Text("—")
                 .font(.caption)

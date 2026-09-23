@@ -42,6 +42,8 @@ struct MenuBarView: View {
     @Environment(DashboardPrefetcher.self) private var prefetcher
     @Environment(APIStatusMonitor.self) private var apiStatus
     @Environment(AppUpdater.self) private var appUpdater
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
     @Environment(\.dismiss) private var dismiss
     @AppStorage("backgroundPollInterval") private var pollInterval: Double = 300
     @State private var summaries: [Int: CharacterSummary] = [:]
@@ -98,7 +100,7 @@ struct MenuBarView: View {
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "arrow.down.circle.fill")
-                            .foregroundStyle(.blue)
+                            .foregroundStyle(palette.accent)
                             .font(.caption)
                         if let version = appUpdater.availableVersion {
                             Text("Update available — v\(version)")
@@ -113,14 +115,14 @@ struct MenuBarView: View {
                             .foregroundStyle(.white)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 2)
-                            .background(.blue, in: Capsule())
+                            .background(palette.accent, in: Capsule())
                     }
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
-                .background(.blue.opacity(0.1))
+                .background(palette.accent.opacity(0.1))
                 .help("Install the available update")
                 .accessibilityLabel(
                     appUpdater.availableVersion.map { "Install update version \($0)" } ?? "Install available update"
@@ -250,10 +252,10 @@ struct MenuBarView: View {
                         CachedAsyncImage(url: EVEImageURL.characterPortrait(account.characterID, size: 128)) { image in
                             image.resizable()
                         } placeholder: {
-                            RoundedRectangle(cornerRadius: 4).fill(.quaternary)
+                            RoundedRectangle(cornerRadius: EVERadius.xs).fill(.quaternary)
                         }
                         .frame(width: 24, height: 24)
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                        .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
 
                         Text(account.characterName)
                             .font(.caption)

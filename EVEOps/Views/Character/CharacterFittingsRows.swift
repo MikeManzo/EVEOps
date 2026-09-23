@@ -21,12 +21,12 @@ struct ShipRow: View {
             CachedAsyncImage(url: EVEImageURL.typeRender(ship.typeId, size: 256)) { image in
                 image.resizable().aspectRatio(contentMode: .fill)
             } placeholder: {
-                RoundedRectangle(cornerRadius: 6).fill(.quaternary)
+                RoundedRectangle(cornerRadius: EVERadius.sm).fill(.quaternary)
             }
             .frame(width: 52, height: 52)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
             .overlay(
-                RoundedRectangle(cornerRadius: 6)
+                RoundedRectangle(cornerRadius: EVERadius.sm)
                     .strokeBorder(.white.opacity(0.08), lineWidth: 0.5)
             )
 
@@ -128,7 +128,7 @@ struct ShipDetailPane: View {
                             .font(.caption.bold())
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
-                            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+                            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
                             .foregroundStyle(.white)
                     }
                     .buttonStyle(.plain)
@@ -138,7 +138,7 @@ struct ShipDetailPane: View {
                                 .font(.caption.bold())
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 6)
-                                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+                                .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
                                 .foregroundStyle(.white)
                         }
                         .buttonStyle(.plain)
@@ -147,7 +147,7 @@ struct ShipDetailPane: View {
                                 .font(.caption.bold())
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 6)
-                                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+                                .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
                                 .foregroundStyle(.white)
                         }
                         .buttonStyle(.plain)
@@ -192,35 +192,9 @@ struct ShipDetailPane: View {
             Divider()
 
             if !ship.isSingleton {
-                VStack(spacing: 10) {
-                    Image(systemName: "shippingbox")
-                        .font(.largeTitle)
-                        .foregroundStyle(.tertiary)
-                    Text("Ship is packaged")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    Text("Unpackage the ship in-game to view its fitting.")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                        .multilineTextAlignment(.center)
-                }
-                .padding()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                EVEEmptyState("Ship Is Packaged", systemImage: "shippingbox", message: "Unpackage the ship in-game to view its fitting.")
             } else if modules.isEmpty {
-                VStack(spacing: 10) {
-                    Image(systemName: "wrench.and.screwdriver")
-                        .font(.largeTitle)
-                        .foregroundStyle(.tertiary)
-                    Text("No modules fitted")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    Text("This ship has no modules in its fitting slots.")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                        .multilineTextAlignment(.center)
-                }
-                .padding()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                EVEEmptyState("No Modules Fitted", systemImage: "wrench.and.screwdriver", message: "This ship has no modules in its fitting slots.")
             } else {
                 CurrentFittingPane(modules: modules, typeNames: typeNames, shipName: ship.typeName, shipClass: ship.shipClassName)
             }

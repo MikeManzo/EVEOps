@@ -46,9 +46,9 @@ struct AgentDetailView: View {
             HStack(spacing: 10) {
                 CachedAsyncImage(url: URL(string: "https://images.evetech.net/characters/\(agent.agent.agentID)/portrait?size=64")) { phase in
                     if let img = phase.image {
-                        img.resizable().frame(width: 64, height: 64).clipShape(RoundedRectangle(cornerRadius: 8))
+                        img.resizable().frame(width: 64, height: 64).clipShape(RoundedRectangle(cornerRadius: EVERadius.md))
                     } else {
-                        RoundedRectangle(cornerRadius: 8).fill(.blue.opacity(0.3)).frame(width: 64, height: 64)
+                        RoundedRectangle(cornerRadius: EVERadius.md).fill(.blue.opacity(0.3)).frame(width: 64, height: 64)
                     }
                 }
                 VStack(alignment: .leading, spacing: 3) {
@@ -196,7 +196,7 @@ func agentSecBadge(_ status: Double) -> some View {
     Text(String(format: "%.1f", max(0.0, status)))
         .font(.caption.bold().monospacedDigit())
         .foregroundStyle(agentSecColor(status))
-        .padding(.horizontal, 7).padding(.vertical, 3)
+        .padding(.horizontal, 8).padding(.vertical, 3)
         .background(agentSecColor(status).opacity(0.15), in: Capsule())
 }
 
@@ -212,12 +212,12 @@ func agentAccessBadge(_ access: AgentAccessResult) -> some View {
                   : "Effective standing \(String(format: "%.2f", access.effectiveStanding)) ≥ required \(String(format: "%.1f", access.requiredStanding)) (via \(access.basis.rawValue.lowercased()))")
     } else {
         HStack(spacing: 3) {
-            Image(systemName: "lock.fill").font(.system(size: 9))
+            Image(systemName: "lock.fill").font(.eveMicro)
             Text("+\(String(format: "%.1f", access.gap))")
                 .font(.caption2.bold().monospacedDigit())
         }
         .foregroundStyle(.orange)
-        .padding(.horizontal, 5).padding(.vertical, 1)
+        .padding(.horizontal, 6).padding(.vertical, 1)
         .background(.orange.opacity(0.15), in: Capsule())
         .help("Needs \(String(format: "%.1f", access.requiredStanding)) effective standing for a level \(access.level) agent — you have \(String(format: "%.2f", access.effectiveStanding))")
     }

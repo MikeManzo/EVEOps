@@ -103,44 +103,47 @@ struct DiagnosticPaneView: View {
 
             HStack(spacing: 4) {
                 Image(systemName: "magnifyingglass")
-                    .font(.system(size: 10))
+                    .font(.eveLabel)
                     .foregroundStyle(.tertiary)
                 TextField("Filter", text: $searchText)
                     .textFieldStyle(.plain)
-                    .font(.system(size: 11))
+                    .font(.eveCaption)
                 if !searchText.isEmpty {
                     Button { searchText = "" } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 10))
+                            .font(.eveLabel)
                             .foregroundStyle(.tertiary)
                     }
+                    .accessibilityLabel("Clear")
                     .buttonStyle(.plain)
                 }
             }
             .padding(.horizontal, 6)
             .padding(.vertical, 3)
-            .background(.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 5))
+            .background(.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: EVERadius.sm))
 
             Spacer()
 
             Button { autoScroll.toggle() } label: {
                 Image(systemName: "arrow.up.to.line")
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(.eveLabelSemibold)
                     .foregroundStyle(autoScroll ? .green : .secondary)
             }
+            .accessibilityLabel("Auto-scroll to latest entries")
             .buttonStyle(.plain)
             .help("Auto-scroll to latest entries")
 
             Button { store.clear() } label: {
                 Image(systemName: "trash")
-                    .font(.system(size: 10))
+                    .font(.eveLabel)
                     .foregroundStyle(.secondary)
             }
+            .accessibilityLabel("Clear log entries")
             .buttonStyle(.plain)
             .help("Clear log entries")
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 5)
+        .padding(.vertical, 6)
     }
 
     // MARK:  Service Status
@@ -166,7 +169,7 @@ struct DiagnosticPaneView: View {
                     Spacer()
                     if let updated = apiStatus.serviceLastUpdated {
                         Text("updated \(updated, format: .relative(presentation: .named))")
-                            .font(.system(size: 9)).foregroundStyle(.tertiary)
+                            .font(.eveMicro).foregroundStyle(.tertiary)
                     }
                 }
 
@@ -174,21 +177,21 @@ struct DiagnosticPaneView: View {
                     Text(apiStatus.degradedRoutes.prefix(10)
                         .map { "\($0.status == "red" ? "✕" : "!") \($0.method.uppercased()) \($0.route)" }
                         .joined(separator: "   "))
-                        .font(.system(size: 9, design: .monospaced))
+                        .font(.eveCodeSmall)
                         .foregroundStyle(.secondary)
                         .lineLimit(3)
                 }
 
                 if let m = apiStatus.maintenanceInProgress {
                     Text("Maintenance in progress: \(m.name)")
-                        .font(.system(size: 10)).foregroundStyle(.orange)
+                        .font(.eveLabel).foregroundStyle(.orange)
                 } else if let m = apiStatus.nextMaintenance, let start = m.scheduledFor {
                     Text("Next maintenance \(start, format: .relative(presentation: .named)): \(m.name)")
-                        .font(.system(size: 10)).foregroundStyle(.secondary)
+                        .font(.eveLabel).foregroundStyle(.secondary)
                 }
                 ForEach(apiStatus.activeIncidents.prefix(3)) { inc in
                     Text("Incident: \(inc.name)")
-                        .font(.system(size: 10)).foregroundStyle(.orange)
+                        .font(.eveLabel).foregroundStyle(.orange)
                 }
             }
             .padding(.horizontal, 10)
@@ -199,7 +202,7 @@ struct DiagnosticPaneView: View {
                     .fill(apiStatus.isReachable && !apiStatus.hasServiceIssue ? Color.green : Color.orange)
                     .frame(width: 7, height: 7)
                 Text("EVE Service Status")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.eveCaptionSemibold)
                     .foregroundStyle(.secondary)
             }
         }
@@ -212,8 +215,8 @@ struct DiagnosticPaneView: View {
 
     private func labelValue(_ label: String, _ value: String, _ color: Color) -> some View {
         HStack(spacing: 4) {
-            Text(label).font(.system(size: 9)).foregroundStyle(.tertiary)
-            Text(value).font(.system(size: 10, weight: .medium).monospacedDigit()).foregroundStyle(color)
+            Text(label).font(.eveMicro).foregroundStyle(.tertiary)
+            Text(value).font(.eveLabelMedium.monospacedDigit()).foregroundStyle(color)
         }
     }
 
@@ -250,7 +253,7 @@ struct DiagnosticPaneView: View {
                         }
                     } label: {
                         Text(group.label)
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(.eveCaptionSemibold)
                             .foregroundStyle(.secondary)
                             .padding(.vertical, 2)
                     }
@@ -298,8 +301,8 @@ struct DiagnosticPaneView: View {
             selectedCategory = isSelected ? nil : value
         } label: {
             Text(label)
-                .font(.system(size: 10, weight: .semibold))
-                .padding(.horizontal, 7)
+                .font(.eveLabelSemibold)
+                .padding(.horizontal, 8)
                 .padding(.vertical, 2)
                 .background(isSelected ? color.opacity(0.18) : Color.clear, in: Capsule())
                 .overlay(Capsule().strokeBorder(color.opacity(isSelected ? 0.55 : 0.28), lineWidth: 0.5))
@@ -326,12 +329,12 @@ private struct LogEntryRow: View {
     var body: some View {
         HStack(spacing: 6) {
             Text(diagTimeFormatter.string(from: entry.date))
-                .font(.system(size: 10, design: .monospaced))
+                .font(.eveCode)
                 .foregroundStyle(.tertiary)
                 .frame(width: 38, alignment: .leading)
 
             Text(entry.category)
-                .font(.system(size: 9, weight: .bold))
+                .font(.eveMicroBold)
                 .padding(.horizontal, 4)
                 .padding(.vertical, 1)
                 .background(diagCategoryColor(entry.category).opacity(0.12), in: Capsule())
@@ -340,12 +343,12 @@ private struct LogEntryRow: View {
                 .lineLimit(1)
 
             Image(systemName: diagLevelIcon(entry.level))
-                .font(.system(size: 9, weight: .semibold))
+                .font(.eveMicroSemibold)
                 .foregroundStyle(diagLevelColor(entry.level))
                 .frame(width: 12)
 
             Text(entry.message)
-                .font(.system(size: 11, design: .monospaced))
+                .font(.eveCodeLarge)
                 .foregroundStyle(diagLevelColor(entry.level))
                 .lineLimit(1)
 

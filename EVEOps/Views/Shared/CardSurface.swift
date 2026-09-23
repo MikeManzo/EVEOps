@@ -25,6 +25,10 @@ extension View {
     /// content directly. Applying it once from a distant ancestor (tried first, before either
     /// `.listRowBackground` attempt) didn't visibly take, which is presumably why: it needs
     /// to reach the row itself, not just be present somewhere in the environment.
+    ///
+    /// Caveat: it doesn't take in every list — the Station Browser (sectioned, sidebar
+    /// style) kept showing the static AccentColor with it applied. Where the selection
+    /// color must follow the theme, use `eveSelectableListRow` instead.
     func themedListRow(isSelected: Bool, palette: EVEPalette) -> some View {
         self
             .foregroundStyle(isSelected ? .white : .primary)
@@ -60,5 +64,33 @@ extension View {
                     )
             )
             .shadow(color: .black.opacity(0.28), radius: 10, y: 4)
+    }
+}
+
+extension View {
+    /// Selection that reliably uses the faction accent, for a `List` built *without* a
+    /// `selection:` binding: tapping the row calls `onSelect`, and the selected row gets a
+    /// plain accent-filled background. This is the sidebar's technique — macOS paints a
+    /// `List(selection:)` highlight on top of anything we supply, and `.listItemTint` (see
+    /// `themedListRow`) doesn't take in every list configuration, so when the theme color
+    /// must win, don't let the system draw a selection at all.
+    ///
+    /// Pair with `.onKeyPress` on the List for ↑/↓ navigation, which a selection-less List
+    /// doesn't provide on its own.
+    func eveSelectableListRow(isSelected: Bool, palette: EVEPalette, onSelect: @escaping () -> Void) -> some View {
+        self
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .onTapGesture(perform: onSelect)
+            .foregroundStyle(isSelected ? .white : .primary)
+            .listRowBackground(
+                isSelected
+                    ? RoundedRectangle(cornerRadius: EVERadius.sm)
+                        .fill(palette.accent)
+                        .padding(.horizontal, EVESpacing.sm)
+                    : nil
+            )
+            .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
+            .accessibilityAction { onSelect() }
     }
 }

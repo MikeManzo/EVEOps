@@ -18,7 +18,7 @@ struct CorporationMiningView: View {
     @State private var expandedObserverId: Int?
 
     var body: some View {
-        LoadingStateView(isLoading: isLoading, error: error, isEmpty: observers.isEmpty, emptyMessage: "No mining data found or insufficient roles") {
+        LoadingStateView(isLoading: isLoading, error: error, isEmpty: observers.isEmpty, emptyMessage: "None were found, or this character lacks the Accountant role.", emptyTitle: "No Mining Data", emptySystemImage: "cube") {
             List(observers) { observer in
                 MiningObserverRow(data: observer, isExpanded: expandedObserverId == observer.id)
                     .contentShape(Rectangle())

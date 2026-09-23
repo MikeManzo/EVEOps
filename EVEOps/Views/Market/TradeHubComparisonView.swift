@@ -163,11 +163,12 @@ struct TradeHubComparisonView: View {
                         Button { clearSelection() } label: {
                             Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
                         }
+                        .accessibilityLabel("Clear")
                         .buttonStyle(.plain)
                     }
                 }
-                .padding(7)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+                .padding(8)
+                .eveCard(cornerRadius: EVERadius.md)
                 .frame(maxWidth: 360)
 
                 Spacer()
@@ -200,19 +201,7 @@ struct TradeHubComparisonView: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "building.2.fill")
-                .font(.system(size: 44))
-                .foregroundStyle(.tertiary)
-            Text("Compare prices across trade hubs")
-                .font(.headline)
-                .foregroundStyle(.secondary)
-            Text("Search for an item to see best sell and buy prices at\nJita, Amarr, Dodixie, Rens, and Hek simultaneously.")
-                .font(.subheadline)
-                .foregroundStyle(.tertiary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        EVEEmptyState("Compare prices across trade hubs", systemImage: "building.2.fill", message: "Search for an item to see best sell and buy prices at Jita, Amarr, Dodixie, Rens, and Hek simultaneously.")
     }
 
     // MARK:  Item Search List

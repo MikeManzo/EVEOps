@@ -156,6 +156,7 @@ struct GeneralTab: View {
 struct AppearanceTab: View {
     @Environment(ThemeManager.self) private var themeManager
     @AppStorage("colorScheme") private var colorSchemePref: String = "system"
+    @AppStorage("appearance.ambientBackground") private var ambientBackground = false
 
     @AppStorage("sidebar.showPinned") private var showPinned = true
     @AppStorage("sidebar.showPilot") private var showPilot = true
@@ -175,6 +176,10 @@ struct AppearanceTab: View {
                     Text("Dark").tag("dark")
                 }
                 .pickerStyle(.radioGroup)
+                Toggle(isOn: $ambientBackground) {
+                    Text("Ambient space background")
+                    Text("A faint faction-tinted glow behind the main window, with a starfield in Dark appearance and a star-chart grid in Light.")
+                }
             }
 
             Section("Faction Theme") {

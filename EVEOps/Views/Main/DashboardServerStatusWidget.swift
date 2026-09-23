@@ -68,8 +68,9 @@ struct ServerStatusWidgetView: View {
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
-                .background(accent.opacity(0.07), in: RoundedRectangle(cornerRadius: 10))
-                .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(accent.opacity(0.15), lineWidth: 1))
+                .background(accent.opacity(0.07), in: RoundedRectangle(cornerRadius: EVERadius.lg))
+                .overlay(RoundedRectangle(cornerRadius: EVERadius.lg).strokeBorder(accent.opacity(0.15), lineWidth: 1))
+                .eveHoverable(cornerRadius: EVERadius.lg)
             }
             .buttonStyle(.plain)
 
@@ -171,14 +172,14 @@ struct ServerStatusWidgetView: View {
                                         .fill(route.status == "red" ? Color.red : Color.yellow)
                                         .frame(width: 5, height: 5)
                                     Text("\(route.method.uppercased()) \(route.route)")
-                                        .font(.system(size: 10, design: .monospaced))
+                                        .font(.eveCode)
                                         .foregroundStyle(.secondary)
                                         .lineLimit(1)
                                 }
                             }
                             if apiStatus.degradedRoutes.count > 6 {
                                 Text("+\(apiStatus.degradedRoutes.count - 6) more degraded")
-                                    .font(.system(size: 10))
+                                    .font(.eveLabel)
                                     .foregroundStyle(.tertiary)
                             }
                         }
@@ -263,10 +264,13 @@ struct ServerStatusWidgetView: View {
         let samples = apiStatus.populationHistory
         if samples.count > 1 {
             Chart(samples) { sample in
+                AreaMark(x: .value("Time", sample.date), y: .value("Players", sample.players))
+                    .foregroundStyle(.eveAreaFill(.green))
+                    .interpolationMethod(.monotone)
                 LineMark(x: .value("Time", sample.date), y: .value("Players", sample.players))
                     .foregroundStyle(.green)
-                AreaMark(x: .value("Time", sample.date), y: .value("Players", sample.players))
-                    .foregroundStyle(.green.opacity(0.1))
+                    .lineStyle(StrokeStyle(lineWidth: 1.5, lineCap: .round))
+                    .interpolationMethod(.monotone)
             }
             .chartXAxis(.hidden)
             .chartYAxis(.hidden)

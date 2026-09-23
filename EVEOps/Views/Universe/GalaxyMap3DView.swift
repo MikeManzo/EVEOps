@@ -9,7 +9,7 @@
 //
 
 import SwiftUI
-import SceneKit
+@preconcurrency import SceneKit
 import AppKit
 import simd
 
@@ -145,11 +145,13 @@ struct GalaxyMap3DView: View {
             Button { model.zoomStep(closer: true) } label: {
                 Image(systemName: "plus.magnifyingglass").font(.caption)
             }
+            .accessibilityLabel("Zoom In")
             .buttonStyle(.bordered).controlSize(.small)
 
             Button { model.zoomStep(closer: false) } label: {
                 Image(systemName: "minus.magnifyingglass").font(.caption)
             }
+            .accessibilityLabel("Zoom Out")
             .buttonStyle(.bordered).controlSize(.small)
 
             Divider().frame(height: 14)
@@ -163,7 +165,7 @@ struct GalaxyMap3DView: View {
             .onChange(of: showGates) { _, on in model.setGatesVisible(on) }
         }
         .padding(6)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
     }
 
     private func hoverChip(_ h: GalaxySceneModel.HoverInfo) -> some View {
@@ -174,7 +176,7 @@ struct GalaxyMap3DView: View {
                 .foregroundStyle(Color(nsColor: GalaxyPalette.security(h.security)))
         }
         .padding(.horizontal, 6).padding(.vertical, 3)
-        .background(.ultraThinMaterial, in: Capsule())
+        .glassEffect(.regular, in: Capsule())
         .overlay(Capsule().stroke(.white.opacity(0.15), lineWidth: 0.5))
     }
 
@@ -193,6 +195,7 @@ struct GalaxyMap3DView: View {
                 Button { model.selectedID = nil } label: {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
                 }
+                .accessibilityLabel("Clear")
                 .buttonStyle(.plain)
             }
 
@@ -246,7 +249,7 @@ struct GalaxyMap3DView: View {
         }
         .padding(12)
         .frame(width: 232)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.lg))
     }
 
     private func locationHUD(name: String, security: Double) -> some View {
@@ -258,7 +261,7 @@ struct GalaxyMap3DView: View {
                 .foregroundStyle(Color(nsColor: GalaxyPalette.security(security)))
         }
         .padding(8)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
     }
 
     private var legend: some View {
@@ -288,8 +291,8 @@ struct GalaxyMap3DView: View {
                         }
                     }
                 }
-                .padding(.horizontal, 8).padding(.vertical, 5)
-                .background(.ultraThinMaterial, in: Capsule())
+                .padding(.horizontal, 8).padding(.vertical, 6)
+                .glassEffect(.regular, in: Capsule())
             }
         }
     }
@@ -1051,15 +1054,17 @@ final class GalaxySceneModel {
         let period: CGFloat = 2.0
         let minPx: CGFloat = 13
         let maxPx: CGFloat = 30
-        let ping = SCNAction.customAction(duration: TimeInterval(period)) { [weak self] n, elapsed in
-            guard let self, let view = self.view else { return }
+        // SceneKit runs custom actions on its render thread, so capture the camera node and
+        // view up front (on the main actor) instead of reaching through main-actor `self`.
+        let ping = SCNAction.customAction(duration: TimeInterval(period)) { [weak view, cameraNode] n, elapsed in
+            guard let view else { return }
             let world = SIMD3<Double>(Double(n.simdPosition.x), Double(n.simdPosition.y), Double(n.simdPosition.z))
-            let camPos = self.cameraNode.simdPosition
+            let camPos = cameraNode.simdPosition
             let cam = SIMD3<Double>(Double(camPos.x), Double(camPos.y), Double(camPos.z))
             let dist = simd_distance(world, cam)
             guard dist > 0.001 else { return }
 
-            let fovRad = CGFloat((self.cameraNode.camera?.fieldOfView ?? 55) * .pi / 180)
+            let fovRad = CGFloat((cameraNode.camera?.fieldOfView ?? 55) * .pi / 180)
             let vpH = max(view.bounds.height, 1)
             let worldPerPx = (2 * CGFloat(dist) * tan(fovRad / 2)) / vpH
 

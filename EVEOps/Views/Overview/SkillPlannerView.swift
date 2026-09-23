@@ -42,7 +42,7 @@ struct SkillPlannerView: View {
     }
 
     var body: some View {
-        LoadingStateView(isLoading: isLoading, error: error, isEmpty: trainingData.isEmpty, emptyMessage: "No character data") {
+        LoadingStateView(isLoading: isLoading, error: error, isEmpty: trainingData.isEmpty, emptyMessage: "No Character Data", emptySystemImage: "person.crop.square") {
             HStack(spacing: 0) {
                 Spacer(minLength: 15)    // MRM
                 planPanel
@@ -58,6 +58,7 @@ struct SkillPlannerView: View {
                     .font(.largeTitle.bold())
                 PinToggleButton(section: .skillPlanner)
                 Spacer()
+                FreshnessIndicator(isLoading: isLoading) { await loadData() }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)

@@ -27,8 +27,11 @@ struct CharacterKillmailsView: View {
             isLoading: isLoading,
             error: error,
             isEmpty: groups.isEmpty,
-            emptyMessage: "No kill/loss mails found",
-            loadingMessage: loadingDetail ?? "Loading..."
+            emptyMessage: "No Kills or Losses Yet",
+            emptySystemImage: "scope",
+            loadingMessage: loadingDetail ?? "Loading...",
+            // Streams per-page progress text, so keep the labelled spinner over a skeleton.
+            showsSkeleton: false
         ) {
             HStack(spacing: 0) {
                 VStack(spacing: 0) {
@@ -49,6 +52,7 @@ struct CharacterKillmailsView: View {
                     .font(.largeTitle.bold())
                 PinToggleButton(section: .killmails)
                 Spacer()
+                FreshnessIndicator(isLoading: isLoading) { isLoading = true; await load() }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
@@ -73,7 +77,7 @@ struct CharacterKillmailsView: View {
                 Text("Kills").tag("kills")
                 Text("Losses").tag("losses")
             }
-            .pickerStyle(.segmented)
+            .eveSegmentedPicker()
             .frame(maxWidth: 300)
             Spacer()
             let all = groups.flatMap(\.killmails)
@@ -206,10 +210,10 @@ struct KillmailRow: View {
             CachedAsyncImage(url: EVEImageURL.typeIcon(entry.killmail.victim.shipTypeId, size: 64)) { image in
                 image.resizable()
             } placeholder: {
-                RoundedRectangle(cornerRadius: 4).fill(.quaternary)
+                RoundedRectangle(cornerRadius: EVERadius.xs).fill(.quaternary)
             }
             .frame(width: 36, height: 36)
-            .clipShape(RoundedRectangle(cornerRadius: 4))
+            .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(shipName.isEmpty ? "Ship #\(entry.killmail.victim.shipTypeId)" : shipName)
@@ -285,6 +289,7 @@ struct KillmailDetailPane: View {
                 Button { onClose() } label: {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
                 }
+                .accessibilityLabel("Clear")
                 .buttonStyle(.plain)
                 .keyboardShortcut(.escape)
             }
@@ -298,10 +303,10 @@ struct KillmailDetailPane: View {
                             CachedAsyncImage(url: EVEImageURL.typeIcon(killmail.victim.shipTypeId, size: 64)) { image in
                                 image.resizable()
                             } placeholder: {
-                                RoundedRectangle(cornerRadius: 4).fill(.quaternary)
+                                RoundedRectangle(cornerRadius: EVERadius.xs).fill(.quaternary)
                             }
                             .frame(width: 48, height: 48)
-                            .clipShape(RoundedRectangle(cornerRadius: 4))
+                            .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
 
                             VStack(alignment: .leading, spacing: 4) {
                                 if let charId = killmail.victim.characterId {
@@ -423,7 +428,7 @@ struct KillmailDetailPane: View {
     private func badge(_ text: String, color: Color) -> some View {
         Text(text)
             .font(.caption2.bold())
-            .padding(.horizontal, 5).padding(.vertical, 2)
+            .padding(.horizontal, 6).padding(.vertical, 2)
             .background(color.opacity(0.15), in: Capsule())
             .foregroundStyle(color)
     }
@@ -482,7 +487,7 @@ struct KillmailAttackerRow: View {
             VStack(alignment: .trailing, spacing: 2) {
                 if attacker.finalBlow {
                     Text("Final Blow").font(.caption2.bold())
-                        .padding(.horizontal, 5).padding(.vertical, 2)
+                        .padding(.horizontal, 6).padding(.vertical, 2)
                         .background(.red.opacity(0.15), in: Capsule())
                         .foregroundStyle(.red)
                 }
@@ -528,7 +533,7 @@ struct AttackerInfoPopover: View {
                             .foregroundStyle(pilotSecurityColor(attacker.securityStatus))
                         if attacker.finalBlow {
                             Text("Final Blow").font(.caption2.bold())
-                                .padding(.horizontal, 5).padding(.vertical, 2)
+                                .padding(.horizontal, 6).padding(.vertical, 2)
                                 .background(.red.opacity(0.15), in: Capsule())
                                 .foregroundStyle(.red)
                         }

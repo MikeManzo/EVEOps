@@ -28,11 +28,11 @@ extension FinancesView {
                         .foregroundStyle(.secondary)
                     Spacer()
                     Text("\(totalLP.formatted()) LP")
-                        .font(.title3.bold().monospacedDigit())
+                        .font(.eveStatCompact)
                         .foregroundStyle(.purple)
                 }
                 .padding()
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+                .eveCard()
 
                 LazyVStack(spacing: 1) {
                     ForEach(lp.sorted(by: { $0.loyaltyPoints > $1.loyaltyPoints }), id: \.corporationId) { entry in
@@ -40,10 +40,10 @@ extension FinancesView {
                             CachedAsyncImage(url: EVEImageURL.corporationLogo(entry.corporationId, size: 64)) { image in
                                 image.resizable()
                             } placeholder: {
-                                RoundedRectangle(cornerRadius: 4).fill(.quaternary)
+                                RoundedRectangle(cornerRadius: EVERadius.xs).fill(.quaternary)
                             }
                             .frame(width: 32, height: 32)
-                            .clipShape(RoundedRectangle(cornerRadius: 4))
+                            .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
 
                             Text(entry.corporationName)
                                 .font(.subheadline)
@@ -58,7 +58,7 @@ extension FinancesView {
                         .padding(.vertical, 8)
                     }
                 }
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+                .eveCard()
             }
         }
     }

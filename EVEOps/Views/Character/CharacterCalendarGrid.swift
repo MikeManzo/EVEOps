@@ -20,7 +20,7 @@ struct SourceFilterPill: View {
     var body: some View {
         Button(action: action) {
             Label(source.title, systemImage: source.icon)
-                .font(.system(size: 11, weight: .medium))
+                .font(.eveCaptionMedium)
                 .foregroundStyle(isOn ? source.color : .secondary)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
@@ -54,15 +54,15 @@ struct CalendarGridView: View {
             Divider().opacity(0.4)
             dayGrid
         }
-        .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.primary.opacity(0.1), lineWidth: 1))
+        .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: EVERadius.xl))
+        .overlay(RoundedRectangle(cornerRadius: EVERadius.xl).stroke(Color.primary.opacity(0.1), lineWidth: 1))
     }
 
     private var monthHeader: some View {
         HStack(spacing: 0) {
             Button(action: prevMonth) {
                 Image(systemName: "chevron.left")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.eveRowTitle)
                     .frame(width: 36, height: 36).contentShape(Rectangle())
             }
             .buttonStyle(.plain).foregroundStyle(.secondary)
@@ -71,11 +71,11 @@ struct CalendarGridView: View {
 
             VStack(spacing: 2) {
                 Text(displayedMonth, format: .dateTime.month(.wide).year())
-                    .font(.system(size: 15, weight: .semibold)).monospacedDigit()
+                    .font(.eveSubsectionTitle).monospacedDigit()
                 if !isCurrentMonth {
                     Button("Today") { jumpToToday() }
                         .buttonStyle(.borderless)
-                        .font(.system(size: 11))
+                        .font(.eveCaption)
                         .foregroundStyle(palette.accent)
                 }
             }
@@ -84,7 +84,7 @@ struct CalendarGridView: View {
 
             Button(action: nextMonth) {
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.eveRowTitle)
                     .frame(width: 36, height: 36).contentShape(Rectangle())
             }
             .buttonStyle(.plain).foregroundStyle(.secondary)
@@ -96,7 +96,7 @@ struct CalendarGridView: View {
         LazyVGrid(columns: columns, spacing: 2) {
             ForEach(weekdayLabels, id: \.self) { label in
                 Text(label)
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.eveCaptionMedium)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 6)
@@ -205,7 +205,7 @@ struct CalendarDayCell: View {
                             .frame(width: 5, height: 5)
                     }
                     if dots.count > 5 {
-                        Text("+").font(.system(size: 7, weight: .bold)).foregroundStyle(.secondary)
+                        Text("+").font(.eveNanoBold).foregroundStyle(.secondary)
                     }
                 }
             }

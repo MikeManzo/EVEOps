@@ -64,18 +64,7 @@ struct SimFittingDiagram: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "helm")
-                .font(.system(size: 64))
-                .foregroundStyle(.tertiary)
-            Text("No Ship Selected")
-                .font(.title2.bold())
-                .foregroundStyle(.secondary)
-            Text("Search for a ship in the left panel to begin")
-                .font(.subheadline)
-                .foregroundStyle(.tertiary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        EVEEmptyState("No Ship Selected", systemImage: "helm", message: "Search for a ship in the left panel to begin")
     }
 
     private var shipHero: some View {
@@ -120,7 +109,7 @@ struct SimFittingDiagram: View {
                     Label("View 3D", systemImage: "cube.transparent")
                         .font(.caption.bold())
                         .padding(.horizontal, 10).padding(.vertical, 6)
-                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+                        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
                         .foregroundStyle(.white)
                 }
                 .buttonStyle(.plain)
@@ -129,7 +118,7 @@ struct SimFittingDiagram: View {
                         Label("Shop Fit", systemImage: "cart.fill")
                             .font(.caption.bold())
                             .padding(.horizontal, 10).padding(.vertical, 6)
-                            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+                            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
                             .foregroundStyle(.white)
                     }
                     .buttonStyle(.plain)
@@ -137,7 +126,7 @@ struct SimFittingDiagram: View {
                         Label("Clear Fit", systemImage: "trash")
                             .font(.caption.bold())
                             .padding(.horizontal, 10).padding(.vertical, 6)
-                            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+                            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
                             .foregroundStyle(.white)
                     }
                     .buttonStyle(.plain)
@@ -164,7 +153,7 @@ struct SimFittingDiagram: View {
                     Spacer(minLength: 0)
                 }
                 .padding(10)
-                .background(RoundedRectangle(cornerRadius: 8).fill(.quaternary.opacity(0.3)))
+                .background(RoundedRectangle(cornerRadius: EVERadius.md).fill(.quaternary.opacity(0.3)))
             }
 
             if !highSlots.isEmpty { SimSlotRowView(slots: highSlots, category: .high) }
@@ -214,9 +203,9 @@ struct SimSlotRowView: View {
         }
         .padding(10)
         .background(
-            RoundedRectangle(cornerRadius: 10)
+            RoundedRectangle(cornerRadius: EVERadius.lg)
                 .fill(category.color.opacity(0.05))
-                .overlay(RoundedRectangle(cornerRadius: 10)
+                .overlay(RoundedRectangle(cornerRadius: EVERadius.lg)
                     .strokeBorder(category.color.opacity(0.18), lineWidth: 1))
         )
     }
@@ -327,14 +316,14 @@ struct SimSlotSocketView: View {
                 }
             } label: {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 8)
+                    RoundedRectangle(cornerRadius: EVERadius.md)
                         .fill(isInvalidDropTarget
                               ? Color.red.opacity(0.20)
                               : isHighlighted
                                 ? slot.category.color.opacity(isDropTargeted ? 0.35 : 0.25)
                                 : Color(.windowBackgroundColor).opacity(0.6))
                         .overlay(
-                            RoundedRectangle(cornerRadius: 8)
+                            RoundedRectangle(cornerRadius: EVERadius.md)
                                 .strokeBorder(
                                     isInvalidDropTarget
                                         ? Color.red.opacity(0.8)
@@ -347,14 +336,14 @@ struct SimSlotSocketView: View {
                         CachedAsyncImage(url: EVEImageURL.typeIcon(typeId, size: 64)) { img in
                             img.resizable().aspectRatio(contentMode: .fit)
                         } placeholder: {
-                            RoundedRectangle(cornerRadius: 6).fill(.quaternary)
+                            RoundedRectangle(cornerRadius: EVERadius.sm).fill(.quaternary)
                         }
-                        .padding(5)
+                        .padding(6)
                         .opacity(liveIsOnline ? 1.0 : 0.35)
                         .overlay(alignment: .bottomTrailing) {
                             if !liveIsOnline {
                                 Image(systemName: "bolt.slash.fill")
-                                    .font(.system(size: 10, weight: .semibold))
+                                    .font(.eveLabelSemibold)
                                     .foregroundStyle(.orange)
                                     .shadow(color: .black.opacity(0.6), radius: 2, x: 0, y: 1)
                                     .padding(4)
@@ -432,6 +421,7 @@ struct SimSlotSocketView: View {
                         .foregroundStyle(.red)
                         .shadow(color: .black.opacity(0.5), radius: 2, x: 0, y: 1)
                 }
+                .accessibilityLabel("Clear")
                 .buttonStyle(.plain)
                 .offset(x: 4, y: -4)
                 .transition(.scale(scale: 0.5).combined(with: .opacity))
@@ -453,10 +443,10 @@ struct SimModuleDragPreview: View {
             CachedAsyncImage(url: EVEImageURL.typeIcon(type.typeId, size: 64)) { img in
                 img.resizable().aspectRatio(contentMode: .fit)
             } placeholder: {
-                RoundedRectangle(cornerRadius: 6).fill(.quaternary)
+                RoundedRectangle(cornerRadius: EVERadius.sm).fill(.quaternary)
             }
             .frame(width: 36, height: 36)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(type.name).font(.caption.bold()).lineLimit(1)
@@ -465,7 +455,7 @@ struct SimModuleDragPreview: View {
             }
         }
         .padding(.horizontal, 12).padding(.vertical, 8)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.lg))
     }
 }
 
@@ -501,7 +491,7 @@ struct SimModulePopover: View {
                 // Type not yet in moduleTypes — fetch it, show spinner meanwhile
                 HStack {
                     Spacer()
-                    ProgressView().scaleEffect(0.7)
+                    ProgressView().controlSize(.small)
                     Spacer()
                 }
                 .frame(height: 60)
@@ -517,11 +507,11 @@ struct SimModulePopover: View {
                     CachedAsyncImage(url: EVEImageURL.typeIcon(typeId, size: 128)) { img in
                         img.resizable().aspectRatio(contentMode: .fit)
                     } placeholder: {
-                        RoundedRectangle(cornerRadius: 8).fill(.quaternary)
+                        RoundedRectangle(cornerRadius: EVERadius.md).fill(.quaternary)
                     }
                     .frame(width: 56, height: 56)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .overlay(RoundedRectangle(cornerRadius: 8)
+                    .clipShape(RoundedRectangle(cornerRadius: EVERadius.md))
+                    .overlay(RoundedRectangle(cornerRadius: EVERadius.md)
                         .strokeBorder(.white.opacity(0.1), lineWidth: 0.5))
 
                     VStack(alignment: .leading, spacing: 4) {
@@ -694,14 +684,14 @@ private struct SimModuleStatsSections: View {
     // ── Shared sub-views ───────────────────────────────────────────────────
     private func sectionHeader(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 9, weight: .semibold))
+            .font(.eveMicroSemibold)
             .foregroundStyle(.secondary)
     }
 
     private func statRow(icon: String, label: String, value: String) -> some View {
         HStack(spacing: 6) {
             Image(systemName: icon)
-                .font(.system(size: 10))
+                .font(.eveLabel)
                 .foregroundStyle(.secondary)
                 .frame(width: 14)
             Text(label)

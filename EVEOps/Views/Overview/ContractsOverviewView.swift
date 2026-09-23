@@ -27,7 +27,8 @@ struct ContractsOverviewView: View {
             error: error,
             isEmpty: contracts.isEmpty,
             hasContent: !contracts.isEmpty,
-            emptyMessage: "No contracts found",
+            emptyMessage: "No Contracts",
+            emptySystemImage: "doc.text",
             onRetry: { Task { await refresh() } }
         ) {
             VStack(spacing: 0) {
@@ -76,7 +77,7 @@ struct ContractsOverviewView: View {
                 Text("In Progress").tag("in_progress")
                 Text("Completed").tag("finished")
             }
-            .pickerStyle(.segmented)
+            .eveSegmentedPicker()
             .frame(maxWidth: 400)
             Spacer()
         }

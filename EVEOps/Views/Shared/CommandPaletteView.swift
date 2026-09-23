@@ -103,7 +103,7 @@ struct CommandPaletteView: View {
         }
         .frame(width: 620)
         .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .clipShape(RoundedRectangle(cornerRadius: EVERadius.xl))
         .onAppear { fieldFocused = true }
         .onChange(of: query) { _, _ in
             highlighted = 0
@@ -272,8 +272,8 @@ private struct PaletteRowView: View {
             Spacer()
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 7)
-        .background(isHighlighted ? palette.accent : Color.clear, in: RoundedRectangle(cornerRadius: 7))
+        .padding(.vertical, 8)
+        .background(isHighlighted ? palette.accent : Color.clear, in: RoundedRectangle(cornerRadius: EVERadius.md))
     }
 
     private var icon: String {

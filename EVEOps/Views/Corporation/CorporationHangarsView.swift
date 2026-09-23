@@ -59,7 +59,7 @@ struct CorporationHangarsView: View {
             isLoading: isLoading,
             error: error,
             isEmpty: allHangarAssets.isEmpty,
-            emptyMessage: "No corporation hangar contents found or insufficient permissions"
+            emptyMessage: "None were found, or this character lacks the required hangar access.", emptyTitle: "No Hangar Contents", emptySystemImage: "shippingbox"
         ) {
             VStack(spacing: 0) {
                 hangarHeader
@@ -202,6 +202,7 @@ struct CorporationHangarsView: View {
                     .font(.caption2.bold())
                     .foregroundStyle(.secondary)
             }
+            .accessibilityLabel("Remove")
             .buttonStyle(.plain)
         }
         .padding(.horizontal, 14)
@@ -230,6 +231,7 @@ struct CorporationHangarsView: View {
                     .font(.caption2.bold())
                     .foregroundStyle(.secondary)
             }
+            .accessibilityLabel("Remove")
             .buttonStyle(.plain)
         }
         .padding(.horizontal, 14)
@@ -275,7 +277,7 @@ struct CorporationHangarsView: View {
             .padding(.vertical, 6)
             .background(
                 isSelected ? palette.accent.opacity(0.2) : Color.clear,
-                in: RoundedRectangle(cornerRadius: 8)
+                in: RoundedRectangle(cornerRadius: EVERadius.md)
             )
         }
         .buttonStyle(.plain)
@@ -319,7 +321,7 @@ struct CorporationHangarsView: View {
             .padding(.vertical, 6)
             .background(
                 isSelected ? palette.accent.opacity(0.2) : Color.clear,
-                in: RoundedRectangle(cornerRadius: 8)
+                in: RoundedRectangle(cornerRadius: EVERadius.md)
             )
         }
         .buttonStyle(.plain)
@@ -339,14 +341,11 @@ struct CorporationHangarsView: View {
             .background(.bar)
 
             if visibleItems.isEmpty {
-                VStack(spacing: 12) {
-                    Image(systemName: "archivebox")
-                        .font(.largeTitle)
-                        .foregroundStyle(.secondary)
-                    Text(searchText.isEmpty ? "Hangar is empty" : "No matching items")
-                        .foregroundStyle(.secondary)
+                if searchText.isEmpty {
+                    EVEEmptyState("Hangar Is Empty", systemImage: "archivebox")
+                } else {
+                    ContentUnavailableView.search(text: searchText)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List(selection: $selectedAsset) {
                     if groupByCategory && !itemTypeCategories.isEmpty {
@@ -379,7 +378,7 @@ struct CorporationHangarsView: View {
                 if let image = phase.image {
                     image.resizable()
                         .frame(width: 28, height: 28)
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                        .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
                 } else {
                     Image(systemName: "shippingbox.fill")
                         .foregroundStyle(.teal)

@@ -79,7 +79,7 @@ struct AgentFinderView: View {
                 PinToggleButton(section: .careerAgents)
                 Spacer()
                 if dbLoading || isResolvingResults {
-                    ProgressView().scaleEffect(0.7)
+                    ProgressView().controlSize(.small)
                 }
             }
             .padding(.horizontal, 16)
@@ -247,7 +247,7 @@ struct AgentFinderView: View {
                 Image(systemName: icon).font(.caption2)
                 Text(label).font(.caption.weight(.semibold))
             }
-            .padding(.horizontal, 9).padding(.vertical, 5)
+            .padding(.horizontal, 10).padding(.vertical, 6)
             .background(isSelected ? palette.accent : Color.secondary.opacity(0.08), in: Capsule())
             .foregroundStyle(isSelected ? .white : color)
             .overlay(Capsule().strokeBorder(isSelected ? Color.clear : color.opacity(0.35), lineWidth: 1))
@@ -274,7 +274,7 @@ struct AgentFinderView: View {
                         Text("\(totalFiltered) agents found")
                             .font(.caption).foregroundStyle(.secondary)
                         if isResolvingResults {
-                            ProgressView().scaleEffect(0.6).padding(.leading, 4)
+                            ProgressView().controlSize(.mini).padding(.leading, 4)
                         }
                     }
                     Spacer()
@@ -288,7 +288,7 @@ struct AgentFinderView: View {
                                 Text(order.title).tag(order)
                             }
                         }
-                        .pickerStyle(.segmented)
+                        .eveSegmentedPicker()
                         .controlSize(.mini)
                         .frame(width: 110)
                         .labelsHidden()
@@ -321,9 +321,9 @@ struct AgentFinderView: View {
                 // Portrait
                 CachedAsyncImage(url: characterPortraitURL(agent.agent.agentID)) { phase in
                     if let img = phase.image {
-                        img.resizable().frame(width: 48, height: 48).clipShape(RoundedRectangle(cornerRadius: 6))
+                        img.resizable().frame(width: 48, height: 48).clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
                     } else {
-                        RoundedRectangle(cornerRadius: 6)
+                        RoundedRectangle(cornerRadius: EVERadius.sm)
                             .fill(typeFilter.color.opacity(0.2))
                             .frame(width: 48, height: 48)
                             .overlay(Image(systemName: typeFilter.iconName).font(.callout).foregroundStyle(typeFilter.color))
@@ -351,7 +351,7 @@ struct AgentFinderView: View {
                     if let jumps = agent.jumpCount {
                         agentJumpBadge(jumps)
                     } else if isResolvingResults {
-                        ProgressView().scaleEffect(0.45)
+                        ProgressView().controlSize(.mini)
                     }
                 }
 
@@ -370,7 +370,7 @@ struct AgentFinderView: View {
         return Text("L\(level)")
             .font(.caption2.bold().monospacedDigit())
             .foregroundStyle(c)
-            .padding(.horizontal, 5).padding(.vertical, 2)
+            .padding(.horizontal, 6).padding(.vertical, 2)
             .background(c.opacity(0.15), in: Capsule())
     }
 

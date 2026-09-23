@@ -66,7 +66,7 @@ extension SkillPlannerView {
                     .font(.caption.monospaced())
                     .padding(8)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.quaternary, in: RoundedRectangle(cornerRadius: 6))
+                    .background(.quaternary, in: RoundedRectangle(cornerRadius: EVERadius.sm))
             }
 
             VStack(alignment: .leading, spacing: 6) {
@@ -89,7 +89,7 @@ extension SkillPlannerView {
                     .font(.caption.bold())
                     .padding(8)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.quaternary, in: RoundedRectangle(cornerRadius: 6))
+                    .background(.quaternary, in: RoundedRectangle(cornerRadius: EVERadius.sm))
             }
         }
         .padding(16)

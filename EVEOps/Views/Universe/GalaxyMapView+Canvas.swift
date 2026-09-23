@@ -293,7 +293,7 @@ extension GalaxyMapView {
                     Text(toast)
                         .font(.caption)
                         .padding(.horizontal, 12).padding(.vertical, 6)
-                        .background(.thinMaterial, in: Capsule())
+                        .glassEffect(.regular, in: Capsule())
                         .padding(.top, 8)
                         .transition(.move(edge: .top).combined(with: .opacity))
                 }
@@ -455,8 +455,8 @@ extension GalaxyMapView {
             }
         }
         .frame(width: mmW, height: mmH)
-        .clipShape(RoundedRectangle(cornerRadius: 6))
-        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.white.opacity(0.15), lineWidth: 0.5))
+        .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
+        .overlay(RoundedRectangle(cornerRadius: EVERadius.sm).stroke(Color.white.opacity(0.15), lineWidth: 0.5))
         .padding(12)
     }
 
@@ -507,7 +507,7 @@ extension GalaxyMapView {
                 }
             }
             .padding(10)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
             .padding(12)
         }
     }

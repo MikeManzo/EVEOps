@@ -140,8 +140,9 @@ struct DashboardBriefingWidgetView: View {
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
-                .background(accent.opacity(0.07), in: RoundedRectangle(cornerRadius: 10))
-                .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(accent.opacity(0.15), lineWidth: 1))
+                .background(accent.opacity(0.07), in: RoundedRectangle(cornerRadius: EVERadius.lg))
+                .overlay(RoundedRectangle(cornerRadius: EVERadius.lg).strokeBorder(accent.opacity(0.15), lineWidth: 1))
+                .eveHoverable(cornerRadius: EVERadius.lg)
             }
             .buttonStyle(.plain)
 

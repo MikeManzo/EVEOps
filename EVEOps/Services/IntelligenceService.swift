@@ -12,6 +12,7 @@
 @preconcurrency import Foundation
 import FoundationModels
 import OSLog
+import Synchronization
 
 // MARK: Output Types
 //
@@ -176,6 +177,14 @@ struct IntelligenceParseError: LocalizedError {
     }
 }
 
+/// The on-device model's safety filter declined the request. Not retryable with the
+/// same data, so cards show a quiet note instead of a "try again" error.
+struct IntelligenceDeclinedError: LocalizedError {
+    var errorDescription: String? {
+        "Apple Intelligence declined to summarize this data."
+    }
+}
+
 // MARK: Service
 
 @available(macOS 26.0, *)
@@ -188,6 +197,23 @@ actor IntelligenceService {
     }
 
     private static let generationOptions = GenerationOptions(temperature: 0.2)
+
+    /// EVE's vocabulary (kills, losses, attackers, weapons, piracy) reads as violent to
+    /// the on-device safety filter out of context. Prefixing every instruction with the
+    /// fact that this is fictional video-game data keeps it from tripping on routine stats.
+    private static let gameContext = """
+        Context: EVE Online is a science-fiction massively multiplayer video game. All \
+        ships, combat, kills, losses, weapons, piracy and warfare mentioned below are \
+        fictional in-game spaceship gameplay between players, reported as game statistics.
+        """
+
+    /// The model used for every insight. Permissive content transformations suit this
+    /// app: each prompt only asks the model to summarize app-supplied game statistics.
+    private static let model = SystemLanguageModel(guardrails: .permissiveContentTransformations)
+
+    /// Prompts the safety filter has already declined. Resubmitting identical data only
+    /// re-triggers the guardrail (and its runtime warning), so these fail fast instead.
+    private static let declinedPrompts = Mutex<Set<String>>([])
 
     private var financeCache:  [String: FinanceInsight]               = [:]
     private var skillCache:    [String: SkillTrainingRecommendation]  = [:]
@@ -268,8 +294,18 @@ actor IntelligenceService {
     // The caller includes the exact JSON schema in the prompt so the model
     // knows what structure to produce.
     private nonisolated func generate<T: Decodable>(instructions: String, prompt: String) async throws -> T {
-        let session = LanguageModelSession(instructions: instructions)
-        let response = try await session.respond(to: prompt, options: Self.generationOptions)
+        if Self.declinedPrompts.withLock({ $0.contains(prompt) }) { throw IntelligenceDeclinedError() }
+
+        let session = LanguageModelSession(model: Self.model, instructions: Self.gameContext + "\n\n" + instructions)
+        let response: LanguageModelSession.Response<String>
+        do {
+            response = try await session.respond(to: prompt, options: Self.generationOptions)
+        } catch LanguageModelSession.GenerationError.guardrailViolation {
+            Self.declinedPrompts.withLock { _ = $0.insert(prompt) }
+            Logger(subsystem: "CitizenCoder.EVEOps", category: "intelligence")
+                .info("Insight declined by the on-device safety filter; not retrying this prompt.")
+            throw IntelligenceDeclinedError()
+        }
         var raw = response.content.trimmingCharacters(in: .whitespacesAndNewlines)
 
         // Strip markdown code-block wrapper that some model versions add
@@ -289,7 +325,7 @@ actor IntelligenceService {
         } catch let decodeError {
             let log = Logger(subsystem: "CitizenCoder.EVEOps", category: "intelligence")
             log.error("JSON decode failed (\(String(describing: T.self))): \(decodeError.localizedDescription)")
-            log.debug("Raw model output: \(raw)")
+ //           log.debug("Raw model output: \(raw)")
             throw IntelligenceParseError()
         }
     }

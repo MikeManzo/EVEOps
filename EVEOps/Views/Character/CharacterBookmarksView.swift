@@ -42,7 +42,7 @@ struct CharacterBookmarksView: View {
     }
 
     var body: some View {
-        LoadingStateView(isLoading: isLoading, error: error, isEmpty: bookmarks.isEmpty, emptyMessage: "No bookmarks found") {
+        LoadingStateView(isLoading: isLoading, error: error, isEmpty: bookmarks.isEmpty, emptyMessage: "No Bookmarks", emptySystemImage: "bookmark") {
             VStack(spacing: 0) {
                 folderBar
                 Divider()
@@ -54,6 +54,7 @@ struct CharacterBookmarksView: View {
                 Text("Bookmarks")
                     .font(.largeTitle.bold())
                 Spacer()
+                FreshnessIndicator(isLoading: isLoading) { await loadBookmarks() }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
@@ -96,14 +97,14 @@ struct CharacterBookmarksView: View {
                 Text(name)
                     .font(.caption)
                 Text("\(count)")
-                    .font(.system(size: 9))
+                    .font(.eveMicro)
                     .padding(.horizontal, 4)
                     .padding(.vertical, 1)
                     .background(isSelected ? palette.accent : Color.gray.opacity(0.25), in: Capsule())
                     .foregroundStyle(isSelected ? Color.white : Color.gray)
             }
             .padding(.horizontal, 10)
-            .padding(.vertical, 5)
+            .padding(.vertical, 6)
             .background(isSelected ? palette.accent.opacity(0.12) : Color.clear)
             .clipShape(Capsule())
             .overlay(Capsule().stroke(isSelected ? palette.accent : Color.clear, lineWidth: 1))
@@ -179,11 +180,11 @@ struct BookmarkRow: View {
             VStack(alignment: .trailing, spacing: 2) {
                 if let coords = bookmark.coordinates {
                     Text(String(format: "%.2e", coords.x))
-                        .font(.system(size: 9, design: .monospaced))
+                        .font(.eveCodeSmall)
                         .foregroundStyle(.tertiary)
                 }
                 Text(bookmark.created, style: .date)
-                    .font(.system(size: 9))
+                    .font(.eveMicro)
                     .foregroundStyle(.tertiary)
             }
         }

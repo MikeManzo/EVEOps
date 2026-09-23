@@ -208,7 +208,7 @@ actor UniverseTopology {
     /// `HEAD`s both CSVs and folds `ETag` (or `Last-Modified`, or `Content-Length`)
     /// into a per-file version string. Returns `nil` if either request fails.
     private func fetchRemoteVersions() async -> (systems: String, jumps: String)? {
-        func version(_ name: String) async -> String? {
+        @Sendable func version(_ name: String) async -> String? {
             guard let url = URL(string: Self.base + name) else { return nil }
             var req = URLRequest(url: url)
             req.httpMethod = "HEAD"

@@ -13,7 +13,8 @@ import OSLog
 
 /// Groups alerts by source so Discord embeds can be color- and icon-coded, matching
 /// the categories in `NotificationsTab`.
-enum DiscordAlertCategory {
+/// `nonisolated` so the static payload builder can read `emoji`/`color` off the main actor.
+nonisolated enum DiscordAlertCategory {
     case skillQueue
     case industry
     case contracts

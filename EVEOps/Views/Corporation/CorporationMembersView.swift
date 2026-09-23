@@ -40,7 +40,7 @@ struct CorporationMembersView: View {
     }
 
     var body: some View {
-        LoadingStateView(isLoading: isLoading, error: error, isEmpty: members.isEmpty, emptyMessage: "No member data or insufficient permissions") {
+        LoadingStateView(isLoading: isLoading, error: error, isEmpty: members.isEmpty, emptyMessage: "None were found, or this character lacks the Director role.", emptyTitle: "No Member Data", emptySystemImage: "person.2") {
             HStack(spacing: 0) {
                 memberList
                     .frame(minWidth: 280, maxWidth: 350)
@@ -55,6 +55,7 @@ struct CorporationMembersView: View {
                     .font(.largeTitle.bold())
                 PinToggleButton(section: .corpMembers)
                 Spacer()
+                FreshnessIndicator(isLoading: isLoading) { await loadMembers() }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
@@ -94,13 +95,14 @@ struct CorporationMembersView: View {
                     Text(order.title).tag(order)
                 }
             }
-            .pickerStyle(.segmented)
+            .eveSegmentedPicker()
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
 
             List(sortedFilteredMembers, id: \.characterId, selection: $selectedMemberID) { member in
                 memberRow(member)
                     .tag(member.characterId)
+                    .eveContextMenu(.character(id: member.characterId, name: member.name))
             }
             .listStyle(.plain)
         }
@@ -116,10 +118,10 @@ struct CorporationMembersView: View {
             CachedAsyncImage(url: EVEImageURL.characterPortrait(member.characterId, size: 128)) { image in
                 image.resizable()
             } placeholder: {
-                RoundedRectangle(cornerRadius: 6).fill(.quaternary)
+                RoundedRectangle(cornerRadius: EVERadius.sm).fill(.quaternary)
             }
             .frame(width: 48, height: 48)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(member.name)
@@ -164,7 +166,7 @@ struct CorporationMembersView: View {
                     Color.clear
                 }
                 .frame(width: 24, height: 24)
-                .clipShape(RoundedRectangle(cornerRadius: 4))
+                .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
             }
         }
         .padding(.vertical, 2)
@@ -197,14 +199,7 @@ struct CorporationMembersView: View {
                 .padding()
             }
         } else {
-            VStack(spacing: 12) {
-                Image(systemName: "person.crop.circle")
-                    .font(.system(size: 48))
-                    .foregroundStyle(.tertiary)
-                Text("Select a member to view details")
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            EVEEmptyState("Select a member to view details", systemImage: "person.crop.circle")
         }
     }
 
@@ -213,10 +208,12 @@ struct CorporationMembersView: View {
             CachedAsyncImage(url: EVEImageURL.characterPortrait(detail.characterId, size: 512)) { image in
                 image.resizable()
             } placeholder: {
-                RoundedRectangle(cornerRadius: 12).fill(.quaternary)
+                RoundedRectangle(cornerRadius: EVERadius.xl).fill(.quaternary)
             }
             .frame(width: 96, height: 96)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .clipShape(RoundedRectangle(cornerRadius: EVERadius.xl))
+            .evePortraitRing(cornerRadius: EVERadius.xl, accent: palette.accent)
+            .shadow(color: .black.opacity(0.35), radius: 8, y: 3)
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(detail.name)
@@ -280,7 +277,9 @@ struct CorporationMembersView: View {
             }
         }
         .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .eveHeroBackdrop(EVEImageURL.characterPortrait(detail.characterId, size: 256), height: 128)
+        .eveCard()
+        .clipShape(RoundedRectangle(cornerRadius: EVERadius.xl))
     }
 
     private func memberInfoCards(_ detail: MemberDetail) -> some View {
@@ -310,7 +309,7 @@ struct CorporationMembersView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding()
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+            .eveCard()
 
             // Tracking info
             VStack(alignment: .leading, spacing: 10) {
@@ -341,7 +340,7 @@ struct CorporationMembersView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding()
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+            .eveCard()
         }
     }
 
@@ -366,7 +365,7 @@ struct CorporationMembersView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .eveCard()
     }
 
     private func titlesSection(_ titles: [String]) -> some View {
@@ -385,7 +384,7 @@ struct CorporationMembersView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .eveCard()
     }
 
     private func historySection(_ history: [ResolvedCorpHistory]) -> some View {
@@ -397,10 +396,10 @@ struct CorporationMembersView: View {
                     CachedAsyncImage(url: EVEImageURL.corporationLogo(entry.corporationId, size: 64)) { image in
                         image.resizable()
                     } placeholder: {
-                        RoundedRectangle(cornerRadius: 4).fill(.quaternary)
+                        RoundedRectangle(cornerRadius: EVERadius.xs).fill(.quaternary)
                     }
                     .frame(width: 28, height: 28)
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                    .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text(entry.corporationName)
@@ -425,7 +424,7 @@ struct CorporationMembersView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .eveCard()
     }
 
     // MARK:  Helpers

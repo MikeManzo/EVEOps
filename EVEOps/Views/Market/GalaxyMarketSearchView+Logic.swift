@@ -16,36 +16,14 @@ extension GalaxyMarketSearchView {
     @ViewBuilder
     var emptyStateView: some View {
         if let error = searchError {
-            VStack(spacing: 12) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 36))
-                    .foregroundStyle(.orange)
-                Text("Search Failed")
-                    .font(.headline)
-                Text(error)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: 400)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            EVEEmptyState("Search Failed", systemImage: "exclamationmark.triangle.fill", message: Text(error), tint: .orange)
         } else {
-            VStack(spacing: 14) {
-                Image(systemName: "globe.europe.africa.fill")
-                    .font(.system(size: 48))
-                    .foregroundStyle(Color(red: 0.2, green: 0.75, blue: 0.8).opacity(0.5))
-                Text("Galaxy Market Search")
-                    .font(.title3.bold())
-                    .foregroundStyle(.secondary)
-                VStack(spacing: 4) {
-                    Text("Search sell orders, buy orders, or both across all k-space regions.")
-                    Text("Filter by high-sec stations and jump distance from your location.")
-                }
-                .font(.subheadline)
-                .foregroundStyle(.tertiary)
-                .multilineTextAlignment(.center)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            EVEEmptyState(
+                "Galaxy Market Search",
+                systemImage: "globe.europe.africa.fill",
+                message: Text("Search sell orders, buy orders, or both across all k-space regions. Filter by high-sec stations and jump distance from your location."),
+                tint: palette.accent
+            )
         }
     }
 

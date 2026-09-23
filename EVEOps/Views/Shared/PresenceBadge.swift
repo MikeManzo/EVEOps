@@ -60,6 +60,7 @@ struct PresenceBadge: View {
                 Circle()
                     .fill(stateColor.opacity(0.3))
                     .frame(width: size + 4, height: size + 4)
+                    .modifier(PresencePulse())
             }
             Circle()
                 .fill(stateColor)
@@ -213,5 +214,23 @@ struct PresencePlaceholder: View {
         Circle()
             .fill(Color.secondary.opacity(0.2))
             .frame(width: size, height: size)
+    }
+}
+
+/// Slow breathing halo on the "Active Now" dot. Skipped under Reduce Motion.
+private struct PresencePulse: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var expanded = false
+
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(expanded ? 1.6 : 1)
+            .opacity(expanded ? 0 : 1)
+            .onAppear {
+                guard !reduceMotion else { return }
+                withAnimation(.easeOut(duration: 1.6).repeatForever(autoreverses: false)) {
+                    expanded = true
+                }
+            }
     }
 }

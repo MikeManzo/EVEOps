@@ -78,7 +78,7 @@ struct CharacterContactsView: View {
             .padding(.vertical, 6)
             .background(.bar)
             Divider()
-            LoadingStateView(isLoading: isLoading, error: error, isEmpty: contacts.isEmpty, emptyMessage: "No contacts found") {
+            LoadingStateView(isLoading: isLoading, error: error, isEmpty: contacts.isEmpty, emptyMessage: "No Contacts", emptySystemImage: "person.crop.circle") {
                 HStack(spacing: 0) {
                     contactList
                         .frame(minWidth: 300, maxWidth: 400)
@@ -94,6 +94,7 @@ struct CharacterContactsView: View {
                     .font(.largeTitle.bold())
                 PinToggleButton(section: .contacts)
                 Spacer()
+                FreshnessIndicator(isLoading: isLoading) { await load() }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
@@ -154,6 +155,10 @@ struct CharacterContactsView: View {
                                 }
                             }
                             .contextMenu {
+                                if let entity = contact.entity(name: contactNames[contact.contactId]) {
+                                    EVEEntityMenuItems(entity: entity)
+                                    Divider()
+                                }
                                 Button {
                                     contactToEdit = contact
                                 } label: {
@@ -206,14 +211,7 @@ struct CharacterContactsView: View {
                 .padding()
             }
         } else {
-            VStack(spacing: 12) {
-                Image(systemName: "person.crop.circle")
-                    .font(.system(size: 48))
-                    .foregroundStyle(.tertiary)
-                Text("Select a contact to view details")
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            EVEEmptyState("Select a contact to view details", systemImage: "person.crop.circle")
         }
     }
 
@@ -235,7 +233,16 @@ struct CharacterContactsView: View {
                 RoundedRectangle(cornerRadius: isCharacter ? 48 : 12).fill(.quaternary)
             }
             .frame(width: 96, height: 96)
-            .clipShape(isCharacter ? AnyShape(Circle()) : AnyShape(RoundedRectangle(cornerRadius: 12)))
+            .clipShape(isCharacter ? AnyShape(Circle()) : AnyShape(RoundedRectangle(cornerRadius: EVERadius.xl)))
+            .overlay {
+                if isCharacter {
+                    Circle().strokeBorder(LinearGradient.evePortraitRing(palette.accent), lineWidth: 1.5)
+                } else {
+                    RoundedRectangle(cornerRadius: EVERadius.xl)
+                        .strokeBorder(LinearGradient.evePortraitRing(palette.accent), lineWidth: 1.5)
+                }
+            }
+            .shadow(color: .black.opacity(0.35), radius: 8, y: 3)
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(detail.name)
@@ -255,7 +262,17 @@ struct CharacterContactsView: View {
             Spacer()
         }
         .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .eveHeroBackdrop(Self.headerImageURL(for: detail.contact), height: 128)
+        .eveCard()
+        .clipShape(RoundedRectangle(cornerRadius: EVERadius.xl))
+    }
+
+    private static func headerImageURL(for contact: ESIContact) -> URL? {
+        switch contact.contactType {
+        case "character":   return EVEImageURL.characterPortrait(contact.contactId, size: 256)
+        case "alliance":    return EVEImageURL.allianceLogo(contact.contactId, size: 256)
+        default:            return EVEImageURL.corporationLogo(contact.contactId, size: 256)
+        }
     }
 
     private func standingCard(_ detail: ContactDetail) -> some View {
@@ -266,10 +283,10 @@ struct CharacterContactsView: View {
             HStack(spacing: 12) {
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 4).fill(.quaternary)
+                        RoundedRectangle(cornerRadius: EVERadius.xs).fill(.quaternary)
                         let fraction = (detail.contact.standing + 10.0) / 20.0
                         let color: Color = detail.contact.standing > 0 ? .green : detail.contact.standing < 0 ? .red : .secondary
-                        RoundedRectangle(cornerRadius: 4)
+                        RoundedRectangle(cornerRadius: EVERadius.xs)
                             .fill(color)
                             .frame(width: geo.size.width * max(0, min(1, fraction)))
                     }
@@ -277,7 +294,7 @@ struct CharacterContactsView: View {
                 .frame(height: 12)
 
                 Text(String(format: "%+.1f", detail.contact.standing))
-                    .font(.title3.bold().monospacedDigit())
+                    .font(.eveStatCompact)
                     .foregroundStyle(detail.contact.standing > 0 ? .green : detail.contact.standing < 0 ? .red : .secondary)
                     .frame(width: 50, alignment: .trailing)
             }
@@ -302,7 +319,7 @@ struct CharacterContactsView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .eveCard()
     }
 
     private func characterInfoCard(_ info: ESICharacterPublic, corpName: String?, allianceName: String?) -> some View {
@@ -335,7 +352,7 @@ struct CharacterContactsView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .eveCard()
     }
 
     private func historySection(_ history: [ResolvedCorpHistory]) -> some View {
@@ -347,10 +364,10 @@ struct CharacterContactsView: View {
                     CachedAsyncImage(url: EVEImageURL.corporationLogo(entry.corporationId, size: 64)) { image in
                         image.resizable()
                     } placeholder: {
-                        RoundedRectangle(cornerRadius: 4).fill(.quaternary)
+                        RoundedRectangle(cornerRadius: EVERadius.xs).fill(.quaternary)
                     }
                     .frame(width: 28, height: 28)
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                    .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text(entry.corporationName)
@@ -375,7 +392,7 @@ struct CharacterContactsView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .eveCard()
     }
 
     // MARK: Helpers
@@ -400,7 +417,7 @@ struct CharacterContactsView: View {
                 Text("Corps").tag("corporation")
                 Text("Alliances").tag("alliance")
             }
-            .pickerStyle(.segmented)
+            .eveSegmentedPicker()
             TextField("Filter contacts", text: $searchFilter)
                 .textFieldStyle(.roundedBorder)
         }
@@ -624,7 +641,7 @@ struct ContactRow: View {
                         .fill(.quaternary)
                 }
                 .frame(width: 40, height: 40)
-                .clipShape(contact.contactType == "character" ? AnyShape(Circle()) : AnyShape(RoundedRectangle(cornerRadius: 6)))
+                .clipShape(contact.contactType == "character" ? AnyShape(Circle()) : AnyShape(RoundedRectangle(cornerRadius: EVERadius.sm)))
 
                 if contact.isPlayerCharacter {
                     if let presence {
@@ -751,7 +768,7 @@ struct AddContactSheet: View {
                             Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
                         }
                         .padding(10)
-                        .background(.green.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+                        .background(.green.opacity(0.08), in: RoundedRectangle(cornerRadius: EVERadius.md))
                     }
                 }
 
@@ -915,12 +932,25 @@ struct StandingOptionButton: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
-            .background(isSelected ? color.opacity(0.15) : Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
+            .background(isSelected ? color.opacity(0.15) : Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: EVERadius.md))
             .overlay(
-                RoundedRectangle(cornerRadius: 8)
+                RoundedRectangle(cornerRadius: EVERadius.md)
                     .stroke(isSelected ? color.opacity(0.4) : Color.clear, lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
+    }
+}
+
+extension ESIContact {
+    /// The contact as a right-clickable entity, once its name has resolved.
+    func entity(name: String?) -> EVEEntity? {
+        guard let name else { return nil }
+        switch contactType {
+        case "character":   return .character(id: contactId, name: name)
+        case "corporation": return .corporation(id: contactId, name: name)
+        case "alliance":    return .alliance(id: contactId, name: name)
+        default:            return nil
+        }
     }
 }

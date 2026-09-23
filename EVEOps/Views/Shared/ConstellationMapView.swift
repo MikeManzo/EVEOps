@@ -95,6 +95,7 @@ struct ConstellationMapView: View {
                 Button { withAnimation { scale = max(0.5, scale - 0.25) } } label: {
                     Image(systemName: "minus.magnifyingglass").font(.caption)
                 }
+                .accessibilityLabel("Zoom Out")
                 .buttonStyle(.plain)
 
                 Text(Double(scale).formatted(.percent.precision(.fractionLength(0))))
@@ -105,6 +106,7 @@ struct ConstellationMapView: View {
                 Button { withAnimation { scale = min(3.0, scale + 0.25) } } label: {
                     Image(systemName: "plus.magnifyingglass").font(.caption)
                 }
+                .accessibilityLabel("Zoom In")
                 .buttonStyle(.plain)
 
                 Button {
@@ -112,6 +114,7 @@ struct ConstellationMapView: View {
                 } label: {
                     Image(systemName: "arrow.counterclockwise").font(.caption)
                 }
+                .accessibilityLabel("Reset View")
                 .buttonStyle(.plain)
             }
         }
@@ -157,7 +160,7 @@ struct ConstellationMapView: View {
 
                     // Constellation name at edge
                     let label = Text(ext.destinationName)
-                        .font(.system(size: 8))
+                        .font(.eveTiny)
                         .foregroundColor(.white.opacity(0.3))
                     let resolved = context.resolve(label)
                     context.draw(resolved, at: edgePt)
@@ -306,7 +309,7 @@ struct ConstellationMapView: View {
                     }
                     let subLabelColor: Color = isWHSys ? .purple.opacity(0.8) : eveSecurityColor(sys.securityStatus).opacity(0.8)
                     let secLabel = Text(subLabels.joined(separator: " "))
-                        .font(.system(size: 8))
+                        .font(.eveTiny)
                         .foregroundColor(subLabelColor)
                     let resolvedSec = context.resolve(secLabel)
                     context.draw(
@@ -350,8 +353,8 @@ struct ConstellationMapView: View {
             )
         }
         .frame(minHeight: 380)
-        .background(Color(white: 0.03), in: RoundedRectangle(cornerRadius: 8))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .background(Color(white: 0.03), in: RoundedRectangle(cornerRadius: EVERadius.md))
+        .clipShape(RoundedRectangle(cornerRadius: EVERadius.md))
     }
 
     // MARK:  System Popover
@@ -365,6 +368,7 @@ struct ConstellationMapView: View {
                 Button { selectedSystem = nil } label: {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
                 }
+                .accessibilityLabel("Clear")
                 .buttonStyle(.plain)
             }
 
@@ -429,7 +433,7 @@ struct ConstellationMapView: View {
         }
         .padding(10)
         .frame(width: 260)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
         .padding(8)
     }
@@ -521,7 +525,7 @@ struct ConstellationMapView: View {
         return Text(label)
             .font(.caption2.bold().monospacedDigit())
             .foregroundStyle(color)
-            .padding(.horizontal, 5)
+            .padding(.horizontal, 6)
             .padding(.vertical, 1)
             .background(color.opacity(0.15), in: Capsule())
     }

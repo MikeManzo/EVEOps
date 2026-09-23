@@ -118,6 +118,7 @@ struct AssetBrowser: View {
             isEmpty: assets.isEmpty,
             hasContent: !assets.isEmpty,
             emptyMessage: kind.emptyMessage,
+            emptySystemImage: "shippingbox",
             onRetry: { Task { await refresh() } }
         ) {
             HStack(spacing: 0) {
@@ -228,6 +229,7 @@ struct AssetBrowser: View {
                         ForEach(section.items) { asset in
                             assetRow(asset)
                                 .tag(asset.id)
+                                .eveContextMenu(.item(typeID: asset.typeId, name: asset.typeName))
                                 .themedListRow(isSelected: asset.id == selectedAssetID, palette: palette)
                         }
                     }
@@ -272,7 +274,7 @@ struct AssetBrowser: View {
                 if let image = phase.image {
                     image.resizable()
                         .frame(width: 28, height: 28)
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                        .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
                 } else {
                     Image(systemName: kind.fallbackIcon)
                         .foregroundStyle(kind.fallbackIconTint)

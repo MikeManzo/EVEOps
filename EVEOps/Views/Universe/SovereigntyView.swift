@@ -48,7 +48,7 @@ struct SovereigntyView: View {
                 Picker("View", selection: $tab) {
                     ForEach(Tab.allCases) { Text($0.rawValue).tag($0) }
                 }
-                .pickerStyle(.segmented)
+                .eveSegmentedPicker()
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
                 Divider()
@@ -402,11 +402,11 @@ private struct CampaignRow: View {
         HStack(alignment: .top, spacing: 12) {
             if let defenderId = c.defenderId {
                 CachedAsyncImage(url: EVEImageURL.allianceLogo(defenderId, size: 64)) { $0.resizable().scaledToFit() }
-                placeholder: { RoundedRectangle(cornerRadius: 8).fill(.quaternary) }
+                placeholder: { RoundedRectangle(cornerRadius: EVERadius.md).fill(.quaternary) }
                 .frame(width: 44, height: 44)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .clipShape(RoundedRectangle(cornerRadius: EVERadius.md))
             } else {
-                RoundedRectangle(cornerRadius: 8).fill(.quaternary).frame(width: 44, height: 44)
+                RoundedRectangle(cornerRadius: EVERadius.md).fill(.quaternary).frame(width: 44, height: 44)
                     .overlay(Image(systemName: "flag").foregroundStyle(.secondary))
             }
 
@@ -421,7 +421,7 @@ private struct CampaignRow: View {
                         .foregroundStyle(c.startTime.timeIntervalSinceNow <= 0 ? .red : .secondary)
                     if c.startTime.timeIntervalSinceNow <= 0 {
                         Text("IN PROGRESS")
-                            .font(.system(size: 9).bold())
+                            .font(.eveMicroBold)
                             .foregroundStyle(.red)
                             .padding(.horizontal, 4).padding(.vertical, 1)
                             .background(.red.opacity(0.15), in: Capsule())
@@ -472,7 +472,7 @@ private struct CampaignRow: View {
                 Text("Attackers \(attackers.formatted(.percent.precision(.fractionLength(0))))")
                     .foregroundStyle(.red)
             }
-            .font(.system(size: 9).monospacedDigit())
+            .font(.eveMicro.monospacedDigit())
         }
         .frame(maxWidth: 260)
         .padding(.top, 2)
@@ -495,9 +495,9 @@ private struct StructureRow: View {
     var body: some View {
         HStack(spacing: 12) {
             CachedAsyncImage(url: EVEImageURL.allianceLogo(item.allianceId, size: 64)) { $0.resizable().scaledToFit() }
-            placeholder: { RoundedRectangle(cornerRadius: 6).fill(.quaternary) }
+            placeholder: { RoundedRectangle(cornerRadius: EVERadius.sm).fill(.quaternary) }
             .frame(width: 36, height: 36)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
@@ -528,7 +528,7 @@ private struct StructureRow: View {
                 Text(String(format: "ADM %.1f", adm))
                     .font(.caption.bold().monospacedDigit())
                     .foregroundStyle(SovereigntyFormat.admColor(adm))
-                    .padding(.horizontal, 7).padding(.vertical, 3)
+                    .padding(.horizontal, 8).padding(.vertical, 3)
                     .background(SovereigntyFormat.admColor(adm).opacity(0.15), in: Capsule())
             }
         }
@@ -606,6 +606,7 @@ private struct SovDetailPane: View {
                 Button { onClose() } label: {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
                 }
+                .accessibilityLabel("Clear")
                 .buttonStyle(.plain)
                 .keyboardShortcut(.escape)
             }
@@ -664,8 +665,8 @@ private struct SovDetailPane: View {
                 ForEach(participants.filter { $0.allianceId != c.defenderId }) { p in
                     HStack(spacing: 8) {
                         CachedAsyncImage(url: EVEImageURL.allianceLogo(p.allianceId, size: 32)) { $0.resizable().scaledToFit() }
-                        placeholder: { RoundedRectangle(cornerRadius: 4).fill(.quaternary) }
-                        .frame(width: 22, height: 22).clipShape(RoundedRectangle(cornerRadius: 4))
+                        placeholder: { RoundedRectangle(cornerRadius: EVERadius.xs).fill(.quaternary) }
+                        .frame(width: 22, height: 22).clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
                         Text(allianceNames[p.allianceId] ?? "Alliance #\(p.allianceId)").font(.caption)
                         Spacer()
                         Text(p.score.formatted(.percent.precision(.fractionLength(0))))
@@ -804,7 +805,7 @@ private struct SovDetailPane: View {
                 Spacer()
                 Text("Attackers \(attackers.formatted(.percent.precision(.fractionLength(0))))").foregroundStyle(.red)
             }
-            .font(.system(size: 10).monospacedDigit())
+            .font(.eveLabel.monospacedDigit())
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Contest score")
@@ -914,8 +915,8 @@ private struct AllianceInfoCard: View {
             if let allianceId {
                 HStack(spacing: 12) {
                     CachedAsyncImage(url: EVEImageURL.allianceLogo(allianceId, size: 128)) { $0.resizable().scaledToFit() }
-                    placeholder: { RoundedRectangle(cornerRadius: 8).fill(.quaternary) }
-                    .frame(width: 52, height: 52).clipShape(RoundedRectangle(cornerRadius: 8))
+                    placeholder: { RoundedRectangle(cornerRadius: EVERadius.md).fill(.quaternary) }
+                    .frame(width: 52, height: 52).clipShape(RoundedRectangle(cornerRadius: EVERadius.md))
 
                     VStack(alignment: .leading, spacing: 3) {
                         HStack(spacing: 6) {
@@ -944,7 +945,7 @@ private struct AllianceInfoCard: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 10))
+        .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: EVERadius.lg))
         .task(id: allianceId) {
             guard let allianceId else { return }
             info = try? await ESIClient.shared.fetch("/alliances/\(allianceId)/")
@@ -973,9 +974,9 @@ private struct HolderRow: View {
                 .frame(width: 22, alignment: .trailing)
 
             CachedAsyncImage(url: EVEImageURL.allianceLogo(holding.allianceId, size: 64)) { $0.resizable().scaledToFit() }
-            placeholder: { RoundedRectangle(cornerRadius: 6).fill(.quaternary) }
+            placeholder: { RoundedRectangle(cornerRadius: EVERadius.sm).fill(.quaternary) }
             .frame(width: 32, height: 32)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(holding.name).font(.subheadline)

@@ -120,11 +120,12 @@ struct RoutePlannerView: View {
                         destinationSystem = temp
                     } label: {
                         Image(systemName: "arrow.left.arrow.right")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(.eveCalloutSemibold)
                             .foregroundStyle(.secondary)
                             .frame(width: 28, height: 28)
-                            .background(.quaternary, in: RoundedRectangle(cornerRadius: 6))
+                            .background(.quaternary, in: RoundedRectangle(cornerRadius: EVERadius.sm))
                     }
+                    .accessibilityLabel("Swap Origin and Destination")
                     .buttonStyle(.plain)
                     .padding(.bottom, 1)
 
@@ -215,6 +216,7 @@ struct RoutePlannerView: View {
                                         Image(systemName: "xmark.circle.fill")
                                             .font(.caption2)
                                     }
+                                    .accessibilityLabel("Clear")
                                     .buttonStyle(.plain)
                                 }
                                 .padding(.horizontal, 8)
@@ -239,7 +241,7 @@ struct RoutePlannerView: View {
                     .font(.caption)
                     .padding(8)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.red.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+                    .background(.red.opacity(0.08), in: RoundedRectangle(cornerRadius: EVERadius.md))
                 }
             }
         } label: {
@@ -286,7 +288,7 @@ struct RoutePlannerView: View {
         }
         .frame(maxWidth: .infinity)
         .padding()
-        .background(.quaternary, in: RoundedRectangle(cornerRadius: 10))
+        .background(.quaternary, in: RoundedRectangle(cornerRadius: EVERadius.lg))
     }
 
     // MARK:  Route Panel
@@ -377,7 +379,7 @@ struct RoutePlannerView: View {
         Text(label)
             .font(.caption2.bold().monospacedDigit())
             .foregroundStyle(color)
-            .padding(.horizontal, 7)
+            .padding(.horizontal, 8)
             .padding(.vertical, 3)
             .background(color.opacity(0.15), in: Capsule())
     }
@@ -399,7 +401,7 @@ struct RoutePlannerView: View {
                 .font(.caption2.bold().monospacedDigit())
         }
         .foregroundStyle(totalKills == 0 ? Color.green : color)
-        .padding(.horizontal, 7)
+        .padding(.horizontal, 8)
         .padding(.vertical, 3)
         .background((totalKills == 0 ? Color.green : color).opacity(0.15), in: Capsule())
         .help(riskTooltip(totalKills: totalKills, peak: peak))
@@ -530,6 +532,7 @@ struct RoutePlannerView: View {
                     Image(systemName: "info.circle")
                         .font(.caption).foregroundStyle(.secondary)
                 }
+                .accessibilityLabel("More Info")
                 .buttonStyle(.plain)
                 .popover(isPresented: $showTheraInfo, arrowEdge: .top) {
                     VStack(alignment: .leading, spacing: 10) {
@@ -571,6 +574,7 @@ struct RoutePlannerView: View {
                     Image(systemName: "arrow.clockwise")
                         .font(.caption2).foregroundStyle(.secondary)
                 }
+                .accessibilityLabel("Refresh connections")
                 .buttonStyle(.plain)
                 .help("Refresh connections")
                 Button {
@@ -579,6 +583,7 @@ struct RoutePlannerView: View {
                     Image(systemName: theraExpanded ? "chevron.down" : "chevron.right")
                         .font(.caption2).foregroundStyle(.secondary)
                 }
+                .accessibilityLabel("Expand or Collapse")
                 .buttonStyle(.plain)
                 .help(theraExpanded ? "Collapse" : "Expand")
             }

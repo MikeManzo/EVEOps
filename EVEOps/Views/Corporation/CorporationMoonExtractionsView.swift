@@ -26,7 +26,7 @@ struct CorporationMoonExtractionsView: View {
             isLoading: isLoading,
             error: error,
             isEmpty: extractions.isEmpty,
-            emptyMessage: "No moon extractions scheduled.\n\nMoon drills must be active and your character needs moon mining roles."
+            emptyMessage: "Moon drills must be active and your character needs moon mining roles.", emptyTitle: "No Moon Extractions Scheduled", emptySystemImage: "moon.stars"
         ) {
             List(sorted) { extraction in
                 MoonExtractionRow(
@@ -42,6 +42,7 @@ struct CorporationMoonExtractionsView: View {
                     .font(.largeTitle.bold())
                 PinToggleButton(section: .corpMoonExtractions)
                 Spacer()
+                FreshnessIndicator(isLoading: isLoading) { await load() }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
@@ -134,7 +135,7 @@ struct MoonExtractionRow: View {
                         .foregroundStyle(.tertiary)
                 }
                 Text(extraction.chunkArrivalTime, style: .date)
-                    .font(.system(size: 9))
+                    .font(.eveMicro)
                     .foregroundStyle(.tertiary)
             }
         }

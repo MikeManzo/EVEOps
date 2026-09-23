@@ -54,7 +54,7 @@ struct ImplantDetailView: View {
                                 .font(.system(size: 48))
                                 .foregroundStyle(.quaternary)
                         } else {
-                            ProgressView().scaleEffect(0.8)
+                            ProgressView().controlSize(.small)
                         }
                     }
                 }

@@ -49,15 +49,18 @@ struct RefreshButton: View {
     var bindShortcut: Bool = false
     let action: () -> Void
 
+    @State private var completedRefreshes = 0
+
     var body: some View {
         Button(action: action) {
-            ZStack {
-                Image(systemName: "arrow.clockwise")
-                    .opacity(isRefreshing ? 0 : 1)
-                if isRefreshing {
-                    ProgressView().controlSize(.small)
-                }
-            }
+            // Spin the glyph itself while refreshing rather than swapping in a spinner,
+            // then a single bounce when it finishes so the user sees the refresh land.
+            Image(systemName: "arrow.clockwise")
+                .symbolEffect(.rotate.byLayer, options: .repeat(.continuous), isActive: isRefreshing)
+                .symbolEffect(.bounce, value: completedRefreshes)
+        }
+        .onChange(of: isRefreshing) { wasRefreshing, nowRefreshing in
+            if wasRefreshing && !nowRefreshing { completedRefreshes += 1 }
         }
         .buttonStyle(.borderless)
         .help("Refresh")
@@ -150,18 +153,18 @@ struct LoadingSkeleton: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             if showsHeader {
-                RoundedRectangle(cornerRadius: 6)
+                RoundedRectangle(cornerRadius: EVERadius.sm)
                     .fill(.quaternary)
                     .frame(width: 180, height: 22)
             }
             ForEach(0..<max(1, rows), id: \.self) { _ in
                 HStack(spacing: 12) {
-                    RoundedRectangle(cornerRadius: 6).fill(.quaternary)
+                    RoundedRectangle(cornerRadius: EVERadius.sm).fill(.quaternary)
                         .frame(width: 34, height: 34)
                     VStack(alignment: .leading, spacing: 6) {
-                        RoundedRectangle(cornerRadius: 4).fill(.quaternary)
+                        RoundedRectangle(cornerRadius: EVERadius.xs).fill(.quaternary)
                             .frame(maxWidth: .infinity).frame(height: 12)
-                        RoundedRectangle(cornerRadius: 4).fill(.quaternary)
+                        RoundedRectangle(cornerRadius: EVERadius.xs).fill(.quaternary)
                             .frame(width: 140, height: 10)
                     }
                 }
@@ -180,8 +183,17 @@ struct LoadingSkeleton: View {
 
 private struct Shimmer: ViewModifier {
     @State private var phase: CGFloat = -1
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func body(content: Content) -> some View {
+        if reduceMotion {
+            content
+        } else {
+            sweeping(content)
+        }
+    }
+
+    private func sweeping(_ content: Content) -> some View {
         content
             .overlay {
                 GeometryReader { geo in
@@ -209,4 +221,29 @@ private struct Shimmer: ViewModifier {
 
 extension View {
     func shimmer() -> some View { modifier(Shimmer()) }
+}
+
+// MARK: - Freshness indicator
+
+/// "Updated 2m ago" + refresh button for a screen header. Tracks freshness itself by
+/// watching the screen's loading flag fall back to false, so screens don't need their
+/// own `lastRefresh` bookkeeping to show it.
+struct FreshnessIndicator: View {
+    let isLoading: Bool
+    let refresh: () async -> Void
+
+    @State private var lastUpdated: Date?
+
+    var body: some View {
+        HStack(spacing: EVESpacing.md) {
+            RelativeTimestamp(date: lastUpdated)
+            RefreshButton(isRefreshing: isLoading) {
+                Task { await refresh() }
+            }
+        }
+        .onAppear { if !isLoading && lastUpdated == nil { lastUpdated = .now } }
+        .onChange(of: isLoading) { wasLoading, nowLoading in
+            if wasLoading && !nowLoading { lastUpdated = .now }
+        }
+    }
 }

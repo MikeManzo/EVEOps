@@ -477,7 +477,7 @@ extension MarketBrowserView {
         if lower.contains("structure")                              { return ("building.2.fill", Color(red: 0.6, green: 0.6, blue: 0.7)) }
         if lower.contains("skill")                                  { return ("book.fill", Color(red: 0.35, green: 0.65, blue: 0.90)) }
         if lower.contains("implant") || lower.contains("booster")  { return ("brain.head.profile", .purple) }
-        if lower.contains("blueprint")                              { return ("doc.fill", Color(red: 0.2, green: 0.75, blue: 0.8)) }
+        if lower.contains("blueprint")                              { return ("doc.fill", palette.accent) }
         if lower.contains("apparel") || lower.contains("clothing")  { return ("tshirt.fill", .pink) }
         if lower.contains("deployable")                             { return ("antenna.radiowaves.left.and.right", .cyan) }
         if lower.contains("fuel")                                   { return ("flame.fill", .orange) }

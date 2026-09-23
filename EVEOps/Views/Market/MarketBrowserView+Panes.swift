@@ -59,11 +59,12 @@ extension MarketBrowserView {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(.secondary)
                 }
+                .accessibilityLabel("Clear")
                 .buttonStyle(.plain)
             }
         }
         .padding(6)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+        .eveCard(cornerRadius: EVERadius.md)
         .onChange(of: searchText) { _, newValue in
             searchTask?.cancel()
             // Clear any previously selected item so the detail pane doesn't show stale data
@@ -102,18 +103,7 @@ extension MarketBrowserView {
         } else if selectedGroupId != nil {
             groupTypesPanel
         } else {
-            VStack(spacing: 10) {
-                Image(systemName: "chart.xyaxis.line")
-                    .font(.system(size: 40))
-                    .foregroundStyle(Color(red: 0.2, green: 0.75, blue: 0.8).opacity(0.6))
-                Text("Select a group from the registry")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.secondary)
-                Text("or search by name to find an item")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            EVEEmptyState("Select a group from the registry", systemImage: "chart.xyaxis.line", message: "or search by name to find an item", tint: palette.accent)
         }
     }
 
@@ -125,10 +115,7 @@ extension MarketBrowserView {
             ProgressView()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if searchResults.isEmpty {
-            Text("No results found")
-                .foregroundStyle(.secondary)
-                .font(.caption)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            ContentUnavailableView.search(text: searchText)
         } else {
             List(searchResults, selection: Binding(
                 get: { selectedTypeId },
@@ -140,9 +127,10 @@ extension MarketBrowserView {
             )) { result in
                 typeRow(typeId: result.typeId, name: result.name)
                     .tag(result.typeId)
+                    .eveContextMenu(.item(typeID: result.typeId, name: result.name))
                     .themedListRow(isSelected: result.typeId == selectedTypeId, palette: palette)
             }
-            .listStyle(.plain)
+            .listStyle(.sidebar)
         }
     }
 
@@ -216,19 +204,7 @@ extension MarketBrowserView {
         if let typeId = selectedTypeId {
             itemDetailView(typeId: typeId)
         } else {
-            VStack(spacing: 10) {
-                Image(systemName: "chart.line.uptrend.xyaxis")
-                    .font(.system(size: 44))
-                    .foregroundStyle(Color(red: 0.2, green: 0.75, blue: 0.8).opacity(0.5))
-                Text("No item selected")
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
-                Text("Browse the market registry or search by name\nto analyze orders and pricing.")
-                    .font(.subheadline)
-                    .foregroundStyle(.tertiary)
-                    .multilineTextAlignment(.center)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            EVEEmptyState("No Item Selected", systemImage: "chart.line.uptrend.xyaxis", message: "Browse the market registry or search by name to analyze orders and pricing.", tint: palette.accent)
         }
     }
 
@@ -237,12 +213,9 @@ extension MarketBrowserView {
     @ViewBuilder
     var groupTypesPanel: some View {
         if isLoadingGroupTypes {
-            ProgressView()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            LoadingSkeleton(rows: 8, showsHeader: false)
         } else if groupTypes.isEmpty {
-            Text("No tradeable items in this group")
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            EVEEmptyState("No Tradeable Items in This Group", systemImage: "shippingbox")
         } else {
             List(groupTypes, selection: Binding(
                 get: { selectedTypeId },
@@ -254,6 +227,7 @@ extension MarketBrowserView {
             )) { result in
                 typeRow(typeId: result.typeId, name: result.name)
                     .tag(result.typeId)
+                    .eveContextMenu(.item(typeID: result.typeId, name: result.name))
                     .themedListRow(isSelected: result.typeId == selectedTypeId, palette: palette)
             }
             .listStyle(.sidebar)
@@ -291,7 +265,7 @@ extension MarketBrowserView {
                         Text("Buy Orders (\(buyOrders.count))").tag(1)
                         Text("Price History").tag(2)
                     }
-                    .pickerStyle(.segmented)
+                    .eveSegmentedPicker()
                     .frame(maxWidth: 500)
 
                     if let msg = waypointMessage {
@@ -338,11 +312,11 @@ extension MarketBrowserView {
                 CachedAsyncImage(url: EVEImageURL.typeIcon(typeId, size: 128)) { image in
                     image.resizable()
                 } placeholder: {
-                    RoundedRectangle(cornerRadius: 8).fill(.quaternary)
+                    RoundedRectangle(cornerRadius: EVERadius.md).fill(.quaternary)
                 }
             }
             .frame(width: 96, height: 96)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .clipShape(RoundedRectangle(cornerRadius: EVERadius.lg))
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(selectedTypeName)
@@ -402,15 +376,15 @@ extension MarketBrowserView {
         .padding()
         .background {
             ZStack {
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: EVERadius.xl)
                     .fill(.regularMaterial)
                 RadialGradient(
-                    colors: [Color(red: 0.2, green: 0.75, blue: 0.8).opacity(0.14), .clear],
+                    colors: [palette.accent.opacity(0.14), .clear],
                     center: .init(x: 0.04, y: 0.5),
                     startRadius: 0,
                     endRadius: 180
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .clipShape(RoundedRectangle(cornerRadius: EVERadius.xl))
             }
         }
     }
@@ -442,7 +416,7 @@ extension MarketBrowserView {
                 statCard("Spread", value: (spread / 100).formatted(.percent.precision(.fractionLength(1))), color: .secondary)
             }
         }
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .eveCard()
     }
 
     func legendItem(color: Color, symbol: String, label: String) -> some View {

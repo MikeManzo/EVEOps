@@ -119,6 +119,8 @@ struct GalaxyMarketSearchView: View {
     let initialTypeName: String
 
     @Environment(AccountManager.self) var accountManager
+    @Environment(ThemeManager.self) var themeManager
+    var palette: EVEPalette { themeManager.palette }
     @Environment(DashboardPrefetcher.self) var prefetcher
     @Environment(\.dismiss) var dismiss
 

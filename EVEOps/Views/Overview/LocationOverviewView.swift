@@ -38,7 +38,8 @@ struct LocationOverviewView: View {
             error: error,
             isEmpty: locations.isEmpty,
             hasContent: !locations.isEmpty,
-            emptyMessage: "No location data",
+            emptyMessage: "No Location Data",
+            emptySystemImage: "location",
             onRetry: { Task { await refreshAll() } }
         ) {
             ScrollView {

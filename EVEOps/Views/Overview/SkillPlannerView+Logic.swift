@@ -207,7 +207,7 @@ extension SkillPlannerView {
         Text("L\(level)")
             .font(.caption2.bold())
             .foregroundStyle(levelColor(level))
-            .padding(.horizontal, 5)
+            .padding(.horizontal, 6)
             .padding(.vertical, 1)
             .background(levelColor(level).opacity(0.15), in: Capsule())
     }

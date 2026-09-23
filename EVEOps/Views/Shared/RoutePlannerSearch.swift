@@ -100,7 +100,7 @@ struct SystemSearchField: View {
         VStack(spacing: 0) {
             if isSearching {
                 HStack(spacing: 8) {
-                    ProgressView().scaleEffect(0.7)
+                    ProgressView().controlSize(.small)
                     Text("Searching…").font(.caption).foregroundStyle(.secondary)
                 }
                 .padding(12)
@@ -253,7 +253,7 @@ struct SystemResultRow: View {
                 .foregroundStyle(result.securityColor)
                 .frame(width: 28, alignment: .center)
                 .padding(.vertical, 2)
-                .background(result.securityColor.opacity(0.15), in: RoundedRectangle(cornerRadius: 5))
+                .background(result.securityColor.opacity(0.15), in: RoundedRectangle(cornerRadius: EVERadius.sm))
 
             Text(result.name)
                 .font(.subheadline)

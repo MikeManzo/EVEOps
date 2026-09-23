@@ -32,8 +32,8 @@ struct LocalIntelView: View {
                 .scrollContentBackground(.hidden)
                 .padding(6)
                 .frame(minHeight: 90, maxHeight: 150)
-                .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: 6))
-                .overlay(RoundedRectangle(cornerRadius: 6).stroke(.separator))
+                .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: EVERadius.sm))
+                .overlay(RoundedRectangle(cornerRadius: EVERadius.sm).stroke(.separator))
 
             controls
 
@@ -107,6 +107,7 @@ struct LocalIntelView: View {
                             LocalIntelRow(pilot: pilot)
                                 .contentShape(Rectangle())
                                 .onTapGesture { selectedPilot = pilot }
+                                .eveContextMenu(.character(id: pilot.characterId, name: pilot.name))
                         }
                     }
                 }

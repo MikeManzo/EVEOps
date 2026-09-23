@@ -27,7 +27,7 @@ struct AppCommands: Commands {
 
     var body: some Commands {
         CommandGroup(replacing: .appInfo) {
-            Button("About EVEOps") { NSApp.orderFrontStandardAboutPanel(nil) }
+            Button("About EVEOps") { WindowService.shared.showAbout() }
             Button("Check for Updates…") { updater.checkForUpdates() }
         }
 

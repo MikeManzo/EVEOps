@@ -90,12 +90,13 @@ private struct ShipGoalAICard: View {
                             .font(.title3)
                             .foregroundStyle(goalText.count >= 5 ? palette.accent : Color.secondary.opacity(0.3))
                     }
+                    .accessibilityLabel("Move Up")
                     .buttonStyle(.plain)
                     .disabled(goalText.count < 5)
                 }
             }
             .padding(8)
-            .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
+            .background(.quaternary, in: RoundedRectangle(cornerRadius: EVERadius.md))
 
             if isLoading {
                 HStack(spacing: 6) {
@@ -190,6 +191,7 @@ private struct ShipGoalAICard: View {
                     } label: {
                         Image(systemName: "plus.circle").font(.title3).foregroundStyle(palette.accent)
                     }
+                    .accessibilityLabel("Add to Skill Plan")
                     .buttonStyle(.plain)
                 }
             } else {
@@ -206,7 +208,7 @@ private struct ShipGoalAICard: View {
         return Text("L\(level)")
             .font(.caption2.bold())
             .foregroundStyle(dimmed ? color.opacity(0.5) : color)
-            .padding(.horizontal, 5).padding(.vertical, 1)
+            .padding(.horizontal, 6).padding(.vertical, 1)
             .background(dimmed ? color.opacity(0.05) : color.opacity(0.15), in: Capsule())
     }
 
@@ -222,6 +224,10 @@ private struct ShipGoalAICard: View {
             let rec = try await IntelligenceService.shared.recommendShipsForGoal(
                 goalDescription: goalText, characterSP: 0, trainedGroups: [])
             recommendation = rec
+        } catch is IntelligenceDeclinedError {
+            isLoading = false
+            errorMessage = "Apple Intelligence declined this request. Try rewording your goal."
+            return
         } catch {
             isLoading = false
             errorMessage = "Apple Intelligence is unavailable. Please try again."
@@ -314,11 +320,12 @@ struct ShipGoalBrowserView: View {
                 Button { clearSelection() } label: {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
                 }
+                .accessibilityLabel("Clear")
                 .buttonStyle(.plain)
             }
         }
         .padding(8)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+        .eveCard(cornerRadius: EVERadius.md)
     }
 
     // MARK: Content
@@ -337,11 +344,7 @@ struct ShipGoalBrowserView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if let msg = prereqMessage {
-            VStack(spacing: 8) {
-                Image(systemName: "exclamationmark.triangle").font(.title2).foregroundStyle(.tertiary)
-                Text(msg).font(.caption).foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            EVEEmptyState("Something Went Wrong", systemImage: "exclamationmark.triangle", message: Text(msg), tint: .orange)
         } else if !prerequisites.isEmpty {
             requirementsList
         } else {
@@ -360,15 +363,7 @@ struct ShipGoalBrowserView: View {
                 }
                 Divider()
             }
-            VStack(spacing: 12) {
-                Image(systemName: "scope")
-                    .font(.system(size: 42)).foregroundStyle(.tertiary)
-                Text("Search for a ship to see what skills you need")
-                    .font(.subheadline).foregroundStyle(.secondary)
-                Text("Missing skills and total training time shown at a glance")
-                    .font(.caption).foregroundStyle(.tertiary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            EVEEmptyState("Search for a ship to see what skills you need", systemImage: "scope", message: "Missing skills and total training time shown at a glance")
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -385,9 +380,9 @@ struct ShipGoalBrowserView: View {
                                 if let img = phase.image {
                                     img.resizable()
                                         .frame(width: 48, height: 48)
-                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                        .clipShape(RoundedRectangle(cornerRadius: EVERadius.md))
                                 } else {
-                                    RoundedRectangle(cornerRadius: 8).fill(.quaternary)
+                                    RoundedRectangle(cornerRadius: EVERadius.md).fill(.quaternary)
                                         .frame(width: 48, height: 48)
                                 }
                             }
@@ -468,9 +463,9 @@ struct ShipGoalBrowserView: View {
                     if let img = phase.image {
                         img.resizable()
                             .frame(width: 56, height: 56)
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .clipShape(RoundedRectangle(cornerRadius: EVERadius.lg))
                     } else {
-                        RoundedRectangle(cornerRadius: 10).fill(.quaternary).frame(width: 56, height: 56)
+                        RoundedRectangle(cornerRadius: EVERadius.lg).fill(.quaternary).frame(width: 56, height: 56)
                     }
                 }
             }
@@ -551,9 +546,9 @@ struct ShipGoalBrowserView: View {
         return HStack(spacing: 10) {
             CachedAsyncImage(url: EVEImageURL.typeIcon(entry.skillId, size: 64)) { phase in
                 if let img = phase.image {
-                    img.resizable().frame(width: 28, height: 28).clipShape(RoundedRectangle(cornerRadius: 4))
+                    img.resizable().frame(width: 28, height: 28).clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
                 } else {
-                    RoundedRectangle(cornerRadius: 4).fill(.quaternary).frame(width: 28, height: 28)
+                    RoundedRectangle(cornerRadius: EVERadius.xs).fill(.quaternary).frame(width: 28, height: 28)
                 }
             }
 
@@ -584,6 +579,7 @@ struct ShipGoalBrowserView: View {
                 } label: {
                     Image(systemName: "plus.circle").font(.title3).foregroundStyle(palette.accent)
                 }
+                .accessibilityLabel("Add to Skill Plan")
                 .buttonStyle(.plain)
             }
         }
@@ -595,9 +591,9 @@ struct ShipGoalBrowserView: View {
             CachedAsyncImage(url: EVEImageURL.typeIcon(entry.skillId, size: 64)) { phase in
                 if let img = phase.image {
                     img.resizable().frame(width: 28, height: 28)
-                        .clipShape(RoundedRectangle(cornerRadius: 4)).opacity(0.5)
+                        .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs)).opacity(0.5)
                 } else {
-                    RoundedRectangle(cornerRadius: 4).fill(.quaternary).frame(width: 28, height: 28)
+                    RoundedRectangle(cornerRadius: EVERadius.xs).fill(.quaternary).frame(width: 28, height: 28)
                 }
             }
             Text(entry.name).font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
@@ -805,7 +801,7 @@ struct ShipGoalBrowserView: View {
         return Text("L\(level)")
             .font(.caption2.bold())
             .foregroundStyle(dimmed ? color.opacity(0.5) : color)
-            .padding(.horizontal, 5).padding(.vertical, 1)
+            .padding(.horizontal, 6).padding(.vertical, 1)
             .background((dimmed ? color.opacity(0.05) : color.opacity(0.15)), in: Capsule())
     }
 

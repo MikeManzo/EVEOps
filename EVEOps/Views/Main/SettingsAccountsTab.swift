@@ -19,23 +19,17 @@ struct AccountsTab: View {
     var body: some View {
         VStack(spacing: 0) {
             if accountManager.accounts.isEmpty {
-                VStack(spacing: 12) {
-                    Image(systemName: "person.crop.circle.badge.plus")
-                        .font(.system(size: 48))
-                        .foregroundStyle(.secondary)
-                    Text("No Characters Added")
-                        .font(.headline)
-                    Text("Add your EVE Online characters to get started.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                    Button("Add Character") {
+                EVEEmptyState(
+                    "No Characters Added",
+                    systemImage: "person.crop.circle.badge.plus",
+                    message: Text("Add your EVE Online characters to get started.")
+                ) {
+                    Button("Add Character", systemImage: "plus") {
                         Task { await accountManager.addAccount() }
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(accountManager.isLoading)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding()
             } else {
                 if let selected = accountManager.selectedAccount {
@@ -100,10 +94,10 @@ struct AccountRowView: View {
             CachedAsyncImage(url: EVEImageURL.characterPortrait(account.characterID, size: 128)) { image in
                 image.resizable()
             } placeholder: {
-                RoundedRectangle(cornerRadius: 6).fill(.quaternary)
+                RoundedRectangle(cornerRadius: EVERadius.sm).fill(.quaternary)
             }
             .frame(width: 40, height: 40)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(account.characterName)
@@ -138,6 +132,7 @@ struct AccountRowView: View {
                 Image(systemName: "trash")
                     .foregroundStyle(.red)
             }
+            .accessibilityLabel("Delete")
             .buttonStyle(.plain)
             .confirmationDialog(
                 "Remove \(account.characterName)?",
@@ -170,10 +165,10 @@ struct CharacterDossierCard: View {
                 CachedAsyncImage(url: EVEImageURL.characterPortrait(account.characterID, size: 128)) { image in
                     image.resizable()
                 } placeholder: {
-                    RoundedRectangle(cornerRadius: 10).fill(.quaternary)
+                    RoundedRectangle(cornerRadius: EVERadius.lg).fill(.quaternary)
                 }
                 .frame(width: 56, height: 56)
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous))
                 .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
 
                 VStack(alignment: .leading, spacing: 2) {
@@ -186,7 +181,7 @@ struct CharacterDossierCard: View {
                         .lineLimit(1)
                     if let alliance = summary?.allianceName ?? account.allianceName {
                         Text(alliance)
-                            .font(.system(size: 11))
+                            .font(.eveCaption)
                             .foregroundStyle(.tertiary)
                             .lineLimit(1)
                     }
@@ -201,7 +196,7 @@ struct CharacterDossierCard: View {
                                 .fill(online ? Color.green : Color.secondary.opacity(0.4))
                                 .frame(width: 6, height: 6)
                             Text(online ? "Online" : "Offline")
-                                .font(.system(size: 11, weight: .medium))
+                                .font(.eveCaptionMedium)
                                 .foregroundStyle(online ? .green : .secondary)
                         }
                     }
@@ -210,7 +205,7 @@ struct CharacterDossierCard: View {
                             Task { await accountManager.reauthorize(account) }
                         } label: {
                             Label("Re-authenticate", systemImage: "exclamationmark.triangle.fill")
-                                .font(.system(size: 10, weight: .medium))
+                                .font(.eveLabelMedium)
                         }
                         .buttonStyle(.bordered)
                         .controlSize(.mini)
@@ -218,7 +213,7 @@ struct CharacterDossierCard: View {
                         .disabled(accountManager.isLoading)
                     } else {
                         Label("Active", systemImage: "checkmark.circle.fill")
-                            .font(.system(size: 10, weight: .medium))
+                            .font(.eveLabelMedium)
                             .foregroundStyle(.green)
                     }
                 }
@@ -267,13 +262,13 @@ struct CharacterDossierCard: View {
                 } label: {
                     VStack(spacing: 3) {
                         Image(systemName: "trash")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(.eveCaptionSemibold)
                             .foregroundStyle(.red)
                         Text("Remove")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(.eveCaptionSemibold)
                             .foregroundStyle(.red)
                         Text("CHARACTER")
-                            .font(.system(size: 8, weight: .bold))
+                            .font(.eveBadge)
                             .tracking(0.5)
                             .foregroundStyle(.tertiary)
                     }
@@ -289,12 +284,12 @@ struct CharacterDossierCard: View {
                 }
             }
             .padding(.vertical, 8)
-            .background(.primary.opacity(0.03), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(.primary.opacity(0.06)))
+            .background(.primary.opacity(0.03), in: RoundedRectangle(cornerRadius: EVERadius.md, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: EVERadius.md, style: .continuous).strokeBorder(.primary.opacity(0.06)))
         }
         .padding(14)
-        .background(.background.secondary, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(.primary.opacity(0.07)))
+        .background(.background.secondary, in: RoundedRectangle(cornerRadius: EVERadius.xl, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: EVERadius.xl, style: .continuous).strokeBorder(.primary.opacity(0.07)))
         .fixedSize(horizontal: false, vertical: true)
         .padding(.horizontal, 8)
         .padding(.top, 8)
@@ -303,14 +298,14 @@ struct CharacterDossierCard: View {
     private func statCell(icon: String, color: Color, label: String, value: String) -> some View {
         VStack(spacing: 3) {
             Image(systemName: icon)
-                .font(.system(size: 11, weight: .semibold))
+                .font(.eveCaptionSemibold)
                 .foregroundStyle(color)
             Text(value)
-                .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                .font(.eveCodeLarge.weight(.semibold))
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
             Text(label)
-                .font(.system(size: 8, weight: .bold))
+                .font(.eveBadge)
                 .tracking(0.5)
                 .foregroundStyle(.tertiary)
         }

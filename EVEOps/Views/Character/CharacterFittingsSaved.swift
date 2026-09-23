@@ -50,10 +50,10 @@ struct SaveFittingSheet: View {
                         CachedAsyncImage(url: EVEImageURL.typeRender(ship.typeId, size: 128)) { image in
                             image.resizable().aspectRatio(contentMode: .fill)
                         } placeholder: {
-                            RoundedRectangle(cornerRadius: 6).fill(.quaternary)
+                            RoundedRectangle(cornerRadius: EVERadius.sm).fill(.quaternary)
                         }
                         .frame(width: 44, height: 44)
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                        .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
 
                         VStack(alignment: .leading, spacing: 2) {
                             Text(ship.typeName).font(.subheadline.bold())
@@ -142,12 +142,12 @@ struct SavedFittingRow: View {
             CachedAsyncImage(url: EVEImageURL.typeRender(fitting.shipTypeId, size: 256)) { image in
                 image.resizable().aspectRatio(contentMode: .fill)
             } placeholder: {
-                RoundedRectangle(cornerRadius: 6).fill(.quaternary)
+                RoundedRectangle(cornerRadius: EVERadius.sm).fill(.quaternary)
             }
             .frame(width: 52, height: 52)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
             .overlay(
-                RoundedRectangle(cornerRadius: 6)
+                RoundedRectangle(cornerRadius: EVERadius.sm)
                     .strokeBorder(.white.opacity(0.08), lineWidth: 0.5)
             )
 
@@ -241,7 +241,7 @@ struct SavedFittingDetailPane: View {
                             .font(.caption.bold())
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
-                            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+                            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
                             .foregroundStyle(.white)
                     }
                     .buttonStyle(.plain)
@@ -250,7 +250,7 @@ struct SavedFittingDetailPane: View {
                             .font(.caption.bold())
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
-                            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+                            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
                             .foregroundStyle(.white)
                     }
                     .buttonStyle(.plain)
@@ -260,7 +260,7 @@ struct SavedFittingDetailPane: View {
                                 .font(.caption.bold())
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 6)
-                                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+                                .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
                                 .foregroundStyle(.white)
                         }
                         .buttonStyle(.plain)
@@ -305,16 +305,7 @@ struct SavedFittingDetailPane: View {
             Divider()
 
             if fitting.items.isEmpty {
-                VStack(spacing: 10) {
-                    Image(systemName: "wrench.and.screwdriver")
-                        .font(.largeTitle)
-                        .foregroundStyle(.tertiary)
-                    Text("No modules in this fitting")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                .padding()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                EVEEmptyState("No modules in this fitting", systemImage: "wrench.and.screwdriver")
             } else {
                 SavedFittingSlotPane(items: fitting.items, typeNames: typeNames, shipName: fitting.shipTypeName, shipClass: fitting.shipClassName)
             }
@@ -446,12 +437,12 @@ struct SavedModuleCell: View {
                 CachedAsyncImage(url: EVEImageURL.typeIcon(item.typeId, size: 64)) { image in
                     image.resizable()
                 } placeholder: {
-                    RoundedRectangle(cornerRadius: 4).fill(.quaternary)
+                    RoundedRectangle(cornerRadius: EVERadius.xs).fill(.quaternary)
                 }
                 .frame(width: 32, height: 32)
-                .clipShape(RoundedRectangle(cornerRadius: 4))
+                .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 4)
+                    RoundedRectangle(cornerRadius: EVERadius.xs)
                         .strokeBorder(.white.opacity(0.1), lineWidth: 0.5)
                 )
 
@@ -468,9 +459,9 @@ struct SavedModuleCell: View {
                 }
                 Spacer(minLength: 0)
             }
-            .padding(7)
-            .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 7))
-            .contentShape(RoundedRectangle(cornerRadius: 7))
+            .padding(8)
+            .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: EVERadius.md))
+            .contentShape(RoundedRectangle(cornerRadius: EVERadius.md))
         }
         .buttonStyle(.plain)
         .overlay(alignment: .topTrailing) {

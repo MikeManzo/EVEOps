@@ -27,6 +27,7 @@ extension GalaxyMapView {
                 Button { selectedPoint = nil } label: {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
                 }
+                .accessibilityLabel("Clear")
                 .buttonStyle(.plain)
             }
 
@@ -99,7 +100,7 @@ extension GalaxyMapView {
         }
         .padding(12)
         .frame(width: 230)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.lg))
         .padding(12)
     }
 

@@ -94,10 +94,11 @@ struct CharacterHeroView: View {
 
                 characterMetricsPanel
                     .frame(width: 284)
+                    .environment(\.metricTileCharacterID, account.characterID)
             }
         }
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .eveCard()
+        .clipShape(RoundedRectangle(cornerRadius: EVERadius.xl))
         .onAppear {
             Task { await fetchIdentity() }
             if summary?.online == true {
@@ -246,17 +247,17 @@ struct CharacterHeroView: View {
                     CachedAsyncImage(url: EVEImageURL.characterPortrait(account.characterID, size: 512)) { image in
                         image.resizable()
                     } placeholder: {
-                        RoundedRectangle(cornerRadius: 14).fill(.quaternary)
+                        RoundedRectangle(cornerRadius: EVERadius.xxl).fill(.quaternary)
                     }
                     .frame(width: 84, height: 84)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
-                    .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(.white.opacity(0.22), lineWidth: 1.5))
+                    .clipShape(RoundedRectangle(cornerRadius: EVERadius.xxl))
+                    .evePortraitRing(cornerRadius: EVERadius.xxl, accent: palette.accent)
                     .overlay(alignment: .bottomTrailing) {
                         CachedAsyncImage(url: EVEImageURL.corporationLogo(account.corporationID, size: 256)) { phase in
                             if let image = phase.image {
                                 image.resizable()
                                     .frame(width: 26, height: 26)
-                                    .clipShape(RoundedRectangle(cornerRadius: 5))
+                                    .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
                                     .shadow(color: .black.opacity(0.6), radius: 4)
                             }
                         }
@@ -282,15 +283,15 @@ struct CharacterHeroView: View {
                             Spacer()
                             onlineIndicator
                         }
-                        .padding(.bottom, 7)
+                        .padding(.bottom, 8)
                         HStack(spacing: 6) {
                             Text(effectiveCorpName)
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                             if let title = liveTitle {
                                 Text(title)
-                                    .font(.system(size: 9, weight: .semibold))
-                                    .padding(.horizontal, 5)
+                                    .font(.eveMicroSemibold)
+                                    .padding(.horizontal, 6)
                                     .padding(.vertical, 2)
                                     .background(palette.accent.opacity(0.15), in: Capsule())
                                     .foregroundStyle(palette.accent)
@@ -313,6 +314,9 @@ struct CharacterHeroView: View {
                                 VStack(alignment: .leading, spacing: 2) {
                                     HStack(spacing: 5) {
                                         Text(summary?.systemName ?? "---")
+                                            .eveContextMenu(summary.flatMap { s in
+                                                s.location.map { .system(id: $0.solarSystemId, name: s.systemName) }
+                                            })
                                             .font(.callout.weight(.medium))
                                         if let systemId = summary?.location?.solarSystemId,
                                            WHSpaceInfo.isWormholeSystem(systemId) {
@@ -350,7 +354,7 @@ struct CharacterHeroView: View {
                                         if let image = phase.image {
                                             image.resizable()
                                                 .frame(width: 36, height: 36)
-                                                .clipShape(RoundedRectangle(cornerRadius: 6))
+                                                .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
                                         } else {
                                             Image(systemName: "airplane")
                                                 .foregroundStyle(.secondary)
@@ -422,10 +426,10 @@ struct CharacterHeroView: View {
                             .lineLimit(2)
                     }
                     .padding(.horizontal, 8)
-                    .padding(.vertical, 5)
+                    .padding(.vertical, 6)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(palette.critical.opacity(0.08), in: RoundedRectangle(cornerRadius: 6))
-                    .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(palette.critical.opacity(0.2), lineWidth: 1))
+                    .background(palette.critical.opacity(0.08), in: RoundedRectangle(cornerRadius: EVERadius.sm))
+                    .overlay(RoundedRectangle(cornerRadius: EVERadius.sm).strokeBorder(palette.critical.opacity(0.2), lineWidth: 1))
                 }
             }
             .padding(12)
@@ -468,9 +472,7 @@ struct CharacterHeroView: View {
                     }
                 }
                 if liveLevelStartSP != nil || queueSkillStart != nil {
-                    ProgressView(value: trainingProgress)
-                        .tint(.blue)
-                        .frame(height: 3)
+                    EVEProgressBar(value: trainingProgress, tint: palette.knowledge)
                 }
                 HStack(spacing: 4) {
                     Text("\(queueCount) skill\(queueCount == 1 ? "" : "s") queued")
@@ -542,8 +544,8 @@ struct CharacterHeroView: View {
                             AppRouter.shared.pendingSection = .remapAdvisor
                         }
                     )
-                    .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 10))
-                    .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(focus.color.opacity(0.25), lineWidth: 1))
+                    .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: EVERadius.lg))
+                    .overlay(RoundedRectangle(cornerRadius: EVERadius.lg).strokeBorder(focus.color.opacity(0.25), lineWidth: 1))
                     .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             }
@@ -555,8 +557,8 @@ struct CharacterHeroView: View {
                         Image(systemName: icon)
                         Text(label)
                     }
-                    .font(.system(size: 12, weight: .semibold))
-                    .padding(.horizontal, 9)
+                    .font(.eveCalloutSemibold)
+                    .padding(.horizontal, 10)
                     .padding(.vertical, 6)
                     .background(.quaternary, in: Capsule())
                     .foregroundStyle(.tertiary)
@@ -600,12 +602,14 @@ struct CharacterHeroView: View {
                 icon: "creditcard.fill", color: .green,
                 value: EVEFormatters.formatISKShort(summary?.wallet ?? 0),
                 label: String(localized: "Wallet"),
-                subLabel: dailyISKSubLabel
+                subLabel: dailyISKSubLabel,
+                destination: .finances
             )
             MetricTileView(
-                icon: "brain.head.profile.fill", color: .cyan,
+                icon: "brain.head.profile.fill", color: palette.knowledge,
                 value: formatSP(summary?.totalSP ?? 0),
-                label: String(localized: "Skill Points")
+                label: String(localized: "Skill Points"),
+                destination: .training
             )
             trainingTile
             industryTile
@@ -630,17 +634,19 @@ struct CharacterHeroView: View {
                 icon: "exclamationmark.triangle.fill", color: .orange,
                 value: String(localized: "Queue empty"),
                 label: String(localized: "Training"),
-                isAlert: true
+                isAlert: true,
+                destination: .training
             )
         } else if let finish = queueSkillFinish {
             MetricTileView(
-                icon: "graduationcap.fill", color: .blue,
+                icon: "graduationcap.fill", color: palette.knowledge,
                 value: timeUntil(finish),
                 label: queueSkillName ?? String(localized: "Training"),
-                subLabel: "\(queueCount) in queue"
+                subLabel: "\(queueCount) in queue",
+                destination: .training
             )
         } else {
-            MetricTileView(icon: "graduationcap.fill", color: .blue, value: String(localized: "Active"), label: String(localized: "Training"))
+            MetricTileView(icon: "graduationcap.fill", color: palette.knowledge, value: String(localized: "Active"), label: String(localized: "Training"), destination: .training)
         }
     }
 
@@ -648,13 +654,14 @@ struct CharacterHeroView: View {
     private var industryTile: some View {
         if let s = summary, s.activeIndustryJobCount > 0 {
             MetricTileView(
-                icon: "hammer.fill", color: .purple,
+                icon: "hammer.fill", color: palette.industry,
                 value: "\(s.activeIndustryJobCount) active",
                 label: String(localized: "Industry"),
-                subLabel: s.nextJobFinish.map { timeUntil($0) }
+                subLabel: s.nextJobFinish.map { timeUntil($0) },
+                destination: .industry
             )
         } else {
-            MetricTileView(icon: "hammer.fill", color: .secondary, value: String(localized: "None active"), label: String(localized: "Industry"))
+            MetricTileView(icon: "hammer.fill", color: .secondary, value: String(localized: "None active"), label: String(localized: "Industry"), destination: .industry)
         }
     }
 
@@ -662,12 +669,13 @@ struct CharacterHeroView: View {
     private var contractsTile: some View {
         if let s = summary, s.activeContractCount > 0 {
             MetricTileView(
-                icon: "doc.text.fill", color: .teal,
+                icon: "doc.text.fill", color: palette.contracts,
                 value: "\(s.activeContractCount) active",
-                label: String(localized: "Contracts")
+                label: String(localized: "Contracts"),
+                destination: .contracts
             )
         } else {
-            MetricTileView(icon: "doc.text.fill", color: .secondary, value: String(localized: "None active"), label: String(localized: "Contracts"))
+            MetricTileView(icon: "doc.text.fill", color: .secondary, value: String(localized: "None active"), label: String(localized: "Contracts"), destination: .contracts)
         }
     }
 
@@ -679,19 +687,21 @@ struct CharacterHeroView: View {
                     icon: "globe.americas.fill", color: .red,
                     value: "\(s.expiredExtractorCount) offline",
                     label: String(localized: "PI Extractors"),
-                    isAlert: true
+                    isAlert: true,
+                    destination: .colonies
                 )
             } else {
                 MetricTileView(
-                    icon: "globe.americas.fill", color: .mint,
+                    icon: "globe.americas.fill", color: palette.colonies,
                     value: "\(s.colonyCount) colon\(s.colonyCount == 1 ? "y" : "ies")",
-                    label: String(localized: "Planetary Industry")
+                    label: String(localized: "Planetary Industry"),
+                    destination: .colonies
                 )
             }
         } else {
             let isOnline = summary?.online == true
             MetricTileView(
-                icon: "person.fill.checkmark", color: isOnline ? .blue : .secondary,
+                icon: "person.fill.checkmark", color: isOnline ? palette.online : .secondary,
                 value: isOnline ? String(localized: "Online") : String(localized: "Offline"),
                 label: String(localized: "Status")
             )
@@ -827,7 +837,7 @@ struct CharacterHeroView: View {
                         .padding(.horizontal, 16)
                 }
             } else if summary == nil {
-                ProgressView().scaleEffect(0.7)
+                ProgressView().controlSize(.small)
             }
         }
         .frame(height: 140)

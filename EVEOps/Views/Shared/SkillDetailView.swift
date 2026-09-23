@@ -11,6 +11,8 @@
 import SwiftUI
 
 struct SkillDetailView: View {
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
     let skillId: Int
     let skillName: String
     let groupName: String
@@ -96,7 +98,7 @@ struct SkillDetailView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Image(systemName: entry.isCurrentlyTraining ? "play.circle.fill" : "clock.fill")
-                    .foregroundStyle(entry.isCurrentlyTraining ? .green : .blue)
+                    .foregroundStyle(entry.isCurrentlyTraining ? .green : palette.knowledge)
                 Text(entry.isCurrentlyTraining ? "Currently Training" : "In Queue (#\(entry.position + 1))")
                     .font(.subheadline.bold())
                 Spacer()
@@ -108,7 +110,7 @@ struct SkillDetailView: View {
                 let progress = endSP > startSP ? Double(currentSP - startSP) / Double(endSP - startSP) : 0
 
                 ProgressView(value: min(max(progress, 0), 1))
-                    .tint(entry.isCurrentlyTraining ? .green : .blue)
+                    .tint(entry.isCurrentlyTraining ? .green : palette.knowledge)
 
                 HStack {
                     Text("\(currentSP.formatted()) / \(endSP.formatted()) SP")
@@ -143,7 +145,7 @@ struct SkillDetailView: View {
                             .font(.caption2).foregroundStyle(.tertiary)
                         Text(timeUntil(finish))
                             .font(.caption2.bold().monospacedDigit())
-                            .foregroundStyle(entry.isCurrentlyTraining ? .green : .blue)
+                            .foregroundStyle(entry.isCurrentlyTraining ? .green : palette.knowledge)
                     }
                 }
             }
@@ -185,7 +187,7 @@ struct SkillDetailView: View {
             // 5 mini pips representing levels up to this level
             HStack(spacing: 2) {
                 ForEach(1...5, id: \.self) { pip in
-                    RoundedRectangle(cornerRadius: 1.5)
+                    RoundedRectangle(cornerRadius: EVERadius.hairline)
                         .fill(pipFill(pip: pip, forLevel: level, trained: trainedLevel,
                                      active: activeLevel, targetLevel: queueEntry?.level))
                         .frame(width: 10, height: 8)
@@ -211,7 +213,7 @@ struct SkillDetailView: View {
             } else if isTargetLevel, let finish = queueEntry?.finishDate {
                 Label(timeUntil(finish), systemImage: queueEntry?.isCurrentlyTraining == true ? "play.circle.fill" : "clock")
                     .font(.caption2.monospacedDigit())
-                    .foregroundStyle(queueEntry?.isCurrentlyTraining == true ? .green : .blue)
+                    .foregroundStyle(queueEntry?.isCurrentlyTraining == true ? .green : palette.knowledge)
                     .lineLimit(1)
             }
         }
@@ -228,7 +230,7 @@ struct SkillDetailView: View {
         } else if level <= trained {
             return levelColor(level).opacity(0.4) // trained but inactive
         } else if level == targetLevel {
-            return (queueEntry?.isCurrentlyTraining == true ? Color.green : Color.blue).opacity(0.5)
+            return (queueEntry?.isCurrentlyTraining == true ? Color.green : palette.knowledge).opacity(0.5)
         }
         return Color.white.opacity(0.05)
     }
@@ -279,7 +281,7 @@ struct SkillDetailView: View {
         Text("L\(level)")
             .font(.caption2.bold())
             .foregroundStyle(levelColor(level))
-            .padding(.horizontal, 5)
+            .padding(.horizontal, 6)
             .padding(.vertical, 1)
             .background(levelColor(level).opacity(0.15), in: Capsule())
     }

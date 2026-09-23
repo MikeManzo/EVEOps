@@ -103,17 +103,12 @@ struct DashboardView: View {
         }
         .overlay {
             if !apiStatus.isReachable && summaries.isEmpty {
-                VStack(spacing: 12) {
-                    Image(systemName: "wifi.exclamationmark")
-                        .font(.largeTitle)
-                        .foregroundStyle(.orange)
-                    Text(apiStatus.statusMessage.isEmpty ? "Unable to reach EVE servers" : apiStatus.statusMessage)
-                        .font(.headline)
-                    Text("Data will refresh automatically when the connection is restored.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                }
+                EVEEmptyState(
+                    verbatim: apiStatus.statusMessage.isEmpty ? String(localized: "Unable to Reach EVE Servers") : apiStatus.statusMessage,
+                    systemImage: "wifi.exclamationmark",
+                    message: Text("Data will refresh automatically when the connection is restored."),
+                    tint: .orange
+                )
             } else if isLoading && summaries.isEmpty {
                 ProgressView("Loading dashboard...")
             }
@@ -166,8 +161,9 @@ struct DashboardView: View {
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
-                .background(color.opacity(0.07), in: RoundedRectangle(cornerRadius: 10))
-                .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(color.opacity(0.15), lineWidth: 1))
+                .background(color.opacity(0.07), in: RoundedRectangle(cornerRadius: EVERadius.lg))
+                .overlay(RoundedRectangle(cornerRadius: EVERadius.lg).strokeBorder(color.opacity(0.15), lineWidth: 1))
+                .eveHoverable(cornerRadius: EVERadius.lg)
             }
             .buttonStyle(.plain)
 
@@ -175,6 +171,7 @@ struct DashboardView: View {
                 LazyVGrid(columns: columns, spacing: 16) {
                     ForEach(contacts) { contact in
                         ContactCardView(contact: contact)
+                            .eveContextMenu(contact.entity)
                     }
                 }
                 .padding(.top, 12)

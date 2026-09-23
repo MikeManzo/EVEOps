@@ -47,20 +47,7 @@ extension SkillPlannerView {
             }
 
             if planItems.isEmpty {
-                VStack(spacing: 10) {
-                    Image(systemName: "list.bullet.clipboard")
-                        .font(.system(size: 36))
-                        .foregroundStyle(.tertiary)
-                    Text("No skills planned")
-                        .font(.subheadline.bold())
-                        .foregroundStyle(.secondary)
-                    Text("Browse skills on the right and tap + to add them to your plan.")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 20)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                EVEEmptyState("No Skills Planned", systemImage: "list.bullet.clipboard", message: "Browse skills on the right and tap + to add them to your plan.")
             } else {
                 List {
                     ForEach(planItems) { item in
@@ -126,8 +113,9 @@ extension SkillPlannerView {
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                 Text(formatSP(totalSP))
-                    .font(.title3.bold().monospacedDigit())
+                    .font(.eveStatCompact)
                     .foregroundStyle(.blue)
+                    .eveNumeric(totalSP)
             }
             .frame(maxWidth: .infinity)
 
@@ -138,7 +126,7 @@ extension SkillPlannerView {
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                 Text(attributes != nil ? formatDuration(totalSeconds) : "—")
-                    .font(.title3.bold().monospacedDigit())
+                    .font(.eveStatCompact)
                     .foregroundStyle(.green)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
@@ -154,6 +142,7 @@ extension SkillPlannerView {
                     Image(systemName: "info.circle")
                         .foregroundStyle(.secondary)
                 }
+                .accessibilityLabel("How to use clipboard import/export")
                 .buttonStyle(.plain)
                 .help("How to use clipboard import/export")
                 .popover(isPresented: $showingClipboardHelp, arrowEdge: .bottom) {
@@ -166,6 +155,7 @@ extension SkillPlannerView {
                     Image(systemName: "square.and.arrow.up")
                         .foregroundStyle(planItems.isEmpty ? Color.secondary : Color.primary)
                 }
+                .accessibilityLabel("Copy plan to clipboard (EVE-compatible format)")
                 .buttonStyle(.plain)
                 .disabled(planItems.isEmpty)
                 .help("Copy plan to clipboard (EVE-compatible format)")
@@ -190,6 +180,7 @@ extension SkillPlannerView {
                     Image(systemName: "trash")
                         .foregroundStyle(planItems.isEmpty ? Color.secondary : Color.red)
                 }
+                .accessibilityLabel("Delete")
                 .buttonStyle(.plain)
                 .disabled(planItems.isEmpty)
             }
@@ -204,9 +195,9 @@ extension SkillPlannerView {
         return HStack(spacing: 8) {
             CachedAsyncImage(url: EVEImageURL.typeIcon(item.skillId, size: 64)) { phase in
                 if let image = phase.image {
-                    image.resizable().frame(width: 28, height: 28).clipShape(RoundedRectangle(cornerRadius: 4))
+                    image.resizable().frame(width: 28, height: 28).clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
                 } else {
-                    RoundedRectangle(cornerRadius: 4).fill(.quaternary).frame(width: 28, height: 28)
+                    RoundedRectangle(cornerRadius: EVERadius.xs).fill(.quaternary).frame(width: 28, height: 28)
                 }
             }
 
@@ -257,6 +248,7 @@ extension SkillPlannerView {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
+                    .accessibilityLabel("Options")
                     .menuStyle(.button)
                     .buttonStyle(.plain)
                 }
@@ -270,6 +262,7 @@ extension SkillPlannerView {
                     .foregroundStyle(.red)
                     .font(.callout)
             }
+            .accessibilityLabel("Remove from Plan")
             .buttonStyle(.plain)
         }
         .padding(.horizontal, 10)

@@ -199,8 +199,8 @@ struct RSVPButton: View {
                 .foregroundStyle(isSelected ? color : .secondary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
-                .background(isSelected ? color.opacity(0.15) : Color.clear, in: RoundedRectangle(cornerRadius: 8))
-                .overlay(RoundedRectangle(cornerRadius: 8)
+                .background(isSelected ? color.opacity(0.15) : Color.clear, in: RoundedRectangle(cornerRadius: EVERadius.md))
+                .overlay(RoundedRectangle(cornerRadius: EVERadius.md)
                     .stroke(isSelected ? color.opacity(0.4) : Color.secondary.opacity(0.2), lineWidth: 1))
         }
         .buttonStyle(.plain)

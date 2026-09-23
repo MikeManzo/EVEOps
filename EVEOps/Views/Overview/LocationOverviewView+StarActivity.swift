@@ -27,6 +27,7 @@ extension LocationOverviewView {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+                .accessibilityLabel("More Info")
                 .buttonStyle(.plain)
                 .popover(isPresented: $showCargoValueInfo, arrowEdge: .bottom) {
                     cargoValueInfoPopover
@@ -40,6 +41,7 @@ extension LocationOverviewView {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
+                    .accessibilityLabel("Refresh")
                     .buttonStyle(.plain)
                 }
             }
@@ -331,7 +333,7 @@ extension LocationOverviewView {
                                 .font(.caption2)
                                 .foregroundStyle(.tertiary)
                         }
-                        .padding(.horizontal, 5)
+                        .padding(.horizontal, 6)
                         .padding(.vertical, 1)
                         .background(.secondary.opacity(0.10), in: Capsule())
                     }
@@ -392,7 +394,7 @@ extension LocationOverviewView {
     func situationalPill(icon: String, color: Color, title: String, detail: String) -> some View {
         HStack(spacing: 5) {
             Image(systemName: icon)
-                .font(.system(size: 10))
+                .font(.eveLabel)
                 .foregroundStyle(color)
             Text(title)
                 .font(.caption2.bold())
@@ -402,7 +404,7 @@ extension LocationOverviewView {
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
         }
-        .padding(.horizontal, 7)
+        .padding(.horizontal, 8)
         .padding(.vertical, 3)
         .background(color.opacity(0.12), in: Capsule())
     }
@@ -437,14 +439,14 @@ extension LocationOverviewView {
             }
 
             Text("K / J = player kills / jumps in the last hour")
-                .font(.system(size: 9))
+                .font(.eveMicro)
                 .foregroundStyle(.tertiary)
         }
     }
 
     func tableHeader(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 9.5, weight: .bold))
+            .font(.eveMicroBold)
             .tracking(0.6)
             .foregroundStyle(.tertiary)
     }

@@ -4,9 +4,6 @@
     "" : {
 
     },
-    " — training speed is unaffected by this attribute right now." : {
-
-    },
     "-%@" : {
 
     },
@@ -14,9 +11,6 @@
 
     },
     "— click the destination" : {
-
-    },
-    "…and %lld more" : {
 
     },
     "·" : {
@@ -315,8 +309,15 @@
         }
       }
     },
-    "%@ attribute for " : {
-
+    "%@ attribute for %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ attribute for %2$@"
+          }
+        }
+      }
     },
     "%@ blast" : {
 
@@ -434,6 +435,12 @@
     "%lld active" : {
 
     },
+    "%lld active contracts" : {
+
+    },
+    "%lld active jobs" : {
+
+    },
     "%lld agents found" : {
 
     },
@@ -517,9 +524,6 @@
         }
       }
     },
-    "%lld events today" : {
-
-    },
     "%lld external → %@" : {
       "localizations" : {
         "en" : {
@@ -529,6 +533,9 @@
           }
         }
       }
+    },
+    "%lld extractors offline" : {
+
     },
     "%lld files, %@" : {
       "localizations" : {
@@ -694,22 +701,22 @@
     "%lld occupied" : {
 
     },
+    "%lld of %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld of %2$lld"
+          }
+        }
+      }
+    },
     "%lld of %lld items" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$lld of %2$lld items"
-          }
-        }
-      }
-    },
-    "%lld of %lld station%@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$lld of %2$lld station%3$@"
           }
         }
       }
@@ -965,9 +972,6 @@
     "%lldh ago" : {
 
     },
-    "%lldj" : {
-
-    },
     "%lldm" : {
 
     },
@@ -1067,6 +1071,9 @@
     "≥75% — Core to the role" : {
 
     },
+    "⌘K" : {
+
+    },
     "☰  →  Add skills listed in clipboard to end of queue" : {
 
     },
@@ -1160,6 +1167,9 @@
     "A failed hack detonates the container for ≈ %@ omni damage." : {
 
     },
+    "A faint faction-tinted glow behind the main window, with a starfield in Dark appearance and a star-chart grid in Light." : {
+
+    },
     "A new version of EVEOps is ready to install." : {
 
     },
@@ -1224,6 +1234,9 @@
     "ACTIVITY" : {
 
     },
+    "Activity %lld" : {
+
+    },
     "Add" : {
 
     },
@@ -1241,6 +1254,9 @@
 
     },
     "Add All to Plan" : {
+
+    },
+    "Add as waypoint" : {
 
     },
     "Add character" : {
@@ -1273,7 +1289,13 @@
     "Add your EVE Online characters to get started." : {
 
     },
+    "Added to Plan" : {
+
+    },
     "After remap" : {
+
+    },
+    "Agencies & Missions" : {
 
     },
     "Agent Access" : {
@@ -1357,6 +1379,9 @@
     "Also ping Discord at the warning and at zero" : {
 
     },
+    "Ambient space background" : {
+
+    },
     "Analyzing implants…" : {
 
     },
@@ -1367,6 +1392,9 @@
 
     },
     "Analyzing with Apple Intelligence…" : {
+
+    },
+    "and %lld more" : {
 
     },
     "Annual available" : {
@@ -1424,6 +1452,9 @@
 
     },
     "as of %@" : {
+
+    },
+    "Assassinations" : {
 
     },
     "Assay" : {
@@ -1540,7 +1571,13 @@
     "Bio" : {
 
     },
+    "Black Market" : {
+
+    },
     "Blocked" : {
+
+    },
+    "Blueprint" : {
 
     },
     "Bookmarks" : {
@@ -1558,6 +1595,9 @@
     "Bounties" : {
 
     },
+    "Bounty Office" : {
+
+    },
     "BPC" : {
 
     },
@@ -1567,7 +1607,7 @@
     "Browse skills on the right and tap + to add them to your plan." : {
 
     },
-    "Browse the market registry or search by name\nto analyze orders and pricing." : {
+    "Browse the market registry or search by name to analyze orders and pricing." : {
 
     },
     "Building training plan…" : {
@@ -1877,6 +1917,9 @@
     "Connects to: %@" : {
 
     },
+    "Constellation" : {
+
+    },
     "Contact comes online / goes offline" : {
 
     },
@@ -1931,6 +1974,12 @@
     "Copy plan to clipboard (EVE-compatible format)" : {
 
     },
+    "Copy Type ID" : {
+
+    },
+    "Copying" : {
+
+    },
     "Corp Assets" : {
 
     },
@@ -1979,6 +2028,9 @@
     "Corp Wars" : {
 
     },
+    "Corporate" : {
+
+    },
     "Corporation" : {
 
     },
@@ -1994,7 +2046,7 @@
     "Cost" : {
 
     },
-    "Could not load model" : {
+    "Could Not Load Model" : {
 
     },
     "Couldn't load" : {
@@ -2009,13 +2061,13 @@
     "Counts down %llds — the short end of the observed response window. Hit Start the moment you land. Treat 0:30 as your hard bail-out." : {
 
     },
+    "Courier Missions" : {
+
+    },
     "Coverage Tiers" : {
 
     },
     "CPU" : {
-
-    },
-    "current" : {
 
     },
     "Current" : {
@@ -2203,7 +2255,10 @@
     "Displays the Utility section containing the Diagnostic Logs viewer" : {
 
     },
-    "Div %lld" : {
+    "Distance" : {
+
+    },
+    "Div" : {
 
     },
     "Division" : {
@@ -2216,6 +2271,9 @@
 
     },
     "Dmg. Multiplier" : {
+
+    },
+    "DNA Therapy" : {
 
     },
     "Docking" : {
@@ -2301,6 +2359,9 @@
 
     },
     "Encrypt Pilot Backup" : {
+
+    },
+    "Ends" : {
 
     },
     "Ends %@" : {
@@ -2461,6 +2522,9 @@
     "Exchange" : {
 
     },
+    "Excluded" : {
+
+    },
     "Excluded from simulation" : {
 
     },
@@ -2477,6 +2541,9 @@
 
     },
     "Expand all sections" : {
+
+    },
+    "Expand or Collapse" : {
 
     },
     "Expired" : {
@@ -2539,6 +2606,9 @@
     "Extractors (%lld)" : {
 
     },
+    "Facilities" : {
+
+    },
     "Faction" : {
 
     },
@@ -2575,7 +2645,7 @@
     "Filter" : {
 
     },
-    "Filter by high-sec stations and jump distance from your location." : {
+    "Filter by security class" : {
 
     },
     "Filter contacts" : {
@@ -2755,7 +2825,7 @@
     "Hangar" : {
 
     },
-    "Hangar is empty" : {
+    "Hangar Is Empty" : {
 
     },
     "Haul value" : {
@@ -2783,9 +2853,6 @@
 
     },
     "Highest Rank" : {
-
-    },
-    "Highsec" : {
 
     },
     "History (%lld)" : {
@@ -2916,6 +2983,9 @@
     "Include ADM ≥ 4" : {
 
     },
+    "Included" : {
+
+    },
     "Includes universe data, resolved names, and ESI responses. All data re-fetches automatically." : {
 
     },
@@ -2970,13 +3040,16 @@
     "Install update version %@" : {
 
     },
-    "Insufficient fitting data" : {
+    "Insufficient Fitting Data" : {
 
     },
     "Insurance" : {
 
     },
     "INT" : {
+
+    },
+    "Invention" : {
 
     },
     "Invite Members" : {
@@ -3063,10 +3136,16 @@
     "Jump Clone Cooldown" : {
 
     },
+    "Jump Clones" : {
+
+    },
     "Jump Clones (%lld)" : {
 
     },
     "Jump to a section, action, or EVE name…" : {
+
+    },
+    "Jump to…" : {
 
     },
     "Jumps" : {
@@ -3343,9 +3422,6 @@
     "Low Sec" : {
 
     },
-    "Lowsec" : {
-
-    },
     "Loyalty Points (%lld)" : {
 
     },
@@ -3415,6 +3491,9 @@
     "Mass" : {
 
     },
+    "Max Dockable" : {
+
+    },
     "Max jumps:" : {
 
     },
@@ -3424,10 +3503,16 @@
     "Maxed" : {
 
     },
+    "ME Research" : {
+
+    },
     "Measure distance only through high-sec systems" : {
 
     },
     "Medals" : {
+
+    },
+    "Medical Bay" : {
 
     },
     "MEM" : {
@@ -3457,6 +3542,9 @@
     "Moon" : {
 
     },
+    "More Info" : {
+
+    },
     "Mothership present" : {
 
     },
@@ -3473,6 +3561,9 @@
     "Move to Trash" : {
 
     },
+    "Move Up" : {
+
+    },
     "Name" : {
 
     },
@@ -3480,6 +3571,9 @@
 
     },
     "Navy" : {
+
+    },
+    "Navy Offices" : {
 
     },
     "Near end of life" : {
@@ -3574,7 +3668,7 @@
     "No appraisal available" : {
 
     },
-    "No assembled ships found" : {
+    "No Assembled Ships Found" : {
 
     },
     "No attribute implant in this slot" : {
@@ -3616,7 +3710,7 @@
     "No ISK activity today" : {
 
     },
-    "No item selected" : {
+    "No Item Selected" : {
 
     },
     "No jobs" : {
@@ -3643,7 +3737,7 @@
     "No market data" : {
 
     },
-    "No market data found" : {
+    "No Market Data Found" : {
 
     },
     "No Market Orders" : {
@@ -3655,22 +3749,22 @@
     "No matches for \"%@\"" : {
 
     },
-    "No matching items" : {
+    "No Matching Stations" : {
 
     },
     "No member details available." : {
 
     },
-    "No modules fitted" : {
+    "No Modules Fitted" : {
 
     },
     "No modules in this fitting" : {
 
     },
-    "No NPC stations in this region" : {
+    "No NPC Stations in This Region" : {
 
     },
-    "No offers available" : {
+    "No Offers Available" : {
 
     },
     "No office rent, sovereignty, or maintenance fees found in this division's journal." : {
@@ -3688,19 +3782,13 @@
     "No Results" : {
 
     },
-    "No results for \"%@\"" : {
-
-    },
-    "No results found" : {
-
-    },
     "No roles assigned" : {
 
     },
     "No runs logged for this site yet. Log a haul after you run one to start tracking ISK per run and ISK per hour." : {
 
     },
-    "No saved fittings found" : {
+    "No Saved Fittings Found" : {
 
     },
     "No Scan Yet" : {
@@ -3709,25 +3797,22 @@
     "No Ship Selected" : {
 
     },
-    "No ships found" : {
+    "No Ships Found" : {
 
     },
     "No skill in training." : {
 
     },
-    "No skills" : {
+    "No Skills" : {
 
     },
     "No skills match \"%@\"" : {
 
     },
-    "No skills planned" : {
+    "No Skills Planned" : {
 
     },
     "No stat data available for this ship type." : {
-
-    },
-    "No stations match your filters" : {
 
     },
     "No structures match the current filter." : {
@@ -3742,7 +3827,7 @@
     "No tracking data available" : {
 
     },
-    "No tradeable items in this group" : {
+    "No Tradeable Items in This Group" : {
 
     },
     "No transactions" : {
@@ -3802,7 +3887,7 @@
     "Not stocked here" : {
 
     },
-    "Not used by " : {
+    "Not used by %@ — training speed is unaffected by this attribute right now." : {
 
     },
     "Note: if an implant is not detected, its floor may show slightly low. The allocations (+10 / +4 / +0) are always correct regardless." : {
@@ -3844,6 +3929,9 @@
     "Offer #%lld" : {
 
     },
+    "Office Rent / wk" : {
+
+    },
     "Office Rental:" : {
 
     },
@@ -3874,6 +3962,12 @@
     "Only show orders in systems with security status ≥ 0.5" : {
 
     },
+    "Only stations with this service" : {
+
+    },
+    "Open %@" : {
+
+    },
     "Open EVE Launcher" : {
 
     },
@@ -3886,7 +3980,22 @@
     "Open in dedicated window" : {
 
     },
+    "Open in DOTLAN" : {
+
+    },
     "Open in EVE" : {
+
+    },
+    "Open in EVE Ref" : {
+
+    },
+    "Open in EVE Who" : {
+
+    },
+    "Open in zKillboard" : {
+
+    },
+    "Open Market Browser" : {
 
     },
     "Open on zKillboard" : {
@@ -3907,6 +4016,9 @@
     "Opening EVE Launcher…" : {
 
     },
+    "Opens %@" : {
+
+    },
     "Optimal Range" : {
 
     },
@@ -3920,6 +4032,9 @@
 
     },
     "Optional description" : {
+
+    },
+    "Options" : {
 
     },
     "or search by name to find an item" : {
@@ -3952,7 +4067,13 @@
     "Outstanding" : {
 
     },
+    "Owner" : {
+
+    },
     "Packaged" : {
+
+    },
+    "Paint Shop" : {
 
     },
     "Passive Mode" : {
@@ -4012,7 +4133,13 @@
     "Pilot Name" : {
 
     },
+    "Pilot Services" : {
+
+    },
     "Pilots" : {
+
+    },
+    "Pin" : {
 
     },
     "Pin %@" : {
@@ -4031,6 +4158,9 @@
 
     },
     "Plan Route From Here" : {
+
+    },
+    "Plan Route To" : {
 
     },
     "Plan to L%lld" : {
@@ -4088,6 +4218,9 @@
 
     },
     "Processors (%lld)" : {
+
+    },
+    "Progress" : {
 
     },
     "Projected ISK" : {
@@ -4171,6 +4304,9 @@
     "Re-authorize…" : {
 
     },
+    "Reactions" : {
+
+    },
     "Reads the same format from your clipboard and adds skills to this plan." : {
 
     },
@@ -4202,6 +4338,9 @@
 
     },
     "Reference Prices" : {
+
+    },
+    "Refinery" : {
 
     },
     "Refresh" : {
@@ -4267,6 +4406,12 @@
     "Remove Contact" : {
 
     },
+    "Remove filter" : {
+
+    },
+    "Remove from Plan" : {
+
+    },
     "Repair" : {
 
     },
@@ -4274,6 +4419,9 @@
 
     },
     "Reprocessing %@" : {
+
+    },
+    "Reprocessing Yield" : {
 
     },
     "Required skills" : {
@@ -4292,6 +4440,9 @@
 
     },
     "Reset" : {
+
+    },
+    "Reset View" : {
 
     },
     "Resets at local midnight" : {
@@ -4441,13 +4592,13 @@
     "Search for a ship to see what skills you need" : {
 
     },
-    "Search for a ship type" : {
+    "Search for a Ship Type" : {
 
     },
     "Search for a ship…" : {
 
     },
-    "Search for an item to see best sell and buy prices at\nJita, Amarr, Dodixie, Rens, and Hek simultaneously." : {
+    "Search for an item to see best sell and buy prices at Jita, Amarr, Dodixie, Rens, and Hek simultaneously." : {
 
     },
     "Search for an item to see its skill tree" : {
@@ -4465,6 +4616,9 @@
     "Search known skills..." : {
 
     },
+    "Search Market" : {
+
+    },
     "Search members..." : {
 
     },
@@ -4474,7 +4628,7 @@
     "Search sections, actions, and EVE names" : {
 
     },
-    "Search sell orders, buy orders, or both across all k-space regions." : {
+    "Search sell orders, buy orders, or both across all k-space regions. Filter by high-sec stations and jump distance from your location." : {
 
     },
     "Search ship type…" : {
@@ -4483,7 +4637,7 @@
     "Search skills..." : {
 
     },
-    "Search stations..." : {
+    "Search stations or systems" : {
 
     },
     "Searching region %lld of %lld…" : {
@@ -4514,6 +4668,12 @@
     "Security" : {
 
     },
+    "Security %@" : {
+
+    },
+    "Security Office" : {
+
+    },
     "Security Status" : {
 
     },
@@ -4535,7 +4695,7 @@
     "Select a member to view details" : {
 
     },
-    "Select a ship to view\ncommunity meta fits" : {
+    "Select a ship to view community meta fits" : {
 
     },
     "Select a station to set destination or copy the shopping list" : {
@@ -4658,10 +4818,13 @@
     "SHIP FIT SIM ENGINE" : {
 
     },
-    "Ship is packaged" : {
+    "Ship Is Packaged" : {
 
     },
-    "Ship stats will appear here\nonce a ship is selected" : {
+    "Ship Services" : {
+
+    },
+    "Ship stats will appear here once a ship is selected" : {
 
     },
     "Ships" : {
@@ -4698,6 +4861,9 @@
 
     },
     "Shows your current ship and system as your Discord activity status — visible to anyone who can see your Discord profile." : {
+
+    },
+    "Side" : {
 
     },
     "Sidebar scope" : {
@@ -4745,6 +4911,9 @@
     "Skill queue becomes empty" : {
 
     },
+    "Skill queue empty" : {
+
+    },
     "Skill Training" : {
 
     },
@@ -4770,6 +4939,9 @@
 
     },
     "Some ships failed to load" : {
+
+    },
+    "Something Went Wrong" : {
 
     },
     "Sort" : {
@@ -4884,10 +5056,10 @@
     "Station Browser" : {
 
     },
-    "Station Details" : {
+    "Station Services" : {
 
     },
-    "Station Services" : {
+    "Station Take" : {
 
     },
     "Stations" : {
@@ -4896,10 +5068,16 @@
     "Stations in System" : {
 
     },
+    "Stations shown" : {
+
+    },
     "Status" : {
 
     },
     "status.eveonline.com" : {
+
+    },
+    "Stock Exchange" : {
 
     },
     "Stop" : {
@@ -4927,6 +5105,12 @@
 
     },
     "Subject" : {
+
+    },
+    "Surgery" : {
+
+    },
+    "Swap Origin and Destination" : {
 
     },
     "Switch" : {
@@ -4970,6 +5154,9 @@
       }
     },
     "Tax Rate" : {
+
+    },
+    "TE Research" : {
 
     },
     "Tentative" : {
@@ -5074,6 +5261,9 @@
     "Total: %@" : {
 
     },
+    "Trade" : {
+
+    },
     "Trade Hub Comparison" : {
 
     },
@@ -5125,6 +5315,9 @@
     "Try Again" : {
 
     },
+    "Try loosening your filters." : {
+
+    },
     "Turn on “Show current character in Discord status.”" : {
 
     },
@@ -5141,6 +5334,9 @@
 
     },
     "Unable to load EVE news" : {
+
+    },
+    "Unable to Reach EVE Servers" : {
 
     },
     "Undocked — dock and refresh to view" : {
@@ -5162,6 +5358,9 @@
 
     },
     "Unpackage the ship in-game to view its fitting." : {
+
+    },
+    "Unpin" : {
 
     },
     "Unpin %@" : {
@@ -5312,6 +5511,9 @@
     "Wallet" : {
 
     },
+    "Wallet balance history" : {
+
+    },
     "Wallet Today" : {
 
     },
@@ -5334,6 +5536,9 @@
 
     },
     "Watched" : {
+
+    },
+    "Waypoint" : {
 
     },
     "Wealth Distribution" : {
@@ -5402,15 +5607,8 @@
     "You need %@ more LP to afford it." : {
 
     },
-    "Your Assets Here (%lld type%@)" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Your Assets Here (%1$lld type%2$@)"
-          }
-        }
-      }
+    "Your Assets Here" : {
+
     },
     "Your queue is **%@ %@ / %@** skills. For fastest training, remap to:" : {
       "localizations" : {
@@ -5451,6 +5649,12 @@
 
     },
     "zkillboard.com" : {
+
+    },
+    "Zoom In" : {
+
+    },
+    "Zoom Out" : {
 
     },
     "Zoom to %@" : {

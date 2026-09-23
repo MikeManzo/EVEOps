@@ -15,6 +15,8 @@ import Charts
 /// single item's recent market behaviour adds context — asset detail, fitting
 /// shop, loyalty store. Collapses to nothing when the item has no market history.
 struct MarketMiniHistory: View {
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
     let typeId: Int
     var regionId: Int = MarketHistoryService.jitaRegionId
     /// Optional "now" price used for the vs-median badge (e.g. Jita sell).
@@ -26,7 +28,7 @@ struct MarketMiniHistory: View {
     @State private var isLoading = true
     @State private var failed = false
 
-    private let lineColor = Color(red: 0.2, green: 0.75, blue: 0.8)
+    private var lineColor: Color { palette.accent }
 
     private var visible: [MarketHistoryService.Point] {
         guard let series else { return [] }
@@ -77,7 +79,7 @@ struct MarketMiniHistory: View {
                 Text("1y").tag(365)
             }
             .labelsHidden()
-            .pickerStyle(.segmented)
+            .eveSegmentedPicker()
             .controlSize(.mini)
             .frame(width: 118)
         }
@@ -103,9 +105,8 @@ struct MarketMiniHistory: View {
         return Chart {
             ForEach(visible) { p in
                 AreaMark(x: .value("Date", p.date), y: .value("Price", p.average))
-                    .foregroundStyle(.linearGradient(
-                        colors: [lineColor.opacity(0.22), lineColor.opacity(0.02)],
-                        startPoint: .top, endPoint: .bottom))
+                    .foregroundStyle(.eveAreaFill(lineColor))
+                    .interpolationMethod(.catmullRom)
                 LineMark(x: .value("Date", p.date), y: .value("Price", p.average))
                     .foregroundStyle(lineColor)
                     .interpolationMethod(.catmullRom)
@@ -116,23 +117,8 @@ struct MarketMiniHistory: View {
                     .lineStyle(StrokeStyle(lineWidth: 0.5, dash: [3, 2]))
             }
         }
-        .chartYAxis {
-            AxisMarks { value in
-                AxisGridLine()
-                AxisValueLabel {
-                    if let d = value.as(Double.self) {
-                        Text(d.formatted(.number.notation(.compactName)))
-                            .font(.system(size: 9))
-                    }
-                }
-            }
-        }
-        .chartXAxis {
-            AxisMarks(values: .automatic(desiredCount: 3)) { _ in
-                AxisGridLine()
-                AxisValueLabel(format: .dateTime.month(.abbreviated).day())
-            }
-        }
+        .eveISKYAxis(desiredCount: 3)
+        .eveDateXAxis(desiredCount: 3)
         .frame(height: 96)
     }
 

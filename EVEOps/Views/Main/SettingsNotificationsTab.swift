@@ -127,6 +127,7 @@ struct NotificationsTab: View {
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
+                    .accessibilityLabel("More Info")
                     .buttonStyle(.plain)
                     .popover(isPresented: $showDiscordInfo, arrowEdge: .top) {
                         discordInfoPopover
@@ -161,6 +162,7 @@ struct NotificationsTab: View {
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
+                    .accessibilityLabel("More Info")
                     .buttonStyle(.plain)
                     .popover(isPresented: $showRichPresenceInfo, arrowEdge: .top) {
                         richPresenceInfoPopover

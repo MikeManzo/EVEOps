@@ -22,7 +22,7 @@ extension TrainingOverviewView {
         let totalQueuedSkills = trainingData.reduce(0) { $0 + $1.queue.count }
 
         return HStack(spacing: 0) {
-            summaryTile(icon: "brain.head.profile.fill", color: .cyan,
+            summaryTile(icon: "brain.head.profile.fill", color: palette.knowledge,
                         label: "Total SP", value: formatSP(totalSP))
             Divider().frame(height: 36)
             summaryTile(icon: "tray.full.fill", color: .purple,
@@ -34,7 +34,7 @@ extension TrainingOverviewView {
             summaryTile(icon: "play.circle.fill", color: .green,
                         label: "Active Queues", value: "\(activeQueues) / \(trainingData.count)")
             Divider().frame(height: 36)
-            summaryTile(icon: "list.number", color: .teal,
+            summaryTile(icon: "list.number", color: palette.accent,
                         label: "Queued Skills", value: "\(totalQueuedSkills)")
             if emptyQueues > 0 {
                 Divider().frame(height: 36)
@@ -44,7 +44,7 @@ extension TrainingOverviewView {
         }
         .padding(.vertical, 10)
         .padding(.horizontal, 12)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
+        .eveCard(cornerRadius: EVERadius.lg)
     }
 
     func summaryTile(icon: String, color: Color, label: String, value: String) -> some View {
@@ -101,10 +101,10 @@ extension TrainingOverviewView {
             CachedAsyncImage(url: EVEImageURL.characterPortrait(info.characterID, size: 256)) { image in
                 image.resizable()
             } placeholder: {
-                RoundedRectangle(cornerRadius: 8).fill(.quaternary)
+                RoundedRectangle(cornerRadius: EVERadius.md).fill(.quaternary)
             }
             .frame(width: 48, height: 48)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .clipShape(RoundedRectangle(cornerRadius: EVERadius.md))
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(info.characterName)
@@ -191,9 +191,9 @@ extension TrainingOverviewView {
                     if let image = phase.image {
                         image.resizable()
                             .frame(width: 40, height: 40)
-                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                            .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
                     } else {
-                        RoundedRectangle(cornerRadius: 6)
+                        RoundedRectangle(cornerRadius: EVERadius.sm)
                             .fill(.quaternary)
                             .frame(width: 40, height: 40)
                     }
@@ -284,7 +284,7 @@ extension TrainingOverviewView {
                             .font(.caption)
                     } else if entry.finishDate != nil {
                         Image(systemName: "clock.fill")
-                            .foregroundStyle(.blue)
+                            .foregroundStyle(palette.knowledge)
                             .font(.caption)
                     } else {
                         Image(systemName: "pause.circle")

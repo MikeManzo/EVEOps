@@ -53,7 +53,7 @@ struct RouteSystemRow: View {
                     .foregroundStyle(system.securityColor)
                     .frame(width: 30, alignment: .center)
                     .padding(.vertical, 2)
-                    .background(system.securityColor.opacity(0.15), in: RoundedRectangle(cornerRadius: 5))
+                    .background(system.securityColor.opacity(0.15), in: RoundedRectangle(cornerRadius: EVERadius.sm))
 
                 // System name
                 Text(system.name)
@@ -62,7 +62,7 @@ struct RouteSystemRow: View {
 
                 if system.danger.combatKills > 0 {
                     HStack(spacing: 3) {
-                        Image(systemName: "flame.fill").font(.system(size: 9))
+                        Image(systemName: "flame.fill").font(.eveMicro)
                         Text("\(system.danger.combatKills)")
                             .font(.caption2.bold().monospacedDigit())
                     }
@@ -75,7 +75,7 @@ struct RouteSystemRow: View {
 
                 if system.danger.shipJumps >= 1000 {
                     HStack(spacing: 3) {
-                        Image(systemName: "arrow.left.arrow.right").font(.system(size: 8))
+                        Image(systemName: "arrow.left.arrow.right").font(.eveTiny)
                         Text(system.danger.shipJumps.formatted(.number.notation(.compactName)))
                             .font(.caption2.monospacedDigit())
                     }
@@ -103,9 +103,10 @@ struct RouteSystemRow: View {
                         Image(systemName: "paperplane")
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                            .padding(5)
-                            .background(.quaternary.opacity(0.6), in: RoundedRectangle(cornerRadius: 5))
+                            .padding(6)
+                            .background(.quaternary.opacity(0.6), in: RoundedRectangle(cornerRadius: EVERadius.sm))
                     }
+                    .accessibilityLabel("Send to autopilot")
                     .menuStyle(.button)
                     .buttonStyle(.plain)
                     .help("Send to autopilot")
@@ -145,19 +146,19 @@ struct TheraConnectionRow: View {
                             .font(.caption.bold())
                         if isOnRoute {
                             Text("ON ROUTE")
-                                .font(.system(size: 9).bold())
+                                .font(.eveMicroBold)
                                 .foregroundStyle(.green)
-                                .padding(.horizontal, 5).padding(.vertical, 2)
+                                .padding(.horizontal, 6).padding(.vertical, 2)
                                 .background(.green.opacity(0.15), in: Capsule())
                         }
                         if connection.isNearEOL {
                             Image(systemName: "exclamationmark.circle.fill")
-                                .foregroundStyle(.red).font(.system(size: 10))
+                                .foregroundStyle(.red).font(.eveLabel)
                                 .help("Near end of life")
                         }
                     }
                     Text(connection.destinationRegionName)
-                        .font(.system(size: 10)).foregroundStyle(.secondary)
+                        .font(.eveLabel).foregroundStyle(.secondary)
                 }
 
                 Spacer()
@@ -165,14 +166,14 @@ struct TheraConnectionRow: View {
                 HStack(spacing: 6) {
                     if let eol = connection.estimatedEol {
                         Text(eol)
-                            .font(.system(size: 10, design: .monospaced))
+                            .font(.eveCode)
                             .foregroundStyle(connection.isNearEOL ? Color.red : Color.secondary)
                     }
 
                     Text(connection.maxShipSize.label)
-                        .font(.system(size: 10).bold())
-                        .padding(.horizontal, 5).padding(.vertical, 2)
-                        .background(.quaternary, in: RoundedRectangle(cornerRadius: 4))
+                        .font(.eveLabelBold)
+                        .padding(.horizontal, 6).padding(.vertical, 2)
+                        .background(.quaternary, in: RoundedRectangle(cornerRadius: EVERadius.xs))
                         .help(connection.maxShipSize.tooltip)
 
                     Circle()
@@ -181,12 +182,12 @@ struct TheraConnectionRow: View {
                         .help(connection.massStatus.tooltip)
 
                     Text(connection.signatureId)
-                        .font(.system(size: 10, design: .monospaced))
+                        .font(.eveCode)
                         .foregroundStyle(.tertiary)
                 }
             }
             .padding(.horizontal, 8)
-            .padding(.vertical, 5)
+            .padding(.vertical, 6)
 
             if isSelected {
                 HStack(spacing: 8) {
@@ -202,10 +203,10 @@ struct TheraConnectionRow: View {
         }
         .background(
             isSelected ? palette.accent.opacity(0.1) : isOnRoute ? Color.green.opacity(0.06) : Color.clear,
-            in: RoundedRectangle(cornerRadius: 6)
+            in: RoundedRectangle(cornerRadius: EVERadius.sm)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 6)
+            RoundedRectangle(cornerRadius: EVERadius.sm)
                 .strokeBorder(isSelected ? palette.accent.opacity(0.3) : Color.clear, lineWidth: 1)
         )
         .contentShape(Rectangle())

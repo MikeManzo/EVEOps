@@ -12,6 +12,8 @@ import SwiftUI
 
 struct WelcomeView: View {
     @Environment(AccountManager.self) private var accountManager
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
 
     // Iconic EVE ship type IDs for the background showcase
     private let showcaseShips: [(typeId: Int, name: String)] = [
@@ -69,7 +71,7 @@ struct WelcomeView: View {
                         Rectangle()
                             .fill(Color(white: 0.05))
                             .aspectRatio(1, contentMode: .fill)
-                            .overlay(ProgressView().scaleEffect(0.5))
+                            .overlay(ProgressView().controlSize(.mini))
                     }
                 }
                 .clipped()
@@ -124,7 +126,7 @@ struct WelcomeView: View {
                     .padding(.vertical, 14)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(.blue)
+                .tint(palette.accent)
                 .controlSize(.large)
                 .disabled(accountManager.isLoading)
 
@@ -163,12 +165,12 @@ struct WelcomeView: View {
                         .resizable()
                         .frame(width: 36, height: 36)
                 default:
-                    RoundedRectangle(cornerRadius: 4)
+                    RoundedRectangle(cornerRadius: EVERadius.xs)
                         .fill(.white.opacity(0.1))
                         .frame(width: 36, height: 36)
                 }
             }
-            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
             .shadow(color: .black.opacity(0.3), radius: 4)
 
             Text(name)

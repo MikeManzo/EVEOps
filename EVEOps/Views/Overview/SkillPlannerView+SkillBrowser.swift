@@ -19,11 +19,11 @@ extension SkillPlannerView {
             Label(title, systemImage: icon)
                 .font(.caption.bold())
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 5)
+                .padding(.vertical, 6)
                 .contentShape(Rectangle())
                 .background(
                     browserMode == mode ? Color.primary.opacity(0.12) : Color.clear,
-                    in: RoundedRectangle(cornerRadius: 6)
+                    in: RoundedRectangle(cornerRadius: EVERadius.sm)
                 )
         }
         .buttonStyle(.plain)
@@ -39,7 +39,7 @@ extension SkillPlannerView {
                 browserTab("Intelligence", icon: "scope",       mode: .shipGoal)
             }
             .padding(3)
-            .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
+            .background(.quaternary, in: RoundedRectangle(cornerRadius: EVERadius.md))
             .padding(.horizontal, 12)
             .padding(.top, 10)
             .padding(.bottom, 8)
@@ -74,11 +74,12 @@ extension SkillPlannerView {
                     Button { searchText = "" } label: {
                         Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
                     }
+                    .accessibilityLabel("Clear")
                     .buttonStyle(.plain)
                 }
             }
             .padding(8)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+            .eveCard(cornerRadius: EVERadius.md)
             .padding(10)
 
             if let info = selectedCharInfo {
@@ -99,9 +100,11 @@ extension SkillPlannerView {
 
                 let groups = filteredGroups(info)
                 if groups.isEmpty {
-                    Text(searchText.isEmpty ? "No skills" : "No results for \"\(searchText)\"")
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    if searchText.isEmpty {
+                        EVEEmptyState("No Skills", systemImage: "book.closed")
+                    } else {
+                        ContentUnavailableView.search(text: searchText)
+                    }
                 } else {
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: 0, pinnedViews: .sectionHeaders) {
@@ -122,7 +125,7 @@ extension SkillPlannerView {
                                             .foregroundStyle(.tertiary)
                                     }
                                     .padding(.horizontal, 12)
-                                    .padding(.vertical, 5)
+                                    .padding(.vertical, 6)
                                     .frame(maxWidth: .infinity)
                                     .background(.bar)
                                 }
@@ -165,9 +168,9 @@ extension SkillPlannerView {
         return HStack(spacing: 10) {
             CachedAsyncImage(url: EVEImageURL.typeIcon(skill.skillId, size: 64)) { phase in
                 if let image = phase.image {
-                    image.resizable().frame(width: 32, height: 32).clipShape(RoundedRectangle(cornerRadius: 5))
+                    image.resizable().frame(width: 32, height: 32).clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
                 } else {
-                    RoundedRectangle(cornerRadius: 5).fill(.quaternary).frame(width: 32, height: 32)
+                    RoundedRectangle(cornerRadius: EVERadius.sm).fill(.quaternary).frame(width: 32, height: 32)
                 }
             }
 
@@ -178,7 +181,7 @@ extension SkillPlannerView {
 
                 HStack(spacing: 2) {
                     ForEach(1...5, id: \.self) { level in
-                        RoundedRectangle(cornerRadius: 2)
+                        RoundedRectangle(cornerRadius: EVERadius.hairline)
                             .fill(level <= skill.trainedLevel ? levelColor(skill.trainedLevel) : Color.white.opacity(0.08))
                             .frame(width: 16, height: 10)
                     }
@@ -207,6 +210,7 @@ extension SkillPlannerView {
                             .foregroundStyle(palette.accent)
                             .font(.title3)
                     }
+                    .accessibilityLabel("Added to Plan")
                     .buttonStyle(.plain)
                 }
             } else if isMaxed {
@@ -229,6 +233,7 @@ extension SkillPlannerView {
                         .font(.title3)
                         .foregroundStyle(palette.accent)
                 }
+                .accessibilityLabel("Add to Skill Plan")
                 .menuStyle(.button)
                 .buttonStyle(.plain)
             }

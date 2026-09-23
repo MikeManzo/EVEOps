@@ -67,8 +67,8 @@ struct AIInsightCard<Insight, Content: View>: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(.purple.opacity(0.2)))
+        .eveCard()
+        .overlay(RoundedRectangle(cornerRadius: EVERadius.xl).strokeBorder(.purple.opacity(0.2)))
         .task(id: taskID) {
             switch autoGenerate {
             case .once:
@@ -98,6 +98,7 @@ struct AIInsightCard<Insight, Content: View>: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+                .accessibilityLabel("Regenerate insight")
                 .buttonStyle(.plain)
                 .help("Regenerate insight")
             }
@@ -109,6 +110,8 @@ struct AIInsightCard<Insight, Content: View>: View {
         generationError = nil
         do {
             insight = try await generate()
+        } catch is IntelligenceDeclinedError {
+            generationError = "Apple Intelligence declined to summarize this data."
         } catch {
             generationError = "Unable to generate insight. Try again later."
         }

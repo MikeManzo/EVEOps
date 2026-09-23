@@ -85,10 +85,10 @@ struct FittingShopView: View {
             CachedAsyncImage(url: EVEImageURL.typeRender(input.shipTypeId, size: 128)) { image in
                 image.resizable().aspectRatio(contentMode: .fill)
             } placeholder: {
-                RoundedRectangle(cornerRadius: 6).fill(.quaternary)
+                RoundedRectangle(cornerRadius: EVERadius.sm).fill(.quaternary)
             }
             .frame(width: 45, height: 45)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Shop This Fitting")
@@ -127,7 +127,7 @@ struct FittingShopView: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             } else if isSearchingGalaxy {
-                ProgressView(value: Double(galaxySearched), total: max(Double(galaxyTotal), 1))
+                ProgressView(value: min(Double(galaxySearched), max(Double(galaxyTotal), 1)), total: max(Double(galaxyTotal), 1))
                     .progressViewStyle(.linear)
                     .frame(width: 175)
                 Text(galaxyTotal > 0
@@ -238,7 +238,7 @@ struct FittingShopView: View {
                             .font(.body)
                     } else {
                         Text("\(quote.missingCount) missing")
-                            .font(.system(size: 11, weight: .bold))
+                            .font(.eveCaptionBold)
                             .foregroundStyle(.white)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 3)
@@ -248,7 +248,7 @@ struct FittingShopView: View {
                 .frame(width: 85, alignment: .center)
 
                 Text(String(format: "%.1f", max(0, quote.securityStatus)))
-                    .font(.system(size: 11, weight: .bold).monospacedDigit())
+                    .font(.eveCaptionBold.monospacedDigit())
                     .foregroundStyle(.white)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 3)
@@ -256,7 +256,7 @@ struct FittingShopView: View {
                     .frame(width: 55, alignment: .center)
                     .padding(.trailing, 20)
             }
-            .padding(.vertical, 11)
+            .padding(.vertical, 12)
         }
         .background(isSelected
             ? palette.accent.opacity(0.15)
@@ -299,7 +299,7 @@ struct FittingShopView: View {
                 .tint(palette.accent)
                 .foregroundStyle(palette.accent)
             }
-            .padding(.horizontal, 15)
+            .padding(.horizontal, 16)
             .padding(.top, 12)
             .padding(.bottom, 10)
 
@@ -322,6 +322,7 @@ struct FittingShopView: View {
                                     .foregroundStyle(included ? palette.accent : Color.secondary.opacity(0.4))
                                     .frame(width: 38, alignment: .center)
                             }
+                            .accessibilityLabel(included ? "Included" : "Excluded")
                             .buttonStyle(.plain)
                             .padding(.leading, 8)
 
@@ -361,7 +362,7 @@ struct FittingShopView: View {
                         .font(.caption.bold().monospacedDigit())
                         .foregroundStyle(deselectedTypeIds.isEmpty ? .green : .primary)
                 }
-                .padding(.horizontal, 15)
+                .padding(.horizontal, 16)
                 .padding(.vertical, 10)
             }
         }
@@ -404,22 +405,14 @@ struct FittingShopView: View {
             }
         }
         .padding(.leading, 4)
-        .padding(.trailing, 15)
+        .padding(.trailing, 16)
         .padding(.vertical, 6)
     }
 
     // MARK: Empty State
 
     private var emptyState: some View {
-        VStack(spacing: 15) {
-            Image(systemName: "cart.badge.questionmark")
-                .font(.system(size: 45))
-                .foregroundStyle(.tertiary)
-            Text("No market data found")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        EVEEmptyState("No Market Data Found", systemImage: "cart.badge.questionmark")
     }
 
     // MARK: Action Bar
@@ -436,6 +429,7 @@ struct FittingShopView: View {
                         Text(EVEFormatters.formatISK(filteredTotal))
                             .font(.subheadline.bold().monospacedDigit())
                             .foregroundStyle(deselectedTypeIds.isEmpty ? .primary : .secondary)
+                            .eveNumeric(filteredTotal)
                     } else {
                         Text("\(quote.missingCount) item\(quote.missingCount == 1 ? "" : "s") not available at this station")
                             .font(.caption)
@@ -477,7 +471,7 @@ struct FittingShopView: View {
             }
         }
         .padding(.horizontal, 20)
-        .padding(.vertical, 15)
+        .padding(.vertical, 16)
     }
 
     // MARK: Hub Search
@@ -706,10 +700,10 @@ private struct ItemShopPopover: View {
                 CachedAsyncImage(url: EVEImageURL.typeIcon(item.typeId, size: 64)) { image in
                     image.resizable().aspectRatio(contentMode: .fit)
                 } placeholder: {
-                    RoundedRectangle(cornerRadius: 8).fill(.quaternary)
+                    RoundedRectangle(cornerRadius: EVERadius.md).fill(.quaternary)
                 }
                 .frame(width: 64, height: 64)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .clipShape(RoundedRectangle(cornerRadius: EVERadius.md))
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(item.name)

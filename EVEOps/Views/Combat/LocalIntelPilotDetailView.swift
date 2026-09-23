@@ -14,6 +14,7 @@ import SwiftUI
 struct LocalIntelPilotDetailView: View {
     let pilot: LocalIntelPilot
     @Environment(\.dismiss) private var dismiss
+    @Environment(ThemeManager.self) private var themeManager
 
     var body: some View {
         VStack(spacing: 16) {
@@ -21,11 +22,13 @@ struct LocalIntelPilotDetailView: View {
                 if case .success(let image) = phase {
                     image.resizable().scaledToFit()
                 } else {
-                    RoundedRectangle(cornerRadius: 12).fill(.quaternary)
+                    RoundedRectangle(cornerRadius: EVERadius.xl).fill(.quaternary)
                 }
             }
             .frame(width: 128, height: 128)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .clipShape(RoundedRectangle(cornerRadius: EVERadius.xl))
+            .evePortraitRing(cornerRadius: EVERadius.xl, accent: themeManager.palette.accent)
+            .shadow(color: .black.opacity(0.4), radius: 10, y: 4)
 
             Text(pilot.name)
                 .font(.title2.bold())

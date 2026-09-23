@@ -18,7 +18,7 @@ struct CorporationContractsView: View {
     @State private var filterStatus = "all"
 
     var body: some View {
-        LoadingStateView(isLoading: isLoading, error: error, isEmpty: contracts.isEmpty, emptyMessage: "No corp contracts found or insufficient roles") {
+        LoadingStateView(isLoading: isLoading, error: error, isEmpty: contracts.isEmpty, emptyMessage: "None were found, or this character lacks the required corporation roles.", emptyTitle: "No Corporation Contracts", emptySystemImage: "doc.text") {
             VStack(spacing: 0) {
                 filterBar
                 contractList
@@ -61,7 +61,7 @@ struct CorporationContractsView: View {
                 Text("In Progress").tag("in_progress")
                 Text("Completed").tag("finished")
             }
-            .pickerStyle(.segmented)
+            .eveSegmentedPicker()
             .frame(maxWidth: 400)
             Spacer()
             Text("\(filteredContracts.count) contracts")

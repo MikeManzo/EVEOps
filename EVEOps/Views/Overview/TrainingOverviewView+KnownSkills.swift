@@ -200,9 +200,9 @@ extension TrainingOverviewView {
                 if let image = phase.image {
                     image.resizable()
                         .frame(width: 24, height: 24)
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                        .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
                 } else {
-                    RoundedRectangle(cornerRadius: 4)
+                    RoundedRectangle(cornerRadius: EVERadius.xs)
                         .fill(.quaternary)
                         .frame(width: 24, height: 24)
                 }
@@ -217,11 +217,11 @@ extension TrainingOverviewView {
             // Level pips
             HStack(spacing: 2) {
                 ForEach(1...5, id: \.self) { level in
-                    RoundedRectangle(cornerRadius: 2)
+                    RoundedRectangle(cornerRadius: EVERadius.hairline)
                         .fill(pipColor(trained: skill.trainedLevel, active: skill.activeLevel, pip: level))
                         .frame(width: 14, height: 12)
                         .overlay(
-                            RoundedRectangle(cornerRadius: 2)
+                            RoundedRectangle(cornerRadius: EVERadius.hairline)
                                 .strokeBorder(
                                     level <= skill.trainedLevel ? .clear : .white.opacity(0.1),
                                     lineWidth: 1

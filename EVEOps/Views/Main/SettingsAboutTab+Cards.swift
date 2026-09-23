@@ -67,11 +67,11 @@ extension AboutTab {
                     .fill(.green)
                     .frame(width: 5, height: 5)
                 Text("v\(version)  ·  Build \(build)")
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.eveCaptionMedium)
                     .foregroundStyle(.secondary)
             }
             .padding(.horizontal, 12)
-            .padding(.vertical, 5)
+            .padding(.vertical, 6)
             .background(.primary.opacity(0.05), in: Capsule())
             .overlay(Capsule().strokeBorder(.primary.opacity(0.1)))
         }
@@ -87,15 +87,15 @@ extension AboutTab {
                     .fill(Color(hue: 0.12, saturation: 0.85, brightness: 1.0).opacity(0.15))
                     .frame(width: 38, height: 38)
                 Image(systemName: "star.fill")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.eveSectionTitle)
                     .foregroundStyle(Color(hue: 0.12, saturation: 0.9, brightness: 1.0))
             }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("EVE Buddy")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.eveRowTitle)
                 Text("ACKNOWLEDGED INSPIRATION")
-                    .font(.system(size: 9, weight: .bold))
+                    .font(.eveMicroBold)
                     .tracking(1.2)
                     .foregroundStyle(.tertiary)
             }
@@ -107,16 +107,16 @@ extension AboutTab {
                     .font(.system(size: 15, weight: .bold, design: .monospaced))
                     .foregroundStyle(Color(hue: 0.33, saturation: 0.65, brightness: 0.80))
                 Text("STANDING")
-                    .font(.system(size: 8, weight: .bold))
+                    .font(.eveBadge)
                     .tracking(1.2)
                     .foregroundStyle(.tertiary)
             }
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 11)
-        .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .padding(.vertical, 12)
+        .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous)
                 .strokeBorder(
                     LinearGradient(
                         colors: [
@@ -140,15 +140,15 @@ extension AboutTab {
                     .fill(Color.red.opacity(0.12))
                     .frame(width: 38, height: 38)
                 Image(systemName: "heart.badge.bolt.slash")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.eveSectionTitle)
                     .foregroundStyle(.red)
             }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("zKillboard")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.eveRowTitle)
                 Text("COMMUNITY FIT DATA SOURCE")
-                    .font(.system(size: 9, weight: .bold))
+                    .font(.eveMicroBold)
                     .tracking(1.2)
                     .foregroundStyle(.tertiary)
             }
@@ -161,13 +161,13 @@ extension AboutTab {
                 }
             }
             .buttonStyle(.link)
-            .font(.system(size: 11, weight: .medium))
+            .font(.eveCaptionMedium)
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 11)
-        .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .padding(.vertical, 12)
+        .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous)
                 .strokeBorder(
                     LinearGradient(
                         colors: [
@@ -191,15 +191,15 @@ extension AboutTab {
                     .fill(Color.green.opacity(0.12))
                     .frame(width: 38, height: 38)
                 Image(systemName: "cart.circle")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.eveSectionTitle)
                     .foregroundStyle(.green)
             }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Live EVE item Apprasial")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.eveRowTitle)
                 Text("LIVE APPRAISAL DATA SOURCE")
-                    .font(.system(size: 9, weight: .bold))
+                    .font(.eveMicroBold)
                     .tracking(1.2)
                     .foregroundStyle(.tertiary)
             }
@@ -212,13 +212,13 @@ extension AboutTab {
                 }
             }
             .buttonStyle(.link)
-            .font(.system(size: 11, weight: .medium))
+            .font(.eveCaptionMedium)
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 11)
-        .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .padding(.vertical, 12)
+        .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous)
                 .strokeBorder(
                     LinearGradient(
                         colors: [
@@ -242,15 +242,15 @@ extension AboutTab {
                     .fill(Color.white.opacity(0.12))
                     .frame(width: 38, height: 38)
                 Image(systemName: "arrowshape.up")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.eveSectionTitle)
                     .foregroundStyle(.white)
             }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Sparkle")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.eveRowTitle)
                 Text("SOFTWARE UPDATE FRAMEWORK")
-                    .font(.system(size: 9, weight: .bold))
+                    .font(.eveMicroBold)
                     .tracking(1.2)
                     .foregroundStyle(.tertiary)
             }
@@ -263,13 +263,13 @@ extension AboutTab {
                 }
             }
             .buttonStyle(.link)
-            .font(.system(size: 11, weight: .medium))
+            .font(.eveCaptionMedium)
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 11)
-        .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .padding(.vertical, 12)
+        .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous)
                 .strokeBorder(
                     LinearGradient(
                         colors: [
@@ -293,15 +293,15 @@ extension AboutTab {
                     .fill(Color.cyan.opacity(0.12))
                     .frame(width: 38, height: 38)
                 Image(systemName: "globe.americas.fill")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.eveSectionTitle)
                     .foregroundStyle(.cyan)
             }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Anoik.is")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.eveRowTitle)
                 Text("WORMHOLE SYSTEM DATABASE")
-                    .font(.system(size: 9, weight: .bold))
+                    .font(.eveMicroBold)
                     .tracking(1.2)
                     .foregroundStyle(.tertiary)
             }
@@ -314,13 +314,13 @@ extension AboutTab {
                 }
             }
             .buttonStyle(.link)
-            .font(.system(size: 11, weight: .medium))
+            .font(.eveCaptionMedium)
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 11)
-        .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .padding(.vertical, 12)
+        .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous)
                 .strokeBorder(
                     LinearGradient(
                         colors: [
@@ -344,15 +344,15 @@ extension AboutTab {
                     .fill(Color.blue.opacity(0.12))
                     .frame(width: 38, height: 38)
                 Image(systemName: "service.dog.fill")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.eveSectionTitle)
                     .foregroundStyle(.white)
             }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Scout")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.eveRowTitle)
                 Text("WORMHOLE CONNECTIONS")
-                    .font(.system(size: 9, weight: .bold))
+                    .font(.eveMicroBold)
                     .tracking(1.2)
                     .foregroundStyle(.tertiary)
             }
@@ -365,13 +365,13 @@ extension AboutTab {
                 }
             }
             .buttonStyle(.link)
-            .font(.system(size: 11, weight: .medium))
+            .font(.eveCaptionMedium)
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 11)
-        .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .padding(.vertical, 12)
+        .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous)
                 .strokeBorder(
                     LinearGradient(
                         colors: [
@@ -397,15 +397,15 @@ extension AboutTab {
                     .fill(Color.orange.opacity(0.12))
                     .frame(width: 38, height: 38)
                 Image(systemName: "esim")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.eveSectionTitle)
                     .foregroundStyle(.orange)
             }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("EVEShip.fit's Dogma Engine")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.eveRowTitle)
                 Text("SHIP FIT SIM ENGINE")
-                    .font(.system(size: 9, weight: .bold))
+                    .font(.eveMicroBold)
                     .tracking(1.2)
                     .foregroundStyle(.tertiary)
             }
@@ -418,13 +418,13 @@ extension AboutTab {
                 }
             }
             .buttonStyle(.link)
-            .font(.system(size: 11, weight: .medium))
+            .font(.eveCaptionMedium)
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 11)
-        .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .padding(.vertical, 12)
+        .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous)
                 .strokeBorder(
                     LinearGradient(
                         colors: [
@@ -448,15 +448,15 @@ extension AboutTab {
                     .fill(Color.green.opacity(0.12))
                     .frame(width: 38, height: 38)
                 Image(systemName: "chart.bar.fill")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.eveSectionTitle)
                     .foregroundStyle(.green)
             }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Fuzzwork Enterprises")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.eveRowTitle)
                 Text("MARKET PRICE DATA SOURCE")
-                    .font(.system(size: 9, weight: .bold))
+                    .font(.eveMicroBold)
                     .tracking(1.2)
                     .foregroundStyle(.tertiary)
             }
@@ -469,13 +469,13 @@ extension AboutTab {
                 }
             }
             .buttonStyle(.link)
-            .font(.system(size: 11, weight: .medium))
+            .font(.eveCaptionMedium)
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 11)
-        .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .padding(.vertical, 12)
+        .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous)
                 .strokeBorder(
                     LinearGradient(
                         colors: [
@@ -499,15 +499,15 @@ extension AboutTab {
                     .fill(Color.purple.opacity(0.12))
                     .frame(width: 38, height: 38)
                 Image(systemName: "wand.and.stars")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.eveSectionTitle)
                     .foregroundStyle(.purple)
             }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Claude Code")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.eveRowTitle)
                 Text("AI DEVELOPMENT ASSISTANT")
-                    .font(.system(size: 9, weight: .bold))
+                    .font(.eveMicroBold)
                     .tracking(1.2)
                     .foregroundStyle(.tertiary)
             }
@@ -520,13 +520,13 @@ extension AboutTab {
                 }
             }
             .buttonStyle(.link)
-            .font(.system(size: 11, weight: .medium))
+            .font(.eveCaptionMedium)
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 11)
-        .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .padding(.vertical, 12)
+        .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous)
                 .strokeBorder(
                     LinearGradient(
                         colors: [
@@ -550,15 +550,15 @@ extension AboutTab {
                     .fill(Color.teal.opacity(0.12))
                     .frame(width: 38, height: 38)
                 Image(systemName: "books.vertical.fill")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.eveSectionTitle)
                     .foregroundStyle(.teal)
             }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("EVERef")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.eveRowTitle)
                 Text("ITEM & BLUEPRINT REFERENCE")
-                    .font(.system(size: 9, weight: .bold))
+                    .font(.eveMicroBold)
                     .tracking(1.2)
                     .foregroundStyle(.tertiary)
             }
@@ -571,13 +571,13 @@ extension AboutTab {
                 }
             }
             .buttonStyle(.link)
-            .font(.system(size: 11, weight: .medium))
+            .font(.eveCaptionMedium)
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 11)
-        .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .padding(.vertical, 12)
+        .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous)
                 .strokeBorder(
                     LinearGradient(
                         colors: [
@@ -601,15 +601,15 @@ extension AboutTab {
                     .fill(Color.indigo.opacity(0.12))
                     .frame(width: 38, height: 38)
                 Image(systemName: "cube.fill")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.eveSectionTitle)
                     .foregroundStyle(.indigo)
             }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("GetEveModels")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.eveRowTitle)
                 Text("3D SHIP MODEL DATA SOURCE")
-                    .font(.system(size: 9, weight: .bold))
+                    .font(.eveMicroBold)
                     .tracking(1.2)
                     .foregroundStyle(.tertiary)
             }
@@ -622,13 +622,13 @@ extension AboutTab {
                 }
             }
             .buttonStyle(.link)
-            .font(.system(size: 11, weight: .medium))
+            .font(.eveCaptionMedium)
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 11)
-        .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .padding(.vertical, 12)
+        .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous)
                 .strokeBorder(
                     LinearGradient(
                         colors: [
@@ -652,15 +652,15 @@ extension AboutTab {
                     .fill(Color.cyan.opacity(0.12))
                     .frame(width: 38, height: 38)
                 Image(systemName: "person.fill")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.eveSectionTitle)
                     .foregroundStyle(.cyan)
             }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Kerreah")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.eveRowTitle)
                 Text("EVE CAPSULEER")
-                    .font(.system(size: 9, weight: .bold))
+                    .font(.eveMicroBold)
                     .tracking(1.2)
                     .foregroundStyle(.tertiary)
             }
@@ -673,13 +673,13 @@ extension AboutTab {
                 }
             }
             .buttonStyle(.link)
-            .font(.system(size: 11, weight: .medium))
+            .font(.eveCaptionMedium)
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 11)
-        .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .padding(.vertical, 12)
+        .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous)
                 .strokeBorder(
                     LinearGradient(
                         colors: [
@@ -703,15 +703,15 @@ extension AboutTab {
                     .fill(Color.orange.opacity(0.12))
                     .frame(width: 38, height: 38)
                 Image(systemName: "person.fill")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.eveSectionTitle)
                     .foregroundStyle(.orange)
             }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Idle Boy")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.eveRowTitle)
                 Text("EVE CAPSULEER")
-                    .font(.system(size: 9, weight: .bold))
+                    .font(.eveMicroBold)
                     .tracking(1.2)
                     .foregroundStyle(.tertiary)
             }
@@ -724,13 +724,13 @@ extension AboutTab {
                 }
             }
             .buttonStyle(.link)
-            .font(.system(size: 11, weight: .medium))
+            .font(.eveCaptionMedium)
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 11)
-        .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .padding(.vertical, 12)
+        .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous)
                 .strokeBorder(
                     LinearGradient(
                         colors: [
@@ -750,31 +750,31 @@ extension AboutTab {
     func chip(_ icon: String, _ label: String) -> some View {
         HStack(spacing: 5) {
             Image(systemName: icon)
-                .font(.system(size: 10, weight: .semibold))
+                .font(.eveLabelSemibold)
                 .foregroundStyle(.blue)
             Text(label)
-                .font(.system(size: 11, weight: .medium))
+                .font(.eveCaptionMedium)
                 .foregroundStyle(.secondary)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .background(.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(.primary.opacity(0.08)))
+        .background(.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: EVERadius.md, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: EVERadius.md, style: .continuous).strokeBorder(.primary.opacity(0.08)))
     }
 
     func linkButton(_ icon: String, _ label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 5) {
                 Image(systemName: icon)
-                    .font(.system(size: 11))
+                    .font(.eveCaption)
                 Text(label)
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.eveCalloutMedium)
             }
             .foregroundStyle(.blue)
             .padding(.horizontal, 14)
-            .padding(.vertical, 7)
-            .background(.blue.opacity(0.08), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(.blue.opacity(0.18)))
+            .padding(.vertical, 8)
+            .background(.blue.opacity(0.08), in: RoundedRectangle(cornerRadius: EVERadius.md, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: EVERadius.md, style: .continuous).strokeBorder(.blue.opacity(0.18)))
         }
         .buttonStyle(.plain)
     }

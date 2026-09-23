@@ -130,10 +130,10 @@ struct SimLeftPanel: View {
             Button { showLoadSheet = true } label: {
                 HStack(spacing: 12) {
                     ZStack {
-                        RoundedRectangle(cornerRadius: 8)
+                        RoundedRectangle(cornerRadius: EVERadius.md)
                             .fill(.blue.opacity(0.18))
                         Image(systemName: "square.and.arrow.down.fill")
-                            .font(.system(size: 17, weight: .semibold))
+                            .font(.eveSectionTitle)
                             .foregroundStyle(.blue)
                     }
                     .frame(width: 36, height: 36)
@@ -148,15 +148,15 @@ struct SimLeftPanel: View {
                     }
                     Spacer()
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(.eveLabelSemibold)
                         .foregroundStyle(.tertiary)
                 }
                 .padding(.horizontal, 12)
-                .padding(.vertical, 9)
+                .padding(.vertical, 10)
                 .background(
-                    RoundedRectangle(cornerRadius: 10)
+                    RoundedRectangle(cornerRadius: EVERadius.lg)
                         .fill(.blue.opacity(0.07))
-                        .overlay(RoundedRectangle(cornerRadius: 10)
+                        .overlay(RoundedRectangle(cornerRadius: EVERadius.lg)
                             .strokeBorder(.blue.opacity(0.28), lineWidth: 1))
                 )
             }
@@ -255,6 +255,7 @@ struct SimLeftPanel: View {
                     Image(systemName: "arrow.down.doc")
                         .font(.caption)
                 }
+                .accessibilityLabel("Save fitting as .eft file")
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
                 .help("Save fitting as .eft file")
@@ -266,6 +267,7 @@ struct SimLeftPanel: View {
                     Image(systemName: "icloud.and.arrow.up")
                         .font(.caption)
                 }
+                .accessibilityLabel("Save fitting to EVE")
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
                 .help("Save fitting to EVE")
@@ -295,9 +297,10 @@ struct SimLeftPanel: View {
                         Image(systemName: "xmark.circle.fill")
                             .font(.caption2).foregroundStyle(.secondary)
                     }
+                    .accessibilityLabel("Clear")
                     .buttonStyle(.plain)
                 }
-                .padding(.horizontal, 10).padding(.vertical, 5)
+                .padding(.horizontal, 10).padding(.vertical, 6)
                 .background(active.category.color.opacity(0.08))
             }
 
@@ -370,8 +373,8 @@ struct SimLeftPanel: View {
                     if let msg = noSlotMessage {
                         Text(msg)
                             .font(.caption.bold())
-                            .padding(.horizontal, 12).padding(.vertical, 7)
-                            .background(.ultraThinMaterial, in: Capsule())
+                            .padding(.horizontal, 12).padding(.vertical, 8)
+                            .glassEffect(.regular, in: Capsule())
                             .padding(.bottom, 10)
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
@@ -494,20 +497,17 @@ struct SimLeftPanel: View {
                 Button { text.wrappedValue = "" } label: {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
                 }
+                .accessibilityLabel("Clear")
                 .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, 10).padding(.vertical, 7)
-        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
+        .padding(.horizontal, 10).padding(.vertical, 8)
+        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: EVERadius.md))
         .padding(10)
     }
 
     private func emptyState(_ msg: String) -> some View {
-        VStack(spacing: 8) {
-            Image(systemName: "questionmark.circle").font(.largeTitle).foregroundStyle(.tertiary)
-            Text(msg).font(.subheadline).foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        EVEEmptyState(title: Text(msg), systemImage: "questionmark.circle")
     }
 }
 
@@ -522,11 +522,11 @@ struct SimShipRow: View {
             CachedAsyncImage(url: EVEImageURL.typeRender(type.typeId, size: 128)) { img in
                 img.resizable().aspectRatio(contentMode: .fill)
             } placeholder: {
-                RoundedRectangle(cornerRadius: 8).fill(.quaternary)
+                RoundedRectangle(cornerRadius: EVERadius.md).fill(.quaternary)
             }
             .frame(width: 48, height: 48)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.white.opacity(0.08), lineWidth: 0.5))
+            .clipShape(RoundedRectangle(cornerRadius: EVERadius.md))
+            .overlay(RoundedRectangle(cornerRadius: EVERadius.md).strokeBorder(.white.opacity(0.08), lineWidth: 0.5))
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(type.name).font(.subheadline.bold())
@@ -549,11 +549,11 @@ struct SimModuleRow: View {
             CachedAsyncImage(url: EVEImageURL.typeIcon(type.typeId, size: 64)) { img in
                 img.resizable().aspectRatio(contentMode: .fit)
             } placeholder: {
-                RoundedRectangle(cornerRadius: 6).fill(.quaternary)
+                RoundedRectangle(cornerRadius: EVERadius.sm).fill(.quaternary)
             }
             .frame(width: 34, height: 34)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
-            .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(.white.opacity(0.08), lineWidth: 0.5))
+            .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
+            .overlay(RoundedRectangle(cornerRadius: EVERadius.sm).strokeBorder(.white.opacity(0.08), lineWidth: 0.5))
 
             Text(type.name).font(.subheadline).lineLimit(2)
             Spacer()

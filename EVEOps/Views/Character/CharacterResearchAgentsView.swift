@@ -20,7 +20,7 @@ struct CharacterResearchAgentsView: View {
 
     var body: some View {
         LoadingStateView(isLoading: isLoading, error: error,
-                         isEmpty: groups.isEmpty, emptyMessage: "No active research agents") {
+                         isEmpty: groups.isEmpty, emptyMessage: "No Active Research Agents", emptySystemImage: "flask") {
             List {
                 ForEach(groups, id: \.characterID) { group in
                     Section(groups.count > 1 ? group.characterName : "") {
@@ -37,6 +37,7 @@ struct CharacterResearchAgentsView: View {
                     .font(.largeTitle.bold())
                 PinToggleButton(section: .research)
                 Spacer()
+                FreshnessIndicator(isLoading: isLoading) { await load() }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)

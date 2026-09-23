@@ -20,16 +20,7 @@ struct IntelligenceTab: View {
         if #available(macOS 26.0, *) {
             IntelligenceTabContent(aiInsightsEnabled: $aiInsightsEnabled)
         } else {
-            VStack(spacing: 16) {
-                Image(systemName: "brain")
-                    .font(.system(size: 44))
-                    .foregroundStyle(.tertiary)
-                Text("Apple Intelligence requires macOS 26 or later.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            EVEEmptyState("Apple Intelligence requires macOS 26 or later.", systemImage: "brain")
         }
     }
 }

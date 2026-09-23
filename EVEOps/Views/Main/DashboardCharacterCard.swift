@@ -104,20 +104,20 @@ struct CharacterCardView: View {
                     CachedAsyncImage(url: EVEImageURL.characterPortrait(account.characterID, size: 512)) { image in
                         image.resizable()
                     } placeholder: {
-                        RoundedRectangle(cornerRadius: 10).fill(.quaternary)
+                        RoundedRectangle(cornerRadius: EVERadius.lg).fill(.quaternary)
                     }
                     .frame(width: 60, height: 60)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                    .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.white.opacity(0.18), lineWidth: 1))
+                    .clipShape(RoundedRectangle(cornerRadius: EVERadius.lg))
+                    .overlay(RoundedRectangle(cornerRadius: EVERadius.lg).strokeBorder(.white.opacity(0.18), lineWidth: 1))
                     // #3: Status ring — color signals state at a glance, framing the portrait instead of a bar across the top
-                    .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(cardAccentColor.opacity(0.85), lineWidth: 1.5))
+                    .overlay(RoundedRectangle(cornerRadius: EVERadius.lg).strokeBorder(cardAccentColor.opacity(0.85), lineWidth: 1.5))
                     .shadow(color: cardAccentColor.opacity(0.6), radius: 5)
                     .overlay(alignment: .bottomTrailing) {
                         CachedAsyncImage(url: EVEImageURL.corporationLogo(account.corporationID, size: 256)) { phase in
                             if let image = phase.image {
                                 image.resizable()
                                     .frame(width: 20, height: 20)
-                                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                                    .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
                                     .shadow(color: .black.opacity(0.6), radius: 3)
                             }
                         }
@@ -356,17 +356,17 @@ struct CharacterCardView: View {
                             .lineLimit(2)
                     }
                     .padding(.horizontal, 8)
-                    .padding(.vertical, 5)
+                    .padding(.vertical, 6)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(palette.critical.opacity(0.08), in: RoundedRectangle(cornerRadius: 6))
-                    .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(palette.critical.opacity(0.2), lineWidth: 1))
+                    .background(palette.critical.opacity(0.08), in: RoundedRectangle(cornerRadius: EVERadius.sm))
+                    .overlay(RoundedRectangle(cornerRadius: EVERadius.sm).strokeBorder(palette.critical.opacity(0.2), lineWidth: 1))
                 }
             }
             .padding(12)
             .padding(.top, -38)  // #1: portrait overlaps banner by ~28pt
         }
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .eveCard()
+        .clipShape(RoundedRectangle(cornerRadius: EVERadius.xl))
         .onAppear {
             Task { await fetchIdentity() }
         }
@@ -508,9 +508,7 @@ struct CharacterCardView: View {
                         }
                     }
 
-                    ProgressView(value: trainingProgress)
-                        .tint(.blue)
-                        .frame(height: 3)
+                    EVEProgressBar(value: trainingProgress, tint: palette.knowledge)
 
                     HStack(spacing: 4) {
                         Text("\(queueCount) skill\(queueCount == 1 ? "" : "s") in queue")
@@ -571,7 +569,7 @@ struct CharacterCardView: View {
                         .padding(.horizontal, 16)
                 }
             } else if summary == nil {
-                ProgressView().scaleEffect(0.7)
+                ProgressView().controlSize(.small)
             }
         }
         .frame(height: 130)

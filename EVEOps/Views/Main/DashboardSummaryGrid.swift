@@ -15,6 +15,9 @@ import SwiftUI
 struct SummaryGridView: View {
     let summaries: [CharacterSummary]
 
+    @Environment(ThemeManager.self) private var themeManager
+    private var palette: EVEPalette { themeManager.palette }
+
     private var totalWealth: Double    { summaries.reduce(0) { $0 + $1.wallet } }
     private var dailyMade: Double      { summaries.reduce(0) { $0 + $1.dailyISKMade } }
     private var dailySpent: Double     { summaries.reduce(0) { $0 + $1.dailyISKSpent } }
@@ -33,21 +36,24 @@ struct SummaryGridView: View {
             MetricTileView(
                 icon: "creditcard.fill", color: .green,
                 value: EVEFormatters.formatISKShort(totalWealth),
-                label: String(localized: "Total Wealth")
+                label: String(localized: "Total Wealth"),
+                destination: .finances
             )
             MetricTileView(
                 icon: "arrow.left.arrow.right.circle.fill", color: dailyNet >= 0 ? .green : .red,
                 value: (dailyNet >= 0 ? "+" : "") + EVEFormatters.formatISKShort(dailyNet),
                 label: String(localized: "Today's ISK"),
-                subLabel: "+\(EVEFormatters.formatISKShort(dailyMade)) / -\(EVEFormatters.formatISKShort(dailySpent))"
+                subLabel: "+\(EVEFormatters.formatISKShort(dailyMade)) / -\(EVEFormatters.formatISKShort(dailySpent))",
+                destination: .finances
             )
             MetricTileView(
-                icon: "brain.head.profile.fill", color: .cyan,
+                icon: "brain.head.profile.fill", color: palette.knowledge,
                 value: formatSP(totalSP),
-                label: String(localized: "Skill Points")
+                label: String(localized: "Skill Points"),
+                destination: .training
             )
             MetricTileView(
-                icon: "person.fill.checkmark", color: .blue,
+                icon: "person.fill.checkmark", color: palette.online,
                 value: "\(onlineCount) / \(summaries.count)",
                 label: onlineCount == summaries.count ? String(localized: "All Online") : String(localized: "Online")
             )
@@ -56,53 +62,61 @@ struct SummaryGridView: View {
                     icon: "exclamationmark.triangle.fill", color: .orange,
                     value: "\(emptyQueues) empty",
                     label: String(localized: "Queue Alert"),
-                    isAlert: true
+                    isAlert: true,
+                    destination: .training
                 )
             } else if let finish = nextSkillFinish {
                 MetricTileView(
                     icon: "graduationcap.fill", color: .green,
                     value: EVEFormatters.timeUntil(finish),
                     label: String(localized: "Next Skill"),
-                    subLabel: "\(summaries.count == 1 ? "" : "\(summaries.count) queues · ")\(String(localized: "All training"))"
+                    subLabel: "\(summaries.count == 1 ? "" : "\(summaries.count) queues · ")\(String(localized: "All training"))",
+                    destination: .training
                 )
             } else {
                 MetricTileView(
                     icon: "graduationcap.fill", color: .green,
                     value: String(localized: "All active"),
-                    label: String(localized: "Training")
+                    label: String(localized: "Training"),
+                    destination: .training
                 )
             }
             if activeJobs == 0 {
                 MetricTileView(
                     icon: "hammer.fill", color: .secondary,
                     value: String(localized: "None active"),
-                    label: String(localized: "Industry")
+                    label: String(localized: "Industry"),
+                    destination: .industry
                 )
             } else if let next = nextJobFinish {
                 MetricTileView(
-                    icon: "hammer.fill", color: .purple,
+                    icon: "hammer.fill", color: palette.industry,
                     value: EVEFormatters.timeUntil(next),
                     label: String(localized: "Next Job"),
-                    subLabel: "\(activeJobs) job\(activeJobs == 1 ? "" : "s") active"
+                    subLabel: "\(activeJobs) job\(activeJobs == 1 ? "" : "s") active",
+                    destination: .industry
                 )
             } else {
                 MetricTileView(
-                    icon: "hammer.fill", color: .purple,
+                    icon: "hammer.fill", color: palette.industry,
                     value: "\(activeJobs) active",
-                    label: String(localized: "Industry")
+                    label: String(localized: "Industry"),
+                    destination: .industry
                 )
             }
             MetricTileView(
-                icon: "doc.text.fill", color: .teal,
+                icon: "doc.text.fill", color: palette.contracts,
                 value: activeContracts == 0 ? String(localized: "None active") : "\(activeContracts) active",
-                label: String(localized: "Contracts")
+                label: String(localized: "Contracts"),
+                destination: .contracts
             )
             if expiredExtractors > 0 {
                 MetricTileView(
                     icon: "exclamationmark.triangle.fill", color: .red,
                     value: "\(expiredExtractors) offline",
                     label: String(localized: "PI Extractors"),
-                    isAlert: true
+                    isAlert: true,
+                    destination: .colonies
                 )
             }
         }
@@ -122,15 +136,38 @@ struct MetricTileView: View {
     let label: String
     var subLabel: String? = nil
     var isAlert: Bool = false
+    /// When set, the tile becomes a button that jumps to this sidebar section.
+    var destination: NavigationSection? = nil
+
+    @Environment(AccountManager.self) private var accountManager
+    /// Set by a per-character card so clicking one of its tiles also switches to that pilot.
+    @Environment(\.metricTileCharacterID) private var characterID
 
     var body: some View {
+        if let destination {
+            Button {
+                if let characterID { accountManager.selectedCharacterID = characterID }
+                AppRouter.shared.pendingSection = destination
+            } label: {
+                tile
+            }
+            .buttonStyle(.plain)
+            .eveHoverable(cornerRadius: EVERadius.xl)
+            .help(Text("Open \(Text(destination.title))"))
+            .accessibilityHint(Text("Opens \(Text(destination.title))"))
+        } else {
+            tile
+        }
+    }
+
+    private var tile: some View {
         VStack(spacing: 0) {
             ZStack {
-                RoundedRectangle(cornerRadius: 8)
+                RoundedRectangle(cornerRadius: EVERadius.md)
                     .fill(color.opacity(0.18))
                     .frame(width: 36, height: 36)
                 Image(systemName: icon)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.eveSubsectionTitle)
                     .foregroundStyle(color)
             }
             .padding(.top, 12)
@@ -138,17 +175,18 @@ struct MetricTileView: View {
             Spacer(minLength: 6)
 
             Text(value)
-                .font(.system(size: 13, weight: .bold).monospacedDigit())
+                .font(.eveTileValue)
                 .foregroundStyle(isAlert ? color : .primary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.65)
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, 6)
+                .eveNumeric(value)
 
             Spacer(minLength: 2)
 
             Text(label)
-                .font(.system(size: 10, weight: .medium))
+                .font(.eveLabelMedium)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity)
@@ -156,7 +194,7 @@ struct MetricTileView: View {
 
             if let sub = subLabel {
                 Text(sub)
-                    .font(.system(size: 9))
+                    .font(.eveMicro)
                     .foregroundStyle(.secondary.opacity(0.65))
                     .lineLimit(1)
                     .frame(maxWidth: .infinity)
@@ -168,12 +206,17 @@ struct MetricTileView: View {
         }
         .frame(maxWidth: .infinity, minHeight: 82)
         .background(
-            RoundedRectangle(cornerRadius: 11)
+            RoundedRectangle(cornerRadius: EVERadius.xl)
                 .fill(color.opacity(0.06))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 11)
+            RoundedRectangle(cornerRadius: EVERadius.xl)
                 .strokeBorder(color.opacity(isAlert ? 0.50 : 0.18), lineWidth: 1)
         )
     }
+}
+
+extension EnvironmentValues {
+    /// The character whose card a `MetricTileView` sits on, if any.
+    @Entry var metricTileCharacterID: Int? = nil
 }

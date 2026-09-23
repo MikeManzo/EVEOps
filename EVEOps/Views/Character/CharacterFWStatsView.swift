@@ -51,6 +51,7 @@ struct CharacterFWStatsView: View {
                     .font(.largeTitle.bold())
                 PinToggleButton(section: .factionWarfare)
                 Spacer()
+                FreshnessIndicator(isLoading: isLoading) { await load() }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
@@ -209,10 +210,10 @@ private struct FWStatsCard: View {
                 CachedAsyncImage(url: EVEImageURL.corporationLogo(factionId, size: 64)) { image in
                     image.resizable().scaledToFit()
                 } placeholder: {
-                    RoundedRectangle(cornerRadius: 8).fill(.quaternary)
+                    RoundedRectangle(cornerRadius: EVERadius.md).fill(.quaternary)
                 }
                 .frame(width: 48, height: 48)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .clipShape(RoundedRectangle(cornerRadius: EVERadius.md))
             } else {
                 Image(systemName: "shield.slash.fill")
                     .font(.title)
@@ -331,10 +332,10 @@ private struct WarzoneRow: View {
             CachedAsyncImage(url: EVEImageURL.corporationLogo(stat.factionId, size: 64)) { image in
                 image.resizable().scaledToFit()
             } placeholder: {
-                RoundedRectangle(cornerRadius: 6).fill(.quaternary)
+                RoundedRectangle(cornerRadius: EVERadius.sm).fill(.quaternary)
             }
             .frame(width: 32, height: 32)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
@@ -453,10 +454,10 @@ private struct WarzoneFactionPopover: View {
             CachedAsyncImage(url: EVEImageURL.corporationLogo(stat.factionId, size: 64)) { image in
                 image.resizable().scaledToFit()
             } placeholder: {
-                RoundedRectangle(cornerRadius: 8).fill(.quaternary)
+                RoundedRectangle(cornerRadius: EVERadius.md).fill(.quaternary)
             }
             .frame(width: 44, height: 44)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .clipShape(RoundedRectangle(cornerRadius: EVERadius.md))
 
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
@@ -522,7 +523,7 @@ private struct WarzoneFactionPopover: View {
                 .font(.caption.bold().monospacedDigit())
                 .foregroundStyle(value > 0 ? color : .secondary)
             Text(label)
-                .font(.system(size: 9))
+                .font(.eveMicro)
                 .foregroundStyle(.tertiary)
         }
         .frame(maxWidth: .infinity)
@@ -553,9 +554,9 @@ private struct WarzoneFactionPopover: View {
                     .font(.caption.bold())
                 if sys.contested != "uncontested" {
                     Text("Contested")
-                        .font(.system(size: 9).bold())
+                        .font(.eveMicroBold)
                         .foregroundStyle(.orange)
-                        .padding(.horizontal, 5).padding(.vertical, 1)
+                        .padding(.horizontal, 6).padding(.vertical, 1)
                         .background(Color.orange.opacity(0.15), in: Capsule())
                 }
                 Spacer(minLength: 0)
@@ -581,7 +582,7 @@ private struct WarzoneFactionPopover: View {
             .frame(height: 4)
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 5)
+        .padding(.vertical, 6)
     }
 
     private func vpFraction(_ sys: ESIFWSystem) -> Double {

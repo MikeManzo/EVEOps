@@ -29,7 +29,7 @@ struct FleetManagerView: View {
         if missingScope {
             scopeMissingView
         } else {
-        LoadingStateView(isLoading: isLoading, error: error, isEmpty: fleetInfo == nil, emptyMessage: "You are not currently in a fleet") {
+        LoadingStateView(isLoading: isLoading, error: error, isEmpty: fleetInfo == nil, emptyMessage: "Join or form a fleet in-game and it will appear here.", emptyTitle: "Not in a Fleet", emptySystemImage: "person.3") {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     HStack {
@@ -52,7 +52,7 @@ struct FleetManagerView: View {
                             }
                             .padding()
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(.green.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+                            .background(.green.opacity(0.08), in: RoundedRectangle(cornerRadius: EVERadius.xl))
                         }
                     }
                 }
@@ -65,6 +65,7 @@ struct FleetManagerView: View {
                     .font(.largeTitle.bold())
                 PinToggleButton(section: .fleetManager)
                 Spacer()
+                FreshnessIndicator(isLoading: isLoading) { await loadFleet() }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
@@ -81,18 +82,7 @@ struct FleetManagerView: View {
     }
 
     private var scopeMissingView: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "lock.shield")
-                .font(.system(size: 48))
-                .foregroundStyle(.orange)
-            Text("Fleet Access Required")
-                .font(.title2.bold())
-            Text("Fleet Manager requires the **esi-fleets.read_fleet.v1** scope.\n\nPlease remove and re-add your character to grant the updated permissions.")
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: 420)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        EVEEmptyState("Fleet Access Required", systemImage: "lock.shield", message: "Fleet Manager requires the **esi-fleets.read_fleet.v1** scope.\n\nPlease remove and re-add your character to grant the updated permissions.", tint: .orange)
     }
 
     private func canInvite(_ info: ESIFleetInfo) -> Bool {
@@ -132,7 +122,7 @@ struct FleetManagerView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .eveCard()
     }
 
     private func inviteCard(_ info: ESIFleetInfo) -> some View {
@@ -150,7 +140,7 @@ struct FleetManagerView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .eveCard()
     }
 
     @ViewBuilder
@@ -194,7 +184,7 @@ struct FleetManagerView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .eveCard()
     }
 
 
@@ -351,7 +341,7 @@ struct FleetMemberRow: View {
                 Color.clear
             }
             .frame(width: 22, height: 22)
-            .clipShape(RoundedRectangle(cornerRadius: 4))
+            .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
             Text(shipName)
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -461,7 +451,7 @@ struct FleetMemberDetailPopover: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .eveCard()
     }
 
     private func characterInfoCard(_ info: ESICharacterPublic) -> some View {
@@ -493,7 +483,7 @@ struct FleetMemberDetailPopover: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .eveCard()
     }
 
     private var historySection: some View {
@@ -505,10 +495,10 @@ struct FleetMemberDetailPopover: View {
                     CachedAsyncImage(url: EVEImageURL.corporationLogo(entry.corporationId, size: 64)) { image in
                         image.resizable()
                     } placeholder: {
-                        RoundedRectangle(cornerRadius: 4).fill(.quaternary)
+                        RoundedRectangle(cornerRadius: EVERadius.xs).fill(.quaternary)
                     }
                     .frame(width: 28, height: 28)
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                    .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text(entry.corporationName)
@@ -534,7 +524,7 @@ struct FleetMemberDetailPopover: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .eveCard()
     }
 
     private func detailRow(label: String, value: String, icon: URL? = nil) -> some View {
@@ -712,7 +702,7 @@ struct InviteFleetMemberSheet: View {
                             Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
                         }
                         .padding(10)
-                        .background(.green.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+                        .background(.green.opacity(0.08), in: RoundedRectangle(cornerRadius: EVERadius.md))
                     }
                 }
 
@@ -724,7 +714,7 @@ struct InviteFleetMemberSheet: View {
                             Text(label).tag(apiRole)
                         }
                     }
-                    .pickerStyle(.segmented)
+                    .eveSegmentedPicker()
                 }
             }
             .padding()

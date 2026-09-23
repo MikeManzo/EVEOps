@@ -164,16 +164,16 @@ struct AttributePill: View {
         Button(action: onTap) {
             HStack(spacing: 4) {
                 Image(systemName: attr.icon)
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.eveCalloutSemibold)
                     .foregroundStyle(attr.color)
                 Text(attr.displayName)
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.eveCalloutSemibold)
                     .foregroundStyle(attr.color)
                 Text("\(value)")
-                    .font(.system(size: 13, weight: .bold).monospacedDigit())
+                    .font(.eveTileValue)
                     .foregroundStyle(.primary)
             }
-            .padding(.horizontal, 9)
+            .padding(.horizontal, 10)
             .padding(.vertical, 6)
             .frame(maxWidth: .infinity)
             .background(attr.color.opacity(fillOpacity), in: Capsule())
@@ -254,11 +254,11 @@ struct AttributeDetailPopover: View {
     private var header: some View {
         HStack(spacing: 10) {
             ZStack {
-                RoundedRectangle(cornerRadius: 8)
+                RoundedRectangle(cornerRadius: EVERadius.md)
                     .fill(focus.color.opacity(0.18))
                     .frame(width: 34, height: 34)
                 Image(systemName: focus.icon)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.eveSubsectionTitle)
                     .foregroundStyle(focus.color)
             }
             VStack(alignment: .leading, spacing: 1) {
@@ -270,7 +270,7 @@ struct AttributeDetailPopover: View {
             }
             Spacer()
             Text("\(effective)")
-                .font(.system(size: 24, weight: .bold).monospacedDigit())
+                .font(.eveHeroStat)
                 .foregroundStyle(focus.color)
         }
     }
@@ -355,10 +355,7 @@ struct AttributeDetailPopover: View {
 
             if let skill = trainingSkillName, trainingPrimary != nil {
                 if let contribution = trainingContribution {
-                    (
-                        Text("\(contribution.role) attribute for ")
-                        + Text(skill).fontWeight(.semibold)
-                    )
+                    Text("\(contribution.role) attribute for \(Text(skill).fontWeight(.semibold))")
                     .font(.caption)
                     .fixedSize(horizontal: false, vertical: true)
 
@@ -367,11 +364,7 @@ struct AttributeDetailPopover: View {
                         .font(.caption2.monospacedDigit())
                         .foregroundStyle(.secondary)
                 } else {
-                    (
-                        Text("Not used by ")
-                        + Text(skill).fontWeight(.semibold)
-                        + Text(" — training speed is unaffected by this attribute right now.")
-                    )
+                    Text("Not used by \(Text(skill).fontWeight(.semibold)) — training speed is unaffected by this attribute right now.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)

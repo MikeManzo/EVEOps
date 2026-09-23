@@ -122,12 +122,12 @@ struct ModuleCell: View {
                 CachedAsyncImage(url: EVEImageURL.typeIcon(module.typeId, size: 64)) { image in
                     image.resizable()
                 } placeholder: {
-                    RoundedRectangle(cornerRadius: 4).fill(.quaternary)
+                    RoundedRectangle(cornerRadius: EVERadius.xs).fill(.quaternary)
                 }
                 .frame(width: 32, height: 32)
-                .clipShape(RoundedRectangle(cornerRadius: 4))
+                .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 4)
+                    RoundedRectangle(cornerRadius: EVERadius.xs)
                         .strokeBorder(.white.opacity(0.1), lineWidth: 0.5)
                 )
 
@@ -144,9 +144,9 @@ struct ModuleCell: View {
                 }
                 Spacer(minLength: 0)
             }
-            .padding(7)
-            .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 7))
-            .contentShape(RoundedRectangle(cornerRadius: 7))
+            .padding(8)
+            .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: EVERadius.md))
+            .contentShape(RoundedRectangle(cornerRadius: EVERadius.md))
         }
         .buttonStyle(.plain)
         .overlay(alignment: .topTrailing) {
@@ -217,12 +217,12 @@ struct ModuleDetailPopover: View {
                 CachedAsyncImage(url: EVEImageURL.typeIcon(typeId, size: 128)) { image in
                     image.resizable()
                 } placeholder: {
-                    RoundedRectangle(cornerRadius: 8).fill(.quaternary)
+                    RoundedRectangle(cornerRadius: EVERadius.md).fill(.quaternary)
                 }
                 .frame(width: 64, height: 64)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .clipShape(RoundedRectangle(cornerRadius: EVERadius.md))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 8)
+                    RoundedRectangle(cornerRadius: EVERadius.md)
                         .strokeBorder(.white.opacity(0.1), lineWidth: 0.5)
                 )
 

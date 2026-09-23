@@ -13,6 +13,8 @@ import Charts
 import FoundationModels
 
 struct FinancesView: View {
+    @Environment(ThemeManager.self) var themeManager
+    var palette: EVEPalette { themeManager.palette }
     @Environment(AccountManager.self) var accountManager
     @Environment(DashboardPrefetcher.self) var prefetcher
     @State var characterFinances: [CharacterFinanceData] = []
@@ -58,7 +60,8 @@ struct FinancesView: View {
             error: error,
             isEmpty: characterFinances.isEmpty,
             hasContent: !characterFinances.isEmpty,
-            emptyMessage: "No financial data",
+            emptyMessage: "No Financial Data",
+            emptySystemImage: "chart.line.uptrend.xyaxis",
             onRetry: { Task { await refresh() } }
         ) {
             ScrollView {
@@ -79,8 +82,8 @@ struct FinancesView: View {
                             }
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
-                            .background(.yellow.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
-                            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.yellow.opacity(0.2), lineWidth: 1))
+                            .background(.yellow.opacity(0.08), in: RoundedRectangle(cornerRadius: EVERadius.md))
+                            .overlay(RoundedRectangle(cornerRadius: EVERadius.md).strokeBorder(.yellow.opacity(0.2), lineWidth: 1))
                         }
                         characterDetail(finance)
                     }

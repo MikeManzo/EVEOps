@@ -52,7 +52,7 @@ struct SimLoadFittingSheet: View {
                 Text("Saved Fittings").tag(LoadMode.saved)
                 Text("From File").tag(LoadMode.eft)
             }
-            .pickerStyle(.segmented)
+            .eveSegmentedPicker()
             .padding(.horizontal)
             .padding(.bottom, 8)
 
@@ -102,11 +102,7 @@ struct SimLoadFittingSheet: View {
     private var savedFittingsList: some View {
         Group {
             if savedFittings.isEmpty {
-                VStack(spacing: 8) {
-                    Image(systemName: "bookmark.slash").font(.largeTitle).foregroundStyle(.tertiary)
-                    Text("No saved fittings found").font(.subheadline).foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                EVEEmptyState("No Saved Fittings Found", systemImage: "bookmark.slash")
             } else {
                 List {
                     ForEach(fittingSections, id: \.className) { section in
@@ -141,11 +137,7 @@ struct SimLoadFittingSheet: View {
     private var currentShipsList: some View {
         Group {
             if ships.isEmpty {
-                VStack(spacing: 8) {
-                    Image(systemName: "helm").font(.largeTitle).foregroundStyle(.tertiary)
-                    Text("No assembled ships found").font(.subheadline).foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                EVEEmptyState("No Assembled Ships Found", systemImage: "helm")
             } else {
                 List {
                     ForEach(shipSections, id: \.className) { section in
@@ -192,10 +184,10 @@ struct SimLoadFittingSheet: View {
                 CachedAsyncImage(url: imageURL) { img in
                     img.resizable().aspectRatio(contentMode: .fill)
                 } placeholder: {
-                    RoundedRectangle(cornerRadius: 6).fill(.quaternary)
+                    RoundedRectangle(cornerRadius: EVERadius.sm).fill(.quaternary)
                 }
                 .frame(width: 44, height: 44)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title).font(.subheadline.bold())
@@ -335,10 +327,10 @@ struct SimLoadFittingSheet: View {
                 CachedAsyncImage(url: EVEImageURL.typeRender(entry.shipTypeId, size: 128)) { img in
                     img.resizable().aspectRatio(contentMode: .fill)
                 } placeholder: {
-                    RoundedRectangle(cornerRadius: 6).fill(.quaternary)
+                    RoundedRectangle(cornerRadius: EVERadius.sm).fill(.quaternary)
                 }
                 .frame(width: 52, height: 52)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(entry.shipTypeName).font(.subheadline.bold())
@@ -629,10 +621,10 @@ struct EFTImportSaveSheet: View {
                         CachedAsyncImage(url: EVEImageURL.typeRender(entry.shipTypeId, size: 128)) { img in
                             img.resizable().aspectRatio(contentMode: .fill)
                         } placeholder: {
-                            RoundedRectangle(cornerRadius: 6).fill(.quaternary)
+                            RoundedRectangle(cornerRadius: EVERadius.sm).fill(.quaternary)
                         }
                         .frame(width: 44, height: 44)
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                        .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
 
                         VStack(alignment: .leading, spacing: 2) {
                             Text(entry.shipTypeName).font(.subheadline.bold())

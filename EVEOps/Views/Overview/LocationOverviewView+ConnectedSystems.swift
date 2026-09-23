@@ -80,7 +80,7 @@ extension LocationOverviewView {
                 if let standing = trafficStanding(info) {
                     HStack(alignment: .top, spacing: 4) {
                         Image(systemName: "chart.line.uptrend.xyaxis")
-                            .font(.system(size: 9))
+                            .font(.eveMicro)
                             .foregroundStyle(.blue)
                         Text("Busier than \(standing.percentile)% of active systems  ·  #\(standing.rank.formatted()) / \(standing.total.formatted())")
                             .font(.caption2)
@@ -101,7 +101,7 @@ extension LocationOverviewView {
                         if let hot = activityHotspot(info) {
                             HStack(spacing: 4) {
                                 Image(systemName: "exclamationmark.triangle.fill")
-                                    .font(.system(size: 9))
+                                    .font(.eveMicro)
                                     .foregroundStyle(.orange)
                                 Text("\(hot.name) · \(hot.kills) kill\(hot.kills == 1 ? "" : "s")")
                                     .font(.caption2)
@@ -114,14 +114,14 @@ extension LocationOverviewView {
             }
 
             Text("ESI aggregates, ~1h delayed")
-                .font(.system(size: 8))
+                .font(.eveTiny)
                 .foregroundStyle(.tertiary)
         }
     }
 
     func activityCaption(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 8, weight: .bold))
+            .font(.eveBadge)
             .tracking(0.8)
             .foregroundStyle(.tertiary)
     }
@@ -160,7 +160,7 @@ extension LocationOverviewView {
                 // Class column
                 VStack(alignment: .leading, spacing: 4) {
                     Text("CLASS")
-                        .font(.system(size: 8, weight: .bold))
+                        .font(.eveBadge)
                         .tracking(0.8)
                         .foregroundStyle(.tertiary)
                     HStack(spacing: 6) {
@@ -186,7 +186,7 @@ extension LocationOverviewView {
                     Divider().frame(height: 50)
                     VStack(alignment: .leading, spacing: 4) {
                         Text("SYSTEM EFFECT")
-                            .font(.system(size: 8, weight: .bold))
+                            .font(.eveBadge)
                             .tracking(0.8)
                             .foregroundStyle(.tertiary)
                         HStack(spacing: 5) {

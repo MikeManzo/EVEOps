@@ -847,6 +847,7 @@ struct ShipModelSheet: View {
                     Image(systemName: "arrow.up.left.and.arrow.down.right")
                         .foregroundStyle(.secondary)
                 }
+                .accessibilityLabel("Open in dedicated window")
                 .buttonStyle(.plain)
                 .help("Open in dedicated window")
             }
@@ -855,6 +856,7 @@ struct ShipModelSheet: View {
                 Image(systemName: "xmark.circle.fill")
                     .font(.title2).foregroundStyle(.secondary)
             }
+            .accessibilityLabel("Clear")
             .buttonStyle(.plain)
             .keyboardShortcut(.cancelAction)
         }
@@ -895,26 +897,26 @@ struct ShipModelSheet: View {
                     }
                 }
                 .padding(.horizontal, 10).padding(.vertical, 8)
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+                .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
                 .padding(12)
             }
             .overlay(alignment: .bottom) {
                 VStack(spacing: 4) {
                     if p.texturesLoading {
                         HStack(spacing: 6) {
-                            ProgressView().scaleEffect(0.7)
+                            ProgressView().controlSize(.small)
                             Text("Loading textures…")
                                 .font(.caption2).foregroundStyle(.white.opacity(0.55))
                         }
-                        .padding(.horizontal, 10).padding(.vertical, 5)
-                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+                        .padding(.horizontal, 10).padding(.vertical, 6)
+                        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
                     }
                     if let warning = p.warning {
                         Label(warning, systemImage: "exclamationmark.triangle.fill")
                             .font(.caption2)
                             .foregroundStyle(.orange)
-                            .padding(.horizontal, 10).padding(.vertical, 5)
-                            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+                            .padding(.horizontal, 10).padding(.vertical, 6)
+                            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
                     }
                     Text("Drag to rotate  ·  Scroll to zoom  ·  Pinch to zoom")
                         .font(.caption2)
@@ -924,25 +926,10 @@ struct ShipModelSheet: View {
             }
 
         case .unavailable:
-            VStack(spacing: 14) {
-                Image(systemName: "cube.transparent")
-                    .font(.system(size: 44)).foregroundStyle(.tertiary)
-                Text("No 3D model available")
-                    .font(.title3.bold()).foregroundStyle(.secondary)
-                Text("This ship doesn't have a model in the community library yet.")
-                    .font(.subheadline).foregroundStyle(.tertiary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            EVEEmptyState("No 3D model available", systemImage: "cube.transparent", message: "This ship doesn't have a model in the community library yet.")
 
         case .failed(let msg):
-            VStack(spacing: 14) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 44)).foregroundStyle(.orange)
-                Text("Could not load model").font(.title3.bold())
-                Text(msg).font(.caption).foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            EVEEmptyState("Could Not Load Model", systemImage: "exclamationmark.triangle.fill", message: Text(msg), tint: .orange)
         }
     }
 

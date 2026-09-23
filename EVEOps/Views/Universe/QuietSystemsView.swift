@@ -228,6 +228,7 @@ struct QuietSystemsView: View {
                 } label: {
                     Image(systemName: allCollapsed ? "chevron.down.circle" : "chevron.up.circle")
                 }
+                .accessibilityLabel("Expand or Collapse")
                 .buttonStyle(.plain)
                 .help(allCollapsed ? "Expand all sections" : "Collapse all sections")
             }
@@ -276,7 +277,7 @@ struct QuietSystemsView: View {
                 .foregroundStyle(eveSecurityColor(row.security))
                 .frame(width: 30, alignment: .center)
                 .padding(.vertical, 2)
-                .background(eveSecurityColor(row.security).opacity(0.15), in: RoundedRectangle(cornerRadius: 5))
+                .background(eveSecurityColor(row.security).opacity(0.15), in: RoundedRectangle(cornerRadius: EVERadius.sm))
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(row.name).font(.callout.weight(.medium))
@@ -598,6 +599,7 @@ struct QuietSystemsView: View {
                 Button { selectedId = nil } label: {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
                 }
+                .accessibilityLabel("Clear")
                 .buttonStyle(.plain)
                 .keyboardShortcut(.escape)
             }
@@ -631,7 +633,7 @@ struct QuietSystemsView: View {
                     }
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 10))
+                    .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: EVERadius.lg))
 
                     // Activity (last hour)
                     VStack(alignment: .leading, spacing: 6) {
@@ -668,7 +670,7 @@ struct QuietSystemsView: View {
                     }
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 10))
+                    .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: EVERadius.lg))
 
                     // Actions
                     VStack(spacing: 8) {

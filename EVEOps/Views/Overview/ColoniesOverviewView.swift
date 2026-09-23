@@ -27,7 +27,8 @@ struct ColoniesOverviewView: View {
             error: error,
             isEmpty: colonies.isEmpty,
             hasContent: !colonies.isEmpty,
-            emptyMessage: "No PI colonies found",
+            emptyMessage: "No Planetary Colonies",
+            emptySystemImage: "globe",
             onRetry: { Task { await refresh() } }
         ) {
             List {

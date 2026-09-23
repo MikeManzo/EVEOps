@@ -147,12 +147,13 @@ struct CommunityFittingsView: View {
                     Button { searchText = "" } label: {
                         Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
                     }
+                    .accessibilityLabel("Clear")
                     .buttonStyle(.plain)
                 }
             }
             .padding(.horizontal, 10)
-            .padding(.vertical, 7)
-            .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
+            .padding(.vertical, 8)
+            .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: EVERadius.md))
             .padding(10)
 
             Divider()
@@ -166,16 +167,11 @@ struct CommunityFittingsView: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if recentlyDestroyed.isEmpty {
-                    VStack(spacing: 12) {
-                        Image(systemName: "helm")
-                            .font(.system(size: 36))
-                            .foregroundStyle(.tertiary)
-                        Text("Search for a ship type")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        Text("e.g. \u{201C}Ferox\u{201D}, \u{201C}Ishtar\u{201D}, \u{201C}Muninn\u{201D}")
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
+                    EVEEmptyState(
+                        "Search for a Ship Type",
+                        systemImage: "helm",
+                        message: Text("e.g. \u{201C}Ferox\u{201D}, \u{201C}Ishtar\u{201D}, \u{201C}Muninn\u{201D}")
+                    ) {
                         if let err = recentError {
                             Text(err)
                                 .font(.caption2)
@@ -184,7 +180,6 @@ struct CommunityFittingsView: View {
                                 .padding(.horizontal, 12)
                         }
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     VStack(spacing: 0) {
                         HStack {
@@ -205,7 +200,7 @@ struct CommunityFittingsView: View {
                                             .font(.caption2)
                                             .foregroundStyle(.secondary)
                                         Image(systemName: "chevron.up.chevron.down")
-                                            .font(.system(size: 8))
+                                            .font(.eveTiny)
                                             .foregroundStyle(.tertiary)
                                     }
                                 }
@@ -228,13 +223,7 @@ struct CommunityFittingsView: View {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if searchResults.isEmpty {
-                VStack(spacing: 8) {
-                    Image(systemName: "questionmark.circle")
-                        .font(.largeTitle).foregroundStyle(.tertiary)
-                    Text("No ships found")
-                        .font(.subheadline).foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                EVEEmptyState("No Ships Found", systemImage: "questionmark.circle")
             } else {
                 List(searchResults, id: \.typeId, selection: $selectedTypeId) { type in
                     CommunityShipRow(type: type)
@@ -259,31 +248,15 @@ struct CommunityFittingsView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let error = fitError {
-                VStack(spacing: 10) {
-                    Image(systemName: "exclamationmark.triangle")
-                        .font(.largeTitle).foregroundStyle(.orange)
-                    Text(error)
-                        .font(.caption).foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                EVEEmptyState("Something Went Wrong", systemImage: "exclamationmark.triangle", message: Text(error), tint: .orange)
             } else if let fit = metaFit {
                 CommunityFitDetailPane(fit: fit, typeNames: typeNames)
             } else {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                LoadingSkeleton(rows: 6)
             }
             let _ = id  // suppress unused warning
         } else {
-            VStack(spacing: 12) {
-                Image(systemName: "chart.bar.doc.horizontal")
-                    .font(.system(size: 36)).foregroundStyle(.tertiary)
-                Text("Select a ship to view\ncommunity meta fits")
-                    .font(.subheadline).foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            EVEEmptyState("Select a ship to view community meta fits", systemImage: "chart.bar.doc.horizontal")
         }
     }
 
@@ -535,11 +508,11 @@ struct CommunityShipRow: View {
             CachedAsyncImage(url: EVEImageURL.typeRender(type.typeId, size: 256)) { img in
                 img.resizable().aspectRatio(contentMode: .fill)
             } placeholder: {
-                RoundedRectangle(cornerRadius: 10).fill(.quaternary)
+                RoundedRectangle(cornerRadius: EVERadius.lg).fill(.quaternary)
             }
             .frame(width: 72, height: 72)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.white.opacity(0.08), lineWidth: 0.5))
+            .clipShape(RoundedRectangle(cornerRadius: EVERadius.lg))
+            .overlay(RoundedRectangle(cornerRadius: EVERadius.lg).strokeBorder(.white.opacity(0.08), lineWidth: 0.5))
 
             Text(type.name)
                 .font(.title3)
@@ -560,11 +533,11 @@ struct RecentlyDestroyedRow: View {
             CachedAsyncImage(url: EVEImageURL.typeRender(entry.typeId, size: 256)) { img in
                 img.resizable().aspectRatio(contentMode: .fill)
             } placeholder: {
-                RoundedRectangle(cornerRadius: 10).fill(.quaternary)
+                RoundedRectangle(cornerRadius: EVERadius.lg).fill(.quaternary)
             }
             .frame(width: 72, height: 72)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.white.opacity(0.08), lineWidth: 0.5))
+            .clipShape(RoundedRectangle(cornerRadius: EVERadius.lg))
+            .overlay(RoundedRectangle(cornerRadius: EVERadius.lg).strokeBorder(.white.opacity(0.08), lineWidth: 0.5))
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(entry.name)
@@ -648,16 +621,7 @@ struct CommunityFitDetailPane: View {
             Divider()
 
             if fit.modules.isEmpty {
-                VStack(spacing: 10) {
-                    Image(systemName: "chart.bar")
-                        .font(.largeTitle).foregroundStyle(.tertiary)
-                    Text("Insufficient fitting data")
-                        .font(.subheadline).foregroundStyle(.secondary)
-                    Text("Not enough kills with recorded fitting information.")
-                        .font(.caption).foregroundStyle(.tertiary).multilineTextAlignment(.center)
-                }
-                .padding()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                EVEEmptyState("Insufficient Fitting Data", systemImage: "chart.bar", message: "Not enough kills with recorded fitting information.")
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 10) {
@@ -692,6 +656,7 @@ struct CommunityFitDetailPane: View {
                                             .font(.caption)
                                             .foregroundStyle(.secondary)
                                     }
+                                    .accessibilityLabel("More Info")
                                     .buttonStyle(.plain)
                                     .popover(isPresented: $showAttackerInfo, arrowEdge: .trailing) {
                                         attackerLegend
@@ -721,6 +686,7 @@ struct CommunityFitDetailPane: View {
                                                 .font(.caption)
                                                 .foregroundStyle(.secondary)
                                         }
+                                        .accessibilityLabel("More Info")
                                         .buttonStyle(.plain)
                                         .popover(isPresented: $showFrequencyInfo, arrowEdge: .trailing) {
                                             frequencyLegend
@@ -829,11 +795,11 @@ struct CommunityModuleRow: View {
                 CachedAsyncImage(url: EVEImageURL.typeIcon(module.typeId, size: 64)) { img in
                     img.resizable()
                 } placeholder: {
-                    RoundedRectangle(cornerRadius: 4).fill(.quaternary)
+                    RoundedRectangle(cornerRadius: EVERadius.xs).fill(.quaternary)
                 }
                 .frame(width: 28, height: 28)
-                .clipShape(RoundedRectangle(cornerRadius: 4))
-                .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(.white.opacity(0.1), lineWidth: 0.5))
+                .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
+                .overlay(RoundedRectangle(cornerRadius: EVERadius.xs).strokeBorder(.white.opacity(0.1), lineWidth: 0.5))
 
                 Text(name ?? "Type #\(module.typeId)")
                     .font(.caption)
@@ -843,7 +809,7 @@ struct CommunityModuleRow: View {
 
                 Text((Double(module.frequency) / 100).formatted(.percent.precision(.fractionLength(0))))
                     .font(.caption2.monospacedDigit())
-                    .padding(.horizontal, 5)
+                    .padding(.horizontal, 6)
                     .padding(.vertical, 2)
                     .background(frequencyColor(module.frequency).opacity(0.15), in: Capsule())
                     .foregroundStyle(frequencyColor(module.frequency))
@@ -878,11 +844,11 @@ struct AttackerShipRow: View {
                 CachedAsyncImage(url: EVEImageURL.typeRender(typeId, size: 64)) { img in
                     img.resizable()
                 } placeholder: {
-                    RoundedRectangle(cornerRadius: 4).fill(.quaternary)
+                    RoundedRectangle(cornerRadius: EVERadius.xs).fill(.quaternary)
                 }
                 .frame(width: 28, height: 28)
-                .clipShape(RoundedRectangle(cornerRadius: 4))
-                .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(.white.opacity(0.1), lineWidth: 0.5))
+                .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
+                .overlay(RoundedRectangle(cornerRadius: EVERadius.xs).strokeBorder(.white.opacity(0.1), lineWidth: 0.5))
 
                 Text(name ?? "Type #\(typeId)")
                     .font(.caption)
@@ -892,7 +858,7 @@ struct AttackerShipRow: View {
 
                 Text((Double(frequency) / 100).formatted(.percent.precision(.fractionLength(0))))
                     .font(.caption2.monospacedDigit())
-                    .padding(.horizontal, 5)
+                    .padding(.horizontal, 6)
                     .padding(.vertical, 2)
                     .background(Color.red.opacity(0.15), in: Capsule())
                     .foregroundStyle(.red)

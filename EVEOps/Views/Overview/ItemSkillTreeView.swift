@@ -148,11 +148,12 @@ struct ItemSkillTreeView: View {
                 Button { clearItem() } label: {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
                 }
+                .accessibilityLabel("Clear")
                 .buttonStyle(.plain)
             }
         }
         .padding(8)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+        .eveCard(cornerRadius: EVERadius.md)
     }
 
     // MARK:  Tree Content
@@ -173,13 +174,7 @@ struct ItemSkillTreeView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if let msg = treeMessage {
-            VStack(spacing: 8) {
-                Image(systemName: "exclamationmark.triangle")
-                    .font(.title2).foregroundStyle(.tertiary)
-                Text(msg)
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            EVEEmptyState("Something Went Wrong", systemImage: "exclamationmark.triangle", message: Text(msg), tint: .orange)
         } else if nodes.isEmpty {
             emptyState
         } else {
@@ -200,9 +195,9 @@ struct ItemSkillTreeView: View {
                                 if let img = phase.image {
                                     img.resizable()
                                         .frame(width: 64, height: 64)
-                                        .clipShape(RoundedRectangle(cornerRadius: 9))
+                                        .clipShape(RoundedRectangle(cornerRadius: EVERadius.lg))
                                 } else {
-                                    RoundedRectangle(cornerRadius: 9)
+                                    RoundedRectangle(cornerRadius: EVERadius.lg)
                                         .fill(.quaternary)
                                         .frame(width: 64, height: 64)
                                 }
@@ -226,15 +221,7 @@ struct ItemSkillTreeView: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "network")
-                .font(.system(size: 42)).foregroundStyle(.tertiary)
-            Text("Search for an item to see its skill tree")
-                .font(.subheadline).foregroundStyle(.secondary)
-            Text("Ships, modules, drones — any item with skill requirements")
-                .font(.caption).foregroundStyle(.tertiary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        EVEEmptyState("Search for an item to see its skill tree", systemImage: "network", message: "Ships, modules, drones — any item with skill requirements")
     }
 
     // MARK:  Scrollable Tree Canvas
@@ -314,16 +301,16 @@ struct ItemSkillTreeView: View {
                 // Item render for root (with icon fallback), skill icon for skill nodes
                 if isRoot {
                     TypeImageView(typeId: selectedTypeId ?? 0,
-                                  size: 40, cornerRadius: 7)
+                                  size: 40, cornerRadius: EVERadius.md)
                 } else {
                     CachedAsyncImage(url: EVEImageURL.typeIcon(node.id, size: 64)) { phase in
                         if let img = phase.image {
                             img.resizable()
                                 .aspectRatio(contentMode: .fill)
                                 .frame(width: 28, height: 28)
-                                .clipShape(RoundedRectangle(cornerRadius: 4))
+                                .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
                         } else {
-                            RoundedRectangle(cornerRadius: 4)
+                            RoundedRectangle(cornerRadius: EVERadius.xs)
                                 .fill(.quaternary)
                                 .frame(width: 28, height: 28)
                         }
@@ -332,27 +319,27 @@ struct ItemSkillTreeView: View {
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(node.name)
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.eveCaptionSemibold)
                         .lineLimit(isRoot ? 1 : 2)
                         .minimumScaleFactor(0.85)
 
                     if !isRoot {
                         HStack(spacing: 2) {
                             ForEach(1...5, id: \.self) { lvl in
-                                RoundedRectangle(cornerRadius: 1.5)
+                                RoundedRectangle(cornerRadius: EVERadius.hairline)
                                     .fill(lvl <= node.trainedLevel
                                           ? s.color
                                           : Color.white.opacity(0.10))
                                     .frame(width: 11, height: 7)
                             }
                             Text("→ \(skillRoman(node.requiredLevel))")
-                                .font(.system(size: 9, weight: .bold))
+                                .font(.eveMicroBold)
                                 .foregroundStyle(s.color)
                                 .padding(.leading, 2)
                         }
                     } else {
                         Text("Required skills")
-                            .font(.system(size: 9))
+                            .font(.eveMicro)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -373,17 +360,18 @@ struct ItemSkillTreeView: View {
                             .font(.system(size: 14))
                             .foregroundStyle(s.color.opacity(0.9))
                     }
+                    .accessibilityLabel("Add \(node.name) \(skillRoman(node.requiredLevel)) to skill plan")
                     .buttonStyle(.plain)
                     .padding(.trailing, 4)
                     .help("Add \(node.name) \(skillRoman(node.requiredLevel)) to skill plan")
                 }
             }
-            .padding(.horizontal, 7)
+            .padding(.horizontal, 8)
             .padding(.vertical, 6)
         }
         .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 9))
-        .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(s.color.opacity(0.28), lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: EVERadius.lg))
+        .overlay(RoundedRectangle(cornerRadius: EVERadius.lg).strokeBorder(s.color.opacity(0.28), lineWidth: 1))
         .shadow(color: .black.opacity(0.20), radius: 4, x: 0, y: 2)
         .contextMenu {
             let typeIdForMarket = isRoot ? (selectedTypeId ?? -1) : node.id
@@ -864,16 +852,16 @@ private struct NodeDetailView: View {
     private var headerSection: some View {
         HStack(alignment: .top, spacing: 12) {
             if isRoot {
-                TypeImageView(typeId: typeId, size: 56, cornerRadius: 10)
+                TypeImageView(typeId: typeId, size: 56, cornerRadius: EVERadius.lg)
             } else {
                 CachedAsyncImage(url: EVEImageURL.typeIcon(node.id, size: 64)) { phase in
                     if let img = phase.image {
                         img.resizable()
                             .aspectRatio(contentMode: .fill)
                             .frame(width: 56, height: 56)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .clipShape(RoundedRectangle(cornerRadius: EVERadius.md))
                     } else {
-                        RoundedRectangle(cornerRadius: 8)
+                        RoundedRectangle(cornerRadius: EVERadius.md)
                             .fill(.quaternary)
                             .frame(width: 56, height: 56)
                     }
@@ -889,7 +877,7 @@ private struct NodeDetailView: View {
                     let s = node.status(hasChar: hasChar)
                     HStack(spacing: 3) {
                         ForEach(1...5, id: \.self) { lvl in
-                            RoundedRectangle(cornerRadius: 1.5)
+                            RoundedRectangle(cornerRadius: EVERadius.hairline)
                                 .fill(lvl <= node.trainedLevel ? s.color : Color.white.opacity(0.15))
                                 .frame(width: 16, height: 10)
                         }

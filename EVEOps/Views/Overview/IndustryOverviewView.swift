@@ -28,7 +28,8 @@ struct IndustryOverviewView: View {
             error: error,
             isEmpty: jobs.isEmpty,
             hasContent: !jobs.isEmpty,
-            emptyMessage: "No industry jobs found",
+            emptyMessage: "No Industry Jobs",
+            emptySystemImage: "hammer",
             onRetry: { Task { await refresh() } }
         ) {
             VStack(spacing: 0) {

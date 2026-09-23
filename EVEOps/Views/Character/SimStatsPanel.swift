@@ -20,14 +20,7 @@ struct SimStatsPanel: View {
 
     var body: some View {
         if simState.shipTypeId == nil {
-            VStack(spacing: 14) {
-                Image(systemName: "chart.bar.doc.horizontal")
-                    .font(.system(size: 40)).foregroundStyle(.tertiary)
-                Text("Ship stats will appear here\nonce a ship is selected")
-                    .font(.subheadline).foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            EVEEmptyState("Ship stats will appear here once a ship is selected", systemImage: "chart.bar.doc.horizontal")
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
@@ -76,10 +69,11 @@ private struct SimCalcInfoBanner: View {
         HStack(spacing: 6) {
             Button { showingInfo = true } label: {
                 Image(systemName: "info.circle")
-                    .font(.system(size: 10))
+                    .font(.eveLabel)
                     .foregroundStyle(.red.opacity(0.7))
                 Text("Limitations")
             }
+            .accessibilityLabel("How stats are calculated")
             .buttonStyle(.plain)
             .help("How stats are calculated")
             .popover(isPresented: $showingInfo) {
@@ -134,7 +128,7 @@ private struct SimCalcInfoBanner: View {
             Spacer()
 
             Text(simState.activeModulesEnabled ? "Active Mode" : "Passive Mode")
-                .font(.system(size: 10))
+                .font(.eveLabel)
                 .foregroundStyle(.white)
 
             Toggle(isOn: Binding(
@@ -145,13 +139,13 @@ private struct SimCalcInfoBanner: View {
             .controlSize(.mini)
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 5)
+        .padding(.vertical, 6)
     }
 
     private func infoRow(_ icon: String, _ text: String) -> some View {
         HStack(alignment: .top, spacing: 8) {
             Image(systemName: icon)
-                .font(.system(size: 11))
+                .font(.eveCaption)
                 .foregroundStyle(.blue)
                 .frame(width: 16)
             Text(text)
@@ -186,24 +180,24 @@ private struct SimSectionHeader: View {
     private var headerContent: some View {
         HStack {
             Text(title)
-                .font(.system(size: 11, weight: .semibold))
+                .font(.eveCaptionSemibold)
                 .foregroundStyle(.secondary)
             Spacer()
             if let s = summary {
                 Text(s)
-                    .font(.system(size: 11, weight: .semibold).monospacedDigit())
+                    .font(.eveCaptionSemibold.monospacedDigit())
                     .foregroundStyle(summaryColor)
                     .help(summaryTip)
             }
             if let expanded = isExpanded {
                 Image(systemName: expanded.wrappedValue ? "chevron.down" : "chevron.right")
-                    .font(.system(size: 9, weight: .semibold))
+                    .font(.eveMicroSemibold)
                     .foregroundStyle(.tertiary)
                     .frame(width: 14)
             }
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 5)
+        .padding(.vertical, 6)
         .background(Color.primary.opacity(0.06))
     }
 }
@@ -258,15 +252,15 @@ private struct SimResourceBar: View {
     var body: some View {
         HStack(spacing: 6) {
             Text(label)
-                .font(.system(size: 10, weight: .medium))
+                .font(.eveLabelMedium)
                 .foregroundStyle(.secondary)
                 .frame(width: 24, alignment: .leading)
                 .help(tip)
 
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 2).fill(.quaternary)
-                    RoundedRectangle(cornerRadius: 2)
+                    RoundedRectangle(cornerRadius: EVERadius.hairline).fill(.quaternary)
+                    RoundedRectangle(cornerRadius: EVERadius.hairline)
                         .fill(barColor.opacity(0.85))
                         .frame(width: max(0, geo.size.width * CGFloat(fraction)))
                 }
@@ -274,7 +268,7 @@ private struct SimResourceBar: View {
             .frame(height: 5)
 
             Text(formatUsage())
-                .font(.system(size: 10).monospacedDigit())
+                .font(.eveLabel.monospacedDigit())
                 .foregroundStyle(isOver ? .red : .primary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
@@ -331,14 +325,14 @@ struct SimCapBlock: View {
                     if stats.capacitorCapacity > 0 {
                         HStack(spacing: 6) {
                             Text(String(format: "%.1f GJ", stats.capacitorCapacity))
-                                .font(.system(size: 11).monospacedDigit())
+                                .font(.eveCaption.monospacedDigit())
                                 .help("Capacitor capacity — total energy the capacitor can hold")
                             if stats.rechargeRateSec > 0 {
                                 Text("/")
-                                    .font(.system(size: 11))
+                                    .font(.eveCaption)
                                     .foregroundStyle(.secondary)
                                 Text(fmtTime(stats.rechargeRateSec))
-                                    .font(.system(size: 11).monospacedDigit())
+                                    .font(.eveCaption.monospacedDigit())
                                     .help("Capacitor recharge time — time to fully recharge from empty")
                             }
                             Spacer()
@@ -348,7 +342,7 @@ struct SimCapBlock: View {
                         let net = stats.netCapGJps
                         let pct = net / peakRecharge * 100
                         Text("Δ \(net.formatted(.number.precision(.fractionLength(1)))) GJ/s (\((pct / 100).formatted(.percent.precision(.fractionLength(1)))))")
-                            .font(.system(size: 11).monospacedDigit())
+                            .font(.eveCaption.monospacedDigit())
                             .foregroundStyle(stats.isCapStable ? Color.secondary : Color.orange)
                             .help(stats.isCapStable
                                   ? "Net capacitor recharge at 25% charge level"
@@ -447,12 +441,12 @@ private struct SimShieldRechargeRow: View {
     var body: some View {
         HStack(spacing: 6) {
             Image(systemName: "arrow.clockwise")
-                .font(.system(size: 10))
+                .font(.eveLabel)
                 .foregroundStyle(.cyan)
                 .frame(width: 14)
                 .help("Passive shield recharge")
             Text(String(format: "%.1f hp/s", peakHPS))
-                .font(.system(size: 11).monospacedDigit())
+                .font(.eveCaption.monospacedDigit())
                 .frame(minWidth: 44, alignment: .leading)
                 .help("Peak passive shield recharge rate at 25% shield level")
             Spacer()
@@ -469,7 +463,7 @@ private struct SimShieldRechargeRow: View {
 
     private func damageIcon(_ name: String, _ color: Color, tip: String = "") -> some View {
         Image(systemName: name)
-            .font(.system(size: 9))
+            .font(.eveMicro)
             .foregroundStyle(color)
             .frame(width: 36)
             .help(tip)
@@ -491,12 +485,12 @@ private struct SimHPLayerRow: View {
     var body: some View {
         HStack(spacing: 6) {
             Image(systemName: icon)
-                .font(.system(size: 10))
+                .font(.eveLabel)
                 .foregroundStyle(color)
                 .frame(width: 14)
                 .help(layerName.isEmpty ? "" : "\(layerName) layer")
             Text(fmtHP(hp))
-                .font(.system(size: 11).monospacedDigit())
+                .font(.eveCaption.monospacedDigit())
                 .frame(minWidth: 44, alignment: .leading)
                 .help(layerName.isEmpty ? "" : "\(layerName) hit points")
             Spacer()
@@ -533,12 +527,12 @@ private struct SimEHPRow: View {
     var body: some View {
         HStack(spacing: 6) {
             Image(systemName: "chart.bar.fill")
-                .font(.system(size: 10))
+                .font(.eveLabel)
                 .foregroundStyle(.secondary)
                 .frame(width: 14)
                 .help("Effective hit points by damage type (all layers combined)")
             Text("ehp")
-                .font(.system(size: 11))
+                .font(.eveCaption)
                 .foregroundStyle(.secondary)
                 .frame(minWidth: 44, alignment: .leading)
             Spacer()
@@ -561,7 +555,7 @@ private struct SimEHPBadge: View {
 
     var body: some View {
         Text(fmt(value))
-            .font(.system(size: 9, weight: .semibold).monospacedDigit())
+            .font(.eveMicroSemibold.monospacedDigit())
             .foregroundStyle(color)
             .frame(width: 36)
             .padding(.vertical, 2)
@@ -592,7 +586,7 @@ private struct SimResistBadge: View {
                 .fill(color.opacity(0.6))
                 .frame(width: blockWidth * fraction)
             Text((value / 100).formatted(.percent.precision(.fractionLength(1))))
-                .font(.system(size: 9, weight: .semibold).monospacedDigit())
+                .font(.eveMicroSemibold.monospacedDigit())
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
         }
@@ -740,7 +734,7 @@ private struct SimImplantsBlock: View {
     private var implantHeader: some View {
         HStack {
             Text("Implants")
-                .font(.system(size: 11, weight: .semibold))
+                .font(.eveCaptionSemibold)
                 .foregroundStyle(.secondary)
             Spacer()
             Toggle(isOn: Binding(
@@ -753,14 +747,15 @@ private struct SimImplantsBlock: View {
                 withAnimation(.easeInOut(duration: 0.15)) { isExpanded.toggle() }
             } label: {
                 Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                    .font(.system(size: 9, weight: .semibold))
+                    .font(.eveMicroSemibold)
                     .foregroundStyle(.tertiary)
                     .frame(width: 14)
             }
+            .accessibilityLabel("Expand or Collapse")
             .buttonStyle(.plain)
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 5)
+        .padding(.vertical, 6)
         .background(Color.primary.opacity(0.06))
     }
 
@@ -775,16 +770,16 @@ private struct SimImplantsBlock: View {
                         RoundedRectangle(cornerRadius: 3).fill(.quaternary)
                     }
                     .frame(width: 44, height: 44)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
 
                     VStack(alignment: .leading, spacing: 1) {
                         Text(implantTypes[typeId]?.name ?? "Loading…")
-                            .font(.system(size: 10, weight: .semibold))
+                            .font(.eveLabelSemibold)
                             .foregroundStyle(implantTypes[typeId] == nil ? .tertiary : .primary)
                             .lineLimit(1)
                         if let t = implantTypes[typeId], let bonus = primaryBonus(for: t) {
                             Text(bonus)
-                                .font(.system(size: 9))
+                                .font(.eveMicro)
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -871,11 +866,11 @@ private struct SimImplantsBlock: View {
 private func simTwoColRow(left: String, leftTip: String = "", right: String, rightTip: String = "") -> some View {
     HStack(spacing: 0) {
         Text(left)
-            .font(.system(size: 11).monospacedDigit())
+            .font(.eveCaption.monospacedDigit())
             .frame(maxWidth: .infinity, alignment: .leading)
             .help(leftTip)
         Text(right)
-            .font(.system(size: 11).monospacedDigit())
+            .font(.eveCaption.monospacedDigit())
             .frame(maxWidth: .infinity, alignment: .leading)
             .help(rightTip)
     }

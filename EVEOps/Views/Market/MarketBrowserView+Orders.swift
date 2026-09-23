@@ -63,13 +63,13 @@ extension MarketBrowserView {
                                 }
                             }
                         Divider()
-                            .padding(.leading, 15)
+                            .padding(.leading, 16)
                     }
                 }
             }
         }
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .eveCard()
+        .clipShape(RoundedRectangle(cornerRadius: EVERadius.xl))
     }
 
     func sortableColumn(_ title: String, key: OrderSortKey, isBuy: Bool,
@@ -88,7 +88,7 @@ extension MarketBrowserView {
                 Text(title)
                 if isActive {
                     Image(systemName: asc ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 7, weight: .bold))
+                        .font(.eveNanoBold)
                 }
             }
             .frame(minWidth: width, idealWidth: width, maxWidth: width ?? .infinity, alignment: alignment)
@@ -194,9 +194,9 @@ extension MarketBrowserView {
 
                 // Security status pill badge
                 Text(String(format: "%.1f", max(0, sec)))
-                    .font(.system(size: 9, weight: .bold).monospacedDigit())
+                    .font(.eveMicroBold.monospacedDigit())
                     .foregroundStyle(.white)
-                    .padding(.horizontal, 5)
+                    .padding(.horizontal, 6)
                     .padding(.vertical, 2)
                     .background(eveSecurityColor(sec), in: Capsule())
                     .frame(width: 36, alignment: .center)
@@ -230,7 +230,7 @@ extension MarketBrowserView {
                 }
             }
             .padding(.horizontal, 12)
-            .padding(.vertical, 7)
+            .padding(.vertical, 8)
         }
         .background(isEven ? Color.primary.opacity(0.03) : Color.clear)
     }
@@ -240,7 +240,7 @@ extension MarketBrowserView {
     @ViewBuilder
     var priceHistoryView: some View {
         let history = filteredHistory
-        let eveTeal = Color(red: 0.2, green: 0.75, blue: 0.8)
+        let eveTeal = palette.accent
         let volumeColor = Color(red: 0.15, green: 0.55, blue: 0.4)
         let hoveredEntry = hoveredHistoryDate.flatMap { closestHistoryEntry(to: $0) }
 
@@ -268,7 +268,7 @@ extension MarketBrowserView {
                     EmptyView()
                 }
                 .labelsHidden()
-                .pickerStyle(.segmented)
+                .eveSegmentedPicker()
                 .frame(width: 130)
             }
 
@@ -383,7 +383,7 @@ extension MarketBrowserView {
                 .chartXSelection(value: $hoveredHistoryDate)
                 .frame(height: 270)
                 .padding(12)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+                .eveCard()
 
                 // History summary stats
                 if let last = history.last {
@@ -398,7 +398,7 @@ extension MarketBrowserView {
                         Divider()
                         statCard("Orders", value: "\(last.orderCount)", color: .secondary)
                     }
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+                    .eveCard()
                 }
             }
         }
@@ -413,33 +413,33 @@ extension MarketBrowserView {
             HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 4) {
-                        Image(systemName: "arrow.up").font(.system(size: 9)).foregroundStyle(.green)
+                        Image(systemName: "arrow.up").font(.eveMicro).foregroundStyle(.green)
                         Text(EVEFormatters.formatISKShort(entry.highest)).font(.caption2)
                     }
                     HStack(spacing: 4) {
-                        Image(systemName: "arrow.down").font(.system(size: 9)).foregroundStyle(.red)
+                        Image(systemName: "arrow.down").font(.eveMicro).foregroundStyle(.red)
                         Text(EVEFormatters.formatISKShort(entry.lowest)).font(.caption2)
                     }
                     HStack(spacing: 4) {
-                        Image(systemName: "minus").font(.system(size: 9)).foregroundStyle(eveTeal)
+                        Image(systemName: "minus").font(.eveMicro).foregroundStyle(eveTeal)
                         Text(EVEFormatters.formatISKShort(entry.average)).font(.caption2).foregroundStyle(eveTeal)
                     }
                 }
                 Divider()
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 4) {
-                        Image(systemName: "shippingbox").font(.system(size: 9)).foregroundStyle(.secondary)
+                        Image(systemName: "shippingbox").font(.eveMicro).foregroundStyle(.secondary)
                         Text(formatCount(entry.volume)).font(.caption2)
                     }
                     HStack(spacing: 4) {
-                        Image(systemName: "list.bullet").font(.system(size: 9)).foregroundStyle(.secondary)
+                        Image(systemName: "list.bullet").font(.eveMicro).foregroundStyle(.secondary)
                         Text("\(entry.orderCount) orders").font(.caption2)
                     }
                 }
             }
         }
         .padding(8)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
         .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
     }
 

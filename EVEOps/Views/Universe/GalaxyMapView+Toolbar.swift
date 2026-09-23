@@ -41,7 +41,7 @@ extension GalaxyMapView {
                     Image(systemName: "map").tag(false)
                     Image(systemName: "move.3d").tag(true)
                 }
-                .pickerStyle(.segmented)
+                .eveSegmentedPicker()
                 .labelsHidden()
                 .controlSize(.small)
                 .frame(width: 72)
@@ -56,7 +56,7 @@ extension GalaxyMapView {
                     Text("Security").tag(MapColorMode.security)
                     Text("Kills").tag(MapColorMode.danger)
                 }
-                .pickerStyle(.segmented)
+                .eveSegmentedPicker()
                 .labelsHidden()
                 .controlSize(.small)
                 .frame(width: 244)
@@ -96,7 +96,7 @@ extension GalaxyMapView {
                         .textFieldStyle(.plain).font(.caption).frame(width: 200)
                 }
                 .padding(.horizontal, 8).padding(.vertical, 4)
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 6))
+                .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.sm))
 
                 Divider().frame(height: 16)
 
@@ -115,6 +115,7 @@ extension GalaxyMapView {
                     Button { withAnimation { scale = max(0.3, scale - 0.3); baseScale = scale } } label: {
                         Image(systemName: "minus.magnifyingglass").font(.caption)
                     }.buttonStyle(.plain)
+                    .accessibilityLabel("Zoom Out")
 
                     Text(Double(scale).formatted(.percent.precision(.fractionLength(0))))
                         .font(.caption2.monospacedDigit()).foregroundStyle(.secondary).frame(width: 36)
@@ -122,12 +123,14 @@ extension GalaxyMapView {
                     Button { withAnimation { scale = min(6.0, scale + 0.3); baseScale = scale } } label: {
                         Image(systemName: "plus.magnifyingglass").font(.caption)
                     }.buttonStyle(.plain)
+                    .accessibilityLabel("Zoom In")
 
                     Button {
                         withAnimation { scale = 1.0; baseScale = 1.0; offset = .zero; dragStart = .zero }
                     } label: {
                         Image(systemName: "arrow.counterclockwise").font(.caption)
                     }.buttonStyle(.plain)
+                    .accessibilityLabel("Reset View")
                 }
               }
             }
@@ -177,7 +180,7 @@ extension GalaxyMapView {
     var loadingView: some View {
         VStack(spacing: 16) {
             Spacer()
-            ProgressView(value: loadingProgress) {
+            ProgressView(value: min(max(loadingProgress, 0), 1)) {
                 Text("Loading galaxy map…").font(.subheadline)
             } currentValueLabel: {
                 Text(loadingProgress.formatted(.percent.precision(.fractionLength(0))))

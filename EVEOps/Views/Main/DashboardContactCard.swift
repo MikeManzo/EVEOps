@@ -32,7 +32,7 @@ struct ContactCardView: View {
                         if let image = phase.image {
                             image.resizable()
                                 .frame(width: 32, height: 32)
-                                .clipShape(RoundedRectangle(cornerRadius: 4))
+                                .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
                                 .shadow(color: .black.opacity(0.5), radius: 3)
                         }
                     }
@@ -47,11 +47,11 @@ struct ContactCardView: View {
                         CachedAsyncImage(url: contact.imageURL) { image in
                             image.resizable()
                         } placeholder: {
-                            RoundedRectangle(cornerRadius: 8).fill(.quaternary)
+                            RoundedRectangle(cornerRadius: EVERadius.md).fill(.quaternary)
                         }
                         .frame(width: 52, height: 52)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.white.opacity(0.1), lineWidth: 1))
+                        .clipShape(RoundedRectangle(cornerRadius: EVERadius.md))
+                        .overlay(RoundedRectangle(cornerRadius: EVERadius.md).strokeBorder(.white.opacity(0.1), lineWidth: 1))
 
                         if contact.isPlayerCharacter {
                             PresenceBadge(score: presenceTracker.score(for: contact.contactID), size: 13)
@@ -148,8 +148,8 @@ struct ContactCardView: View {
             }
             .padding(12)
         }
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .eveCard()
+        .clipShape(RoundedRectangle(cornerRadius: EVERadius.xl))
     }
 
     private var contactTypeIcon: String {
@@ -186,5 +186,18 @@ struct ContactCardView: View {
         if contact.standing == 0 { return "minus" }
         if contact.standing > -5 { return "hand.thumbsdown.fill" }
         return "xmark.circle.fill"
+    }
+}
+
+extension ContactSummary {
+    /// The contact as a right-clickable entity.
+    var entity: EVEEntity? {
+        guard !name.isEmpty else { return nil }
+        switch contactType {
+        case "character":   return .character(id: contactID, name: name)
+        case "corporation": return .corporation(id: contactID, name: name)
+        case "alliance":    return .alliance(id: contactID, name: name)
+        default:            return nil
+        }
     }
 }

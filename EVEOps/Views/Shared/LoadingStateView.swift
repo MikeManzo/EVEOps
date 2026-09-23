@@ -23,6 +23,11 @@ struct LoadingStateView<Content: View>: View {
     /// then the caller's responsibility to surface inline.
     let hasContent: Bool
     let emptyMessage: String
+    /// Optional headline for the empty state. When set, `emptyMessage` becomes the
+    /// explanatory line beneath it; otherwise `emptyMessage` is the headline.
+    let emptyTitle: String?
+    /// SF Symbol for the empty state.
+    let emptySystemImage: String
     let loadingMessage: String
     /// Show a redacted skeleton instead of a centered spinner on cold load.
     let showsSkeleton: Bool
@@ -39,8 +44,10 @@ struct LoadingStateView<Content: View>: View {
         isEmpty: Bool = false,
         hasContent: Bool = false,
         emptyMessage: String = "No data available",
+        emptyTitle: String? = nil,
+        emptySystemImage: String = "tray",
         loadingMessage: String = "Loading...",
-        showsSkeleton: Bool = false,
+        showsSkeleton: Bool = true,
         onRetry: (() -> Void)? = nil,
         errorLinkLabel: String? = nil,
         errorLinkURL: URL? = nil,
@@ -51,6 +58,8 @@ struct LoadingStateView<Content: View>: View {
         self.isEmpty = isEmpty
         self.hasContent = hasContent
         self.emptyMessage = emptyMessage
+        self.emptyTitle = emptyTitle
+        self.emptySystemImage = emptySystemImage
         self.loadingMessage = loadingMessage
         self.showsSkeleton = showsSkeleton
         self.onRetry = onRetry
@@ -81,42 +90,30 @@ struct LoadingStateView<Content: View>: View {
             } else if !apiStatus.isReachable && (error != nil || isEmpty) {
                 apiUnreachableView
             } else if let error {
-                VStack(spacing: 12) {
-                    Image(systemName: "exclamationmark.triangle")
-                        .font(.largeTitle)
-                        .foregroundStyle(.orange)
-                        .accessibilityHidden(true)
-                    Text("Error")
-                        .font(.headline)
-                    Text(error)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-                    if let errorLinkLabel, let errorLinkURL {
-                        Link(errorLinkLabel, destination: errorLinkURL)
-                            .font(.caption)
-                    }
-                    if let onRetry {
-                        Button("Retry", action: onRetry)
-                            .buttonStyle(.bordered)
+                EVEEmptyState(title: Text("Something Went Wrong"), systemImage: "exclamationmark.triangle", message: Text(error), tint: .orange) {
+                    VStack(spacing: EVESpacing.md) {
+                        if let onRetry {
+                            Button("Try Again", systemImage: "arrow.clockwise", action: onRetry)
+                                .buttonStyle(.borderedProminent)
+                                .tint(themeManager.palette.accent)
+                        }
+                        if let errorLinkLabel, let errorLinkURL {
+                            Link(errorLinkLabel, destination: errorLinkURL)
+                                .font(.caption)
+                        }
                     }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .accessibilityElement(children: .contain)
                 .accessibilityLabel("Error: \(error)")
             } else if isEmpty {
-                VStack(spacing: 12) {
-                    Image(systemName: "tray")
-                        .font(.largeTitle)
-                        .foregroundStyle(.secondary)
-                        .accessibilityHidden(true)
-                    Text(emptyMessage)
-                        .foregroundStyle(.secondary)
+                Group {
+                    if let emptyTitle {
+                        EVEEmptyState(verbatim: emptyTitle, systemImage: emptySystemImage, message: Text(emptyMessage))
+                    } else {
+                        EVEEmptyState(verbatim: emptyMessage, systemImage: emptySystemImage)
+                    }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .accessibilityElement(children: .combine)
-                .accessibilityLabel(emptyMessage)
             } else {
                 content()
             }
@@ -133,19 +130,13 @@ struct LoadingStateView<Content: View>: View {
     }
 
     private var apiUnreachableView: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "wifi.exclamationmark")
-                .font(.largeTitle)
-                .foregroundStyle(.orange)
-                .accessibilityHidden(true)
-            Text(apiStatus.statusMessage.isEmpty ? "Unable to reach EVE servers" : apiStatus.statusMessage)
-                .font(.headline)
-            Text("Data will refresh automatically when the connection is restored.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        EVEEmptyState(
+            verbatim: apiStatus.statusMessage.isEmpty ? String(localized: "Unable to Reach EVE Servers") : apiStatus.statusMessage,
+            systemImage: "wifi.exclamationmark",
+            message: Text("Data will refresh automatically when the connection is restored."),
+            tint: .orange
+        )
         .accessibilityElement(children: .combine)
     }
+
 }

@@ -84,7 +84,7 @@ struct ExplorationCodexView: View {
                 Picker("Site family", selection: $kind) {
                     ForEach(ExplorationSiteKind.allCases) { Text($0.rawValue).tag($0) }
                 }
-                .pickerStyle(.segmented)
+                .eveSegmentedPicker()
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
                 Divider()
@@ -275,7 +275,7 @@ private struct ExplorationSiteRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            RoundedRectangle(cornerRadius: 8)
+            RoundedRectangle(cornerRadius: EVERadius.md)
                 .fill(iconTint.opacity(0.15))
                 .frame(width: 44, height: 44)
                 .overlay(
@@ -329,7 +329,7 @@ private struct ReadinessBadge: View {
 
     var body: some View {
         Text(verdict.label)
-            .font(.system(size: 9).bold())
+            .font(.eveMicroBold)
             .foregroundStyle(color)
             .padding(.horizontal, 6).padding(.vertical, 2)
             .background(color.opacity(0.15), in: Capsule())
@@ -364,6 +364,7 @@ private struct ExplorationSiteDetailPane: View {
                 Button { onClose() } label: {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
                 }
+                .accessibilityLabel("Clear")
                 .buttonStyle(.plain)
                 .keyboardShortcut(.escape)
             }
@@ -454,7 +455,7 @@ private struct ExplorationSiteDetailPane: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 10))
+        .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: EVERadius.lg))
     }
 
     private var linksRow: some View {
@@ -512,9 +513,9 @@ private struct HazardRow: View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 6) {
                 Text(hazard.severity.label)
-                    .font(.system(size: 9).bold())
+                    .font(.eveMicroBold)
                     .foregroundStyle(color)
-                    .padding(.horizontal, 5).padding(.vertical, 1)
+                    .padding(.horizontal, 6).padding(.vertical, 1)
                     .background(color.opacity(0.15), in: Capsule())
                 Text(hazard.name).font(.caption.bold())
             }
@@ -562,7 +563,7 @@ private struct ReadinessPanel: View {
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(color.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+        .background(color.opacity(0.08), in: RoundedRectangle(cornerRadius: EVERadius.md))
     }
 }
 
@@ -612,7 +613,7 @@ private struct BlastCheck: View {
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(color.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+        .background(color.opacity(0.08), in: RoundedRectangle(cornerRadius: EVERadius.md))
     }
 }
 
@@ -679,7 +680,7 @@ private struct GhostSiteTimer: View {
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(color.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+        .background(color.opacity(0.08), in: RoundedRectangle(cornerRadius: EVERadius.md))
         .periodicTick(every: 1) {
             now = Date()
             evaluateAlerts()
@@ -744,16 +745,16 @@ private struct LootRow: View {
             CachedAsyncImage(url: stat?.typeID.flatMap { EVEImageURL.typeIcon($0, size: 64) }) { image in
                 image.resizable().scaledToFit()
             } placeholder: {
-                RoundedRectangle(cornerRadius: 6).fill(.quaternary)
+                RoundedRectangle(cornerRadius: EVERadius.sm).fill(.quaternary)
             }
             .frame(width: 32, height: 32)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 5) {
                     Text(entry.name).font(.caption.bold())
                     if entry.isJackpot {
-                        Image(systemName: "star.fill").font(.system(size: 8)).foregroundStyle(.yellow)
+                        Image(systemName: "star.fill").font(.eveTiny).foregroundStyle(.yellow)
                     }
                 }
                 Text(entry.note).font(.caption2).foregroundStyle(.secondary)
@@ -817,9 +818,9 @@ private struct DeltaBadge: View {
 
     var body: some View {
         HStack(spacing: 2) {
-            Image(systemName: arrow).font(.system(size: 7).bold())
+            Image(systemName: arrow).font(.eveNanoBold)
             Text("\(abs(deltaPct), format: .number.precision(.fractionLength(0)))%")
-                .font(.system(size: 9).monospacedDigit().bold())
+                .font(.eveMicroBold.monospacedDigit())
         }
         .foregroundStyle(color)
         .padding(.horizontal, 4).padding(.vertical, 1)
@@ -870,7 +871,7 @@ private struct MarketSignalView: View {
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(color.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+        .background(color.opacity(0.08), in: RoundedRectangle(cornerRadius: EVERadius.md))
     }
 
     private var pricedStats: [LootMarketStat] {
@@ -898,7 +899,7 @@ private struct LootSignalRow: View {
                 .font(.caption2)
                 .lineLimit(1)
             if stat.isJackpot {
-                Image(systemName: "star.fill").font(.system(size: 7)).foregroundStyle(.yellow)
+                Image(systemName: "star.fill").font(.eveNano).foregroundStyle(.yellow)
             }
             Spacer(minLength: 0)
             if let current = stat.current {
@@ -954,8 +955,9 @@ private struct RunLedgerView: View {
                             Button {
                                 ExplorationRunStore.remove(id: run.id)
                             } label: {
-                                Image(systemName: "trash").font(.system(size: 9))
+                                Image(systemName: "trash").font(.eveMicro)
                             }
+                            .accessibilityLabel("Delete")
                             .buttonStyle(.plain)
                             .foregroundStyle(.tertiary)
                         }
@@ -974,7 +976,7 @@ private struct RunLedgerView: View {
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: 8))
+        .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: EVERadius.md))
         .onAppear(perform: reload)
         .onReceive(NotificationCenter.default.publisher(for: ExplorationRunStore.didChange)) { _ in reload() }
         .sheet(isPresented: $showingLogger) {
@@ -988,7 +990,7 @@ private struct RunLedgerView: View {
 
     private func stat(_ label: String, _ value: String) -> some View {
         VStack(alignment: .leading, spacing: 1) {
-            Text(label.uppercased()).font(.system(size: 8).bold()).foregroundStyle(.tertiary)
+            Text(label.uppercased()).font(.eveBadge).foregroundStyle(.tertiary)
             Text(value).font(.caption.monospacedDigit().bold())
         }
     }
@@ -1137,7 +1139,7 @@ private struct ScoutingView: View {
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(color.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+        .background(color.opacity(0.08), in: RoundedRectangle(cornerRadius: EVERadius.md))
         .task { await checkLocation() }
     }
 

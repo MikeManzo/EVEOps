@@ -83,7 +83,7 @@ struct ColonyDetailView: View {
         }
         .padding(.vertical, 10)
         .padding(.horizontal, 12)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
+        .eveCard(cornerRadius: EVERadius.lg)
     }
 
     private func statTile(_ label: String, value: String, icon: String, color: Color) -> some View {
@@ -110,7 +110,7 @@ struct ColonyDetailView: View {
             }
         }
         .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .eveCard()
     }
 
     private func extractorRow(_ pin: ESIPlanetPin) -> some View {
@@ -122,10 +122,10 @@ struct ColonyDetailView: View {
             CachedAsyncImage(url: details.productTypeId.flatMap { EVEImageURL.typeIcon($0, size: 64) }) { img in
                 img.resizable()
             } placeholder: {
-                RoundedRectangle(cornerRadius: 6).fill(.quaternary)
+                RoundedRectangle(cornerRadius: EVERadius.sm).fill(.quaternary)
             }
             .frame(width: 40, height: 40)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(productName).font(.subheadline.bold())
@@ -178,7 +178,7 @@ struct ColonyDetailView: View {
             }
         }
         .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .eveCard()
     }
 
     private func factoryRow(_ pin: ESIPlanetPin) -> some View {
@@ -190,10 +190,10 @@ struct ColonyDetailView: View {
             CachedAsyncImage(url: EVEImageURL.typeIcon(pin.typeId, size: 64)) { img in
                 img.resizable()
             } placeholder: {
-                RoundedRectangle(cornerRadius: 6).fill(.quaternary)
+                RoundedRectangle(cornerRadius: EVERadius.sm).fill(.quaternary)
             }
             .frame(width: 40, height: 40)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(pinName).font(.subheadline.bold())
@@ -249,7 +249,7 @@ struct ColonyDetailView: View {
             }
         }
         .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .eveCard()
     }
 
     private func storageRow(_ pin: ESIPlanetPin) -> some View {
@@ -260,10 +260,10 @@ struct ColonyDetailView: View {
             CachedAsyncImage(url: EVEImageURL.typeIcon(pin.typeId, size: 64)) { img in
                 img.resizable()
             } placeholder: {
-                RoundedRectangle(cornerRadius: 6).fill(.quaternary)
+                RoundedRectangle(cornerRadius: EVERadius.sm).fill(.quaternary)
             }
             .frame(width: 40, height: 40)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(pinName).font(.subheadline.bold())

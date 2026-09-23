@@ -10,19 +10,14 @@
 
 import SwiftUI
 
-// MARK:  Security Class Filter
-
 private enum SecurityClassFilter: String, CaseIterable {
-    case all      = "All"
-    case highsec  = "Highsec"
-    case lowsec   = "Lowsec"
-    case nullsec  = "Null"
+    case all, highsec, lowsec, nullsec
 
     var title: LocalizedStringKey {
         switch self {
         case .all:     "All"
-        case .highsec: "Highsec"
-        case .lowsec:  "Lowsec"
+        case .highsec: "High"
+        case .lowsec:  "Low"
         case .nullsec: "Null"
         }
     }
@@ -36,8 +31,6 @@ private enum SecurityClassFilter: String, CaseIterable {
         }
     }
 }
-
-// MARK:  Region Station Browser
 
 struct RegionStationBrowserView: View {
     var onNavigateToMarket: (() -> Void)? = nil
@@ -58,16 +51,6 @@ struct RegionStationBrowserView: View {
     @State private var selectedStation: StationEntry?
     @State private var jumpCounts: [Int: Int] = [:]   // systemId → jump count from character's location
 
-    private let filterableServices: [(key: String, label: String, icon: String, color: Color)] = [
-        ("market",             "Market",        "cart.fill",                    .blue),
-        ("reprocessing-plant", "Reprocessing",  "arrow.3.trianglepath",         .orange),
-        ("fitting",            "Fitting",       "gearshape.2.fill",             .purple),
-        ("repair-facilities",  "Repair",        "wrench.and.screwdriver.fill",  .green),
-        ("cloning",            "Cloning",       "person.2.fill",                .pink),
-        ("factory",            "Manufacturing", "hammer.fill",                  .yellow),
-        ("loyalty-point-store","LP Store",      "star.fill",                    Color(red: 0.9, green: 0.75, blue: 0.2)),
-    ]
-
     var body: some View {
         HStack(spacing: 0) {
             VStack(spacing: 0) {
@@ -75,13 +58,16 @@ struct RegionStationBrowserView: View {
                 Divider()
                 contentArea
             }
+            .frame(minWidth: 420)
 
             if let station = selectedStation {
                 Divider()
                 StationDetailView(entry: station, onNavigateToMarket: onNavigateToMarket)
-                    .frame(width: 320)
+                    .frame(width: 340)
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
             }
         }
+        .animation(EVEMotion.snappy, value: selectedStation?.station.stationId)
         .safeAreaInset(edge: .top, spacing: 0) {
             HStack {
                 Text("Station Browser")
@@ -105,110 +91,105 @@ struct RegionStationBrowserView: View {
 
     // MARK:  Filter Bar
 
+    private var selectedRegion: (id: Int, name: String, factionId: Int?)? {
+        availableRegions.first { $0.id == selectedRegionId }
+    }
+
     private var filterBar: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 10) {
-                // Region picker
-                Menu {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
+            HStack(spacing: EVESpacing.md) {
+                Picker(selection: $selectedRegionId) {
                     ForEach(availableRegions, id: \.id) { region in
-                        Button {
-                            selectedRegionId = region.id
-                        } label: {
-                            Text(region.name)
-                        }
+                        Text(region.name).tag(region.id)
                     }
                 } label: {
-                    HStack(spacing: 6) {
-                        Circle()
-                            .fill(factionColor(availableRegions.first(where: { $0.id == selectedRegionId })?.factionId))
-                            .frame(width: 8, height: 8)
-                        Text(availableRegions.first(where: { $0.id == selectedRegionId })?.name ?? "Region")
-                            .font(.subheadline.bold())
-                        Image(systemName: "chevron.down")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+                    EmptyView()
                 }
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .fixedSize()
                 .disabled(availableRegions.isEmpty)
+                .help("Region")
 
-                // Security class filter
                 Picker("Security", selection: $securityFilter) {
                     ForEach(SecurityClassFilter.allCases, id: \.self) { filter in
                         Text(filter.title).tag(filter)
                     }
                 }
-                .pickerStyle(.segmented)
-                .frame(width: 220)
+                .labelsHidden()
+                .eveSegmentedPicker()
+                .fixedSize()
+                .help("Filter by security class")
 
-                // Search
-                HStack {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundStyle(.secondary)
-                    TextField("Search stations...", text: $searchText)
-                        .textFieldStyle(.plain)
-                    if !searchText.isEmpty {
-                        Button { searchText = "" } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(.secondary)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
-                .frame(maxWidth: 260)
+                searchField
+                    .frame(maxWidth: 260)
 
-                Spacer()
+                Spacer(minLength: 0)
 
                 if !isLoading && !stations.isEmpty {
-                    Text("\(filteredStations.count) of \(stations.count) station\(stations.count == 1 ? "" : "s")")
-                        .font(.caption)
+                    Text("\(filteredStations.count) of \(stations.count)")
+                        .font(.caption.monospacedDigit())
                         .foregroundStyle(.secondary)
+                        .help("Stations shown")
                 }
             }
 
-            // Service filter chips
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
-                    ForEach(filterableServices, id: \.key) { svc in
-                        let isSelected = selectedServices.contains(svc.key)
-                        Button {
-                            if isSelected { selectedServices.remove(svc.key) }
-                            else { selectedServices.insert(svc.key) }
-                        } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: svc.icon).font(.caption2)
-                                Text(svc.label).font(.caption)
-                            }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(isSelected ? svc.color.opacity(0.25) : Color.primary.opacity(0.06), in: Capsule())
-                            .overlay(Capsule().strokeBorder(isSelected ? svc.color : Color.clear, lineWidth: 1))
-                            .foregroundStyle(isSelected ? svc.color : .secondary)
-                        }
-                        .buttonStyle(.plain)
+                HStack(spacing: EVESpacing.sm) {
+                    ForEach(StationService.filterKeys.compactMap(StationService.named)) { service in
+                        serviceChip(service)
                     }
-
                     if !selectedServices.isEmpty {
-                        Button {
-                            selectedServices.removeAll()
-                        } label: {
-                            Text("Clear")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .buttonStyle(.plain)
+                        Button("Clear") { selectedServices.removeAll() }
+                            .buttonStyle(.borderless)
+                            .font(.caption)
                     }
                 }
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
+        .padding(.horizontal, EVESpacing.xl)
+        .padding(.vertical, EVESpacing.md + 2)
         .background(.bar)
+    }
+
+    private var searchField: some View {
+        HStack(spacing: EVESpacing.sm) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+            TextField("Search stations or systems", text: $searchText)
+                .textFieldStyle(.plain)
+            if !searchText.isEmpty {
+                Button { searchText = "" } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .accessibilityLabel("Clear")
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, EVESpacing.md)
+        .padding(.vertical, 5)
+        .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: EVERadius.sm))
+    }
+
+    private func serviceChip(_ service: StationService) -> some View {
+        let isSelected = selectedServices.contains(service.key)
+        return Button {
+            if isSelected { selectedServices.remove(service.key) } else { selectedServices.insert(service.key) }
+        } label: {
+            Label(service.label, systemImage: service.symbol)
+                .font(.caption)
+                .padding(.horizontal, EVESpacing.md + 2)
+                .padding(.vertical, 5)
+                .foregroundStyle(isSelected ? AnyShapeStyle(.white) : AnyShapeStyle(.secondary))
+                .background(
+                    isSelected ? AnyShapeStyle(palette.accent) : AnyShapeStyle(Color.primary.opacity(0.06)),
+                    in: Capsule()
+                )
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .help(isSelected ? "Remove filter" : "Only stations with this service")
     }
 
     // MARK:  Content Area
@@ -216,136 +197,137 @@ struct RegionStationBrowserView: View {
     @ViewBuilder
     private var contentArea: some View {
         if isLoading {
-            VStack(spacing: 12) {
-                ProgressView()
-                Text(loadingProgress.isEmpty ? "Loading stations..." : loadingProgress)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+            VStack(spacing: 0) {
+                LoadingSkeleton(rows: 8)
+                if !loadingProgress.isEmpty {
+                    Text(loadingProgress)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.bottom, EVESpacing.lg)
+                }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if filteredStations.isEmpty {
-            VStack(spacing: 8) {
-                Image(systemName: "building.2.fill")
-                    .font(.system(size: 40))
-                    .foregroundStyle(.secondary)
-                Text(stations.isEmpty ? "No NPC stations in this region" : "No stations match your filters")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+            if stations.isEmpty {
+                EVEEmptyState("No NPC Stations in This Region", systemImage: "building.2")
+            } else if !searchText.isEmpty {
+                ContentUnavailableView.search(text: searchText)
+            } else {
+                EVEEmptyState("No Matching Stations", systemImage: "line.3.horizontal.decrease.circle", message: "Try loosening your filters.")
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
-            List(selection: $selectedStation) {
-                ForEach(groupedStations, id: \.constellationName) { group in
-                    Section {
-                        ForEach(group.systems, id: \.systemName) { sys in
-                            // System sub-header — no .tag(), so not selectable
-                            systemHeader(sys)
-                                .listRowBackground(Color.primary.opacity(0.04))
-
-                            // Individual station rows — selectable
-                            ForEach(sys.stations, id: \.station.stationId) { entry in
-                                compactStationRow(entry)
-                                    .tag(entry)
-                                    .themedListRow(isSelected: entry == selectedStation, palette: palette)
+            // No `selection:` binding — see `eveSelectableListRow`: a native List selection
+            // is drawn in the static AccentColor, not the faction theme.
+            ScrollViewReader { proxy in
+                List {
+                    ForEach(groupedSystems) { system in
+                        Section {
+                            ForEach(system.stations, id: \.station.stationId) { entry in
+                                StationRow(entry: entry, isSelected: entry == selectedStation)
+                                    .eveSelectableListRow(isSelected: entry == selectedStation, palette: palette) {
+                                        selectedStation = entry
+                                    }
+                                    .eveContextMenu(.system(id: entry.systemId, name: entry.systemName))
+                                    .id(entry.station.stationId)
                             }
-                        }
-                    } header: {
-                        HStack(spacing: 6) {
-                            Image(systemName: "map")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                            Text(group.constellationName)
-                                .font(.subheadline.bold())
+                        } header: {
+                            systemHeader(system)
                         }
                     }
                 }
+                .focusable()
+                .focusEffectDisabled()
+                .onKeyPress(.downArrow) { moveSelection(by: 1, proxy: proxy) }
+                .onKeyPress(.upArrow) { moveSelection(by: -1, proxy: proxy) }
+                .onKeyPress(.escape) {
+                    guard selectedStation != nil else { return .ignored }
+                    selectedStation = nil
+                    return .handled
+                }
+                .listStyle(.sidebar)
             }
-            .listStyle(.sidebar)
         }
     }
 
-    // MARK:  List Rows
+    /// ↑/↓ through the visible stations in display order, keeping the selection on screen.
+    private func moveSelection(by delta: Int, proxy: ScrollViewProxy) -> KeyPress.Result {
+        let ordered = groupedSystems.flatMap(\.stations)
+        guard !ordered.isEmpty else { return .ignored }
+        let next: StationEntry
+        if let current = selectedStation, let index = ordered.firstIndex(of: current) {
+            next = ordered[min(max(index + delta, 0), ordered.count - 1)]
+        } else {
+            next = delta > 0 ? ordered[0] : ordered[ordered.count - 1]
+        }
+        selectedStation = next
+        proxy.scrollTo(next.station.stationId)
+        return .handled
+    }
 
-    private func systemHeader(_ sys: SystemGroup) -> some View {
-        HStack(spacing: 6) {
-            Circle()
-                .fill(eveSecurityColor(sys.securityStatus))
-                .frame(width: 7, height: 7)
-            Text(sys.systemName)
-                .font(.caption.bold())
-                .foregroundStyle(.secondary)
-            Text(String(format: "%.1f", sys.securityStatus))
-                .font(.caption2.monospacedDigit())
-                .foregroundStyle(eveSecurityColor(sys.securityStatus))
-            Spacer()
-            // Jump count badge
-            if let systemId = sys.stations.first?.systemId,
-               let jumps = jumpCounts[systemId] {
-                Text(jumps == 0 ? "current" : "\(jumps)j")
-                    .font(.caption2.bold().monospacedDigit())
-                    .foregroundStyle(jumps == 0 ? .green : .secondary)
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 2)
-                    .background(jumps == 0 ? Color.green.opacity(0.12) : Color.secondary.opacity(0.08), in: Capsule())
-            }
-            Text("\(sys.stations.count) station\(sys.stations.count == 1 ? "" : "s")")
-                .font(.caption2)
+    private func systemHeader(_ system: SystemGroup) -> some View {
+        HStack(spacing: EVESpacing.sm) {
+            EVESecurityBadge(status: system.securityStatus, compact: true)
+            Text(system.systemName)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.primary)
+            Text(system.constellationName)
+                .font(.caption)
                 .foregroundStyle(.tertiary)
-        }
-        .padding(.vertical, 2)
-    }
-
-    private func compactStationRow(_ entry: StationEntry) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(entry.station.name)
-                .font(.body)
-                .lineLimit(1)
-
-            if let services = entry.station.services, !services.isEmpty {
-                HStack(spacing: 6) {
-                    ForEach(services.sorted(), id: \.self) { service in
-                        let info = serviceInfo(service)
-                        Image(systemName: info.icon)
-                            .font(.system(size: 10))
-                            .foregroundStyle(info.color)
-                    }
+            Spacer()
+            if let jumps = jumpCounts[system.systemId] {
+                if jumps == 0 {
+                    Label("You are here", systemImage: "location.fill")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(palette.accent)
+                } else {
+                    Text("\(jumps) \(jumps == 1 ? "jump" : "jumps")")
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.secondary)
                 }
             }
         }
+        .textCase(nil)
         .padding(.vertical, 2)
-        .padding(.leading, 10)
+        .eveContextMenu(.system(id: system.systemId, name: system.systemName))
     }
 
     // MARK:  Computed filtered/grouped data
 
     private var filteredStations: [StationEntry] {
         stations.filter { entry in
-            let matchesSearch = searchText.isEmpty ||
-                entry.station.name.localizedCaseInsensitiveContains(searchText)
-            let matchesServices = selectedServices.isEmpty ||
-                selectedServices.isSubset(of: Set(entry.station.services ?? []))
+            let matchesSearch = searchText.isEmpty
+                || entry.station.name.localizedCaseInsensitiveContains(searchText)
+                || entry.systemName.localizedCaseInsensitiveContains(searchText)
+                || (entry.ownerName?.localizedCaseInsensitiveContains(searchText) ?? false)
+            let matchesServices = selectedServices.isEmpty
+                || selectedServices.isSubset(of: Set(entry.station.services ?? []))
             let matchesSecurity = securityFilter.matches(entry.securityStatus)
             return matchesSearch && matchesServices && matchesSecurity
         }
     }
 
-    private var groupedStations: [ConstellationGroup] {
-        var byConstellation: [String: [StationEntry]] = [:]
-        for entry in filteredStations {
-            byConstellation[entry.constellationName, default: []].append(entry)
+    /// Stations grouped by system, nearest first once jump counts are known, otherwise
+    /// safest first.
+    private var groupedSystems: [SystemGroup] {
+        let bySystem = Dictionary(grouping: filteredStations, by: \.systemId)
+        let groups = bySystem.map { systemId, entries in
+            SystemGroup(
+                systemId: systemId,
+                systemName: entries[0].systemName,
+                constellationName: entries[0].constellationName,
+                securityStatus: entries[0].securityStatus,
+                stations: entries.sorted { $0.station.name < $1.station.name }
+            )
         }
-        return byConstellation.map { name, entries in
-            var bySys: [String: [StationEntry]] = [:]
-            for e in entries { bySys[e.systemName, default: []].append(e) }
-            let systems = bySys.map { sysName, sysEntries in
-                SystemGroup(
-                    systemName: sysName,
-                    securityStatus: sysEntries.first?.securityStatus ?? 0,
-                    stations: sysEntries.sorted { $0.station.name < $1.station.name }
-                )
-            }.sorted { $0.securityStatus > $1.securityStatus }
-            return ConstellationGroup(constellationName: name, systems: systems)
-        }.sorted { $0.constellationName < $1.constellationName }
+        return groups.sorted { a, b in
+            switch (jumpCounts[a.systemId], jumpCounts[b.systemId]) {
+            case let (ja?, jb?) where ja != jb: return ja < jb
+            case (.some, nil): return true
+            case (nil, .some): return false
+            default:
+                if a.securityStatus != b.securityStatus { return a.securityStatus > b.securityStatus }
+                return a.systemName < b.systemName
+            }
+        }
     }
 
     // MARK:  Data Loading
@@ -438,6 +420,12 @@ struct RegionStationBrowserView: View {
             ))
         }
 
+        let ownerIds = Array(Set(entries.compactMap(\.station.owner)))
+        let owners = ownerIds.isEmpty ? [:] : await NameResolver.shared.resolve(ids: ownerIds)
+        for i in entries.indices {
+            entries[i].ownerName = entries[i].station.owner.flatMap { owners[$0] }
+        }
+
         stations = entries
         isLoading = false
         loadingProgress = ""
@@ -472,40 +460,67 @@ struct RegionStationBrowserView: View {
         }
     }
 
-    // MARK:  Helpers
+}
 
-    private func factionColor(_ factionId: Int?) -> Color {
-        switch factionId {
-        case 500001: return Color(red: 0.35, green: 0.65, blue: 0.90)  // Caldari
-        case 500002: return Color(red: 0.85, green: 0.35, blue: 0.25)  // Minmatar
-        case 500003: return Color(red: 0.90, green: 0.75, blue: 0.20)  // Amarr
-        case 500004: return Color(red: 0.25, green: 0.70, blue: 0.35)  // Gallente
-        default: return Color.gray
+// MARK:  Station Row
+
+/// A station in the browser list: the owning corporation's logo as the anchor, the facility
+/// as the title, its orbit and owner as the subtitle, and its key services as a quiet
+/// trailing glyph strip.
+private struct StationRow: View {
+    let entry: StationEntry
+    let isSelected: Bool
+
+    var body: some View {
+        let parts = StationNameParts(stationName: entry.station.name, systemName: entry.systemName)
+        HStack(spacing: EVESpacing.md + 2) {
+            ownerLogo
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(parts.facility)
+                    .font(.body.weight(.medium))
+                    .lineLimit(1)
+                Text(subtitle(orbit: parts.orbit))
+                    .font(.caption)
+                    .foregroundStyle(isSelected ? AnyShapeStyle(.white.opacity(0.8)) : AnyShapeStyle(.secondary))
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: EVESpacing.md)
+
+            HStack(spacing: EVESpacing.sm) {
+                ForEach(StationService.keyServices(of: entry.station.services)) { service in
+                    Image(systemName: service.symbol)
+                        .font(.eveCaption)
+                        .frame(width: 14)
+                        .help(Text(service.label))
+                }
+            }
+            .foregroundStyle(isSelected ? AnyShapeStyle(.white.opacity(0.85)) : AnyShapeStyle(.tertiary))
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text("Services"))
         }
+        .padding(.vertical, EVESpacing.xs)
+        .accessibilityElement(children: .combine)
     }
 
-    private func serviceInfo(_ service: String) -> (label: String, icon: String, color: Color) {
-        switch service {
-        case "market":                   return ("Market",         "cart.fill",                   .blue)
-        case "reprocessing-plant":       return ("Reprocessing",   "arrow.3.trianglepath",        .orange)
-        case "repair-facilities":        return ("Repair",         "wrench.and.screwdriver.fill", .green)
-        case "fitting":                  return ("Fitting",        "gearshape.2.fill",            .purple)
-        case "cloning":                  return ("Cloning",        "person.2.fill",               .pink)
-        case "factory", "manufacturing": return ("Manufacturing",  "hammer.fill",                 .yellow)
-        case "labratory", "research":    return ("Research",       "flask.fill",                  .cyan)
-        case "insurance":                return ("Insurance",      "shield.fill",                 .mint)
-        case "docking":                  return ("Docking",        "arrow.down.to.line",          .teal)
-        case "office-rental":            return ("Offices",        "building.fill",               .indigo)
-        case "loyalty-point-store":      return ("LP Store",       "star.fill",                   Color(red: 0.9, green: 0.75, blue: 0.2))
-        case "navy-offices":             return ("Navy",           "flag.fill",                   .red)
-        case "security-offices":         return ("Security",       "lock.shield.fill",            .gray)
-        case "bounty-missions":          return ("Bounties",       "target",                      .red)
-        case "assay-office":             return ("Assay",          "scalemass.fill",              .brown)
-        case "storage":                  return ("Storage",        "archivebox.fill",             .gray)
-        default:
-            let label = service.split(separator: "-").map { $0.capitalized }.joined(separator: " ")
-            return (label, "circle.fill", .gray)
+    private func subtitle(orbit: String) -> String {
+        [orbit, entry.ownerName ?? ""].filter { !$0.isEmpty }.joined(separator: " · ")
+    }
+
+    @ViewBuilder
+    private var ownerLogo: some View {
+        let url = entry.station.owner.flatMap { EVEImageURL.corporationLogo($0, size: 64) }
+            ?? EVEImageURL.typeIcon(entry.station.typeId, size: 64)
+        CachedAsyncImage(url: url) { image in
+            image.resizable().interpolation(.high)
+        } placeholder: {
+            RoundedRectangle(cornerRadius: EVERadius.sm).fill(.quaternary)
         }
+        .frame(width: 30, height: 30)
+        .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
+        .overlay(RoundedRectangle(cornerRadius: EVERadius.sm).strokeBorder(.primary.opacity(0.08), lineWidth: 0.5))
+        .accessibilityHidden(true)
     }
 }
 
@@ -517,6 +532,8 @@ struct StationEntry: Hashable, Equatable {
     let systemId: Int
     let securityStatus: Double
     let constellationName: String
+    /// Resolved name of the owning NPC corporation, filled in after load.
+    var ownerName: String? = nil
 
     func hash(into hasher: inout Hasher) { hasher.combine(station.stationId) }
     static func == (lhs: StationEntry, rhs: StationEntry) -> Bool {
@@ -524,13 +541,12 @@ struct StationEntry: Hashable, Equatable {
     }
 }
 
-struct SystemGroup {
+struct SystemGroup: Identifiable {
+    let systemId: Int
     let systemName: String
+    let constellationName: String
     let securityStatus: Double
     let stations: [StationEntry]
-}
 
-struct ConstellationGroup {
-    let constellationName: String
-    let systems: [SystemGroup]
+    var id: Int { systemId }
 }

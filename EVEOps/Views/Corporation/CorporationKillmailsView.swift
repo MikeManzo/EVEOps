@@ -36,7 +36,7 @@ struct CorporationKillmailsView: View {
     private var allKillmails: [KillmailEntry] { groups.flatMap(\.killmails) }
 
     var body: some View {
-        LoadingStateView(isLoading: isLoading, error: error, isEmpty: groups.isEmpty, emptyMessage: "No killmails found or insufficient roles") {
+        LoadingStateView(isLoading: isLoading, error: error, isEmpty: groups.isEmpty, emptyMessage: "None were found, or this character lacks the required corporation roles.", emptyTitle: "No Killmails", emptySystemImage: "scope") {
             HStack(spacing: 0) {
                 VStack(spacing: 0) {
                     filterBar
@@ -56,6 +56,7 @@ struct CorporationKillmailsView: View {
                     .font(.largeTitle.bold())
                 PinToggleButton(section: .corpKillmails)
                 Spacer()
+                FreshnessIndicator(isLoading: isLoading) { isLoading = true; await loadGroups() }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
@@ -80,7 +81,7 @@ struct CorporationKillmailsView: View {
                 Text("Kills").tag("kills")
                 Text("Losses").tag("losses")
             }
-            .pickerStyle(.segmented)
+            .eveSegmentedPicker()
             .frame(maxWidth: 300)
             Spacer()
             Label("\(allKillmails.filter(\.isKill).count) kills", systemImage: "flame.fill")
@@ -189,10 +190,10 @@ private struct CorpKillmailSectionHeader: View {
                 CachedAsyncImage(url: EVEImageURL.characterPortrait(group.characterID, size: 64)) { image in
                     image.resizable()
                 } placeholder: {
-                    RoundedRectangle(cornerRadius: 6).fill(.quaternary)
+                    RoundedRectangle(cornerRadius: EVERadius.sm).fill(.quaternary)
                 }
                 .frame(width: 48, height: 48)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
 
                 Text(group.characterName)
                     .font(.title3.bold())

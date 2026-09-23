@@ -20,7 +20,7 @@ struct IncursionsView: View {
 
     var body: some View {
         LoadingStateView(isLoading: isLoading, error: error,
-                         isEmpty: incursions.isEmpty, emptyMessage: "No active incursions") {
+                         isEmpty: incursions.isEmpty, emptyMessage: "No Active Incursions", emptySystemImage: "exclamationmark.shield") {
             HStack(spacing: 0) {
                 List(incursions) { incursion in
                     Button { selected = incursion } label: {
@@ -127,10 +127,10 @@ private struct IncursionRow: View {
             CachedAsyncImage(url: EVEImageURL.corporationLogo(inc.factionId, size: 64)) { image in
                 image.resizable().scaledToFit()
             } placeholder: {
-                RoundedRectangle(cornerRadius: 8).fill(.quaternary)
+                RoundedRectangle(cornerRadius: EVERadius.md).fill(.quaternary)
             }
             .frame(width: 44, height: 44)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .clipShape(RoundedRectangle(cornerRadius: EVERadius.md))
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 8) {
@@ -229,6 +229,7 @@ private struct IncursionDetailPane: View {
                 Button { onClose() } label: {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
                 }
+                .accessibilityLabel("Clear")
                 .buttonStyle(.plain)
                 .keyboardShortcut(.escape)
             }
@@ -305,8 +306,8 @@ private struct IncursionDetailPane: View {
     private var factionBox: some View {
         HStack(spacing: 12) {
             CachedAsyncImage(url: EVEImageURL.corporationLogo(inc.factionId, size: 128)) { $0.resizable().scaledToFit() }
-            placeholder: { RoundedRectangle(cornerRadius: 8).fill(.quaternary) }
-            .frame(width: 48, height: 48).clipShape(RoundedRectangle(cornerRadius: 8))
+            placeholder: { RoundedRectangle(cornerRadius: EVERadius.md).fill(.quaternary) }
+            .frame(width: 48, height: 48).clipShape(RoundedRectangle(cornerRadius: EVERadius.md))
             VStack(alignment: .leading, spacing: 2) {
                 Text(incursion.factionName).font(.headline)
                 if inc.hasBoss {
@@ -318,7 +319,7 @@ private struct IncursionDetailPane: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 10))
+        .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: EVERadius.lg))
     }
 
     private var influenceBar: some View {
@@ -378,7 +379,7 @@ private struct InfestedSystemRow: View {
             Text(name ?? "System #\(systemId)").font(.caption)
             if isStaging {
                 Text("STAGING")
-                    .font(.system(size: 8).bold())
+                    .font(.eveBadge)
                     .foregroundStyle(.blue)
                     .padding(.horizontal, 4).padding(.vertical, 1)
                     .background(.blue.opacity(0.15), in: Capsule())
@@ -387,6 +388,7 @@ private struct InfestedSystemRow: View {
             Button { Task { await onSetDestination(systemId) } } label: {
                 Image(systemName: "paperplane").font(.caption2)
             }
+            .accessibilityLabel("Set as autopilot destination")
             .buttonStyle(.plain)
             .foregroundStyle(.secondary)
             .help("Set as autopilot destination")

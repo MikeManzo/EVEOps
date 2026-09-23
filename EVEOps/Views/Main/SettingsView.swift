@@ -103,10 +103,10 @@ private struct SettingsSidebarRow: View {
             Text(section.title)
         } icon: {
             Image(systemName: section.icon)
-                .font(.system(size: 12, weight: .semibold))
+                .font(.eveCalloutSemibold)
                 .foregroundStyle(.white)
                 .frame(width: 26, height: 26)
-                .background(section.iconColor, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                .background(section.iconColor, in: RoundedRectangle(cornerRadius: EVERadius.sm, style: .continuous))
         }
     }
 }

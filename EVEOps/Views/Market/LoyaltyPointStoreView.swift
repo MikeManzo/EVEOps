@@ -117,7 +117,7 @@ struct LoyaltyPointStoreView: View {
                     if !lpData.isEmpty {
                         HStack(spacing: 3) {
                             Image(systemName: "medal.fill")
-                                .font(.system(size: 9))
+                                .font(.eveMicro)
                                 .foregroundStyle(.yellow)
                             Text("\(lpFormatLP(totalLP)) total LP")
                                 .font(.caption.monospacedDigit())
@@ -143,20 +143,7 @@ struct LoyaltyPointStoreView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if lpData.isEmpty {
-                VStack(spacing: 12) {
-                    Image(systemName: "medal")
-                        .font(.system(size: 36))
-                        .foregroundStyle(.tertiary)
-                    Text("No Loyalty Points")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    Text("Earn LP by running missions for NPC corporations.")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 12)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                EVEEmptyState("No Loyalty Points", systemImage: "medal", message: "Earn LP by running missions for NPC corporations.")
             } else {
                 List(lpData, id: \.corporationId, selection: Binding(
                     get: { selectedCorpId },
@@ -181,19 +168,7 @@ struct LoyaltyPointStoreView: View {
     @ViewBuilder
     private var offerPanel: some View {
         if selectedCorpId == nil {
-            VStack(spacing: 14) {
-                Image(systemName: "storefront.fill")
-                    .font(.system(size: 52))
-                    .foregroundStyle(.tertiary)
-                Text("Select a Corporation")
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
-                Text("Choose a corporation on the left to browse their LP store offers.")
-                    .font(.subheadline)
-                    .foregroundStyle(.tertiary)
-                    .multilineTextAlignment(.center)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            EVEEmptyState("Select a Corporation", systemImage: "storefront.fill", message: "Choose a corporation on the left to browse their LP store offers.")
         } else if isLoadingOffers {
             VStack(spacing: 14) {
                 ProgressView()
@@ -229,18 +204,11 @@ struct LoyaltyPointStoreView: View {
             offerColumnHeader
             Divider()
             if filteredOffers.isEmpty {
-                VStack(spacing: 10) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 32))
-                        .foregroundStyle(.tertiary)
-                    Text(searchText.isEmpty ? "No offers available" : "No results for \"\(searchText)\"")
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(nil)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: 280)
+                if searchText.isEmpty {
+                    EVEEmptyState("No Offers Available", systemImage: "storefront")
+                } else {
+                    ContentUnavailableView.search(text: searchText)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
@@ -282,11 +250,12 @@ struct LoyaltyPointStoreView: View {
                     Button { searchText = "" } label: {
                         Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
                     }
+                    .accessibilityLabel("Clear")
                     .buttonStyle(.plain)
                 }
             }
-            .padding(7)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+            .padding(8)
+            .eveCard(cornerRadius: EVERadius.md)
             .frame(maxWidth: 260)
 
             // Result count
@@ -325,7 +294,7 @@ struct LoyaltyPointStoreView: View {
                         .foregroundStyle(.primary)
                 }
                 .padding(.horizontal, 10)
-                .padding(.vertical, 5)
+                .padding(.vertical, 6)
                 .background(lpCurrencyColor(isEverMarks: isEverMarks).opacity(0.12), in: Capsule())
                 .overlay(Capsule().strokeBorder(lpCurrencyColor(isEverMarks: isEverMarks).opacity(0.3), lineWidth: 1))
             }
@@ -352,14 +321,14 @@ struct LoyaltyPointStoreView: View {
                     Text("ISK/LP").tag(true)
                     Text("LP Cost").tag(false)
                 }
-                .pickerStyle(.segmented)
+                .eveSegmentedPicker()
                 .frame(width: 150)
                 .labelsHidden()
                 .help("Sort by estimated ISK per LP or by LP cost")
             }
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 9)
+        .padding(.vertical, 10)
         .animation(.easeInOut(duration: 0.25), value: waypointMessage)
     }
 
@@ -373,7 +342,7 @@ struct LoyaltyPointStoreView: View {
                 Text(isEverMarks ? "EM Cost" : "LP Cost")
                 if !sortByISKLP {
                     Image(systemName: "chevron.up")
-                        .font(.system(size: 8, weight: .bold))
+                        .font(.eveBadge)
                         .foregroundStyle(palette.accent)
                 }
             }
@@ -396,7 +365,7 @@ struct LoyaltyPointStoreView: View {
                     Text("ISK/LP")
                     if sortByISKLP {
                         Image(systemName: "chevron.down")
-                            .font(.system(size: 8, weight: .bold))
+                            .font(.eveBadge)
                             .foregroundStyle(palette.accent)
                     }
                 }

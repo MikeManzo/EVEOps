@@ -78,9 +78,9 @@ struct SkillRequirementsView: View {
 
         HStack(spacing: 3) {
             Image(systemName: icon)
-                .font(.system(size: 7, weight: .bold))
+                .font(.eveNanoBold)
             Text(label)
-                .font(.system(size: 10, weight: .medium))
+                .font(.eveLabelMedium)
                 .lineLimit(1)
         }
         .foregroundStyle(.white)

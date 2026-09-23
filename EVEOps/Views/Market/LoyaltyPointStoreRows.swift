@@ -32,7 +32,7 @@ struct CorpHoldingRow: View {
 
                 HStack(spacing: 3) {
                     Image(systemName: lpCurrencyIcon(isEverMarks: isEverMarks))
-                        .font(.system(size: 9))
+                        .font(.eveMicro)
                         .foregroundStyle(lpCurrencyColor(isEverMarks: isEverMarks))
                     Text(lpFormatLP(corp.loyaltyPoints) + " " + lpCurrencyLabel(isEverMarks: isEverMarks))
                         .font(.caption.monospacedDigit())
@@ -52,6 +52,7 @@ struct CorpHoldingRow: View {
                         // selection fill (same color) — switch to white when selected.
                         .foregroundStyle(isSelected ? .white : themeManager.palette.accent)
                 }
+                .accessibilityLabel("Optimize LP spend for maximum ISK")
                 .buttonStyle(.plain)
                 .help("Optimize LP spend for maximum ISK")
                 .popover(isPresented: $showSpendPlan, arrowEdge: .trailing) {
@@ -150,7 +151,7 @@ struct LPOfferDetailPopover: View {
                     Divider()
                 } else if typeInfo == nil {
                     HStack {
-                        ProgressView().scaleEffect(0.7)
+                        ProgressView().controlSize(.small)
                         Text("Loading item details…")
                             .font(.caption)
                             .foregroundStyle(.tertiary)
@@ -240,7 +241,7 @@ struct LPOfferDetailPopover: View {
                         Spacer()
                         VStack(spacing: 2) {
                             Text(lpFormatISKPerLP(iskLP))
-                                .font(.title2.bold().monospacedDigit())
+                                .font(.eveStat)
                                 .foregroundStyle(.white)
                             Text("ISK / LP")
                                 .font(.caption2.bold())
@@ -248,7 +249,7 @@ struct LPOfferDetailPopover: View {
                         }
                         .padding(.horizontal, 20)
                         .padding(.vertical, 10)
-                        .background(color, in: RoundedRectangle(cornerRadius: 12))
+                        .background(color, in: RoundedRectangle(cornerRadius: EVERadius.xl))
                         .shadow(color: color.opacity(0.45), radius: 6, x: 0, y: 2)
                         Spacer()
                     }
@@ -369,7 +370,7 @@ struct LPSpendPlanPopover: View {
             Divider()
             if isLoading {
                 HStack(spacing: 8) {
-                    ProgressView().scaleEffect(0.7)
+                    ProgressView().controlSize(.small)
                     Text("Calculating best value…")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -686,7 +687,7 @@ struct LPOfferRow: View {
             // LP / EverMarks cost
             HStack(spacing: 3) {
                 Image(systemName: lpCurrencyIcon(isEverMarks: isEverMarks))
-                    .font(.system(size: 9))
+                    .font(.eveMicro)
                     .foregroundStyle(lpCurrencyColor(isEverMarks: isEverMarks))
                 Text(lpFormatLP(offer.lpCost))
                     .font(.caption.monospacedDigit().bold())
@@ -728,7 +729,7 @@ struct LPOfferRow: View {
                     .padding(.trailing, 16)
             }
         }
-        .padding(.vertical, 9)
+        .padding(.vertical, 10)
         .background(isEven ? Color.clear : Color(NSColor.separatorColor).opacity(0.07))
         .contentShape(Rectangle())
         .contextMenu {
@@ -765,7 +766,7 @@ struct LPOfferRow: View {
             Text(lpFormatISKPerLP(iskLP))
                 .font(.caption.monospacedDigit().bold())
                 .foregroundStyle(.white)
-                .padding(.horizontal, 9)
+                .padding(.horizontal, 10)
                 .padding(.vertical, 4)
                 .background(color, in: Capsule())
                 .shadow(color: color.opacity(0.4), radius: 3, x: 0, y: 1)
@@ -777,7 +778,7 @@ struct LPOfferRow: View {
             Text("≤0")
                 .font(.caption.bold())
                 .foregroundStyle(.white)
-                .padding(.horizontal, 9)
+                .padding(.horizontal, 10)
                 .padding(.vertical, 4)
                 .background(Color.red.opacity(0.75), in: Capsule())
         }

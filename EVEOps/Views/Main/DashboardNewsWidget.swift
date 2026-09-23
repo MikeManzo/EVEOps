@@ -34,7 +34,7 @@ struct EVENewsWidgetView: View {
                     if unreadCount > 0 {
                         Text("\(unreadCount)")
                             .font(.caption.bold())
-                            .padding(.horizontal, 7)
+                            .padding(.horizontal, 8)
                             .padding(.vertical, 3)
                             .background(.blue, in: Capsule())
                             .foregroundStyle(.white)
@@ -46,8 +46,9 @@ struct EVENewsWidgetView: View {
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
-                .background(Color.orange.opacity(0.07), in: RoundedRectangle(cornerRadius: 10))
-                .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.orange.opacity(0.15), lineWidth: 1))
+                .background(Color.orange.opacity(0.07), in: RoundedRectangle(cornerRadius: EVERadius.lg))
+                .overlay(RoundedRectangle(cornerRadius: EVERadius.lg).strokeBorder(Color.orange.opacity(0.15), lineWidth: 1))
+                .eveHoverable(cornerRadius: EVERadius.lg)
             }
             .buttonStyle(.plain)
 
@@ -171,8 +172,9 @@ struct NewsCardView: View {
                 .padding(12)
                 .frame(maxWidth: .infinity, alignment: .topLeading)
             }
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .eveCard()
+            .clipShape(RoundedRectangle(cornerRadius: EVERadius.xl))
+            .eveHoverable(lift: true)
         }
         .buttonStyle(.plain)
     }

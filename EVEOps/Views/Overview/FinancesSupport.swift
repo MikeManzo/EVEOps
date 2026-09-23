@@ -124,3 +124,50 @@ extension WalletCategory {
         }
     }
 }
+
+/// Wallet-balance sparkline with a hover crosshair: move the pointer across it to read the
+/// balance at any journal entry.
+struct BalanceSparkline: View {
+    let points: [BalancePoint]
+    let tint: Color
+
+    @State private var hoveredDate: Date?
+
+    private var hoveredPoint: BalancePoint? {
+        guard let hoveredDate else { return nil }
+        return points.min { abs($0.date.timeIntervalSince(hoveredDate)) < abs($1.date.timeIntervalSince(hoveredDate)) }
+    }
+
+    var body: some View {
+        Chart {
+            ForEach(points, id: \.date) { point in
+                AreaMark(x: .value("Date", point.date), y: .value("Balance", point.balance))
+                    .foregroundStyle(.eveAreaFill(tint))
+                    .interpolationMethod(.monotone)
+                LineMark(x: .value("Date", point.date), y: .value("Balance", point.balance))
+                    .foregroundStyle(tint)
+                    .lineStyle(StrokeStyle(lineWidth: 1.5, lineCap: .round))
+                    .interpolationMethod(.monotone)
+            }
+            if let hovered = hoveredPoint {
+                RuleMark(x: .value("Date", hovered.date))
+                    .foregroundStyle(.secondary.opacity(0.5))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 2]))
+                    .annotation(position: .top, spacing: 2, overflowResolution: .init(x: .fit(to: .chart), y: .fit(to: .chart))) {
+                        EVEChartCallout(
+                            title: hovered.date.formatted(date: .abbreviated, time: .shortened),
+                            value: EVEFormatters.formatISKShort(hovered.balance),
+                            tint: tint
+                        )
+                    }
+                PointMark(x: .value("Date", hovered.date), y: .value("Balance", hovered.balance))
+                    .foregroundStyle(tint)
+                    .symbolSize(28)
+            }
+        }
+        .chartXAxis(.hidden)
+        .chartYAxis(.hidden)
+        .chartXSelection(value: $hoveredDate)
+        .accessibilityLabel("Wallet balance history")
+    }
+}
