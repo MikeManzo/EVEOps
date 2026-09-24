@@ -3,15 +3,25 @@
     <channel>
         <title>EVEOps</title>
         <item>
-            <title>0.9.13</title>
-            <pubDate>Mon, 21 Sep 2026 19:43:03 -0400</pubDate>
-            <sparkle:version>152</sparkle:version>
-            <sparkle:shortVersionString>0.9.13</sparkle:shortVersionString>
+            <title>0.9.3</title>
+            <pubDate>Thu, 24 Sep 2026 14:02:53 -0400</pubDate>
+            <sparkle:version>153</sparkle:version>
+            <sparkle:shortVersionString>0.9.3</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<ul>
-<li>EVEOps now keeps an encrypted backup of your characters in the Keychain and restores them automatically if its local data is reset after a crash or update. You can also export and import a passphrase-protected backup from Settings &gt; Accounts.</li>
+            <description><![CDATA[<p>*MASSIVE UI refinements</p>
+<ul>
+<li>Design tokens</li>
+<li>Themed selections</li>
+<li>Toolbar headers</li>
+<li>Station browser updates</li>
+<li>Unified tables across the app</li>
+<li>Context menu enhacements</li>
+<li>Dock Badges</li>
+<li>Enhanced notifications</li>
+<li>Onboarding experience</li>
+<li>New desktop icon and DMG packaging</li>
 </ul>]]></description>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.13/EVEOps.dmg" length="36392966" type="application/octet-stream" sparkle:edSignature="LBURYjNHPNMWCRd39rMIeb9jlIAZe8hPMbiV2sDQedpk7btQW99IYEDQeFITwAQD7uJdnXWsGzN41fvUvPeKCQ=="/>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.3/EVEOps.dmg" length="34571576" type="application/octet-stream" sparkle:edSignature="2CJ2/BpbZYmHoz4rK87mTRXcL9pUPI9mJm0HPfY77FDVUNdL65XPuBf4UCWCztyePEGh4BpWDEUMzs0h0Tl8Cg=="/>
         </item>
     </channel>
 </rss>
