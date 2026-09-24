@@ -38,7 +38,11 @@ final class AppUpdater: NSObject {
             intentIdentifiers: [],
             options: []
         )
-        UNUserNotificationCenter.current().setNotificationCategories([category])
+        // setNotificationCategories replaces the whole set, so register the alert
+        // routing categories here too rather than letting one wipe the other.
+        UNUserNotificationCenter.current().setNotificationCategories(
+            NotificationRoute.categories.union([category])
+        )
     }
 
     @ObservationIgnored private var controller: SPUStandardUpdaterController!

@@ -36,19 +36,9 @@ struct CorporationMoonExtractionsView: View {
                 )
             }
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
-                Text("Corp Moon Mining")
-                    .font(.largeTitle.bold())
-                PinToggleButton(section: .corpMoonExtractions)
-                Spacer()
-                FreshnessIndicator(isLoading: isLoading) { await load() }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.background)
+        .eveScreenHeader("Corp Moon Mining", section: .corpMoonExtractions) {
+            FreshnessIndicator(isLoading: isLoading) { await load() }
         }
-        .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) {
             await load()
         }

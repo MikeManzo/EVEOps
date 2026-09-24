@@ -31,19 +31,9 @@ struct CharacterResearchAgentsView: View {
                 }
             }
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
-                Text("Research Agents")
-                    .font(.largeTitle.bold())
-                PinToggleButton(section: .research)
-                Spacer()
-                FreshnessIndicator(isLoading: isLoading) { await load() }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.background)
+        .eveScreenHeader("Research Agents", section: .research) {
+            FreshnessIndicator(isLoading: isLoading) { await load() }
         }
-        .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) { await load() }
         .periodicTick(every: 60) { now = Date() }
     }

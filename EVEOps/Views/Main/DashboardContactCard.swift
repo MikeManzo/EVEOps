@@ -144,6 +144,7 @@ struct ContactCardView: View {
                             }
                         }
                     }
+                    .eveEdgeFade()
                 }
             }
             .padding(12)
@@ -172,13 +173,7 @@ struct ContactCardView: View {
         }
     }
 
-    private var standingColor: Color {
-        if contact.standing >= 5 { return .blue }
-        if contact.standing > 0 { return .cyan }
-        if contact.standing == 0 { return .gray }
-        if contact.standing > -5 { return .orange }
-        return .red
-    }
+    private var standingColor: Color { eveStandingColor(contact.standing) }
 
     private var standingIcon: String {
         if contact.standing >= 5 { return "star.fill" }

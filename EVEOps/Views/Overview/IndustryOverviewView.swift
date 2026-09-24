@@ -58,22 +58,12 @@ struct IndustryOverviewView: View {
                 }
             }
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            HStack(spacing: 12) {
-                Text("Industry Overview")
-                    .font(.largeTitle.bold())
-                PinToggleButton(section: .industry)
-                Spacer()
-                RelativeTimestamp(date: lastRefresh)
-                RefreshButton(isRefreshing: isRefreshing) {
-                    Task { await refresh() }
-                }
+        .eveScreenHeader("Industry Overview", section: .industry) {
+            RelativeTimestamp(date: lastRefresh)
+            RefreshButton(isRefreshing: isRefreshing) {
+                Task { await refresh() }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.background)
         }
-        .navigationTitle("")
         .task {
             if buildFromPrefetcher() { return }
             isLoading = true

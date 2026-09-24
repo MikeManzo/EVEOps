@@ -40,10 +40,15 @@ struct CharacterCommunicationsView: View {
                     .padding(10)
                     .background(.bar)
 
-                    List(filteredNotifications, selection: $selectedNotification) { notification in
+                    // No `selection:` binding — see `eveSelectableListRow` (theme-colored selection).
+                    List(filteredNotifications) { notification in
                         notificationRow(notification)
-                            .tag(notification)
+                            .id(notification)
+                            .eveSelectableListRow(isSelected: notification == selectedNotification, palette: themeManager.palette) {
+                                selectedNotification = notification
+                            }
                     }
+                    .eveKeyboardSelection(filteredNotifications, selection: selectedNotification) { selectedNotification = $0 }
                 }
                 .frame(maxWidth: .infinity)
 
@@ -54,19 +59,9 @@ struct CharacterCommunicationsView: View {
                 }
             }
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
-                Text("Communications")
-                    .font(.largeTitle.bold())
-                PinToggleButton(section: .communications)
-                Spacer()
-                FreshnessIndicator(isLoading: isLoading) { await loadNotifications() }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.background)
+        .eveScreenHeader("Communications", section: .communications) {
+            FreshnessIndicator(isLoading: isLoading) { await loadNotifications() }
         }
-        .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) {
             notifications = []
             selectedNotification = nil

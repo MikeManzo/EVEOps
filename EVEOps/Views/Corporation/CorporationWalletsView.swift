@@ -54,19 +54,9 @@ struct CorporationWalletsView: View {
                 tabContent
             }
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
-                Text("Corp Wallets")
-                    .font(.largeTitle.bold())
-                PinToggleButton(section: .corpWallets)
-                Spacer()
-                FreshnessIndicator(isLoading: isLoading) { await loadWallets() }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.background)
+        .eveScreenHeader("Corp Wallets", section: .corpWallets) {
+            FreshnessIndicator(isLoading: isLoading) { await loadWallets() }
         }
-        .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) {
             wallets = []
             journal = []
@@ -118,6 +108,7 @@ struct CorporationWalletsView: View {
             .padding(.horizontal)
             .padding(.vertical, 8)
         }
+        .eveEdgeFade()
         .background(.bar)
     }
 

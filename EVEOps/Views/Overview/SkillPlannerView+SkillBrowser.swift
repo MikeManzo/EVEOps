@@ -94,6 +94,7 @@ extension SkillPlannerView {
                     .padding(.horizontal, 10)
                     .padding(.bottom, 8)
                 }
+                .eveEdgeFade()
                 .background(.bar)
 
                 Divider()

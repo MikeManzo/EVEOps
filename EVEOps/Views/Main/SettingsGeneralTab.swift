@@ -21,8 +21,17 @@ struct GeneralTab: View {
     @AppStorage("backgroundPollInterval") private var pollInterval: Double = 300
     @AppStorage("defaultCharacterMode") private var defaultCharacterMode: String = "last"
     @AppStorage("showDockIcon") private var showDockIcon: Bool = false
+    @AppStorage(DockTileController.badgeKey) private var dockBadge = true
+    @AppStorage(DockTileController.progressKey) private var dockProgress = false
     @State private var launchAtLogin = false
     @State private var isRefreshing = false
+
+    private func refreshDockTile() {
+        DockTileController.update(
+            summaries: Array(prefetcher.menuBarSummaries.values),
+            selectedCharacterID: accountManager.selectedCharacterID
+        )
+    }
 
     var body: some View {
         Form {
@@ -42,7 +51,19 @@ struct GeneralTab: View {
                 Text("Allows switching to EVEOps via Cmd-Tab and the Dock. Takes effect immediately.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                if showDockIcon {
+                    Toggle(isOn: $dockBadge) {
+                        Text("Badge Dock icon when something needs attention")
+                        Text("Counts idle skill queues and offline planetary extractors.")
+                    }
+                    Toggle(isOn: $dockProgress) {
+                        Text("Show skill training progress on Dock icon")
+                        Text("A ring around the icon tracks the current skill of the selected character.")
+                    }
+                }
             }
+            .onChange(of: dockBadge) { _, _ in refreshDockTile() }
+            .onChange(of: dockProgress) { _, _ in refreshDockTile() }
 
             Section("Background Refresh") {
                 Picker("Check interval", selection: $pollInterval) {
@@ -211,7 +232,7 @@ struct AppearanceTab: View {
                     themeManager.faction = faction
                 } label: {
                     VStack(spacing: 6) {
-                        factionCrestSwatch(faction, size: Self.crestSwatchSize)
+                        FactionCrestSwatch(faction: faction, size: Self.crestSwatchSize)
                             .overlay(Circle().strokeBorder(faction.palette.accent, lineWidth: 2))
                             .overlay {
                                 if isSelected {
@@ -243,18 +264,25 @@ struct AppearanceTab: View {
 
     private static let crestSwatchSize: CGFloat = 30 * 1.25
 
-    /// The faction's own crest (from CCP's image server) clipped into the swatch circle,
-    /// with the theme accent as a ring around it — reads like a coin/medallion rather than
-    /// a flat color dot. EVEOps' own default isn't one of the four empires, so it falls
-    /// back to a plain accent-filled circle.
-    ///
-    /// The served crest image bakes in a wordmark below the icon (e.g. a "CALDARI" label),
-    /// so this deliberately over-scales and shifts it to keep only the icon in frame — the
-    /// scale/offset were derived from a pixel row-density scan of all four crests (where the
-    /// icon glyph sits vs. where the text starts), not eyeballed, since the icon's exact
-    /// position varies a little faction to faction.
-    @ViewBuilder
-    private func factionCrestSwatch(_ faction: FactionTheme, size: CGFloat) -> some View {
+}
+
+// MARK:  Faction Crest Swatch
+
+/// The faction's own crest (from CCP's image server) clipped into the swatch circle,
+/// with the theme accent as a ring around it — reads like a coin/medallion rather than
+/// a flat color dot. EVEOps' own default isn't one of the four empires, so it falls
+/// back to a plain accent-filled circle.
+///
+/// The served crest image bakes in a wordmark below the icon (e.g. a "CALDARI" label),
+/// so this deliberately over-scales and shifts it to keep only the icon in frame — the
+/// scale/offset were derived from a pixel row-density scan of all four crests (where the
+/// icon glyph sits vs. where the text starts), not eyeballed, since the icon's exact
+/// position varies a little faction to faction.
+struct FactionCrestSwatch: View {
+    let faction: FactionTheme
+    let size: CGFloat
+
+    var body: some View {
         if let factionID = faction.factionID {
             CachedAsyncImage(url: EVEImageURL.factionCrest(factionID, size: 128)) { image in
                 image

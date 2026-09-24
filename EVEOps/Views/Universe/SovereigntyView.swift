@@ -81,21 +81,7 @@ struct SovereigntyView: View {
                 .id(detail.id)
             }
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
-                Text("Sovereignty").font(.largeTitle.bold())
-                PinToggleButton(section: .sovereignty)
-                Spacer()
-                if !isLoading && error == nil {
-                    Text("\(campaigns.count) campaigns · \(structuresLoading ? "…" : "\(structures.count)") structures")
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.background)
-        }
-        .navigationTitle("")
+        .eveScreenHeader("Sovereignty", subtitle: (isLoading || error != nil) ? nil : Text("\(campaigns.count) campaigns · \(structuresLoading ? "…" : "\(structures.count)") structures"), section: .sovereignty)
         .task { await load() }
         .task(id: tab) { if tab == .holders { await loadHolders() } }
         .onChange(of: tab) { _, _ in detail = nil }
@@ -384,14 +370,6 @@ enum SovereigntyFormat {
     }
 }
 
-func sovSecColor(_ status: Double) -> Color {
-    switch status {
-    case 0.5...:    return Color(red: 0.4, green: 0.8, blue: 0.3)
-    case 0.1..<0.5: return .orange
-    default:        return Color(red: 0.9, green: 0.2, blue: 0.2)
-    }
-}
-
 // MARK:  Campaign Row
 
 private struct CampaignRow: View {
@@ -430,9 +408,7 @@ private struct CampaignRow: View {
 
                 HStack(spacing: 6) {
                     if let sec = item.securityStatus {
-                        Text(String(format: "%.1f", sec))
-                            .font(.caption2.bold().monospacedDigit())
-                            .foregroundStyle(sovSecColor(sec))
+                        EVESecurityBadge(status: sec, compact: true)
                     }
                     Text(item.systemName).font(.subheadline.bold())
                     let geo = [item.constellationName, item.regionName].compactMap { $0 }.joined(separator: " · ")
@@ -505,9 +481,7 @@ private struct StructureRow: View {
                           systemImage: SovereigntyFormat.structureIcon(item.structureTypeId))
                         .font(.caption.bold())
                     if let sec = securityStatus {
-                        Text(String(format: "%.1f", sec))
-                            .font(.caption2.bold().monospacedDigit())
-                            .foregroundStyle(sovSecColor(sec))
+                        EVESecurityBadge(status: sec, compact: true)
                     }
                     Text(systemName ?? "System #\(item.solarSystemId)")
                         .font(.subheadline)
@@ -873,9 +847,7 @@ private struct ResolvedSystemLine: View {
             Text("SYSTEM").font(.caption2.bold()).foregroundStyle(.tertiary)
             HStack(spacing: 6) {
                 if let sec {
-                    Text(String(format: "%.1f", sec))
-                        .font(.caption.bold().monospacedDigit())
-                        .foregroundStyle(sovSecColor(sec))
+                    EVESecurityBadge(status: sec, compact: true)
                 }
                 Text(name ?? fallbackName).font(.subheadline.bold())
             }

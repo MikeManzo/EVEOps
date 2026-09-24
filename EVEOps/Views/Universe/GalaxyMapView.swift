@@ -151,18 +151,7 @@ struct GalaxyMapView: View {
                 }
             }
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
-                Text("Galaxy Map")
-                    .font(.largeTitle.bold())
-                PinToggleButton(section: .galaxyMap)
-                Spacer()
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.background)
-        }
-        .navigationTitle("")
+        .eveScreenHeader("Galaxy Map", section: .galaxyMap)
         .task { await loadData() }
         .task {
             // Location (and prefetch/token) may not be ready on first pass — keep

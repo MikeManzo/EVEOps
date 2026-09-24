@@ -22,6 +22,8 @@ struct MainContentView: View {
     /// characters removed) falls through to the Dashboard.
     @AppStorage("nav.lastSection") private var selectedSection: NavigationSection?
     @State private var showCommandPalette = false
+    @State private var showOnboarding = false
+    @AppStorage(OnboardingView.completedKey) private var onboardingCompleted = false
 
     var body: some View {
         @Bindable var am = accountManager
@@ -73,6 +75,13 @@ struct MainContentView: View {
                 .accessibilityLabel("Settings")
             }
         }
+        .sheet(isPresented: $showOnboarding) {
+            OnboardingView(characterName: accountManager.accounts.first?.characterName) {
+                onboardingCompleted = true
+                showOnboarding = false
+            }
+            .interactiveDismissDisabled()
+        }
         .sheet(isPresented: $showCommandPalette) {
             CommandPaletteView(
                 selectedSection: $selectedSection,
@@ -88,8 +97,16 @@ struct MainContentView: View {
             if !accountManager.accounts.isEmpty && selectedSection == nil {
                 selectedSection = .dashboard
             }
+            // Existing pilots upgrading to a build with onboarding already know the app —
+            // mark it seen instead of greeting them with a first-run walkthrough.
+            if !accountManager.accounts.isEmpty && !onboardingCompleted {
+                onboardingCompleted = true
+            }
         }
-        .onChange(of: accountManager.accounts.count) {
+        .onChange(of: accountManager.accounts.count) { oldCount, newCount in
+            if oldCount == 0 && newCount > 0 && !onboardingCompleted {
+                showOnboarding = true
+            }
             if accountManager.accounts.isEmpty {
                 selectedSection = nil
             } else if selectedSection == nil {
@@ -104,6 +121,13 @@ struct MainContentView: View {
         }
         .onChange(of: AppRouter.shared.pendingEFTURL) { _, url in
             if url != nil { selectedSection = .fittings }
+        }
+        .onChange(of: AppRouter.shared.pendingCharacterID) { _, id in
+            guard let id else { return }
+            if accountManager.accounts.contains(where: { $0.characterID == id }) {
+                accountManager.selectedCharacterID = id
+            }
+            AppRouter.shared.pendingCharacterID = nil
         }
         .onChange(of: AppRouter.shared.pendingSection) { _, section in
             guard let section else { return }

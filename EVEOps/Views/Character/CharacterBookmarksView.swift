@@ -49,18 +49,9 @@ struct CharacterBookmarksView: View {
                 bookmarkList
             }
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
-                Text("Bookmarks")
-                    .font(.largeTitle.bold())
-                Spacer()
-                FreshnessIndicator(isLoading: isLoading) { await loadBookmarks() }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.background)
+        .eveScreenHeader("Bookmarks") {
+            FreshnessIndicator(isLoading: isLoading) { await loadBookmarks() }
         }
-        .navigationTitle("")
         .searchable(text: $searchText, prompt: "Search bookmarks")
         .task(id: accountManager.selectedCharacterID) {
             await loadBookmarks()
@@ -85,6 +76,7 @@ struct CharacterBookmarksView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
         }
+        .eveEdgeFade()
         .background(.bar)
     }
 

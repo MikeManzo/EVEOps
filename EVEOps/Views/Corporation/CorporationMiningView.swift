@@ -29,18 +29,7 @@ struct CorporationMiningView: View {
                     }
             }
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
-                Text("Corp Mining Ledger")
-                    .font(.largeTitle.bold())
-                PinToggleButton(section: .corpMining)
-                Spacer()
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.background)
-        }
-        .navigationTitle("")
+        .eveScreenHeader("Corp Mining Ledger", section: .corpMining)
         .task(id: accountManager.selectedCharacterID) {
             guard let account = accountManager.selectedAccount else { return }
             isLoading = true

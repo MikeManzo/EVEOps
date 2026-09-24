@@ -91,19 +91,9 @@ struct CorporationStructuresView: View {
                 .padding(.vertical, 4)
             }
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
-                Text("Corp Structures")
-                    .font(.largeTitle.bold())
-                PinToggleButton(section: .corpStructures)
-                Spacer()
-                FreshnessIndicator(isLoading: isLoading) { await loadStructures() }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.background)
+        .eveScreenHeader("Corp Structures", section: .corpStructures) {
+            FreshnessIndicator(isLoading: isLoading) { await loadStructures() }
         }
-        .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) {
             structures = []
             isLoading = true

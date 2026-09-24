@@ -68,18 +68,7 @@ struct RegionStationBrowserView: View {
             }
         }
         .animation(EVEMotion.snappy, value: selectedStation?.station.stationId)
-        .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
-                Text("Station Browser")
-                    .font(.largeTitle.bold())
-                PinToggleButton(section: .stationBrowser)
-                Spacer()
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.background)
-        }
-        .navigationTitle("")
+        .eveScreenHeader("Station Browser", subtitle: stationSubtitle, section: .stationBrowser)
         .task { await loadRegions() }
         .task(id: selectedRegionId) {
             selectedStation = nil
@@ -87,6 +76,12 @@ struct RegionStationBrowserView: View {
             await loadStations()
             await loadJumpCounts()
         }
+    }
+
+    /// "Lonetrek · 449 stations" once the region has loaded.
+    private var stationSubtitle: Text? {
+        guard let region = selectedRegion?.name, !isLoading, !stations.isEmpty else { return nil }
+        return Text("\(region) · \(stations.count) stations")
     }
 
     // MARK:  Filter Bar
@@ -146,6 +141,7 @@ struct RegionStationBrowserView: View {
                     }
                 }
             }
+            .eveEdgeFade()
         }
         .padding(.horizontal, EVESpacing.xl)
         .padding(.vertical, EVESpacing.md + 2)

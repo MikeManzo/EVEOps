@@ -114,7 +114,7 @@ struct SidebarView: View {
                                     .moveDisabled(!filterText.isEmpty)
                                 },
                                 header: {
-                                    sectionHeader("Pinned (\(pinnedSections.count)/\(Self.maxPinned))", systemImage: "pin.fill", tint: .pinAccent)
+                                    sectionHeader("Pinned (\(pinnedSections.count)/\(Self.maxPinned))", systemImage: "pin.fill")
                                 }
                             )
                         }
@@ -133,7 +133,7 @@ struct SidebarView: View {
                                     .moveDisabled(!filterText.isEmpty)
                                 },
                                 header: {
-                                    sectionHeader("Pilot — \(account.characterName)", systemImage: "person.fill", tint: .teal)
+                                    sectionHeader("Pilot — \(account.characterName)", systemImage: "person.fill")
                                 }
                             )
                         }
@@ -152,7 +152,7 @@ struct SidebarView: View {
                                     .moveDisabled(!filterText.isEmpty)
                                 },
                                 header: {
-                                    sectionHeader("Economy", systemImage: "banknote.fill", tint: .green)
+                                    sectionHeader("Economy", systemImage: "banknote.fill")
                                 }
                             )
                         }
@@ -171,7 +171,7 @@ struct SidebarView: View {
                                     .moveDisabled(!filterText.isEmpty)
                                 },
                                 header: {
-                                    sectionHeader("Combat & Fleet", systemImage: "bolt.shield.fill", tint: .red)
+                                    sectionHeader("Combat & Fleet", systemImage: "bolt.shield.fill")
                                 }
                             )
                         }
@@ -190,7 +190,7 @@ struct SidebarView: View {
                                     .moveDisabled(!filterText.isEmpty)
                                 },
                                 header: {
-                                    sectionHeader("Social & Comms", systemImage: "bubble.left.and.bubble.right.fill", tint: .purple)
+                                    sectionHeader("Social & Comms", systemImage: "bubble.left.and.bubble.right.fill")
                                 }
                             )
                         }
@@ -209,7 +209,7 @@ struct SidebarView: View {
                                     .moveDisabled(!filterText.isEmpty)
                                 },
                                 header: {
-                                    sectionHeader("Universe", systemImage: "globe", tint: .cyan)
+                                    sectionHeader("Universe", systemImage: "globe")
                                 }
                             )
                         }
@@ -229,7 +229,7 @@ struct SidebarView: View {
                                 .moveDisabled(!filterText.isEmpty)
                             },
                             header: {
-                                sectionHeader("Corp: \(account.corporationName)", systemImage: "building.2.fill", tint: .brown)
+                                sectionHeader("Corp: \(account.corporationName)", systemImage: "building.2.fill")
                             }
                         )
                     }
@@ -352,20 +352,22 @@ struct SidebarView: View {
             .compactMap { NavigationSection(rawValue: String($0)) }
     }
 
-    /// A section header: a small, tinted icon beside the title, sized so it
-    /// doesn't outweigh the row icons nested under it. Each section keeps its
-    /// own hue — distinct from `.accentColor` (row selection) and `.orange`
-    /// (warnings) — so a section is identifiable by color alone.
+    /// A section header in the native macOS sidebar style (Finder, Mail, Music): small
+    /// semibold secondary text with a quiet monochrome glyph. Headers used to carry a
+    /// distinct hue per group at title size, which made them the loudest thing in the
+    /// sidebar and ignored the faction theme; color now belongs to the rows (theme accent)
+    /// and the selection.
     @ViewBuilder
-    private func sectionHeader(_ title: String, systemImage: String, tint: Color = .secondary) -> some View {
+    private func sectionHeader(_ title: String, systemImage: String) -> some View {
         Label {
             Text(title)
-                .font(.title3)
+                .font(.subheadline.weight(.semibold))
         } icon: {
             Image(systemName: systemImage)
-                .font(.subheadline)
-                .foregroundStyle(tint)
+                .font(.caption)
+                .foregroundStyle(.tertiary)
         }
+        .foregroundStyle(.secondary)
         .textCase(.none)
     }
 

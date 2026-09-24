@@ -81,18 +81,7 @@ struct CorporationHangarsView: View {
                 }
             }
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
-                Text("Corp Hangars")
-                    .font(.largeTitle.bold())
-                PinToggleButton(section: .corpHangars)
-                Spacer()
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.background)
-        }
-        .navigationTitle("")
+        .eveScreenHeader("Corp Hangars", section: .corpHangars)
         .task(id: "\(loadID)-\(accountManager.selectedCharacterID ?? 0)") {
             allHangarAssets = []
             locations = []
@@ -254,6 +243,7 @@ struct CorporationHangarsView: View {
             .padding(.horizontal)
             .padding(.vertical, 8)
         }
+        .eveEdgeFade()
         .background(.bar)
         .overlay(alignment: .bottom) { Divider() }
     }
@@ -295,6 +285,7 @@ struct CorporationHangarsView: View {
             .padding(.horizontal)
             .padding(.vertical, 8)
         }
+        .eveEdgeFade()
         .background(.regularMaterial)
         .overlay(alignment: .bottom) { Divider() }
     }
@@ -347,25 +338,34 @@ struct CorporationHangarsView: View {
                     ContentUnavailableView.search(text: searchText)
                 }
             } else {
-                List(selection: $selectedAsset) {
+                // No `selection:` binding — see `eveSelectableListRow` (theme-colored selection).
+                List {
                     if groupByCategory && !itemTypeCategories.isEmpty {
                         ForEach(groupedVisibleItems, id: \.category) { section in
                             Section(section.category) {
                                 ForEach(section.items) { asset in
                                     assetRow(asset)
-                                        .tag(asset)
-                                        .themedListRow(isSelected: asset == selectedAsset, palette: palette)
+                                        .id(asset)
+                                        .eveSelectableListRow(isSelected: asset == selectedAsset, palette: palette) {
+                                            selectedAsset = asset
+                                        }
                                 }
                             }
                         }
                     } else {
                         ForEach(visibleItems) { asset in
                             assetRow(asset)
-                                .tag(asset)
-                                .themedListRow(isSelected: asset == selectedAsset, palette: palette)
+                                .id(asset)
+                                .eveSelectableListRow(isSelected: asset == selectedAsset, palette: palette) {
+                                    selectedAsset = asset
+                                }
                         }
                     }
                 }
+                .eveKeyboardSelection(
+                    groupByCategory && !itemTypeCategories.isEmpty ? groupedVisibleItems.flatMap(\.items) : visibleItems,
+                    selection: selectedAsset
+                ) { selectedAsset = $0 }
             }
         }
         .frame(maxWidth: .infinity)

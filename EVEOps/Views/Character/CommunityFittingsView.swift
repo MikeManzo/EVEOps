@@ -45,6 +45,7 @@ struct RecentlyDestroyedEntry: Identifiable {
 // MARK:  Main View
 
 struct CommunityFittingsView: View {
+    @Environment(ThemeManager.self) private var themeManager
 
     static let knownRegions: [(name: String, id: Int)] = [
         ("Black Rise",    10000069),
@@ -212,11 +213,16 @@ struct CommunityFittingsView: View {
                         .padding(.vertical, 6)
                         .background(.quaternary.opacity(0.25))
 
-                        List(recentlyDestroyed, selection: $selectedTypeId) { entry in
+                        // No `selection:` binding — see `eveSelectableListRow` (theme-colored selection).
+                        List(recentlyDestroyed) { entry in
                             RecentlyDestroyedRow(entry: entry)
-                                .tag(entry.typeId)
+                                .id(entry.typeId)
+                                .eveSelectableListRow(isSelected: entry.typeId == selectedTypeId, palette: themeManager.palette) {
+                                    selectedTypeId = entry.typeId
+                                }
                         }
-                        .listStyle(.inset)
+                        .listStyle(.sidebar)
+                        .eveKeyboardSelection(recentlyDestroyed.map(\.typeId), selection: selectedTypeId) { selectedTypeId = $0 }
                     }
                 }
             } else if isSearching {
@@ -225,11 +231,16 @@ struct CommunityFittingsView: View {
             } else if searchResults.isEmpty {
                 EVEEmptyState("No Ships Found", systemImage: "questionmark.circle")
             } else {
-                List(searchResults, id: \.typeId, selection: $selectedTypeId) { type in
+                // No `selection:` binding — see `eveSelectableListRow` (theme-colored selection).
+                List(searchResults, id: \.typeId) { type in
                     CommunityShipRow(type: type)
-                        .tag(type.typeId)
+                        .id(type.typeId)
+                        .eveSelectableListRow(isSelected: type.typeId == selectedTypeId, palette: themeManager.palette) {
+                            selectedTypeId = type.typeId
+                        }
                 }
-                .listStyle(.inset)
+                .listStyle(.sidebar)
+                .eveKeyboardSelection(searchResults.map(\.typeId), selection: selectedTypeId) { selectedTypeId = $0 }
             }
         }
         .frame(maxWidth: .infinity)

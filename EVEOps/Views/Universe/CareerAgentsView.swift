@@ -72,21 +72,11 @@ struct AgentFinderView: View {
                 .id(agent.id)
             }
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
-                Text("Agent Finder")
-                    .font(.largeTitle.bold())
-                PinToggleButton(section: .careerAgents)
-                Spacer()
-                if dbLoading || isResolvingResults {
-                    ProgressView().controlSize(.small)
-                }
+        .eveScreenHeader("Agent Finder", section: .careerAgents) {
+            if dbLoading || isResolvingResults {
+                ProgressView().controlSize(.small)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.background)
         }
-        .navigationTitle("")
         .task {
             await startDatabase()
         }
@@ -133,6 +123,7 @@ struct AgentFinderView: View {
                         }
                     }
                 }
+                .eveEdgeFade()
             }
 
             // Division sub-filter (only for Basic Mission)
@@ -153,6 +144,7 @@ struct AgentFinderView: View {
                             }
                         }
                     }
+                    .eveEdgeFade()
                 }
             }
 

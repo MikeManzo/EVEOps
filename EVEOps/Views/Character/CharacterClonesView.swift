@@ -31,7 +31,8 @@ struct CharacterClonesView: View {
     var body: some View {
         LoadingStateView(isLoading: isLoading, error: error, isEmpty: clonesResponse == nil, emptyMessage: "No Clone Data", emptySystemImage: "person.2.crop.square.stack") {
             HStack(spacing: 0) {
-                List(selection: $selectedImplant) {
+                // No `selection:` binding — see `eveSelectableListRow` (theme-colored selection).
+                List {
                     jumpCooldownSection
                     if #available(macOS 26.0, *), IntelligenceService.isSupported, aiInsightsEnabled, aiInsightClones, !activeImplants.isEmpty {
                         Section {
@@ -50,6 +51,7 @@ struct CharacterClonesView: View {
                     activeImplantsSection
                     jumpClonesSection
                 }
+                .eveKeyboardSelection(activeImplants, selection: selectedImplant) { selectedImplant = $0 }
                 .frame(maxWidth: .infinity)
 
                 if let implant = stripImplant ?? selectedImplant {
@@ -63,19 +65,9 @@ struct CharacterClonesView: View {
             // A row click in the List takes over the detail pane from the strip.
             if newValue != nil { stripImplant = nil }
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
-                Text("Clones")
-                    .font(.largeTitle.bold())
-                PinToggleButton(section: .clones)
-                Spacer()
-                FreshnessIndicator(isLoading: isLoading) { await loadClones() }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.background)
+        .eveScreenHeader("Clones", section: .clones) {
+            FreshnessIndicator(isLoading: isLoading) { await loadClones() }
         }
-        .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) {
             clonesResponse = nil
             activeImplants = []
@@ -136,8 +128,8 @@ struct CharacterClonesView: View {
                         }
                         Text(implant.name)
                     }
-                    .tag(implant)
-                    .themedListRow(isSelected: isSelected, palette: palette)
+                    .id(implant)
+                    .eveSelectableListRow(isSelected: isSelected, palette: palette) { selectedImplant = implant }
                 }
             }
         }

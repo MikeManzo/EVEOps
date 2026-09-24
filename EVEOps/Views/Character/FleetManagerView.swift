@@ -59,19 +59,9 @@ struct FleetManagerView: View {
                 .padding()
             }
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
-                Text("Fleet Manager")
-                    .font(.largeTitle.bold())
-                PinToggleButton(section: .fleetManager)
-                Spacer()
-                FreshnessIndicator(isLoading: isLoading) { await loadFleet() }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.background)
+        .eveScreenHeader("Fleet Manager", section: .fleetManager) {
+            FreshnessIndicator(isLoading: isLoading) { await loadFleet() }
         }
-        .navigationTitle("")
         .sheet(isPresented: $showingInvite) {
             InviteFleetMemberSheet { characterId, role in
                 await sendInvite(characterId: characterId, role: role)

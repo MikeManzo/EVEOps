@@ -364,6 +364,10 @@ final class DashboardPrefetcher {
 
             menuBarSummaries[account.characterID] = s
         }
+        DockTileController.update(
+            summaries: Array(menuBarSummaries.values),
+            selectedCharacterID: accountManager.selectedCharacterID
+        )
     }
 
     // MARK:  AI Insight Prefetch

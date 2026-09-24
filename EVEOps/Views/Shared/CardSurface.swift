@@ -11,32 +11,6 @@
 import SwiftUI
 
 extension View {
-    /// Recolors a `List` row's native selection highlight with the live faction accent.
-    ///
-    /// Two `.listRowBackground`-based approaches were tried before this and both failed the
-    /// same way: on macOS, the system's own selection layer paints *on top of* whatever
-    /// `.listRowBackground` supplies, not behind it — screenshots confirmed the native color
-    /// (from the app's static AccentColor asset) stayed visible across most of the row, with
-    /// our fill only showing at the margins. No amount of opacity or padding on a background
-    /// view can win a fight with something drawn after it.
-    ///
-    /// `.listItemTint(_:)` is Apple's actual mechanism for this — it's what backs Reminders'
-    /// and Notes' per-list colored sidebars — but it has to be applied to each row's own
-    /// content directly. Applying it once from a distant ancestor (tried first, before either
-    /// `.listRowBackground` attempt) didn't visibly take, which is presumably why: it needs
-    /// to reach the row itself, not just be present somewhere in the environment.
-    ///
-    /// Caveat: it doesn't take in every list — the Station Browser (sectioned, sidebar
-    /// style) kept showing the static AccentColor with it applied. Where the selection
-    /// color must follow the theme, use `eveSelectableListRow` instead.
-    func themedListRow(isSelected: Bool, palette: EVEPalette) -> some View {
-        self
-            .foregroundStyle(isSelected ? .white : .primary)
-            .listItemTint(.fixed(palette.accent))
-    }
-}
-
-extension View {
     /// Standard EVEOps card surface — regular material in a rounded rect. This is the
     /// default look most panels already use via `.background(.regularMaterial, in:
     /// RoundedRectangle(...))`; prefer this modifier for new cards so the corner radius
@@ -70,10 +44,14 @@ extension View {
 extension View {
     /// Selection that reliably uses the faction accent, for a `List` built *without* a
     /// `selection:` binding: tapping the row calls `onSelect`, and the selected row gets a
-    /// plain accent-filled background. This is the sidebar's technique — macOS paints a
-    /// `List(selection:)` highlight on top of anything we supply, and `.listItemTint` (see
-    /// `themedListRow`) doesn't take in every list configuration, so when the theme color
-    /// must win, don't let the system draw a selection at all.
+    /// plain accent-filled background.
+    ///
+    /// Why not a native `List(selection:)`: macOS draws its selection highlight in the
+    /// app's static AccentColor asset, on top of anything we supply. `.listRowBackground`
+    /// loses to it, and `.listItemTint` (the former `themedListRow`) didn't take in
+    /// sectioned lists — screenshots kept showing the asset color. So when the theme color
+    /// must win, don't let the system draw a selection at all; the main sidebar pioneered
+    /// this and every selectable list in the app now uses it.
     ///
     /// Pair with `.onKeyPress` on the List for ↑/↓ navigation, which a selection-less List
     /// doesn't provide on its own.
@@ -83,6 +61,9 @@ extension View {
             .contentShape(Rectangle())
             .onTapGesture(perform: onSelect)
             .foregroundStyle(isSelected ? .white : .primary)
+            // What the native selection does for us: tells hierarchical styles
+            // (.secondary, .tertiary) they sit on a prominent fill, so they turn light.
+            .environment(\.backgroundProminence, isSelected ? .increased : .standard)
             .listRowBackground(
                 isSelected
                     ? RoundedRectangle(cornerRadius: EVERadius.sm)
@@ -92,5 +73,47 @@ extension View {
             )
             .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
             .accessibilityAction { onSelect() }
+    }
+}
+
+private struct EVEListKeyboardSelection<ID: Hashable>: ViewModifier {
+    let ordered: [ID]
+    let selection: ID?
+    let onSelect: (ID?) -> Void
+
+    func body(content: Content) -> some View {
+        ScrollViewReader { proxy in
+            content
+                .focusable()
+                .focusEffectDisabled()
+                .onKeyPress(.downArrow) { move(1, proxy) }
+                .onKeyPress(.upArrow) { move(-1, proxy) }
+        }
+    }
+
+    private func move(_ delta: Int, _ proxy: ScrollViewProxy) -> KeyPress.Result {
+        guard !ordered.isEmpty else { return .ignored }
+        let next: ID
+        if let selection, let index = ordered.firstIndex(of: selection) {
+            next = ordered[min(max(index + delta, 0), ordered.count - 1)]
+        } else {
+            next = delta > 0 ? ordered[0] : ordered[ordered.count - 1]
+        }
+        onSelect(next)
+        proxy.scrollTo(next)
+        return .handled
+    }
+}
+
+extension View {
+    /// ↑/↓ row navigation for a `List` whose rows use `eveSelectableListRow` (and so has
+    /// no native `selection:` binding to provide it). `ordered` is every selectable row ID
+    /// in display order; rows must carry a matching `.id(_:)` for scrolling to work.
+    func eveKeyboardSelection<ID: Hashable>(
+        _ ordered: [ID],
+        selection: ID?,
+        onSelect: @escaping (ID?) -> Void
+    ) -> some View {
+        modifier(EVEListKeyboardSelection(ordered: ordered, selection: selection, onSelect: onSelect))
     }
 }

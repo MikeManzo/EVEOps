@@ -91,8 +91,7 @@ struct AgentDetailView: View {
 
     private var infoSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Label("Details", systemImage: "person.text.rectangle.fill")
-                .font(.subheadline.bold())
+            EVESectionTitle("Details")
 
             infoRow("Level",       "L\(agent.agent.level)")
             infoRow("Agent ID",    "\(agent.agent.agentID)")
@@ -104,8 +103,7 @@ struct AgentDetailView: View {
             }
 
             Divider()
-            Label("Location", systemImage: "location.fill")
-                .font(.subheadline.bold()).foregroundStyle(.blue)
+            EVESectionTitle("Location")
 
             HStack(spacing: 6) {
                 if let sec = agent.securityStatus {
@@ -123,10 +121,7 @@ struct AgentDetailView: View {
     }
 
     private func infoRow(_ label: String, _ value: String) -> some View {
-        HStack(spacing: 6) {
-            Text(label).font(.caption).foregroundStyle(.tertiary).frame(width: 90, alignment: .trailing)
-            Text(value).font(.caption).foregroundStyle(.secondary)
-        }
+        EVEInfoRow(verbatim: label, value)
     }
 
     @ViewBuilder

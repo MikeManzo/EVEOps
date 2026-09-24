@@ -160,9 +160,7 @@ struct CharacterCardView: View {
                                     .font(.caption2.bold())
                                     .foregroundStyle(.purple)
                             } else if let sec = summary?.securityStatus {
-                                Text(String(format: "%.1f", sec))
-                                    .font(.caption2.monospacedDigit())
-                                    .foregroundStyle(sec >= 0.5 ? .green : sec >= 0.0 ? .yellow : .red)
+                                EVESecurityBadge(status: sec, compact: true)
                             }
                         }
                     }

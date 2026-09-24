@@ -38,19 +38,9 @@ struct CorporationIndustryView: View {
                 jobsTable
             }
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
-                Text("Corp Industry")
-                    .font(.largeTitle.bold())
-                PinToggleButton(section: .corpIndustry)
-                Spacer()
-                FreshnessIndicator(isLoading: isLoading) { await loadJobs() }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.background)
+        .eveScreenHeader("Corp Industry", section: .corpIndustry) {
+            FreshnessIndicator(isLoading: isLoading) { await loadJobs() }
         }
-        .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) {
             jobs = []
             isLoading = true

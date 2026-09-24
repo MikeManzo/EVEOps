@@ -37,13 +37,17 @@ struct DashboardView: View {
         )
     }
 
+    /// "3 pilots · 1.2B ISK" — the account count and combined wallet, once loaded.
+    private var dashboardSubtitle: Text? {
+        guard !summaries.isEmpty else { return nil }
+        let wallet = summaries.reduce(0) { $0 + $1.wallet }
+        let pilots = summaries.count == 1 ? String(localized: "1 pilot") : String(localized: "\(summaries.count) pilots")
+        return Text("\(pilots) · \(EVEFormatters.formatISKShort(wallet))")
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                Text("Dashboard")
-                    .font(.largeTitle.bold())
-                    .padding(.horizontal)
-
                 // Character hero cards — full-width split layout
                 let columns = [GridItem(.adaptive(minimum: 340, maximum: 480), spacing: 16)]
                 LazyVGrid(columns: [GridItem(.flexible())], spacing: 16) {
@@ -101,6 +105,7 @@ struct DashboardView: View {
             }
             .padding(.vertical)
         }
+        .eveScreenHeader("Dashboard", subtitle: dashboardSubtitle)
         .overlay {
             if !apiStatus.isReachable && summaries.isEmpty {
                 EVEEmptyState(

@@ -133,22 +133,12 @@ struct AssetBrowser: View {
                     .frame(width: 320)
             }
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            HStack(spacing: 12) {
-                Text(kind.title)
-                    .font(.largeTitle.bold())
-                PinToggleButton(section: kind.navigationSection)
-                Spacer()
-                RelativeTimestamp(date: lastRefresh)
-                RefreshButton(isRefreshing: isRefreshing) {
-                    Task { await refresh() }
-                }
+        .eveScreenHeader(verbatim: kind.title, section: kind.navigationSection) {
+            RelativeTimestamp(date: lastRefresh)
+            RefreshButton(isRefreshing: isRefreshing) {
+                Task { await refresh() }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.background)
         }
-        .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) {
             assets = []
             assetByID = [:]
@@ -212,7 +202,8 @@ struct AssetBrowser: View {
     }
 
     private var groupedList: some View {
-        List(selection: $selectedAssetID) {
+        // No `selection:` binding — see `eveSelectableListRow` (theme-colored selection).
+        List {
             if kind.showsAIInsight, #available(macOS 26.0, *), IntelligenceService.isSupported {
                 AssetAIInsightCard(
                     assets: assets,
@@ -228,9 +219,11 @@ struct AssetBrowser: View {
                     if !collapsedSections.contains(section.key) {
                         ForEach(section.items) { asset in
                             assetRow(asset)
-                                .tag(asset.id)
+                                .id(asset.id)
                                 .eveContextMenu(.item(typeID: asset.typeId, name: asset.typeName))
-                                .themedListRow(isSelected: asset.id == selectedAssetID, palette: palette)
+                                .eveSelectableListRow(isSelected: asset.id == selectedAssetID, palette: palette) {
+                                    selectedAssetID = asset.id
+                                }
                         }
                     }
                 } header: {
@@ -239,6 +232,10 @@ struct AssetBrowser: View {
             }
         }
         .listStyle(.sidebar)
+        .eveKeyboardSelection(
+            sections.filter { !collapsedSections.contains($0.key) }.flatMap { $0.items.map(\.id) },
+            selection: selectedAssetID
+        ) { selectedAssetID = $0 }
         .frame(maxHeight: .infinity)
     }
 

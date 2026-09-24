@@ -24,18 +24,7 @@ struct CorporationContractsView: View {
                 contractList
             }
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
-                Text("Corp Contracts")
-                    .font(.largeTitle.bold())
-                PinToggleButton(section: .corpContracts)
-                Spacer()
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.background)
-        }
-        .navigationTitle("")
+        .eveScreenHeader("Corp Contracts", section: .corpContracts)
         .task(id: accountManager.selectedCharacterID) {
             guard let account = accountManager.selectedAccount else { return }
             isLoading = true

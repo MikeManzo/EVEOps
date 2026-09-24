@@ -117,20 +117,21 @@ extension MarketBrowserView {
         } else if searchResults.isEmpty {
             ContentUnavailableView.search(text: searchText)
         } else {
-            List(searchResults, selection: Binding(
-                get: { selectedTypeId },
-                set: { id in
-                    if let id, let result = searchResults.first(where: { $0.typeId == id }) {
-                        Task { await selectType(id, name: result.name) }
-                    }
-                }
-            )) { result in
+            // No `selection:` binding — see `eveSelectableListRow` (theme-colored selection).
+            List(searchResults) { result in
                 typeRow(typeId: result.typeId, name: result.name)
-                    .tag(result.typeId)
+                    .id(result.typeId)
                     .eveContextMenu(.item(typeID: result.typeId, name: result.name))
-                    .themedListRow(isSelected: result.typeId == selectedTypeId, palette: palette)
+                    .eveSelectableListRow(isSelected: result.typeId == selectedTypeId, palette: palette) {
+                        Task { await selectType(result.typeId, name: result.name) }
+                    }
             }
             .listStyle(.sidebar)
+            .eveKeyboardSelection(searchResults.map(\.typeId), selection: selectedTypeId) { id in
+                if let id, let result = searchResults.first(where: { $0.typeId == id }) {
+                    Task { await selectType(id, name: result.name) }
+                }
+            }
         }
     }
 
@@ -147,7 +148,8 @@ extension MarketBrowserView {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
-            List(rootNodes, children: \.children, selection: $selectedGroupId) { node in
+            // No `selection:` binding — see `eveSelectableListRow` (theme-colored selection).
+            List(rootNodes, children: \.children) { node in
                 let isSelected = node.id == selectedGroupId
                 Label {
                     Text(node.group.name)
@@ -160,7 +162,7 @@ extension MarketBrowserView {
                             .foregroundStyle(isSelected ? .white : color)
                     } else if node.children != nil {
                         Image(systemName: "folder.fill")
-                            .foregroundStyle(isSelected ? .white : Color.blue.opacity(0.75))
+                            .foregroundStyle(isSelected ? .white : palette.accent.opacity(0.75))
                     } else if let firstType = node.group.types.first {
                         CachedAsyncImage(url: EVEImageURL.typeIcon(firstType, size: 64)) { image in
                             image.resizable().scaledToFit()
@@ -174,7 +176,7 @@ extension MarketBrowserView {
                             .foregroundStyle(isSelected ? .white : Color.secondary)
                     }
                 }
-                .themedListRow(isSelected: isSelected, palette: palette)
+                .eveSelectableListRow(isSelected: isSelected, palette: palette) { selectedGroupId = node.id }
             }
             .listStyle(.sidebar)
             .onChange(of: selectedGroupId) { _, newId in
@@ -217,20 +219,21 @@ extension MarketBrowserView {
         } else if groupTypes.isEmpty {
             EVEEmptyState("No Tradeable Items in This Group", systemImage: "shippingbox")
         } else {
-            List(groupTypes, selection: Binding(
-                get: { selectedTypeId },
-                set: { id in
-                    if let id, let result = groupTypes.first(where: { $0.typeId == id }) {
-                        Task { await selectType(id, name: result.name) }
-                    }
-                }
-            )) { result in
+            // No `selection:` binding — see `eveSelectableListRow` (theme-colored selection).
+            List(groupTypes) { result in
                 typeRow(typeId: result.typeId, name: result.name)
-                    .tag(result.typeId)
+                    .id(result.typeId)
                     .eveContextMenu(.item(typeID: result.typeId, name: result.name))
-                    .themedListRow(isSelected: result.typeId == selectedTypeId, palette: palette)
+                    .eveSelectableListRow(isSelected: result.typeId == selectedTypeId, palette: palette) {
+                        Task { await selectType(result.typeId, name: result.name) }
+                    }
             }
             .listStyle(.sidebar)
+            .eveKeyboardSelection(groupTypes.map(\.typeId), selection: selectedTypeId) { id in
+                if let id, let result = groupTypes.first(where: { $0.typeId == id }) {
+                    Task { await selectType(id, name: result.name) }
+                }
+            }
         }
     }
 

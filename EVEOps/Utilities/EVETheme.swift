@@ -56,6 +56,18 @@ func zkbDangerColor(_ rating: Double) -> Color {
     return EVEUniversalColor.online
 }
 
+/// Contact / NPC standing (-10...+10) → color, matching the in-game client's five tiers:
+/// excellent (dark blue), good (light blue), neutral (grey), bad (orange), terrible (red).
+/// Like `eveSecurityColor`, a game convention — not retinted by faction themes, and
+/// deliberately not green/red (EVE never uses green for standings).
+func eveStandingColor(_ standing: Double) -> Color {
+    if standing >= 5 { return Color(red: 0.16, green: 0.42, blue: 0.95) }
+    if standing > 0 { return Color(red: 0.35, green: 0.70, blue: 1.00) }
+    if standing == 0 { return .gray }
+    if standing > -5 { return Color(red: 1.00, green: 0.55, blue: 0.10) }
+    return Color(red: 0.90, green: 0.18, blue: 0.15)
+}
+
 /// Colors whose meaning is a universal traffic-light signal (positive/caution/danger),
 /// not a category label — these stay the same across every faction theme so "is this
 /// good or bad" always reads the same way regardless of the chosen palette.

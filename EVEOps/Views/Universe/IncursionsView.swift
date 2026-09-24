@@ -37,23 +37,7 @@ struct IncursionsView: View {
                 }
             }
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
-                Text("Incursions")
-                    .font(.largeTitle.bold())
-                PinToggleButton(section: .incursions)
-                Spacer()
-                if !incursions.isEmpty {
-                    Text("\(incursions.count) active")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.background)
-        }
-        .navigationTitle("")
+        .eveScreenHeader("Incursions", subtitle: incursions.isEmpty ? nil : Text("\(incursions.count) active"), section: .incursions)
         .task { await load() }
     }
 
@@ -372,9 +356,7 @@ private struct InfestedSystemRow: View {
     var body: some View {
         HStack(spacing: 6) {
             if let sec {
-                Text(String(format: "%.1f", sec))
-                    .font(.caption2.bold().monospacedDigit())
-                    .foregroundStyle(incSecColor(sec))
+                EVESecurityBadge(status: sec, compact: true)
             }
             Text(name ?? "System #\(systemId)").font(.caption)
             if isStaging {
@@ -403,10 +385,3 @@ private struct InfestedSystemRow: View {
     }
 }
 
-private func incSecColor(_ status: Double) -> Color {
-    switch status {
-    case 0.5...:    return Color(red: 0.4, green: 0.8, blue: 0.3)
-    case 0.1..<0.5: return .orange
-    default:        return Color(red: 0.9, green: 0.2, blue: 0.2)
-    }
-}

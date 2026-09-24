@@ -67,7 +67,14 @@ struct ExplorationCodexView: View {
             }
         }
         .safeAreaInset(edge: .top, spacing: 0) { header }
-        .navigationTitle("")
+        .eveScreenHeader("Exploration Codex", section: .explorationCodex) {
+            if content == .sites {
+                RelativeTimestamp(date: pricesFetchedAt, prefix: "Prices")
+                RefreshButton(isRefreshing: pricesLoading) {
+                    Task { await loadPrices(force: true); await loadSkills() }
+                }
+            }
+        }
         .task {
             await loadPrices()
             await loadSkills()
@@ -130,10 +137,6 @@ struct ExplorationCodexView: View {
 
     private var header: some View {
         HStack(spacing: 12) {
-            Text("Exploration Codex")
-                .font(.largeTitle.bold())
-            PinToggleButton(section: .explorationCodex)
-
             Picker("Content", selection: $content) {
                 ForEach(CodexContent.allCases) { Text($0.rawValue).tag($0) }
             }
@@ -142,17 +145,10 @@ struct ExplorationCodexView: View {
             .labelsHidden()
 
             Spacer()
-
-            if content == .sites {
-                RelativeTimestamp(date: pricesFetchedAt, prefix: "Prices")
-                RefreshButton(isRefreshing: pricesLoading) {
-                    Task { await loadPrices(force: true); await loadSkills() }
-                }
-            }
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(.background)
+        .padding(.vertical, 8)
+        .background(.bar)
     }
 
     // MARK: Data

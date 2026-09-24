@@ -88,19 +88,9 @@ struct CharacterContactsView: View {
                 }
             }
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
-                Text("Contacts")
-                    .font(.largeTitle.bold())
-                PinToggleButton(section: .contacts)
-                Spacer()
-                FreshnessIndicator(isLoading: isLoading) { await load() }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.background)
+        .eveScreenHeader("Contacts", section: .contacts) {
+            FreshnessIndicator(isLoading: isLoading) { await load() }
         }
-        .navigationTitle("")
         .sheet(isPresented: $showingAddContact) {
             AddContactSheet { contactId, contactType, standing in
                 await addContact(contactId: contactId, contactType: contactType, standing: standing)
@@ -126,7 +116,8 @@ struct CharacterContactsView: View {
     private var contactList: some View {
         VStack(spacing: 0) {
             filterBar
-            List(selection: $selectedContactID) {
+            // No `selection:` binding — see `eveSelectableListRow` (theme-colored selection).
+            List {
                 ForEach(groupedContacts, id: \.0) { type, group in
                     Section(typeLabel(type)) {
                         ForEach(group) { contact in
@@ -137,8 +128,10 @@ struct CharacterContactsView: View {
                                     ? presenceTracker.score(for: contact.contactId)
                                     : nil
                             )
-                            .tag(contact.contactId)
-                            .themedListRow(isSelected: contact.contactId == selectedContactID, palette: palette)
+                            .id(contact.contactId)
+                            .eveSelectableListRow(isSelected: contact.contactId == selectedContactID, palette: palette) {
+                                selectedContactID = contact.contactId
+                            }
                             .swipeActions(edge: .leading) {
                                 Button {
                                     contactToEdit = contact
@@ -174,6 +167,9 @@ struct CharacterContactsView: View {
                         }
                     }
                 }
+            }
+            .eveKeyboardSelection(groupedContacts.flatMap { $0.1.map(\.contactId) }, selection: selectedContactID) {
+                selectedContactID = $0
             }
             .onChange(of: selectedContactID) { _, newID in
                 if let id = newID {
@@ -277,25 +273,14 @@ struct CharacterContactsView: View {
 
     private func standingCard(_ detail: ContactDetail) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Standing")
-                .font(.headline)
+            EVESectionTitle("Standing")
 
             HStack(spacing: 12) {
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: EVERadius.xs).fill(.quaternary)
-                        let fraction = (detail.contact.standing + 10.0) / 20.0
-                        let color: Color = detail.contact.standing > 0 ? .green : detail.contact.standing < 0 ? .red : .secondary
-                        RoundedRectangle(cornerRadius: EVERadius.xs)
-                            .fill(color)
-                            .frame(width: geo.size.width * max(0, min(1, fraction)))
-                    }
-                }
-                .frame(height: 12)
+                EVEStandingBar(standing: detail.contact.standing, width: 200, height: 8)
 
-                Text(String(format: "%+.1f", detail.contact.standing))
+                Text(detail.contact.standing, format: .number.precision(.fractionLength(1)).sign(strategy: .always(includingZero: false)))
                     .font(.eveStatCompact)
-                    .foregroundStyle(detail.contact.standing > 0 ? .green : detail.contact.standing < 0 ? .red : .secondary)
+                    .foregroundStyle(eveStandingColor(detail.contact.standing))
                     .frame(width: 50, alignment: .trailing)
             }
 
@@ -324,8 +309,7 @@ struct CharacterContactsView: View {
 
     private func characterInfoCard(_ info: ESICharacterPublic, corpName: String?, allianceName: String?) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Character Info")
-                .font(.headline)
+            EVESectionTitle("Character Info")
 
             infoRow("Birthday", value: EVEFormatters.dateFormatter.string(from: info.birthday))
             infoRow("Race", value: raceName(info.raceId))
@@ -341,9 +325,7 @@ struct CharacterContactsView: View {
             }
             if let desc = info.description, !desc.isEmpty {
                 Divider()
-                Text("Bio")
-                    .font(.headline)
-//                    .foregroundStyle(.primary)
+                EVESectionTitle("Bio")
                 Text(desc.strippingEVEMarkup)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -357,8 +339,7 @@ struct CharacterContactsView: View {
 
     private func historySection(_ history: [ResolvedCorpHistory]) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Corporation History")
-                .font(.headline)
+            EVESectionTitle("Corporation History")
             ForEach(history, id: \.recordId) { entry in
                 HStack(spacing: 10) {
                     CachedAsyncImage(url: EVEImageURL.corporationLogo(entry.corporationId, size: 64)) { image in
@@ -398,14 +379,7 @@ struct CharacterContactsView: View {
     // MARK: Helpers
 
     private func infoRow(_ label: String, value: String) -> some View {
-        HStack {
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Spacer()
-            Text(value)
-                .font(.caption.monospacedDigit())
-        }
+        EVEInfoRow(verbatim: label, value)
     }
 
     private var filterBar: some View {
@@ -666,22 +640,10 @@ struct ContactRow: View {
 
             // Standing bar + value
             HStack(spacing: 8) {
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 3).fill(.quaternary)
-                        let fraction = (contact.standing + 10.0) / 20.0
-                        let color: Color = contact.standing > 0 ? .green : contact.standing < 0 ? .red : .secondary
-                        RoundedRectangle(cornerRadius: 3)
-                            .fill(color)
-                            .frame(width: geo.size.width * max(0, min(1, fraction)))
-                    }
-                }
-                .frame(width: 80, height: 8)
+                EVEStandingBar(standing: contact.standing, width: 80)
 
-                Text(String(format: "%+.1f", contact.standing))
-                    .font(.subheadline.bold().monospacedDigit())
-                    .foregroundStyle(contact.standing > 0 ? .green : contact.standing < 0 ? .red : .secondary)
-                    .frame(width: 40, alignment: .trailing)
+                EVEStandingBadge(standing: contact.standing)
+                    .frame(minWidth: 44, alignment: .trailing)
             }
 
             if contact.isWatched == true {

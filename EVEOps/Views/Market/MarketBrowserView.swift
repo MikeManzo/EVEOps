@@ -171,18 +171,7 @@ struct MarketBrowserView: View {
             detailPane
                 .frame(height: detailHeight)
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
-                Text("Market Browser")
-                    .font(.largeTitle.bold())
-                PinToggleButton(section: .market)
-                Spacer()
-            }
-            .padding(.horizontal, 16)
-//            .padding(.vertical, 12)
-            .background(.background)
-        }
-        .navigationTitle("")
+        .eveScreenHeader("Market Browser", section: .market)
         .task { await loadInitialData() }
         .onChange(of: prefetcher.lastRefresh) { _, _ in
             // Prefetch completed after the view loaded — pick up the fresh location

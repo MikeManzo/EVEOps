@@ -52,19 +52,9 @@ struct SkillPlannerView: View {
                 skillBrowser
             }
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
-                Text("Skill Planner")
-                    .font(.largeTitle.bold())
-                PinToggleButton(section: .skillPlanner)
-                Spacer()
-                FreshnessIndicator(isLoading: isLoading) { await loadData() }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.background)
+        .eveScreenHeader("Skill Planner", section: .skillPlanner) {
+            FreshnessIndicator(isLoading: isLoading) { await loadData() }
         }
-        .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) {
             await loadData()
         }

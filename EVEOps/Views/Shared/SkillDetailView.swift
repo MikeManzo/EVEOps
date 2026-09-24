@@ -157,9 +157,7 @@ struct SkillDetailView: View {
     private var levelsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("Skill Levels")
-                    .font(.subheadline.bold())
-                    .foregroundStyle(.secondary)
+                EVESectionTitle("Skill Levels")
                 Spacer()
                 if skillpoints > 0 {
                     Text("\(skillpoints.formatted()) SP trained")
@@ -239,9 +237,7 @@ struct SkillDetailView: View {
 
     private var skillInfoSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Skill Information")
-                .font(.subheadline.bold())
-                .foregroundStyle(.secondary)
+            EVESectionTitle("Skill Information")
 
             infoRow(label: "Group", value: groupName)
             infoRow(label: "Type ID", value: "\(skillId)")
@@ -263,9 +259,7 @@ struct SkillDetailView: View {
 
             if let desc = typeInfo?.description, !desc.isEmpty {
                 Divider()
-                Text("Description")
-                    .font(.subheadline.bold())
-                    .foregroundStyle(.secondary)
+                EVESectionTitle("Description")
                 Text(desc.strippingEVEMarkup)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -298,16 +292,7 @@ struct SkillDetailView: View {
     }
 
     private func infoRow(label: String, value: String) -> some View {
-        HStack(alignment: .top) {
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .frame(width: 110, alignment: .trailing)
-            Text(value)
-                .font(.caption)
-                .textSelection(.enabled)
-            Spacer()
-        }
+        EVEInfoRow(verbatim: label, value)
     }
 
     private func attributeName(_ id: Int) -> String? {

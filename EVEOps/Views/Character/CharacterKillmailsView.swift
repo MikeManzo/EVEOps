@@ -46,19 +46,9 @@ struct CharacterKillmailsView: View {
                 }
             }
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
-                Text("Kill/Loss Mails")
-                    .font(.largeTitle.bold())
-                PinToggleButton(section: .killmails)
-                Spacer()
-                FreshnessIndicator(isLoading: isLoading) { isLoading = true; await load() }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.background)
+        .eveScreenHeader("Kill/Loss Mails", section: .killmails) {
+            FreshnessIndicator(isLoading: isLoading) { isLoading = true; await load() }
         }
-        .navigationTitle("")
         .onChange(of: filter) { _, f in
             if let e = selectedEntry, f != "all", (f == "kills") != e.isKill { selectedEntry = nil }
         }
@@ -200,65 +190,97 @@ struct KillmailRow: View {
     let entry: KillmailEntry
     @State private var shipName = ""
     @State private var systemName = ""
+    @State private var systemSecurity: Double?
+    @State private var victimName = ""
+
+    private var outcomeColor: Color { entry.isKill ? .green : .red }
 
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: entry.isKill ? "flame.fill" : "xmark.circle.fill")
-                .foregroundStyle(entry.isKill ? .green : .red)
-                .font(.title3)
-                .frame(width: 20)
-            CachedAsyncImage(url: EVEImageURL.typeIcon(entry.killmail.victim.shipTypeId, size: 64)) { image in
+        let victim = entry.killmail.victim
+        HStack(spacing: EVESpacing.md + 2) {
+            // Kill/loss edge — the at-a-glance signal, zKillboard-style.
+            Capsule()
+                .fill(outcomeColor)
+                .frame(width: 3, height: 34)
+                .accessibilityHidden(true)
+
+            CachedAsyncImage(url: EVEImageURL.typeRender(victim.shipTypeId, size: 128)) { image in
                 image.resizable()
             } placeholder: {
-                RoundedRectangle(cornerRadius: EVERadius.xs).fill(.quaternary)
+                RoundedRectangle(cornerRadius: EVERadius.sm).fill(.quaternary)
             }
-            .frame(width: 36, height: 36)
-            .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
+            .frame(width: 38, height: 38)
+            .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
+            .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(shipName.isEmpty ? "Ship #\(entry.killmail.victim.shipTypeId)" : shipName)
-                    .font(.subheadline)
-                Text(systemName.isEmpty ? "System #\(entry.killmail.solarSystemId)" : systemName)
-                    .font(.caption).foregroundStyle(.secondary)
-                Text("\(entry.killmail.attackers.count) attacker(s)")
-                    .font(.caption2).foregroundStyle(.tertiary)
+                HStack(spacing: EVESpacing.sm) {
+                    Text(shipName.isEmpty ? "Ship #\(victim.shipTypeId)" : shipName)
+                        .font(.subheadline.weight(.medium))
+                        .lineLimit(1)
+                    if entry.zkb?.isSolo == true { tag("Solo") }
+                    if entry.zkb?.isNPC == true { tag("NPC") }
+                }
+                HStack(spacing: EVESpacing.xs + 1) {
+                    if !victimName.isEmpty {
+                        Text(victimName).lineLimit(1)
+                        Text("·").foregroundStyle(.tertiary)
+                    }
+                    if let systemSecurity {
+                        EVESecurityBadge(status: systemSecurity, compact: true)
+                    }
+                    Text(systemName.isEmpty ? "System #\(entry.killmail.solarSystemId)" : systemName)
+                        .lineLimit(1)
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
 
-            Spacer()
+            Spacer(minLength: EVESpacing.md)
 
             VStack(alignment: .trailing, spacing: 2) {
-                Text(entry.isKill ? "Kill" : "Loss")
-                    .font(.caption.bold())
-                    .foregroundStyle(entry.isKill ? .green : .red)
                 if let totalValue = entry.zkb?.totalValue, totalValue > 0 {
                     Text(EVEFormatters.formatISKShort(totalValue))
-                        .font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
+                        .font(.subheadline.weight(.semibold).monospacedDigit())
+                        .foregroundStyle(outcomeColor)
+                } else {
+                    Text(entry.isKill ? "Kill" : "Loss")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(outcomeColor)
                 }
-                Text(entry.killmail.killmailTime, style: .date)
-                    .font(.caption2).foregroundStyle(.secondary)
-                HStack(spacing: 4) {
-                    if entry.zkb?.isSolo == true {
-                        Text("Solo")
-                            .font(.caption2.bold())
-                            .padding(.horizontal, 4).padding(.vertical, 1)
-                            .background(.blue.opacity(0.15), in: Capsule())
-                            .foregroundStyle(.blue)
-                    }
-                    if entry.zkb?.isNPC == true {
-                        Text("NPC")
-                            .font(.caption2.bold())
-                            .padding(.horizontal, 4).padding(.vertical, 1)
-                            .background(.secondary.opacity(0.15), in: Capsule())
-                            .foregroundStyle(.secondary)
-                    }
+                HStack(spacing: EVESpacing.xs + 1) {
+                    Label("\(entry.killmail.attackers.count)", systemImage: "person.2")
+                        .labelStyle(.titleAndIcon)
+                        .help("\(entry.killmail.attackers.count) attackers")
+                    Text("·").foregroundStyle(.tertiary)
+                    Text(entry.killmail.killmailTime, format: .relative(presentation: .named, unitsStyle: .abbreviated))
+                        .help(entry.killmail.killmailTime.formatted(date: .abbreviated, time: .shortened))
                 }
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
             }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, EVESpacing.xs)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text("\(entry.isKill ? "Kill" : "Loss"): \(shipName)"))
         .task {
-            shipName = (await UniverseCache.shared.type(id: entry.killmail.victim.shipTypeId))?.name ?? ""
-            systemName = await NameResolver.shared.resolve(id: entry.killmail.solarSystemId)
+            shipName = (await UniverseCache.shared.type(id: victim.shipTypeId))?.name ?? ""
+            let system = await UniverseCache.shared.solarSystem(id: entry.killmail.solarSystemId)
+            systemName = system?.name ?? ""
+            systemSecurity = system?.securityStatus
+            if let id = victim.characterId ?? victim.corporationId {
+                victimName = await NameResolver.shared.resolve(id: id)
+            }
         }
+    }
+
+    private func tag(_ text: LocalizedStringKey) -> some View {
+        Text(text)
+            .font(.eveMicroBold)
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, EVESpacing.xs)
+            .padding(.vertical, 1)
+            .background(.quaternary, in: RoundedRectangle(cornerRadius: EVERadius.xs))
     }
 }
 

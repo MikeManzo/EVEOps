@@ -62,7 +62,7 @@ struct RefreshButton: View {
         .onChange(of: isRefreshing) { wasRefreshing, nowRefreshing in
             if wasRefreshing && !nowRefreshing { completedRefreshes += 1 }
         }
-        .buttonStyle(.borderless)
+        .buttonStyleOutsideToolbar(.borderless)
         .help("Refresh")
         .disabled(isRefreshing)
         .modifier(OptionalCommandR(enabled: bindShortcut))

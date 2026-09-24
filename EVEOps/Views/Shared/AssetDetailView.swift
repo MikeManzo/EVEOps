@@ -130,9 +130,7 @@ struct AssetDetailView: View {
 
     private var assetInfoSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Asset Details")
-                .font(.subheadline.bold())
-                .foregroundStyle(.secondary)
+            EVESectionTitle("Asset Details")
 
             if let name = asset.customName {
                 infoRow(label: "Custom Name", value: name)
@@ -158,9 +156,7 @@ struct AssetDetailView: View {
     private var marketValueSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Label("Market Value (Jita)", systemImage: "storefront")
-                    .font(.subheadline.bold())
-                    .foregroundStyle(.secondary)
+                EVESectionTitle("Market Value (Jita)")
                 Spacer()
                 Button {
                     showMarketPopover = true
@@ -202,9 +198,7 @@ struct AssetDetailView: View {
 
     private func typeAttributesSection(_ type: ESIType) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Type Information")
-                .font(.subheadline.bold())
-                .foregroundStyle(.secondary)
+            EVESectionTitle("Type Information")
 
             if let categoryName {
                 infoRow(label: "Category", value: categoryName)
@@ -246,9 +240,7 @@ struct AssetDetailView: View {
 
     private func descriptionSection(_ description: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Description")
-                .font(.subheadline.bold())
-                .foregroundStyle(.secondary)
+            EVESectionTitle("Description")
 
             Text(description.strippingEVEMarkup)
                 .font(.caption)
@@ -260,16 +252,7 @@ struct AssetDetailView: View {
     // MARK:  Helpers
 
     private func infoRow(label: String, value: String) -> some View {
-        HStack(alignment: .top) {
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .frame(width: 110, alignment: .trailing)
-            Text(value)
-                .font(.caption)
-                .textSelection(.enabled)
-            Spacer()
-        }
+        EVEInfoRow(verbatim: label, value)
     }
 
     private func formatLocationFlag(_ flag: String) -> String {
@@ -343,9 +326,7 @@ struct AssetDetailView: View {
 
     private var janiceSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label("Appraisal (Jita)", systemImage: "tag.fill")
-                .font(.subheadline.bold())
-                .foregroundStyle(.secondary)
+            EVESectionTitle("Appraisal (Jita)")
 
             if isAppraising {
                 HStack(spacing: 6) {
@@ -410,9 +391,7 @@ struct AssetDetailView: View {
                         // ESI reference prices
                         if adjustedPrice != nil || averagePrice != nil {
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("Reference Prices")
-                                    .font(.caption.bold())
-                                    .foregroundStyle(.secondary)
+                                EVESectionTitle("Reference Prices")
                                 if let avg = averagePrice {
                                     priceRow(label: "ESI Average", value: avg, quantity: quantity, color: .primary)
                                 }

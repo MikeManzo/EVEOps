@@ -56,19 +56,9 @@ struct CharacterMailsView: View {
                 }
             }
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
-                Text("Mails")
-                    .font(.largeTitle.bold())
-                PinToggleButton(section: .mails)
-                Spacer()
-                FreshnessIndicator(isLoading: isLoading) { await loadMails() }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.background)
+        .eveScreenHeader("Mails", subtitle: unreadSubtitle, section: .mails) {
+            FreshnessIndicator(isLoading: isLoading) { await loadMails() }
         }
-        .navigationTitle("")
         .sheet(isPresented: $showingCompose) {
             ComposeMailSheet { subject, recipients, body in
                 await sendMail(subject: subject, recipients: recipients, body: body)
@@ -83,39 +73,52 @@ struct CharacterMailsView: View {
         }
     }
 
+    private var unreadSubtitle: Text? {
+        let unread = mails.filter { $0.isRead != true }.count
+        return unread > 0 ? Text("\(unread) unread") : nil
+    }
+
     private var mailList: some View {
-        List(selection: $selectedMail) {
+        // No `selection:` binding — see `eveSelectableListRow` (theme-colored selection).
+        List {
             ForEach(mails) { mail in
                 let isSelected = mail == selectedMail
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        if mail.isRead != true {
-                            Circle()
-                                .fill(isSelected ? .white : palette.accent)
-                                .frame(width: 8, height: 8)
+                let unread = mail.isRead != true
+                HStack(alignment: .top, spacing: EVESpacing.md + 2) {
+                    senderAvatar(mail.from)
+                        .overlay(alignment: .topLeading) {
+                            if unread {
+                                Circle()
+                                    .fill(isSelected ? .white : palette.accent)
+                                    .frame(width: 8, height: 8)
+                                    .overlay(Circle().strokeBorder(.background, lineWidth: 1.5))
+                                    .offset(x: -3, y: -3)
+                                    .accessibilityLabel("Unread")
+                            }
+                        }
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(alignment: .firstTextBaseline) {
+                            Text(mail.from.flatMap { senderNames[$0] } ?? mail.from.map { "#\($0)" } ?? "Unknown Sender")
+                                .font(.subheadline.weight(unread ? .semibold : .regular))
+                                .lineLimit(1)
+                            Spacer(minLength: EVESpacing.sm)
+                            if let timestamp = mail.timestamp {
+                                Text(Self.shortStamp(timestamp))
+                                    .font(.caption.monospacedDigit())
+                                    .foregroundStyle(isSelected ? AnyShapeStyle(.white.opacity(0.75)) : AnyShapeStyle(.tertiary))
+                            }
                         }
                         Text(mail.subject ?? "(No Subject)")
                             .font(.subheadline)
-                            .fontWeight(mail.isRead == true ? .regular : .bold)
+                            .fontWeight(unread ? .medium : .regular)
+                            .foregroundStyle(isSelected ? AnyShapeStyle(.white.opacity(0.9)) : AnyShapeStyle(.secondary))
                             .lineLimit(1)
                     }
-                    HStack {
-                        if let fromID = mail.from {
-                            Text(senderNames[fromID] ?? "#\(fromID)")
-                                .font(.caption)
-                                .foregroundStyle(isSelected ? AnyShapeStyle(.white.opacity(0.85)) : AnyShapeStyle(.secondary))
-                        }
-                        Spacer()
-                        if let timestamp = mail.timestamp {
-                            Text(timestamp, style: .date)
-                                .font(.caption2)
-                                .foregroundStyle(isSelected ? AnyShapeStyle(.white.opacity(0.7)) : AnyShapeStyle(.tertiary))
-                        }
-                    }
                 }
-                .padding(.vertical, 2)
-                .tag(mail)
-                .themedListRow(isSelected: isSelected, palette: palette)
+                .padding(.vertical, EVESpacing.xs)
+                .id(mail)
+                .eveSelectableListRow(isSelected: isSelected, palette: palette) { selectedMail = mail }
                 .swipeActions(edge: .trailing) {
                     Button(role: .destructive) {
                         Task { await deleteMail(mail) }
@@ -125,6 +128,39 @@ struct CharacterMailsView: View {
                 }
             }
         }
+        .eveKeyboardSelection(mails, selection: selectedMail) { selectedMail = $0 }
+    }
+
+    /// Sender portrait — characters get their portrait; corporations, alliances and mailing
+    /// lists fall back to a neutral envelope tile (the mail header doesn't say which it is).
+    private func senderAvatar(_ id: Int?) -> some View {
+        Group {
+            if let id, id >= 90_000_000 {
+                CachedAsyncImage(url: EVEImageURL.characterPortrait(id, size: 64)) { image in
+                    image.resizable()
+                } placeholder: {
+                    Circle().fill(.quaternary)
+                }
+            } else {
+                Circle().fill(.quaternary)
+                    .overlay(Image(systemName: "envelope").font(.caption).foregroundStyle(.secondary))
+            }
+        }
+        .frame(width: 30, height: 30)
+        .clipShape(Circle())
+        .accessibilityHidden(true)
+    }
+
+    /// Time for today's mail, "Yesterday", weekday within the week, otherwise a short date —
+    /// the same scheme Mail.app uses.
+    private static func shortStamp(_ date: Date) -> String {
+        let cal = Calendar.current
+        if cal.isDateInToday(date) { return date.formatted(date: .omitted, time: .shortened) }
+        if cal.isDateInYesterday(date) { return String(localized: "Yesterday") }
+        if let days = cal.dateComponents([.day], from: date, to: .now).day, days < 7 {
+            return date.formatted(.dateTime.weekday(.wide))
+        }
+        return date.formatted(date: .numeric, time: .omitted)
     }
 
     @ViewBuilder

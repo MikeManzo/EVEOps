@@ -79,9 +79,7 @@ struct ImplantDetailView: View {
 
     private var typeInfoSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Type Information")
-                .font(.subheadline.bold())
-                .foregroundStyle(.secondary)
+            EVESectionTitle("Type Information")
 
             if let categoryName {
                 infoRow(label: "Category", value: categoryName)
@@ -103,9 +101,7 @@ struct ImplantDetailView: View {
 
     private func descriptionSection(_ description: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Description")
-                .font(.subheadline.bold())
-                .foregroundStyle(.secondary)
+            EVESectionTitle("Description")
 
             Text(description.strippingEVEMarkup)
                 .font(.caption)
@@ -117,16 +113,7 @@ struct ImplantDetailView: View {
     // MARK:  Helpers
 
     private func infoRow(label: String, value: String) -> some View {
-        HStack(alignment: .top) {
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .frame(width: 110, alignment: .trailing)
-            Text(value)
-                .font(.caption)
-                .textSelection(.enabled)
-            Spacer()
-        }
+        EVEInfoRow(verbatim: label, value)
     }
 
     private func formatLargeNumber(_ value: Double) -> String {

@@ -78,7 +78,8 @@ actor NotificationService {
                     body: String(localized: "\(account.characterName)'s training queue has become empty!"),
                     identifier: "skillqueue-\(account.characterID)",
                     category: .skillQueue,
-                    characterName: account.characterName
+                    characterName: account.characterName,
+                    characterID: account.characterID
                 )
             }
 
@@ -99,7 +100,8 @@ actor NotificationService {
                             body: String(localized: "Training queue completes in ~\(hoursLeft)h. Add skills to keep training!"),
                             identifier: "skillqueue-warning-\(account.characterID)-\(Int(queueEnd.timeIntervalSince1970))",
                             category: .skillQueue,
-                            characterName: account.characterName
+                            characterName: account.characterName,
+                            characterID: account.characterID
                         )
                         lastQueueWarningSent[account.characterID] = Date()
                     }
@@ -142,7 +144,8 @@ actor NotificationService {
                         body: formatNotificationType(notification.type),
                         identifier: "notification-\(notification.notificationId)",
                         category: isWar ? .war : .structureAlert,
-                        characterName: account.characterName
+                        characterName: account.characterName,
+                        characterID: account.characterID
                     )
                 }
             }
@@ -173,7 +176,10 @@ actor NotificationService {
                     body: String(localized: "\(newlyDone.count) industry jobs finished"),
                     identifier: "industry-\(account.characterID)-\(Date().timeIntervalSince1970)",
                     category: .industry,
-                    characterName: account.characterName
+                    characterName: account.characterName,
+                    characterID: account.characterID,
+                    imageURL: (newlyDone.first?.productTypeId ?? newlyDone.first?.blueprintTypeId)
+                        .flatMap { EVEImageURL.typeIcon($0, size: 128) }
                 )
             }
 
@@ -219,7 +225,8 @@ actor NotificationService {
                     body: body,
                     identifier: "structurefuel-\(structure.structureId)-\(Int(fuelExpires.timeIntervalSince1970))",
                     category: .structureFuel,
-                    characterName: account.characterName
+                    characterName: account.characterName,
+                    characterID: account.characterID
                 )
                 lastFuelWarningSent[structure.structureId] = Date()
             }
@@ -256,7 +263,8 @@ actor NotificationService {
             body: body,
             identifier: "presence-\(characterID)-\(suffix)-\(Int(Date().timeIntervalSince1970))",
             category: .presence,
-            characterName: characterName
+            characterName: characterName,
+            imageURL: EVEImageURL.characterPortrait(characterID, size: 128)
         )
     }
 
@@ -282,7 +290,8 @@ actor NotificationService {
                                 body: String(localized: "A contract status changed to: \(status.replacingOccurrences(of: "_", with: " "))"),
                                 identifier: "contract-\(change)",
                                 category: .contracts,
-                                characterName: account.characterName
+                                characterName: account.characterName,
+                                characterID: account.characterID
                             )
                         }
                     }
@@ -351,7 +360,8 @@ actor NotificationService {
                         body: String(localized: "Standing with \(name) \(direction) by \(String(format: "%.2f", abs(change.delta))) (\(String(format: "%+.2f", change.old)) → \(String(format: "%+.2f", change.standing.standing)))"),
                         identifier: "standing-\(account.characterID)-\(change.standing.fromType)-\(change.standing.fromId)-\(stamp)",
                         category: .standings,
-                        characterName: account.characterName
+                        characterName: account.characterName,
+                        characterID: account.characterID
                     )
                 }
             } else {
@@ -365,7 +375,8 @@ actor NotificationService {
                     body: String(localized: "\(changes.count) standings shifted. Largest: \(topName) \(topDirection) \(String(format: "%.2f", abs(top.delta)))."),
                     identifier: "standings-\(account.characterID)-\(stamp)",
                     category: .standings,
-                    characterName: account.characterName
+                    characterName: account.characterName,
+                    characterID: account.characterID
                 )
             }
         } catch ESIError.unauthorized {
@@ -380,12 +391,32 @@ actor NotificationService {
         body: String,
         identifier: String,
         category: DiscordAlertCategory = .general,
-        characterName: String? = nil
+        characterName: String? = nil,
+        characterID: Int? = nil,
+        imageURL: URL? = nil
     ) async {
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
         content.sound = .default
+
+        // Stack alerts per pilot in Notification Center.
+        if let characterName { content.threadIdentifier = characterName }
+
+        // Route clicks / the "Open …" button to the right screen and pilot.
+        if let section = NotificationRoute.section(for: category) {
+            content.categoryIdentifier = NotificationRoute.categoryID(for: section)
+            var info: [String: Any] = [NotificationRoute.sectionKey: section.rawValue]
+            if let characterID { info[NotificationRoute.characterKey] = characterID }
+            content.userInfo = info
+        }
+
+        // Thumbnail: the item or pilot the alert is about.
+        if let url = imageURL ?? characterID.flatMap({ EVEImageURL.characterPortrait($0, size: 128) }),
+           let image = await ImageCache.shared.image(for: url),
+           let attachment = NotificationRoute.attachment(for: image, identifier: "thumb") {
+            content.attachments = [attachment]
+        }
 
         let request = UNNotificationRequest(
             identifier: identifier,

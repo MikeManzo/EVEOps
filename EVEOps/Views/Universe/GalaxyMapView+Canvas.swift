@@ -480,11 +480,7 @@ extension GalaxyMapView {
 
                 HStack(spacing: 6) {
                     Text(sysName).font(.caption.bold())
-                    Text(String(format: "%.1f", sec))
-                        .font(.caption2.bold().monospacedDigit())
-                        .foregroundStyle(eveSecurityColor(sec))
-                        .padding(.horizontal, 4).padding(.vertical, 1)
-                        .background(eveSecurityColor(sec).opacity(0.15), in: Capsule())
+                    EVESecurityBadge(status: sec, compact: true)
                 }
 
                 if let shipType = currentShipTypeName {

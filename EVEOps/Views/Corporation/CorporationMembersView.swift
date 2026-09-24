@@ -49,19 +49,9 @@ struct CorporationMembersView: View {
                     .frame(maxWidth: .infinity)
             }
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
-                Text("Corp Members")
-                    .font(.largeTitle.bold())
-                PinToggleButton(section: .corpMembers)
-                Spacer()
-                FreshnessIndicator(isLoading: isLoading) { await loadMembers() }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.background)
+        .eveScreenHeader("Corp Members", section: .corpMembers) {
+            FreshnessIndicator(isLoading: isLoading) { await loadMembers() }
         }
-        .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) {
             members = []
             selectedMemberID = nil
@@ -99,12 +89,17 @@ struct CorporationMembersView: View {
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
 
-            List(sortedFilteredMembers, id: \.characterId, selection: $selectedMemberID) { member in
+            // No `selection:` binding — see `eveSelectableListRow` (theme-colored selection).
+            List(sortedFilteredMembers, id: \.characterId) { member in
                 memberRow(member)
-                    .tag(member.characterId)
+                    .id(member.characterId)
                     .eveContextMenu(.character(id: member.characterId, name: member.name))
+                    .eveSelectableListRow(isSelected: member.characterId == selectedMemberID, palette: palette) {
+                        selectedMemberID = member.characterId
+                    }
             }
-            .listStyle(.plain)
+            .listStyle(.sidebar)
+            .eveKeyboardSelection(sortedFilteredMembers.map(\.characterId), selection: selectedMemberID) { selectedMemberID = $0 }
         }
         .onChange(of: selectedMemberID) { _, newID in
             if let id = newID {
@@ -114,62 +109,68 @@ struct CorporationMembersView: View {
     }
 
     private func memberRow(_ member: ResolvedMember) -> some View {
-        HStack(spacing: 10) {
+        let track = tracking[member.characterId]
+        let isOnline: Bool = {
+            guard let logon = track?.logonDate, let logoff = track?.logoffDate else { return false }
+            return logon > logoff
+        }()
+        let subtitle: String = {
+            var parts: [String] = []
+            if let title = memberTitles[member.characterId]?.first, !title.isEmpty { parts.append(title) }
+            if isOnline {
+                parts.append(String(localized: "Online"))
+            } else if let logoff = track?.logoffDate {
+                parts.append(relativeTime(logoff))
+            }
+            return parts.joined(separator: " · ")
+        }()
+
+        return HStack(spacing: EVESpacing.md + 2) {
             CachedAsyncImage(url: EVEImageURL.characterPortrait(member.characterId, size: 128)) { image in
                 image.resizable()
             } placeholder: {
-                RoundedRectangle(cornerRadius: EVERadius.sm).fill(.quaternary)
+                Circle().fill(.quaternary)
             }
-            .frame(width: 48, height: 48)
-            .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(member.name)
-                    .font(.title3)
-                    .lineLimit(1)
-
-                HStack(spacing: 6) {
-                    // Online status from tracking
-                    if let track = tracking[member.characterId] {
-                        if let logon = track.logonDate, let logoff = track.logoffDate {
-                            if logon > logoff {
-                                Image(systemName: "circle.fill")
-                                    .font(.system(size: 6))
-                                    .foregroundStyle(.green)
-                                Text("Online")
-                                    .font(.caption2)
-                                    .foregroundStyle(.green)
-                            } else {
-                                Text(relativeTime(logoff))
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-
-                    if let titles = memberTitles[member.characterId], !titles.isEmpty {
-                        Text(titles.first ?? "")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                            .lineLimit(1)
-                    }
+            .frame(width: 34, height: 34)
+            .clipShape(Circle())
+            .overlay(alignment: .bottomTrailing) {
+                if isOnline {
+                    Circle()
+                        .fill(.green)
+                        .frame(width: 10, height: 10)
+                        .overlay(Circle().strokeBorder(.background, lineWidth: 2))
+                        .offset(x: 2, y: 2)
+                        .accessibilityLabel("Online")
                 }
             }
 
-            Spacer()
+            VStack(alignment: .leading, spacing: 1) {
+                Text(member.name)
+                    .font(.body.weight(.medium))
+                    .lineLimit(1)
+                if !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            }
 
-            // Ship icon from tracking
-            if let track = tracking[member.characterId], let shipType = track.shipTypeId {
+            Spacer(minLength: EVESpacing.md)
+
+            if let shipType = track?.shipTypeId {
                 CachedAsyncImage(url: EVEImageURL.typeIcon(shipType, size: 64)) { image in
                     image.resizable()
                 } placeholder: {
                     Color.clear
                 }
-                .frame(width: 24, height: 24)
+                .frame(width: 22, height: 22)
                 .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
+                .help("Current ship")
+                .accessibilityHidden(true)
             }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, EVESpacing.xs)
     }
 
     // MARK:  Detail Pane
@@ -286,8 +287,7 @@ struct CorporationMembersView: View {
         HStack(spacing: 16) {
             // Character info
             VStack(alignment: .leading, spacing: 10) {
-                Text("Character Info")
-                    .font(.headline)
+                EVESectionTitle("Character Info")
 
                 if let info = detail.charInfo {
                     infoRow("Birthday", value: EVEFormatters.dateFormatter.string(from: info.birthday))
@@ -313,8 +313,7 @@ struct CorporationMembersView: View {
 
             // Tracking info
             VStack(alignment: .leading, spacing: 10) {
-                Text("Activity")
-                    .font(.headline)
+                EVESectionTitle("Activity")
 
                 if let track = detail.tracking {
                     if let logon = track.logonDate {
@@ -370,8 +369,7 @@ struct CorporationMembersView: View {
 
     private func titlesSection(_ titles: [String]) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Titles")
-                .font(.headline)
+            EVESectionTitle("Titles")
             FlowLayout(spacing: 6) {
                 ForEach(titles, id: \.self) { title in
                     Text(title)
@@ -389,8 +387,7 @@ struct CorporationMembersView: View {
 
     private func historySection(_ history: [ResolvedCorpHistory]) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Corporation History")
-                .font(.headline)
+            EVESectionTitle("Corporation History")
             ForEach(history, id: \.recordId) { entry in
                 HStack(spacing: 10) {
                     CachedAsyncImage(url: EVEImageURL.corporationLogo(entry.corporationId, size: 64)) { image in
@@ -430,14 +427,7 @@ struct CorporationMembersView: View {
     // MARK:  Helpers
 
     private func infoRow(_ label: String, value: String) -> some View {
-        HStack {
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Spacer()
-            Text(value)
-                .font(.caption.monospacedDigit())
-        }
+        EVEInfoRow(verbatim: label, value)
     }
 
     private func formatRole(_ role: String) -> String {

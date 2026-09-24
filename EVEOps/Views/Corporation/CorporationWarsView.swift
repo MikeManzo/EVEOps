@@ -37,19 +37,9 @@ struct CorporationWarsView: View {
                 }
             }
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
-                Text("Corp Wars")
-                    .font(.largeTitle.bold())
-                PinToggleButton(section: .corpWars)
-                Spacer()
-                FreshnessIndicator(isLoading: isLoading) { await load() }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.background)
+        .eveScreenHeader("Corp Wars", section: .corpWars) {
+            FreshnessIndicator(isLoading: isLoading) { await load() }
         }
-        .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) { await load() }
     }
 

@@ -77,18 +77,7 @@ struct LoyaltyPointStoreView: View {
             Divider()
             offerPanel
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
-                Text("LP Store")
-                    .font(.largeTitle.bold())
-                PinToggleButton(section: .lpStore)
-                Spacer()
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.background)
-        }
-        .navigationTitle("")
+        .eveScreenHeader("LP Store", section: .lpStore)
         .task(id: accountManager.selectedCharacterID) {
             await loadLP()
         }
@@ -145,19 +134,20 @@ struct LoyaltyPointStoreView: View {
             } else if lpData.isEmpty {
                 EVEEmptyState("No Loyalty Points", systemImage: "medal", message: "Earn LP by running missions for NPC corporations.")
             } else {
-                List(lpData, id: \.corporationId, selection: Binding(
-                    get: { selectedCorpId },
-                    set: { selectedCorpId = $0 }
-                )) { lp in
+                // No `selection:` binding — see `eveSelectableListRow` (theme-colored selection).
+                List(lpData, id: \.corporationId) { lp in
                     CorpHoldingRow(
                         corp: lp,
                         isEverMarks: lp.corporationId == paragonCorporationId,
                         isSelected: lp.corporationId == selectedCorpId
                     )
-                    .tag(lp.corporationId)
-                    .themedListRow(isSelected: lp.corporationId == selectedCorpId, palette: palette)
+                    .id(lp.corporationId)
+                    .eveSelectableListRow(isSelected: lp.corporationId == selectedCorpId, palette: palette) {
+                        selectedCorpId = lp.corporationId
+                    }
                 }
                 .listStyle(.sidebar)
+                .eveKeyboardSelection(lpData.map(\.corporationId), selection: selectedCorpId) { selectedCorpId = $0 }
             }
         }
         .background(Color(NSColor.controlBackgroundColor))

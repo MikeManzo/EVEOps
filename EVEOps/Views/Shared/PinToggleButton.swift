@@ -50,8 +50,7 @@ struct PinToggleButton: View {
                 .contentTransition(.symbolEffect(.replace))
                 .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isPinned)
         }
-        .accessibilityLabel(isPinned ? "Unpin" : "Pin")
-        .buttonStyle(.plain)
+        .buttonStyleOutsideToolbar(.plain)
         .disabled(!isPinned && pinnedSections.count >= Self.maxPinned)
         .help(
             isPinned ? "Unpin from the sidebar's Pinned section"

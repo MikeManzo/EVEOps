@@ -16,7 +16,7 @@ import SwiftUI
 ///
 /// Icons are deliberately monochrome: color is reserved for meaning (security status,
 /// selection), so a row of services reads as a quiet glyph strip rather than confetti.
-struct StationService: Identifiable, Hashable {
+nonisolated struct StationService: Identifiable, Hashable {
     let key: String
     let label: LocalizedStringKey
     let symbol: String
@@ -117,7 +117,7 @@ struct StationService: Identifiable, Hashable {
 
 /// Splits an NPC station name like "Jita IV - Moon 4 - Caldari Navy Assembly Plant" into
 /// the parts a row needs, given the system it's in.
-struct StationNameParts {
+nonisolated struct StationNameParts {
     /// "Caldari Navy Assembly Plant"
     let facility: String
     /// "IV · Moon 4"

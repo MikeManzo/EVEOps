@@ -46,22 +46,12 @@ struct ColoniesOverviewView: View {
                 }
             }
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            HStack(spacing: 12) {
-                Text("Colonies Overview")
-                    .font(.largeTitle.bold())
-                PinToggleButton(section: .colonies)
-                Spacer()
-                RelativeTimestamp(date: lastRefresh)
-                RefreshButton(isRefreshing: isRefreshing) {
-                    Task { await refresh() }
-                }
+        .eveScreenHeader("Colonies Overview", section: .colonies) {
+            RelativeTimestamp(date: lastRefresh)
+            RefreshButton(isRefreshing: isRefreshing) {
+                Task { await refresh() }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.background)
         }
-        .navigationTitle("")
         .sheet(item: $selectedEntry) { entry in
             ColonyDetailView(characterID: entry.characterID, colony: entry.colony)
         }

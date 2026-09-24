@@ -44,18 +44,6 @@ struct LocationOverviewView: View {
         ) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    HStack(alignment: .firstTextBaseline) {
-                        Text("Location Overview")
-                            .font(.largeTitle.bold())
-                        PinToggleButton(section: .location)
-                        Spacer()
-                        RelativeTimestamp(date: lastRefresh)
-                        RefreshButton(isRefreshing: isRefreshing) {
-                            Task { await refreshAll() }
-                        }
-                    }
-                    .padding(.horizontal)
-
                     ForEach(locations, id: \.characterID) { info in
                         locationCard(info)
                     }
@@ -63,7 +51,12 @@ struct LocationOverviewView: View {
                 .padding()
             }
         }
-        .navigationTitle("")
+        .eveScreenHeader("Location Overview", section: .location) {
+            RelativeTimestamp(date: lastRefresh)
+            RefreshButton(isRefreshing: isRefreshing) {
+                Task { await refreshAll() }
+            }
+        }
         .task(id: accountManager.selectedCharacterID) {
             locations = []
             if buildFromPrefetcher() {

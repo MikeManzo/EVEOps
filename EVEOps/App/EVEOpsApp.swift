@@ -25,6 +25,10 @@ final class AppRouter {
     /// MainContentView consumes it and resets it to nil.
     var pendingSection: NavigationSection?
 
+    /// Set alongside `pendingSection` when a request is about a specific pilot (e.g. a
+    /// notification click): MainContentView selects that character first.
+    var pendingCharacterID: Int?
+
     /// A route request handed to the Route Planner from another view (e.g. the
     /// Exploration Codex quiet-systems list). RoutePlannerView resolves the system
     /// IDs, fills its origin/destination fields, and clears this back to nil.
@@ -127,7 +131,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
     ) {
         // Tapping the "update available" banner (or its "Install Update" action)
         // opens the Sparkle update flow.
-        if response.notification.request.identifier == AppUpdater.updateNotificationID,
+        if response.notification.request.content.userInfo[NotificationRoute.sectionKey] != nil {
+            Task { @MainActor in _ = NotificationRoute.handle(response) }
+        } else if response.notification.request.identifier == AppUpdater.updateNotificationID,
            response.actionIdentifier == AppUpdater.installActionID
             || response.actionIdentifier == UNNotificationDefaultActionIdentifier {
             Task { @MainActor in

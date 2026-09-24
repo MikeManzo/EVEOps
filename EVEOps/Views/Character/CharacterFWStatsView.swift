@@ -45,19 +45,9 @@ struct CharacterFWStatsView: View {
             }
             warzoneControlSection
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
-                Text("Faction Warfare")
-                    .font(.largeTitle.bold())
-                PinToggleButton(section: .factionWarfare)
-                Spacer()
-                FreshnessIndicator(isLoading: isLoading) { await load() }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.background)
+        .eveScreenHeader("Faction Warfare", section: .factionWarfare) {
+            FreshnessIndicator(isLoading: isLoading) { await load() }
         }
-        .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) {
             entry = nil
             await load()

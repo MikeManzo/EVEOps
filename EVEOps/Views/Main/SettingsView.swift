@@ -15,6 +15,7 @@ import FoundationModels
 
 struct SettingsView: View {
     @State private var selection: SettingsSection?
+    @Environment(ThemeManager.self) private var themeManager
 
     init(openToUpdate: Bool = false) {
         _selection = State(initialValue: openToUpdate ? .general : .accounts)
@@ -22,10 +23,16 @@ struct SettingsView: View {
 
     var body: some View {
         NavigationSplitView {
-            List(SettingsSection.allCases, id: \.self, selection: $selection) { section in
+            // No `selection:` binding — see `eveSelectableListRow` (theme-colored selection).
+            List(SettingsSection.allCases, id: \.self) { section in
                 SettingsSidebarRow(section: section)
+                    .id(section)
+                    .eveSelectableListRow(isSelected: (selection ?? .accounts) == section, palette: themeManager.palette) {
+                        selection = section
+                    }
             }
             .listStyle(.sidebar)
+            .eveKeyboardSelection(SettingsSection.allCases, selection: selection ?? .accounts) { selection = $0 }
             .navigationSplitViewColumnWidth(min: 160, ideal: 200, max: 260)
         } detail: {
             let current = selection ?? .accounts

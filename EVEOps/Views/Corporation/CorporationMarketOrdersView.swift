@@ -50,19 +50,9 @@ struct CorporationMarketOrdersView: View {
                 ordersTable
             }
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
-                Text("Corp Market Orders")
-                    .font(.largeTitle.bold())
-                PinToggleButton(section: .corpMarketOrders)
-                Spacer()
-                FreshnessIndicator(isLoading: isLoading) { await load() }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.background)
+        .eveScreenHeader("Corp Market Orders", section: .corpMarketOrders) {
+            FreshnessIndicator(isLoading: isLoading) { await load() }
         }
-        .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) { await load() }
     }
 

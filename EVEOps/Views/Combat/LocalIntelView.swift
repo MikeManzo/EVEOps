@@ -42,7 +42,7 @@ struct LocalIntelView: View {
             resultsList
         }
         .padding()
-        .navigationTitle("Local Intel")
+        .eveScreenHeader("Local Intel", section: .localIntel)
         .sheet(item: $selectedPilot) { pilot in
             LocalIntelPilotDetailView(pilot: pilot)
         }

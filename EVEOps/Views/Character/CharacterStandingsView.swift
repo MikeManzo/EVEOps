@@ -31,19 +31,9 @@ struct CharacterStandingsView: View {
                 }
             }
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
-                Text("Standings")
-                    .font(.largeTitle.bold())
-                PinToggleButton(section: .standings)
-                Spacer()
-                FreshnessIndicator(isLoading: isLoading) { isLoading = true; await load() }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.background)
+        .eveScreenHeader("Standings", section: .standings) {
+            FreshnessIndicator(isLoading: isLoading) { isLoading = true; await load() }
         }
-        .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) {
             groups = []
             isLoading = true
@@ -140,22 +130,10 @@ struct StandingRow: View {
             }
             Spacer()
             HStack(spacing: 8) {
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 3).fill(.quaternary)
-                        let fraction = (standing.standing + 10.0) / 20.0
-                        let color: Color = standing.standing > 0 ? .green : standing.standing < 0 ? .red : .secondary
-                        RoundedRectangle(cornerRadius: 3)
-                            .fill(color)
-                            .frame(width: geo.size.width * max(0, min(1, fraction)))
-                    }
-                }
-                .frame(width: 100, height: 8)
+                EVEStandingBar(standing: standing.standing, width: 100)
 
-                Text(String(format: "%+.1f", standing.standing))
-                    .font(.subheadline.bold().monospacedDigit())
-                    .foregroundStyle(standing.standing > 0 ? .green : standing.standing < 0 ? .red : .secondary)
-                    .frame(width: 40, alignment: .trailing)
+                EVEStandingBadge(standing: standing.standing)
+                    .frame(minWidth: 44, alignment: .trailing)
             }
         }
         .contentShape(Rectangle())
@@ -179,7 +157,7 @@ struct FactionPopoverView: View {
     @State private var homeSystemName: String?
 
     private var standingColor: Color {
-        standing.standing > 0 ? .green : standing.standing < 0 ? .red : .secondary
+        eveStandingColor(standing.standing)
     }
 
     var body: some View {
@@ -257,7 +235,7 @@ struct NpcCorpPopoverView: View {
     @State private var ceoName: String?
 
     private var standingColor: Color {
-        standing.standing > 0 ? .green : standing.standing < 0 ? .red : .secondary
+        eveStandingColor(standing.standing)
     }
 
     var body: some View {
@@ -328,7 +306,7 @@ struct AgentPopoverView: View {
     @State private var corpName: String?
 
     private var standingColor: Color {
-        standing.standing > 0 ? .green : standing.standing < 0 ? .red : .secondary
+        eveStandingColor(standing.standing)
     }
 
     var body: some View {

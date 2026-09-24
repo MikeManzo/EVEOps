@@ -65,18 +65,7 @@ struct DiagnosticPaneView: View {
             logList
         }
         .task { await apiStatus.checkServiceStatus() }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
-                Text("Diagnostic Logs")
-                    .font(.largeTitle.bold())
-                PinToggleButton(section: .diagnosticLogs)
-                Spacer()
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.background)
-        }
-        .navigationTitle("")
+        .eveScreenHeader("Diagnostic Logs", section: .diagnosticLogs)
     }
 
     // MARK:  Toolbar

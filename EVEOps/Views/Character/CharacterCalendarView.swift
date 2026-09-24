@@ -171,19 +171,9 @@ struct CharacterCalendarView: View {
                 bottomSplit
             }
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
-                Text("Calendar")
-                    .font(.largeTitle.bold())
-                PinToggleButton(section: .calendar)
-                Spacer()
-                FreshnessIndicator(isLoading: isLoading) { await loadAll() }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.background)
+        .eveScreenHeader("Calendar", section: .calendar) {
+            FreshnessIndicator(isLoading: isLoading) { await loadAll() }
         }
-        .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) { await loadAll() }
     }
 
@@ -216,6 +206,7 @@ struct CharacterCalendarView: View {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
             }
+            .eveEdgeFade()
 
             Divider().opacity(0.5)
 
@@ -303,10 +294,16 @@ struct CharacterCalendarView: View {
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                List(dayFilteredItems, selection: $selectedItemID) { item in
+                // No `selection:` binding — see `eveSelectableListRow` (theme-colored selection).
+                List(dayFilteredItems) { item in
                     CalendarItemRow(item: item)
+                        .id(item.id)
+                        .eveSelectableListRow(isSelected: item.id == selectedItemID, palette: themeManager.palette) {
+                            selectedItemID = item.id
+                        }
                 }
                 .listStyle(.plain)
+                .eveKeyboardSelection(dayFilteredItems.map(\.id), selection: selectedItemID) { selectedItemID = $0 }
             }
         }
     }

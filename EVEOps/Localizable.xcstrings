@@ -13,6 +13,9 @@
     "— click the destination" : {
 
     },
+    ", and more" : {
+
+    },
     "·" : {
 
     },
@@ -130,6 +133,16 @@
         }
       }
     },
+    "%@ · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$@"
+          }
+        }
+      }
+    },
     "%@ · %@ LP available" : {
       "localizations" : {
         "en" : {
@@ -166,6 +179,16 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ · %2$lld kills/h"
+          }
+        }
+      }
+    },
+    "%@ · %lld stations" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$lld stations"
           }
         }
       }
@@ -380,6 +403,16 @@
         }
       }
     },
+    "%@: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@: %2$@"
+          }
+        }
+      }
+    },
     "%@'s training queue has become empty!" : {
 
     },
@@ -447,7 +480,7 @@
     "%lld AK" : {
 
     },
-    "%lld attacker(s)" : {
+    "%lld attackers" : {
 
     },
     "%lld bonus remap%@" : {
@@ -737,6 +770,9 @@
     "%lld orders" : {
 
     },
+    "%lld pilots" : {
+
+    },
     "%lld pins - Level %lld" : {
       "localizations" : {
         "en" : {
@@ -920,6 +956,9 @@
     "%lld traffic/h" : {
 
     },
+    "%lld unread" : {
+
+    },
     "%lld unresolved" : {
 
     },
@@ -1086,6 +1125,9 @@
     "1 minute" : {
 
     },
+    "1 pilot" : {
+
+    },
     "1,000" : {
 
     },
@@ -1171,6 +1213,9 @@
 
     },
     "A new version of EVEOps is ready to install." : {
+
+    },
+    "A ring around the icon tracks the current skill of the selected character." : {
 
     },
     "About EVEOps" : {
@@ -1397,6 +1442,9 @@
     "and %lld more" : {
 
     },
+    "And ⌘1 through ⌘9 jump straight to the everyday screens — %@." : {
+
+    },
     "Annual available" : {
 
     },
@@ -1535,6 +1583,9 @@
     "Back" : {
 
     },
+    "Back to the Dashboard" : {
+
+    },
     "Background Refresh" : {
 
     },
@@ -1542,6 +1593,9 @@
 
     },
     "Bad" : {
+
+    },
+    "Badge Dock icon when something needs attention" : {
 
     },
     "Balance" : {
@@ -1941,6 +1995,9 @@
     "Contested" : {
 
     },
+    "Continue" : {
+
+    },
     "Contract Details" : {
 
     },
@@ -2061,6 +2118,9 @@
     "Counts down %llds — the short end of the observed response window. Hit Start the moment you land. Treat 0:30 as your hard bail-out." : {
 
     },
+    "Counts idle skill queues and offline planetary extractors." : {
+
+    },
     "Courier Missions" : {
 
     },
@@ -2086,6 +2146,9 @@
 
     },
     "Current Rank" : {
+
+    },
+    "Current ship" : {
 
     },
     "Current Ships" : {
@@ -2792,6 +2855,9 @@
     "Generate Insight" : {
 
     },
+    "Get Started" : {
+
+    },
     "getevemodels" : {
 
     },
@@ -3131,6 +3197,9 @@
 
     },
     "Journal (%lld)" : {
+
+    },
+    "Jump Anywhere" : {
 
     },
     "Jump Clone Cooldown" : {
@@ -3908,9 +3977,6 @@
     "Notifications Disabled" : {
 
     },
-    "NPC" : {
-
-    },
     "NPC Corporations" : {
 
     },
@@ -3968,6 +4034,12 @@
     "Open %@" : {
 
     },
+    "Open Contacts" : {
+
+    },
+    "Open Contracts" : {
+
+    },
     "Open EVE Launcher" : {
 
     },
@@ -3995,6 +4067,9 @@
     "Open in zKillboard" : {
 
     },
+    "Open Industry" : {
+
+    },
     "Open Market Browser" : {
 
     },
@@ -4007,10 +4082,22 @@
     "Open Settings…" : {
 
     },
+    "Open Standings" : {
+
+    },
+    "Open Structures" : {
+
+    },
     "Open System Notification Settings…" : {
 
     },
     "Open System Settings…" : {
+
+    },
+    "Open Training" : {
+
+    },
+    "Open Wars" : {
 
     },
     "Opening EVE Launcher…" : {
@@ -4121,6 +4208,9 @@
     "PI extractors expired" : {
 
     },
+    "Pick the empire whose colors EVEOps should wear. You can change it any time in Settings." : {
+
+    },
     "Pilot" : {
 
     },
@@ -4139,13 +4229,13 @@
     "Pilots" : {
 
     },
-    "Pin" : {
-
-    },
     "Pin %@" : {
 
     },
     "Pin to the top of the sidebar" : {
+
+    },
+    "Pin Your Favorites" : {
 
     },
     "Pinned" : {
@@ -4188,6 +4278,12 @@
 
     },
     "Presence Score" : {
+
+    },
+    "Press ⌘K from anywhere to open the quick switcher — type a screen, a system, an item, a pilot, or a command and hit Return." : {
+
+    },
+    "Previous / next screen" : {
 
     },
     "Previous Section" : {
@@ -4356,6 +4452,9 @@
 
     },
     "Refresh Now" : {
+
+    },
+    "Refresh the current screen" : {
 
     },
     "Refreshing" : {
@@ -4854,6 +4953,9 @@
     "Show only agents your current effective standing lets you talk to" : {
 
     },
+    "Show skill training progress on Dock icon" : {
+
+    },
     "Show Utility section in sidebar" : {
 
     },
@@ -4923,6 +5025,9 @@
     "Skills" : {
 
     },
+    "Skip" : {
+
+    },
     "Social & Comms" : {
 
     },
@@ -4933,9 +5038,6 @@
 
     },
     "Sold" : {
-
-    },
-    "Solo" : {
 
     },
     "Some ships failed to load" : {
@@ -5002,6 +5104,9 @@
 
     },
     "STANDING" : {
+
+    },
+    "Standing %@" : {
 
     },
     "Standing Change — %@" : {
@@ -5076,6 +5181,16 @@
     },
     "status.eveonline.com" : {
 
+    },
+    "Step %lld of %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Step %1$lld of %2$lld"
+          }
+        }
+      }
     },
     "Stock Exchange" : {
 
@@ -5360,9 +5475,6 @@
     "Unpackage the ship in-game to view its fitting." : {
 
     },
-    "Unpin" : {
-
-    },
     "Unpin %@" : {
 
     },
@@ -5415,6 +5527,9 @@
 
     },
     "Use the minimum-resist EHP from the Fitting Simulator's Defense panel. 'Survivable' means at least double the blast — headroom for rat fire while you warp." : {
+
+    },
+    "Use the pin button in any screen's toolbar to add it to the Pinned group at the top of the sidebar." : {
 
     },
     "Uses EVE's hourly kill map. Origin and destination are never skipped, even if hot." : {
@@ -5545,6 +5660,9 @@
 
     },
     "Webhook URL" : {
+
+    },
+    "Welcome to EVEOps" : {
 
     },
     "What it trains" : {

@@ -79,20 +79,6 @@ struct TrainingOverviewView: View {
         }
         .safeAreaInset(edge: .top, spacing: 0) {
             VStack(spacing: 0) {
-                HStack(spacing: 12) {
-                    Text("Training Overview")
-                        .font(.largeTitle.bold())
-                    PinToggleButton(section: .training)
-                    Spacer()
-                    RelativeTimestamp(date: lastRefresh)
-                    RefreshButton(isRefreshing: isRefreshing) {
-                        Task { await refresh() }
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 12)
-                .padding(.bottom, 8)
-
                 HStack(spacing: 8) {
                     Image(systemName: "magnifyingglass")
                         .foregroundStyle(.secondary)
@@ -151,13 +137,18 @@ struct TrainingOverviewView: View {
                 .padding(.vertical, 8)
                 .eveCard(cornerRadius: EVERadius.md)
                 .padding(.horizontal, 16)
-                .padding(.bottom, 8)
+                .padding(.vertical, 8)
 
                 Divider()
             }
             .background(.background)
         }
-        .navigationTitle("")
+        .eveScreenHeader("Training Overview", section: .training) {
+            RelativeTimestamp(date: lastRefresh)
+            RefreshButton(isRefreshing: isRefreshing) {
+                Task { await refresh() }
+            }
+        }
         .task(id: accountManager.selectedCharacterID) {
             trainingData = []
             selectedSkill = nil

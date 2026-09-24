@@ -50,19 +50,9 @@ struct CorporationKillmailsView: View {
                 }
             }
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
-                Text("Corp Kill/Loss Mails")
-                    .font(.largeTitle.bold())
-                PinToggleButton(section: .corpKillmails)
-                Spacer()
-                FreshnessIndicator(isLoading: isLoading) { isLoading = true; await loadGroups() }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.background)
+        .eveScreenHeader("Corp Kill/Loss Mails", section: .corpKillmails) {
+            FreshnessIndicator(isLoading: isLoading) { isLoading = true; await loadGroups() }
         }
-        .navigationTitle("")
         .onChange(of: filter) { _, f in
             if let e = selectedEntry, f != "all", (f == "kills") != e.isKill { selectedEntry = nil }
         }

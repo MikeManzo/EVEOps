@@ -185,19 +185,9 @@ struct CharacterFittingsView: View {
                     .environment(simState)
             }
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
-                Text("Ships & Fittings")
-                    .font(.largeTitle.bold())
-                PinToggleButton(section: .fittings)
-                Spacer()
-                FreshnessIndicator(isLoading: isLoading) { await load() }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.background)
+        .eveScreenHeader("Ships & Fittings", section: .fittings) {
+            FreshnessIndicator(isLoading: isLoading) { await load() }
         }
-        .navigationTitle("")
         .task(id: accountManager.selectedCharacterID) {
             if AppRouter.shared.pendingEFTURL != nil { activeTab = .simulate }
             shipSections = []
@@ -224,9 +214,22 @@ struct CharacterFittingsView: View {
         }
     }
 
+    /// Ships in expanded sections, in display order — the ↑/↓ navigation order.
+    private var visibleShips: [ShipEntry] {
+        let collapsed = Set(collapsedShipRaw.components(separatedBy: "\n"))
+        return shipSections.filter { !collapsed.contains($0.className) }.flatMap(\.ships)
+    }
+
+    /// Saved fittings in expanded sections, in display order.
+    private var visibleFittings: [SavedFittingEntry] {
+        let collapsed = Set(collapsedFittingRaw.components(separatedBy: "\n"))
+        return fittingSections.filter { !collapsed.contains($0.className) }.flatMap(\.fittings)
+    }
+
     private var shipsContent: some View {
         HStack(spacing: 0) {
-            List(selection: $selectedShip) {
+            // No `selection:` binding — see `eveSelectableListRow` (theme-colored selection).
+            List {
                 ForEach(shipSections, id: \.className) { section in
                     Section(isExpanded: Binding(
                         get: { !collapsedShipRaw.components(separatedBy: "\n").contains(section.className) },
@@ -238,8 +241,10 @@ struct CharacterFittingsView: View {
                     )) {
                         ForEach(section.ships) { ship in
                             ShipRow(ship: ship, showCharacterName: multiAccount)
-                                .tag(ship)
-                                .themedListRow(isSelected: ship == selectedShip, palette: palette)
+                                .id(ship)
+                                .eveSelectableListRow(isSelected: ship == selectedShip, palette: palette) {
+                                    selectedShip = ship
+                                }
                         }
                     } header: {
                         HStack(spacing: 8) {
@@ -254,6 +259,7 @@ struct CharacterFittingsView: View {
                 }
             }
             .id(shipListID)
+            .eveKeyboardSelection(visibleShips, selection: selectedShip) { selectedShip = $0 }
             .frame(maxWidth: .infinity)
 
             if let ship = selectedShip {
@@ -273,7 +279,8 @@ struct CharacterFittingsView: View {
 
     private var savedFittingsContent: some View {
         HStack(spacing: 0) {
-            List(selection: $selectedFitting) {
+            // No `selection:` binding — see `eveSelectableListRow` (theme-colored selection).
+            List {
                 ForEach(fittingSections, id: \.className) { section in
                     Section(isExpanded: Binding(
                         get: { !collapsedFittingRaw.components(separatedBy: "\n").contains(section.className) },
@@ -287,8 +294,10 @@ struct CharacterFittingsView: View {
                             SavedFittingRow(fitting: fitting, showCharacterName: multiAccount) {
                                 Task { await deleteFitting(fitting) }
                             }
-                            .tag(fitting)
-                            .themedListRow(isSelected: fitting == selectedFitting, palette: palette)
+                            .id(fitting)
+                            .eveSelectableListRow(isSelected: fitting == selectedFitting, palette: palette) {
+                                selectedFitting = fitting
+                            }
                         }
                     } header: {
                         HStack(spacing: 8) {
@@ -303,6 +312,7 @@ struct CharacterFittingsView: View {
                 }
             }
             .id(fittingListID)
+            .eveKeyboardSelection(visibleFittings, selection: selectedFitting) { selectedFitting = $0 }
             .frame(maxWidth: .infinity)
 
             if let fitting = selectedFitting {

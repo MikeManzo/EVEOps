@@ -63,18 +63,7 @@ struct RoutePlannerView: View {
             }
             .padding()
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
-                Text("Route Planner")
-                    .font(.largeTitle.bold())
-                PinToggleButton(section: .routePlanner)
-                Spacer()
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.background)
-        }
-        .navigationTitle("")
+        .eveScreenHeader("Route Planner", section: .routePlanner)
         .task { await loadTheraConnections() }
         .task(id: AppRouter.shared.pendingRoute) { await applyPendingRoute() }
     }

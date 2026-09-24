@@ -170,6 +170,105 @@ struct EVESecurityBadge: View {
     }
 }
 
+// MARK: - Standing
+
+/// Standing value (-10...+10) as a signed, tinted number — e.g. "+7.5" in light blue.
+struct EVEStandingBadge: View {
+    let standing: Double
+
+    var body: some View {
+        let color = eveStandingColor(standing)
+        Text(standing, format: .number.precision(.fractionLength(1)).sign(strategy: .always(includingZero: false)))
+            .font(.eveLabelBold.monospacedDigit())
+            .foregroundStyle(color)
+            .padding(.horizontal, EVESpacing.sm)
+            .padding(.vertical, 1)
+            .background(color.opacity(0.14), in: RoundedRectangle(cornerRadius: EVERadius.xs))
+            .accessibilityLabel(Text("Standing \(standing, format: .number.precision(.fractionLength(1)))"))
+    }
+}
+
+/// Diverging standing bar: centered at neutral, filling right (blue) for positive and left
+/// (orange/red) for negative. A left-origin bar made -10 read as "empty" rather than hostile.
+struct EVEStandingBar: View {
+    let standing: Double
+    var width: CGFloat = 64
+    var height: CGFloat = 5
+
+    var body: some View {
+        let fraction = min(max(standing / 10, -1), 1)
+        let half = width / 2
+        ZStack {
+            Capsule().fill(.quaternary)
+            HStack(spacing: 0) {
+                ZStack(alignment: .trailing) {
+                    Color.clear
+                    if fraction < 0 {
+                        Capsule().fill(eveStandingColor(standing)).frame(width: half * -fraction)
+                    }
+                }
+                ZStack(alignment: .leading) {
+                    Color.clear
+                    if fraction > 0 {
+                        Capsule().fill(eveStandingColor(standing)).frame(width: half * fraction)
+                    }
+                }
+            }
+            Rectangle().fill(.secondary.opacity(0.5)).frame(width: 1)
+        }
+        .frame(width: width, height: height)
+        .accessibilityHidden(true)
+    }
+}
+
+// MARK: - Section title
+
+/// Small uppercase secondary section title — the one header style for detail panes and
+/// inspectors across the app (Xcode/Finder inspector convention).
+struct EVESectionTitle: View {
+    let title: Text
+
+    init(_ title: LocalizedStringKey) { self.title = Text(title) }
+    init(verbatim title: String) { self.title = Text(title) }
+
+    var body: some View {
+        title
+            .font(.eveLabelSemibold)
+            .textCase(.uppercase)
+            .kerning(0.4)
+            .foregroundStyle(.secondary)
+            .accessibilityAddTraits(.isHeader)
+    }
+}
+
+/// Label/value row for detail panes: secondary label, primary value, value selectable.
+struct EVEInfoRow: View {
+    let label: Text
+    let value: String
+
+    init(_ label: LocalizedStringKey, _ value: String) {
+        self.label = Text(label)
+        self.value = value
+    }
+
+    init(verbatim label: String, _ value: String) {
+        self.label = Text(label)
+        self.value = value
+    }
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: EVESpacing.md) {
+            label
+                .foregroundStyle(.secondary)
+            Spacer(minLength: EVESpacing.md)
+            Text(value)
+                .multilineTextAlignment(.trailing)
+                .textSelection(.enabled)
+        }
+        .font(.callout)
+    }
+}
+
 // MARK: - Inspector section
 
 /// Section in a detail/inspector pane: a small uppercase secondary title over content,
@@ -186,12 +285,7 @@ struct EVEInspectorSection<Content: View>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: EVESpacing.md) {
-            Text(title)
-                .font(.eveLabelSemibold)
-                .textCase(.uppercase)
-                .kerning(0.4)
-                .foregroundStyle(.secondary)
-                .accessibilityAddTraits(.isHeader)
+            EVESectionTitle(title)
             content()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -223,6 +317,52 @@ struct EVEProgressBar: View {
             .animation(.smooth(duration: 0.4), value: clamped)
             .accessibilityElement()
             .accessibilityValue(Text(clamped, format: .percent.precision(.fractionLength(0))))
+    }
+}
+
+// MARK: - Scroll edge fade
+
+private struct EVEEdgeFadeModifier: ViewModifier {
+    let width: CGFloat
+    @State private var fadesLeading = false
+    @State private var fadesTrailing = false
+
+    private struct Edges: Equatable { let leading: Bool; let trailing: Bool }
+
+    func body(content: Content) -> some View {
+        content
+            .onScrollGeometryChange(for: Edges.self) { geo in
+                let maxOffset = geo.contentSize.width - geo.containerSize.width
+                return Edges(
+                    leading: geo.contentOffset.x > 1,
+                    trailing: maxOffset > 1 && geo.contentOffset.x < maxOffset - 1
+                )
+            } action: { _, edges in
+                fadesLeading = edges.leading
+                fadesTrailing = edges.trailing
+            }
+            .mask {
+                HStack(spacing: 0) {
+                    LinearGradient(colors: [.black.opacity(fadesLeading ? 0 : 1), .black],
+                                   startPoint: .leading, endPoint: .trailing)
+                        .frame(width: width)
+                    Rectangle()
+                    LinearGradient(colors: [.black, .black.opacity(fadesTrailing ? 0 : 1)],
+                                   startPoint: .leading, endPoint: .trailing)
+                        .frame(width: width)
+                }
+            }
+            .animation(.easeOut(duration: 0.15), value: fadesLeading)
+            .animation(.easeOut(duration: 0.15), value: fadesTrailing)
+    }
+}
+
+extension View {
+    /// Fades a horizontal `ScrollView`'s edges only where more content lies beyond them,
+    /// so a chip row that overflows reads as scrollable instead of looking clipped. Apply
+    /// to the `ScrollView` itself.
+    func eveEdgeFade(width: CGFloat = 28) -> some View {
+        modifier(EVEEdgeFadeModifier(width: width))
     }
 }
 
