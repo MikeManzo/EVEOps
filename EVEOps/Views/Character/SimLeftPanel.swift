@@ -526,7 +526,7 @@ struct SimShipRow: View {
             }
             .frame(width: 48, height: 48)
             .clipShape(RoundedRectangle(cornerRadius: EVERadius.md))
-            .overlay(RoundedRectangle(cornerRadius: EVERadius.md).strokeBorder(.white.opacity(0.08), lineWidth: 0.5))
+            .overlay(RoundedRectangle(cornerRadius: EVERadius.md).strokeBorder(.primary.opacity(0.08), lineWidth: 0.5))
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(type.name).font(.subheadline.bold())
@@ -553,7 +553,7 @@ struct SimModuleRow: View {
             }
             .frame(width: 34, height: 34)
             .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
-            .overlay(RoundedRectangle(cornerRadius: EVERadius.sm).strokeBorder(.white.opacity(0.08), lineWidth: 0.5))
+            .overlay(RoundedRectangle(cornerRadius: EVERadius.sm).strokeBorder(.primary.opacity(0.08), lineWidth: 0.5))
 
             Text(type.name).font(.subheadline).lineLimit(2)
             Spacer()

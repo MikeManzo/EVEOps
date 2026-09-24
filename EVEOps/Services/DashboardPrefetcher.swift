@@ -638,8 +638,6 @@ final class DashboardPrefetcher {
     }
 
     private static func formatSP(_ sp: Int) -> String {
-        if sp >= 1_000_000 { return String(format: "%.1fM SP", Double(sp) / 1_000_000) }
-        if sp >= 1_000 { return String(format: "%.0fK SP", Double(sp) / 1_000) }
-        return "\(sp) SP"
+        EVEFormatters.formatSP(sp)
     }
 }

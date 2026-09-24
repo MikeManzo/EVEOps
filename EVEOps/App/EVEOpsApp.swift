@@ -49,6 +49,7 @@ final class AppRouter {
 
     /// Bumped by the "Add Character…" menu command (⌘N).
     var addCharacterTick = 0
+    var shortcutsTick = 0
 
     /// −1 / +1 from the Previous/Next Section commands (⌘[ / ⌘]); consumed and
     /// reset to 0 by MainContentView, which owns the ordered section list.
@@ -57,6 +58,7 @@ final class AppRouter {
     func requestRefresh() { refreshTick &+= 1 }
     func openCommandPalette() { commandPaletteTick &+= 1 }
     func requestAddCharacter() { addCharacterTick &+= 1 }
+    func showKeyboardShortcuts() { shortcutsTick &+= 1 }
     func stepSection(_ delta: Int) { sectionStep = delta }
 }
 

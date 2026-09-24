@@ -102,6 +102,7 @@ struct CharacterMailsView: View {
                             Text(mail.from.flatMap { senderNames[$0] } ?? mail.from.map { "#\($0)" } ?? "Unknown Sender")
                                 .font(.subheadline.weight(unread ? .semibold : .regular))
                                 .lineLimit(1)
+                                .eveTruncationHelp(mail.from.flatMap { senderNames[$0] } ?? mail.from.map { "#\($0)" } ?? "Unknown Sender")
                             Spacer(minLength: EVESpacing.sm)
                             if let timestamp = mail.timestamp {
                                 Text(Self.shortStamp(timestamp))
@@ -114,6 +115,7 @@ struct CharacterMailsView: View {
                             .fontWeight(unread ? .medium : .regular)
                             .foregroundStyle(isSelected ? AnyShapeStyle(.white.opacity(0.9)) : AnyShapeStyle(.secondary))
                             .lineLimit(1)
+                            .eveTruncationHelp(mail.subject ?? "(No Subject)")
                     }
                 }
                 .padding(.vertical, EVESpacing.xs)

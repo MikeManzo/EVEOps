@@ -196,6 +196,7 @@ extension MarketBrowserView {
             Text(name)
                 .font(.headline)
                 .lineLimit(1)
+                .eveTruncationHelp(name)
         }
     }
 

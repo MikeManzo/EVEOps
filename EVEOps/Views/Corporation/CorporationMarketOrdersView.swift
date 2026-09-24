@@ -129,7 +129,7 @@ struct CorporationMarketOrdersView: View {
                     }
                     .frame(width: 20, height: 20)
                     .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
-                    Text(row.typeName).lineLimit(1)
+                    Text(row.typeName).lineLimit(1).eveTruncationHelp(row.typeName)
                 }
                 .eveContextMenu(.item(typeID: row.order.typeId, name: row.typeName))
             }

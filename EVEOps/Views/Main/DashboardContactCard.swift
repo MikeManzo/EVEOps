@@ -51,7 +51,7 @@ struct ContactCardView: View {
                         }
                         .frame(width: 52, height: 52)
                         .clipShape(RoundedRectangle(cornerRadius: EVERadius.md))
-                        .overlay(RoundedRectangle(cornerRadius: EVERadius.md).strokeBorder(.white.opacity(0.1), lineWidth: 1))
+                        .overlay(RoundedRectangle(cornerRadius: EVERadius.md).strokeBorder(.primary.opacity(0.1), lineWidth: 1))
 
                         if contact.isPlayerCharacter {
                             PresenceBadge(score: presenceTracker.score(for: contact.contactID), size: 13)

@@ -476,10 +476,12 @@ private struct StationRow: View {
                 Text(parts.facility)
                     .font(.body.weight(.medium))
                     .lineLimit(1)
+                    .eveTruncationHelp(parts.facility)
                 Text(subtitle(orbit: parts.orbit))
                     .font(.caption)
                     .foregroundStyle(isSelected ? AnyShapeStyle(.white.opacity(0.8)) : AnyShapeStyle(.secondary))
                     .lineLimit(1)
+                    .eveTruncationHelp(subtitle(orbit: parts.orbit))
             }
 
             Spacer(minLength: EVESpacing.md)

@@ -23,6 +23,7 @@ struct MainContentView: View {
     @AppStorage("nav.lastSection") private var selectedSection: NavigationSection?
     @State private var showCommandPalette = false
     @State private var showOnboarding = false
+    @State private var showShortcuts = false
     @AppStorage(OnboardingView.completedKey) private var onboardingCompleted = false
 
     var body: some View {
@@ -136,6 +137,12 @@ struct MainContentView: View {
         }
         .onChange(of: AppRouter.shared.commandPaletteTick) { _, _ in
             showCommandPalette = true
+        }
+        .onChange(of: AppRouter.shared.shortcutsTick) { _, _ in
+            showShortcuts = true
+        }
+        .sheet(isPresented: $showShortcuts) {
+            KeyboardShortcutsView { showShortcuts = false }
         }
         .onChange(of: AppRouter.shared.addCharacterTick) { _, _ in
             Task { await accountManager.addAccount() }

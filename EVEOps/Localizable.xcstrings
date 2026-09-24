@@ -266,6 +266,16 @@
         }
       }
     },
+    "%@ %@ this week" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@ this week"
+          }
+        }
+      }
+    },
     "%@ %lld" : {
       "localizations" : {
         "en" : {
@@ -1134,6 +1144,9 @@
     "1y" : {
 
     },
+    "1Y" : {
+
+    },
     "2 minutes" : {
 
     },
@@ -1188,6 +1201,9 @@
     "30d" : {
 
     },
+    "30D" : {
+
+    },
     "30d median" : {
 
     },
@@ -1195,6 +1211,9 @@
 
     },
     "90d" : {
+
+    },
+    "90D" : {
 
     },
     "250" : {
@@ -1255,6 +1274,9 @@
         }
       }
     },
+    "Actions" : {
+
+    },
     "Active" : {
 
     },
@@ -1295,10 +1317,16 @@
         }
       }
     },
+    "Add a character" : {
+
+    },
     "Add All" : {
 
     },
     "Add All to Plan" : {
+
+    },
+    "Add an EVE character to see training, wallet and alerts here." : {
 
     },
     "Add as waypoint" : {
@@ -1872,6 +1900,9 @@
     "Close" : {
 
     },
+    "Close a detail panel" : {
+
+    },
     "Closed" : {
 
     },
@@ -2029,6 +2060,9 @@
 
     },
     "Copy plan to clipboard (EVE-compatible format)" : {
+
+    },
+    "Copy selected table rows" : {
 
     },
     "Copy Type ID" : {
@@ -2204,6 +2238,9 @@
 
     },
     "Date" : {
+
+    },
+    "Day" : {
 
     },
     "Debug" : {
@@ -2924,6 +2961,9 @@
     "History (%lld)" : {
 
     },
+    "History builds up from one snapshot a day while you use Finances — check back tomorrow for a trend." : {
+
+    },
     "Holdings" : {
 
     },
@@ -3211,6 +3251,9 @@
     "Jump Clones (%lld)" : {
 
     },
+    "Jump To" : {
+
+    },
     "Jump to a section, action, or EVE name…" : {
 
     },
@@ -3236,6 +3279,9 @@
 
     },
     "Kerreah" : {
+
+    },
+    "Keyboard Shortcuts" : {
 
     },
     "Kill" : {
@@ -3327,6 +3373,9 @@
 
     },
     "Limitations" : {
+
+    },
+    "Lists & Tables" : {
 
     },
     "LIVE APPRAISAL DATA SOURCE" : {
@@ -3627,6 +3676,9 @@
         }
       }
     },
+    "Move the selection" : {
+
+    },
     "Move to Trash" : {
 
     },
@@ -3634,6 +3686,9 @@
 
     },
     "Name" : {
+
+    },
+    "Navigation" : {
 
     },
     "Navigation 5\nSpaceship Command 4\nDrones 3" : {
@@ -3667,6 +3722,15 @@
     "Net capacitor recharge at 25% charge level" : {
 
     },
+    "Net Worth" : {
+
+    },
+    "Net worth history" : {
+
+    },
+    "Net Worth History" : {
+
+    },
     "Neural attribute" : {
 
     },
@@ -3697,6 +3761,9 @@
           }
         }
       }
+    },
+    "Next screen" : {
+
     },
     "Next Section" : {
 
@@ -3746,10 +3813,10 @@
     "No character data loaded" : {
 
     },
-    "No characters added" : {
+    "No Characters Added" : {
 
     },
-    "No Characters Added" : {
+    "No Characters Yet" : {
 
     },
     "No contracts" : {
@@ -4286,6 +4353,9 @@
     "Previous / next screen" : {
 
     },
+    "Previous screen" : {
+
+    },
     "Previous Section" : {
 
     },
@@ -4356,6 +4426,9 @@
 
     },
     "Quick switcher" : {
+
+    },
+    "Quick switcher — screens, systems, items, pilots" : {
 
     },
     "Quick switcher (⌘K)" : {
@@ -5228,10 +5301,10 @@
     "Swap Origin and Destination" : {
 
     },
-    "Switch" : {
+    "Switch pilot" : {
 
     },
-    "Switch pilot" : {
+    "Switch to %@" : {
 
     },
     "Syncing EVE SDE data…" : {
@@ -5308,6 +5381,9 @@
 
     },
     "This character has never used a neural remap." : {
+
+    },
+    "This list" : {
 
     },
     "This ship doesn't have a model in the community library yet." : {

@@ -105,7 +105,7 @@ struct SidebarView: View {
                                 isExpanded: expandedBinding($pinnedExpanded),
                                 content: {
                                     ForEach(rows(filtered(pinnedSections), group: "pinned")) { row in
-                                        navRow(row.section)
+                                        navRow(row.section, inPinned: true)
                                     }
                                     .onMove { indices, offset in
                                         let updated = reordered(pinnedSections, move: indices, to: offset)
@@ -376,8 +376,10 @@ struct SidebarView: View {
     /// it was too much visual noise repeated across every row. Indented under
     /// its section header so the row hierarchy reads clearly.
     @ViewBuilder
-    private func navRow(_ section: NavigationSection) -> some View {
-        let isSelected = section == selectedSection
+    private func navRow(_ section: NavigationSection, inPinned: Bool = false) -> some View {
+        // A pinned section also appears in its home group; highlight only one copy — the
+        // Pinned one while it's on screen — so the sidebar never shows two filled rows.
+        let isSelected = section == selectedSection && (inPinned || !pinnedCopyVisible(section))
         HStack(spacing: 6) {
             // macOS's sidebar List style auto-tints Label icons with the app's static
             // AccentColor asset regardless of ancestor `.foregroundStyle`/`.tint` — an
@@ -416,6 +418,15 @@ struct SidebarView: View {
                 ? "\(todayEventCount) events today"
                 : (badge(for: section)?.accessibilityText ?? "")
         )
+    }
+
+    /// Whether `section`'s copy in the Pinned group is currently on screen.
+    private func pinnedCopyVisible(_ section: NavigationSection) -> Bool {
+        guard accountManager.selectedAccount != nil,
+              showPinnedSection,
+              navScope == .character || !showCorpSection,
+              filterText.isEmpty ? pinnedExpanded : true else { return false }
+        return filtered(pinnedSections).contains(section)
     }
 
     // MARK:  Row badges
@@ -705,7 +716,7 @@ struct SidebarView: View {
                     }
                     .frame(width: 40, height: 40)
                     .clipShape(RoundedRectangle(cornerRadius: EVERadius.md))
-                    .overlay(RoundedRectangle(cornerRadius: EVERadius.md).strokeBorder(.white.opacity(0.15), lineWidth: 1))
+                    .overlay(RoundedRectangle(cornerRadius: EVERadius.md).strokeBorder(.primary.opacity(0.15), lineWidth: 1))
                     .accessibilityHidden(true)
 
                     VStack(alignment: .leading, spacing: 2) {
@@ -774,7 +785,7 @@ struct SidebarView: View {
                                 Circle()
                                     .fill(online ? Color.green : Color.gray)
                                     .frame(width: 8, height: 8)
-                                    .overlay(Circle().strokeBorder(.white.opacity(0.25), lineWidth: 1))
+                                    .overlay(Circle().strokeBorder(.primary.opacity(0.25), lineWidth: 1))
                                     .frame(width: 14, alignment: .center)
                                 Text(online ? "Online" : "Offline")
                                     .font(.caption)

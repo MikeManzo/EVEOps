@@ -156,12 +156,17 @@ extension View {
 struct EVESecurityBadge: View {
     let status: Double
     var compact: Bool = false
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         let color = eveSecurityColor(status)
+        // The in-game hues (bright yellow at 0.5, cyan at 1.0) are made for dark space;
+        // as text on a light window they wash out, so darken the digits in Light mode
+        // while the tinted fill keeps the true game color.
+        let textColor = colorScheme == .light ? color.mix(with: .black, by: 0.4) : color
         Text(status, format: .number.precision(.fractionLength(1)))
             .font(compact ? .eveMicroBold.monospacedDigit() : .eveLabelBold.monospacedDigit())
-            .foregroundStyle(color)
+            .foregroundStyle(textColor)
             .padding(.horizontal, compact ? EVESpacing.xs : EVESpacing.sm)
             .padding(.vertical, 1)
             .background(color.opacity(0.16), in: RoundedRectangle(cornerRadius: EVERadius.xs))
@@ -317,6 +322,37 @@ struct EVEProgressBar: View {
             .animation(.smooth(duration: 0.4), value: clamped)
             .accessibilityElement()
             .accessibilityValue(Text(clamped, format: .percent.precision(.fractionLength(0))))
+    }
+}
+
+// MARK: - Truncation tooltip
+
+private struct TruncationHelpModifier: ViewModifier {
+    let fullText: String
+    @State private var fullWidth: CGFloat = 0
+    @State private var shownWidth: CGFloat = 0
+
+    func body(content: Content) -> some View {
+        content
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { shownWidth = $0 }
+            .background(alignment: .leading) {
+                // The same view laid out at its ideal (untruncated) width, invisible — the
+                // only reliable way to learn whether SwiftUI had to truncate the real one.
+                content
+                    .fixedSize(horizontal: true, vertical: false)
+                    .hidden()
+                    .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { fullWidth = $0 }
+                    .accessibilityHidden(true)
+            }
+            .help(fullWidth > shownWidth + 0.5 ? fullText : "")
+    }
+}
+
+extension View {
+    /// Shows `fullText` as a tooltip only when this single-line text is actually cut off
+    /// with "…", as Finder does — no redundant tooltips on names that fit.
+    func eveTruncationHelp(_ fullText: String) -> some View {
+        modifier(TruncationHelpModifier(fullText: fullText))
     }
 }
 
@@ -530,9 +566,13 @@ struct EVEHeroBackdrop: View {
     var blur: CGFloat = 18
 
     @Environment(ThemeManager.self) private var themeManager
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         let accent = themeManager.palette.accent
+        // Dark mode seats the image with a black vignette; on a light card that reads as
+        // grime, so Light mode vignettes with the accent tint alone.
+        let vignetteEdge: Color = colorScheme == .dark ? .black.opacity(0.35) : accent.opacity(0.12)
         ZStack {
             LinearGradient(
                 colors: [accent.opacity(0.35), accent.opacity(0.05)],
@@ -552,7 +592,7 @@ struct EVEHeroBackdrop: View {
                 }
             }
             RadialGradient(
-                colors: [.clear, accent.opacity(0.18), .black.opacity(0.35)],
+                colors: [.clear, accent.opacity(0.18), vignetteEdge],
                 center: .center,
                 startRadius: 40,
                 endRadius: 420

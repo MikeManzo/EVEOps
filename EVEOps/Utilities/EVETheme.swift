@@ -68,6 +68,13 @@ func eveStandingColor(_ standing: Double) -> Color {
     return Color(red: 0.90, green: 0.18, blue: 0.15)
 }
 
+/// Style for a signed ISK amount: `color` when it's a real gain/loss/value, neutral
+/// secondary when it displays as zero — a "0 ISK" in bright red or green reads as an alarm
+/// or a win when it's neither.
+func eveAmountStyle(_ value: Double, _ color: Color) -> AnyShapeStyle {
+    EVEFormatters.isZeroISK(value) ? AnyShapeStyle(.secondary) : AnyShapeStyle(color)
+}
+
 /// Colors whose meaning is a universal traffic-light signal (positive/caution/danger),
 /// not a category label — these stay the same across every faction theme so "is this
 /// good or bad" always reads the same way regardless of the chosen palette.

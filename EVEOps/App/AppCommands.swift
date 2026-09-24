@@ -71,6 +71,12 @@ struct AppCommands: Commands {
         }
 
         CommandGroup(replacing: .help) {
+            Button("Keyboard Shortcuts") {
+                WindowService.shared.showMain()
+                AppRouter.shared.showKeyboardShortcuts()
+            }
+            .keyboardShortcut("/", modifiers: .command)
+            Divider()
             Button("EVEOps on GitHub") {
                 if let url = URL(string: "https://github.com/MikeManzo/EVEOps") {
                     NSWorkspace.shared.open(url)

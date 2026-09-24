@@ -27,7 +27,7 @@ struct ShipRow: View {
             .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
             .overlay(
                 RoundedRectangle(cornerRadius: EVERadius.sm)
-                    .strokeBorder(.white.opacity(0.08), lineWidth: 0.5)
+                    .strokeBorder(.primary.opacity(0.08), lineWidth: 0.5)
             )
 
             VStack(alignment: .leading, spacing: 3) {

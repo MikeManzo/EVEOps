@@ -224,9 +224,7 @@ extension SkillPlannerView {
     }
 
     func formatSP(_ sp: Int) -> String {
-        if sp >= 1_000_000 { return String(format: "%.1fM", Double(sp) / 1_000_000) }
-        if sp >= 1_000 { return String(format: "%.0fK", Double(sp) / 1_000) }
-        return "\(sp) SP"
+        EVEFormatters.formatSP(sp, unit: false)
     }
 
     func formatDuration(_ seconds: Double) -> String {

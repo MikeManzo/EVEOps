@@ -132,25 +132,28 @@ struct MenuBarView: View {
             }
 
             if let account = accountManager.selectedAccount {
-                CharacterCardView(account: account, summary: selectedSummary)
-                    .overlay {
-                        if isLoading && selectedSummary == nil {
-                            ProgressView()
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                .background(.ultraThinMaterial)
-                        }
-                    }
-            } else if accountManager.accounts.isEmpty {
-                VStack(spacing: 8) {
-                    Image(systemName: "person.crop.circle.badge.plus")
-                        .font(.title)
-                        .foregroundStyle(.secondary)
-                    Text("No characters added")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                if isLoading && selectedSummary == nil {
+                    LoadingSkeleton(rows: 3)
+                        .frame(height: 170)
+                } else {
+                    CharacterCardView(account: account, summary: selectedSummary)
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 24)
+            } else if accountManager.accounts.isEmpty {
+                EVEEmptyState(
+                    "No Characters Yet",
+                    systemImage: "person.crop.circle.badge.plus",
+                    message: Text("Add an EVE character to see training, wallet and alerts here.")
+                ) {
+                    Button("Add Character", systemImage: "plus") {
+                        dismiss()
+                        WindowService.shared.showMain()
+                        AppRouter.shared.requestAddCharacter()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(palette.accent)
+                    .controlSize(.small)
+                }
+                .frame(height: 220)
             } else {
                 Text("Select a character")
                     .font(.caption)
@@ -243,37 +246,15 @@ struct MenuBarView: View {
     }
 
     private var characterSwitcher: some View {
-        VStack(spacing: 2) {
+        VStack(spacing: 1) {
             ForEach(accountManager.accounts.filter({ $0.characterID != accountManager.selectedCharacterID }), id: \.characterID) { account in
-                Button {
+                PilotSwitcherRow(account: account, summary: summaries[account.characterID], accent: palette.accent) {
                     accountManager.selectedCharacterID = account.characterID
-                } label: {
-                    HStack(spacing: 8) {
-                        CachedAsyncImage(url: EVEImageURL.characterPortrait(account.characterID, size: 128)) { image in
-                            image.resizable()
-                        } placeholder: {
-                            RoundedRectangle(cornerRadius: EVERadius.xs).fill(.quaternary)
-                        }
-                        .frame(width: 24, height: 24)
-                        .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
-
-                        Text(account.characterName)
-                            .font(.caption)
-
-                        Spacer()
-
-                        Text("Switch")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 4)
-                    .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, EVESpacing.xs)
+        .padding(.horizontal, EVESpacing.xs)
     }
 
     // MARK:  Data Loading
@@ -464,5 +445,88 @@ struct MenuBarView: View {
         }
 
         return s
+    }
+}
+
+/// A non-selected pilot in the menu bar popover: portrait, name, one-line status (what
+/// they're training, or what needs attention) and wallet — so the popover doubles as an
+/// at-a-glance check on every character, not just the selected one.
+private struct PilotSwitcherRow: View {
+    let account: StoredAccount
+    let summary: CharacterSummary?
+    let accent: Color
+    let onSelect: () -> Void
+
+    @State private var isHovering = false
+
+    var body: some View {
+        Button(action: onSelect) {
+            HStack(spacing: EVESpacing.md + 2) {
+                CachedAsyncImage(url: EVEImageURL.characterPortrait(account.characterID, size: 64)) { image in
+                    image.resizable()
+                } placeholder: {
+                    Circle().fill(.quaternary)
+                }
+                .frame(width: 28, height: 28)
+                .clipShape(Circle())
+                .overlay(alignment: .bottomTrailing) {
+                    if summary?.online == true {
+                        Circle().fill(.green)
+                            .frame(width: 8, height: 8)
+                            .overlay(Circle().strokeBorder(.background, lineWidth: 1.5))
+                            .offset(x: 1, y: 1)
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(account.characterName)
+                        .font(.callout.weight(.medium))
+                        .lineLimit(1)
+                    status
+                        .font(.caption)
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: EVESpacing.sm)
+
+                if let wallet = summary?.wallet {
+                    Text(EVEFormatters.formatISKShort(wallet))
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.horizontal, EVESpacing.md)
+            .padding(.vertical, EVESpacing.sm)
+            .background(
+                RoundedRectangle(cornerRadius: EVERadius.md)
+                    .fill(isHovering ? accent.opacity(0.12) : .clear)
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovering = $0 }
+        .animation(.easeOut(duration: 0.12), value: isHovering)
+        .help("Switch to \(account.characterName)")
+    }
+
+    @ViewBuilder
+    private var status: some View {
+        if let s = summary {
+            if s.expiredExtractorCount > 0 {
+                Label("\(s.expiredExtractorCount) extractors offline", systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.red)
+            } else if s.isQueueEmpty && s.totalSP > 0 {
+                Label("Skill queue empty", systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+            } else if let name = s.trainingSkillName, let finish = s.currentSkillFinish {
+                Text("\(name) · \(EVEFormatters.timeUntil(finish))")
+                    .foregroundStyle(.secondary)
+            } else {
+                Text(s.systemName.isEmpty ? "" : s.systemName)
+                    .foregroundStyle(.secondary)
+            }
+        } else {
+            Text("Loading…").foregroundStyle(.tertiary)
+        }
     }
 }

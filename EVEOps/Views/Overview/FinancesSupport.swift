@@ -171,3 +171,164 @@ struct BalanceSparkline: View {
         .accessibilityLabel("Wallet balance history")
     }
 }
+
+/// One day's ISK flow as a diverging bar: spending grows left (red) from a center line,
+/// income grows right (green), both on the week's shared scale — so the rows read as a
+/// small chart of the week rather than a column of numbers.
+struct DayFlowBar: View {
+    let made: Double
+    let spent: Double
+    let scale: Double
+
+    var body: some View {
+        GeometryReader { geo in
+            let half = geo.size.width / 2
+            let madeWidth = half * min(made / scale, 1)
+            let spentWidth = half * min(spent / scale, 1)
+            ZStack {
+                Capsule().fill(Color.primary.opacity(0.05))
+                HStack(spacing: 0) {
+                    ZStack(alignment: .trailing) {
+                        Color.clear
+                        if spentWidth > 0 {
+                            Capsule().fill(.red.opacity(0.75)).frame(width: max(spentWidth, 2))
+                        }
+                    }
+                    ZStack(alignment: .leading) {
+                        Color.clear
+                        if madeWidth > 0 {
+                            Capsule().fill(.green.opacity(0.75)).frame(width: max(madeWidth, 2))
+                        }
+                    }
+                }
+                Rectangle().fill(.secondary.opacity(0.4)).frame(width: 1)
+            }
+        }
+        .frame(height: 6)
+        .frame(minWidth: 60)
+        .accessibilityHidden(true)
+    }
+}
+
+/// Background trend line for the Net Worth summary card.
+struct NetWorthSparkline: View {
+    let points: [NetWorthHistory.Point]
+    let tint: Color
+
+    var body: some View {
+        let low = points.map(\.netWorth).min() ?? 0
+        let high = points.map(\.netWorth).max() ?? 1
+        Chart(points) { point in
+            AreaMark(x: .value("Day", point.date), y: .value("Net Worth", point.netWorth))
+                .foregroundStyle(.eveAreaFill(tint))
+                .interpolationMethod(.monotone)
+            LineMark(x: .value("Day", point.date), y: .value("Net Worth", point.netWorth))
+                .foregroundStyle(tint.opacity(0.7))
+                .lineStyle(StrokeStyle(lineWidth: 1.2))
+                .interpolationMethod(.monotone)
+        }
+        // Scale to the range, not from zero — a flat-looking line hides real movement.
+        .chartYScale(domain: (low * 0.995)...(max(high, low + 1) * 1.005))
+        .chartXAxis(.hidden)
+        .chartYAxis(.hidden)
+        .accessibilityHidden(true)
+    }
+}
+
+/// Net worth over time from locally recorded daily snapshots, with a range picker and a
+/// hover crosshair. Explains itself while history is still accumulating.
+struct NetWorthHistoryCard: View {
+    let characterID: Int
+    let tint: Color
+
+    private enum Range: Int, CaseIterable, Identifiable {
+        case month = 30, quarter = 90, year = 365, all = 0
+        var id: Int { rawValue }
+        var title: LocalizedStringKey {
+            switch self {
+            case .month: "30D"
+            case .quarter: "90D"
+            case .year: "1Y"
+            case .all: "All"
+            }
+        }
+    }
+
+    @AppStorage("finances.historyRange") private var rangeRaw = Range.quarter.rawValue
+    @State private var hoveredDate: Date?
+
+    private var range: Range { Range(rawValue: rangeRaw) ?? .quarter }
+
+    private var points: [NetWorthHistory.Point] {
+        NetWorthHistory.shared.points(characterID: characterID, days: range == .all ? nil : range.rawValue)
+    }
+
+    private var hoveredPoint: NetWorthHistory.Point? {
+        guard let hoveredDate else { return nil }
+        return points.min { abs($0.date.timeIntervalSince(hoveredDate)) < abs($1.date.timeIntervalSince(hoveredDate)) }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
+            HStack {
+                Text("Net Worth History")
+                    .font(.subheadline.bold())
+                Spacer()
+                Picker("Range", selection: $rangeRaw) {
+                    ForEach(Range.allCases) { Text($0.title).tag($0.rawValue) }
+                }
+                .labelsHidden()
+                .eveSegmentedPicker()
+                .fixedSize()
+            }
+
+            if points.count < 2 {
+                Label("History builds up from one snapshot a day while you use Finances — check back tomorrow for a trend.",
+                      systemImage: "chart.line.uptrend.xyaxis")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, minHeight: 80)
+            } else {
+                chart.frame(height: 160)
+            }
+        }
+        .padding(EVESpacing.md + 2)
+        .eveCard()
+    }
+
+    private var chart: some View {
+        let low = points.map(\.netWorth).min() ?? 0
+        let high = points.map(\.netWorth).max() ?? 1
+        return Chart {
+            ForEach(points) { point in
+                AreaMark(x: .value("Day", point.date), y: .value("Net Worth", point.netWorth))
+                    .foregroundStyle(.eveAreaFill(tint))
+                    .interpolationMethod(.monotone)
+                LineMark(x: .value("Day", point.date), y: .value("Net Worth", point.netWorth))
+                    .foregroundStyle(tint)
+                    .lineStyle(StrokeStyle(lineWidth: 1.8, lineCap: .round))
+                    .interpolationMethod(.monotone)
+            }
+            if let hovered = hoveredPoint {
+                RuleMark(x: .value("Day", hovered.date))
+                    .foregroundStyle(.secondary.opacity(0.5))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 2]))
+                    .annotation(position: .top, spacing: 2, overflowResolution: .init(x: .fit(to: .chart), y: .fit(to: .chart))) {
+                        EVEChartCallout(
+                            title: hovered.date.formatted(date: .abbreviated, time: .omitted),
+                            value: EVEFormatters.formatISKShort(hovered.netWorth),
+                            tint: tint
+                        )
+                    }
+                PointMark(x: .value("Day", hovered.date), y: .value("Net Worth", hovered.netWorth))
+                    .foregroundStyle(tint)
+                    .symbolSize(30)
+            }
+        }
+        .chartYScale(domain: (low * 0.98)...(max(high, low + 1) * 1.02))
+        .eveISKYAxis()
+        .eveDateXAxis()
+        .chartXSelection(value: $hoveredDate)
+        .accessibilityLabel("Net worth history")
+    }
+}

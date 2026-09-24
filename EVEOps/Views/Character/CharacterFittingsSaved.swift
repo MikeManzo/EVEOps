@@ -148,7 +148,7 @@ struct SavedFittingRow: View {
             .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
             .overlay(
                 RoundedRectangle(cornerRadius: EVERadius.sm)
-                    .strokeBorder(.white.opacity(0.08), lineWidth: 0.5)
+                    .strokeBorder(.primary.opacity(0.08), lineWidth: 0.5)
             )
 
             VStack(alignment: .leading, spacing: 3) {
@@ -443,7 +443,7 @@ struct SavedModuleCell: View {
                 .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
                 .overlay(
                     RoundedRectangle(cornerRadius: EVERadius.xs)
-                        .strokeBorder(.white.opacity(0.1), lineWidth: 0.5)
+                        .strokeBorder(.primary.opacity(0.1), lineWidth: 0.5)
                 )
 
                 VStack(alignment: .leading, spacing: 1) {

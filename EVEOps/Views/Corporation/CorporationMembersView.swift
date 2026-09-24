@@ -148,11 +148,13 @@ struct CorporationMembersView: View {
                 Text(member.name)
                     .font(.body.weight(.medium))
                     .lineLimit(1)
+                    .eveTruncationHelp(member.name)
                 if !subtitle.isEmpty {
                     Text(subtitle)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
+                        .eveTruncationHelp(subtitle)
                 }
             }
 

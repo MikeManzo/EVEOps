@@ -512,7 +512,7 @@ struct SimModulePopover: View {
                     .frame(width: 56, height: 56)
                     .clipShape(RoundedRectangle(cornerRadius: EVERadius.md))
                     .overlay(RoundedRectangle(cornerRadius: EVERadius.md)
-                        .strokeBorder(.white.opacity(0.1), lineWidth: 0.5))
+                        .strokeBorder(.primary.opacity(0.1), lineWidth: 0.5))
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text(t.name).font(.headline).lineLimit(2)

@@ -320,9 +320,7 @@ struct CharacterDossierCard: View {
     }
 
     private func formatSP(_ sp: Int) -> String {
-        if sp >= 1_000_000 { return String(format: "%.1fM", Double(sp) / 1_000_000) }
-        if sp >= 1_000 { return String(format: "%.0fK", Double(sp) / 1_000) }
-        return "\(sp)"
+        EVEFormatters.formatSP(sp, unit: false)
     }
 
 }

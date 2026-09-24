@@ -75,7 +75,7 @@ struct CorporationIndustryView: View {
                         }
                         .frame(width: 20, height: 20)
                         .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
-                        Text(row.blueprintName).lineLimit(1)
+                        Text(row.blueprintName).lineLimit(1).eveTruncationHelp(row.blueprintName)
                     }
                     .eveContextMenu(.item(typeID: row.job.blueprintTypeId, name: row.blueprintName))
                 }

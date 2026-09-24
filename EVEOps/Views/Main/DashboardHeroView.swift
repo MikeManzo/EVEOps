@@ -495,7 +495,7 @@ struct CharacterHeroView: View {
                     image.resizable()
                         .frame(width: 22, height: 22)
                         .clipShape(RoundedRectangle(cornerRadius: 3))
-                        .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(.white.opacity(0.12), lineWidth: 1))
+                        .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(.primary.opacity(0.12), lineWidth: 1))
                 }
             }
             Text(name)
@@ -842,8 +842,6 @@ struct CharacterHeroView: View {
     }
 
     private func formatSP(_ sp: Int) -> String {
-        if sp >= 1_000_000 { return String(format: "%.1fM SP", Double(sp) / 1_000_000) }
-        if sp >= 1_000 { return String(format: "%.0fK SP", Double(sp) / 1_000) }
-        return "\(sp) SP"
+        EVEFormatters.formatSP(sp)
     }
 }

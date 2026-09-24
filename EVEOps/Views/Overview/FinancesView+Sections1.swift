@@ -21,8 +21,43 @@ extension FinancesView {
             summaryCard("Buy Orders (Escrow)", value: totalEscrow, color: .orange)
             // #7: Net Worth is the headline figure of this screen — elevated so it reads
             // as primary next to the three secondary stat tiles beside it.
-            summaryCard("Net Worth", value: netWorth, color: palette.accent, isPrimary: true)
+            netWorthCard
         }
+    }
+
+    /// The screen's headline figure, with its recorded trend: a 30-day sparkline and the
+    /// week-over-week change once enough daily snapshots exist.
+    var netWorthCard: some View {
+        let characterID = selectedFinance?.characterID
+        let history = characterID.map { NetWorthHistory.shared.points(characterID: $0, days: 30) } ?? []
+        let weekChange = characterID.flatMap { NetWorthHistory.shared.change(characterID: $0, overDays: 7) }
+        return VStack(spacing: 6) {
+            Text("Net Worth")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Text(EVEFormatters.formatISKShort(netWorth))
+                .font(.eveStatCompact)
+                .foregroundStyle(eveAmountStyle(netWorth, palette.accent))
+                .eveNumeric(netWorth)
+            if let weekChange {
+                Text("\(weekChange >= 0 ? "▲" : "▼") \(abs(weekChange).formatted(.percent.precision(.fractionLength(1)))) this week")
+                    .font(.eveMicro.monospacedDigit())
+                    .foregroundStyle(weekChange >= 0 ? .green : .red)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding()
+        .background(alignment: .bottom) {
+            if history.count > 1 {
+                NetWorthSparkline(points: history, tint: palette.accent)
+                    .frame(height: 30)
+                    .padding(.horizontal, EVESpacing.md)
+                    .padding(.bottom, EVESpacing.xs)
+                    .opacity(0.8)
+                    .allowsHitTesting(false)
+            }
+        }
+        .eveElevatedCard()
     }
 
     func summaryCard(_ title: String, value: Double, color: Color, isPrimary: Bool = false) -> some View {
@@ -32,7 +67,7 @@ extension FinancesView {
                 .foregroundStyle(.secondary)
             Text(EVEFormatters.formatISKShort(value))
                 .font(.eveStatCompact)
-                .foregroundStyle(color)
+                .foregroundStyle(eveAmountStyle(value, color))
                 .eveNumeric(value)
         }
         .frame(maxWidth: .infinity)
@@ -112,9 +147,9 @@ extension FinancesView {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer()
-                Text((signed && value >= 0 ? "+" : "") + EVEFormatters.formatISKShort(value))
+                Text((signed && !EVEFormatters.isZeroISK(value) && value > 0 ? "+" : "") + EVEFormatters.formatISKShort(value))
                     .font(.eveStatCompact)
-                    .foregroundStyle(color)
+                    .foregroundStyle(eveAmountStyle(value, color))
             }
             if let footnote {
                 Text(footnote)
@@ -285,10 +320,12 @@ extension FinancesView {
                 .font(.eveMicro)
                 .foregroundStyle(.tertiary)
             }
+            let days = last7DaysISK
+            let scale = max(days.map { max($0.made, $0.spent) }.max() ?? 0, 1)
             VStack(spacing: 0) {
-                ForEach(Array(last7DaysISK.enumerated()), id: \.offset) { index, day in
+                ForEach(Array(days.enumerated()), id: \.offset) { index, day in
                     if index > 0 { Divider() }
-                    daySummaryRow(day)
+                    daySummaryRow(day, scale: scale)
                 }
             }
             .padding(.vertical, 4)
@@ -297,7 +334,7 @@ extension FinancesView {
         }
     }
 
-    private func daySummaryRow(_ day: (date: Date, made: Double, spent: Double)) -> some View {
+    private func daySummaryRow(_ day: (date: Date, made: Double, spent: Double), scale: Double) -> some View {
         let net = day.made - day.spent
         return HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 0) {
@@ -307,14 +344,16 @@ extension FinancesView {
                     .font(.eveMicro)
                     .foregroundStyle(.secondary)
             }
-            Spacer()
+            .frame(width: 44, alignment: .leading)
+            DayFlowBar(made: day.made, spent: day.spent, scale: scale)
+                .padding(.horizontal, EVESpacing.md)
             Text(EVEFormatters.formatISKShort(day.made))
                 .foregroundStyle(day.made > 0 ? .green : .secondary)
                 .frame(width: 64, alignment: .trailing)
             Text(EVEFormatters.formatISKShort(day.spent))
                 .foregroundStyle(day.spent > 0 ? .red : .secondary)
                 .frame(width: 64, alignment: .trailing)
-            Text((net >= 0 ? "+" : "") + EVEFormatters.formatISKShort(net))
+            Text((net > 0 && !EVEFormatters.isZeroISK(net) ? "+" : "") + EVEFormatters.formatISKShort(net))
                 .foregroundStyle(net > 0 ? .green : (net < 0 ? .red : .secondary))
                 .frame(width: 64, alignment: .trailing)
         }
@@ -344,42 +383,48 @@ extension FinancesView {
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, minHeight: 60, alignment: .center)
             } else {
-                HStack(alignment: .top, spacing: 16) {
+                HStack(alignment: .center, spacing: EVESpacing.xxl) {
                     Chart(categories) { cat in
                         SectorMark(
                             angle: .value("ISK", cat.value),
-                            innerRadius: .ratio(0.55),
-                            angularInset: 2
+                            innerRadius: .ratio(0.62),
+                            angularInset: 1.5
                         )
                         .foregroundStyle(cat.color)
                         .cornerRadius(EVERadius.xs)
                     }
                     .chartLegend(.hidden)
-                    .frame(width: 100, height: 100)
+                    .chartBackground { _ in
+                        VStack(spacing: 0) {
+                            Text("Total")
+                                .font(.eveMicro)
+                                .foregroundStyle(.secondary)
+                            Text(EVEFormatters.formatISKShort(netWorth).replacingOccurrences(of: " ISK", with: ""))
+                                .font(.eveRowTitle.monospacedDigit())
+                        }
+                    }
+                    .frame(width: 112, height: 112)
 
-                    VStack(alignment: .leading, spacing: 4) {
-                        ForEach(categories) { cat in
-                            HStack(spacing: 6) {
-                                Circle()
-                                    .fill(cat.color)
-                                    .frame(width: 7, height: 7)
-                                Text(cat.name)
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                                if cat.name == "Assets" && isLoadingAssets {
-                                    ProgressView()
-                                        .controlSize(.mini)
-                                }
-                                Spacer()
-                                VStack(alignment: .trailing, spacing: 0) {
-                                    Text(EVEFormatters.formatISKShort(cat.value))
-                                        .font(.caption2.bold().monospacedDigit())
-                                        .foregroundStyle(cat.color)
-                                    if netWorth > 0 {
-                                        Text((cat.value / netWorth).formatted(.percent.precision(.fractionLength(1))))
-                                            .font(.eveMicro)
-                                            .foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: EVESpacing.md) {
+                        Grid(alignment: .leading, horizontalSpacing: EVESpacing.lg, verticalSpacing: EVESpacing.sm) {
+                            ForEach(categories) { cat in
+                                GridRow {
+                                    HStack(spacing: EVESpacing.sm) {
+                                        Circle().fill(cat.color).frame(width: 8, height: 8)
+                                        Text(cat.name).font(.callout)
+                                        if cat.name == "Assets" && isLoadingAssets {
+                                            ProgressView().controlSize(.mini)
+                                        }
                                     }
+                                    Text(EVEFormatters.formatISKShort(cat.value))
+                                        .font(.callout.weight(.semibold).monospacedDigit())
+                                        .gridColumnAlignment(.trailing)
+                                    Text(netWorth > 0 ? (cat.value / netWorth).formatted(.percent.precision(.fractionLength(1))) : "—")
+                                        .font(.caption.monospacedDigit())
+                                        .foregroundStyle(.secondary)
+                                        .gridColumnAlignment(.trailing)
+                                    EVEProgressBar(value: netWorth > 0 ? cat.value / netWorth : 0, tint: cat.color, height: 4)
+                                        .frame(width: 120)
                                 }
                             }
                         }
@@ -396,9 +441,12 @@ extension FinancesView {
                         Text("Asset values estimated using current market average prices")
                             .font(.eveMicro)
                             .foregroundStyle(.tertiary)
-                            .padding(.top, 1)
                     }
+                    .fixedSize(horizontal: true, vertical: false)
+
+                    Spacer(minLength: 0)
                 }
+                .padding(.vertical, EVESpacing.xs)
             }
         }
         .padding(10)

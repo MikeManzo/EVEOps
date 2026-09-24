@@ -108,7 +108,7 @@ struct CharacterCardView: View {
                     }
                     .frame(width: 60, height: 60)
                     .clipShape(RoundedRectangle(cornerRadius: EVERadius.lg))
-                    .overlay(RoundedRectangle(cornerRadius: EVERadius.lg).strokeBorder(.white.opacity(0.18), lineWidth: 1))
+                    .overlay(RoundedRectangle(cornerRadius: EVERadius.lg).strokeBorder(.primary.opacity(0.18), lineWidth: 1))
                     // #3: Status ring — color signals state at a glance, framing the portrait instead of a bar across the top
                     .overlay(RoundedRectangle(cornerRadius: EVERadius.lg).strokeBorder(cardAccentColor.opacity(0.85), lineWidth: 1.5))
                     .shadow(color: cardAccentColor.opacity(0.6), radius: 5)
@@ -574,9 +574,7 @@ struct CharacterCardView: View {
     }
 
     private func formatSP(_ sp: Int) -> String {
-        if sp >= 1_000_000 { return String(format: "%.1fM SP", Double(sp) / 1_000_000) }
-        if sp >= 1_000 { return String(format: "%.0fK SP", Double(sp) / 1_000) }
-        return "\(sp) SP"
+        EVEFormatters.formatSP(sp)
     }
 
     private func timeUntil(_ date: Date) -> String {

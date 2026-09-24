@@ -218,6 +218,7 @@ struct KillmailRow: View {
                     Text(shipName.isEmpty ? "Ship #\(victim.shipTypeId)" : shipName)
                         .font(.subheadline.weight(.medium))
                         .lineLimit(1)
+                        .eveTruncationHelp(shipName.isEmpty ? "Ship #\(victim.shipTypeId)" : shipName)
                     if entry.zkb?.isSolo == true { tag("Solo") }
                     if entry.zkb?.isNPC == true { tag("NPC") }
                 }
@@ -231,6 +232,7 @@ struct KillmailRow: View {
                     }
                     Text(systemName.isEmpty ? "System #\(entry.killmail.solarSystemId)" : systemName)
                         .lineLimit(1)
+                        .eveTruncationHelp(systemName.isEmpty ? "System #\(entry.killmail.solarSystemId)" : systemName)
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)

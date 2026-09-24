@@ -70,6 +70,9 @@ struct FinancesView: View {
                     todaySummary
                     wealthDistribution
                     if let finance = selectedFinance {
+                        NetWorthHistoryCard(characterID: finance.characterID, tint: palette.accent)
+                    }
+                    if let finance = selectedFinance {
                         if let warning = finance.partialLoadWarning {
                             HStack(spacing: 6) {
                                 Image(systemName: "exclamationmark.triangle.fill")
@@ -90,6 +93,12 @@ struct FinancesView: View {
                 }
                 .padding()
             }
+        }
+        .onChange(of: isLoadingAssets) { wasLoading, nowLoading in
+            // Snapshot once valuation settles, so a half-valued net worth never becomes a
+            // data point in the history.
+            guard wasLoading, !nowLoading, let finance = selectedFinance else { return }
+            NetWorthHistory.shared.record(characterID: finance.characterID, netWorth: netWorth, wallet: totalWealth)
         }
         .eveScreenHeader("Finances", section: .finances) {
             RelativeTimestamp(date: lastRefresh)

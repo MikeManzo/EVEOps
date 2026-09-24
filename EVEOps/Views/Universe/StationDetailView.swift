@@ -118,6 +118,7 @@ struct StationDetailView: View {
                             .font(.caption)
                             .foregroundStyle(.white.opacity(0.8))
                             .lineLimit(1)
+                            .eveTruncationHelp([entry.systemName, parts.orbit].filter { !$0.isEmpty }.joined(separator: " · "))
                     }
                 }
             }
@@ -343,6 +344,7 @@ struct StationDetailView: View {
                         Text(asset.typeName)
                             .font(.callout)
                             .lineLimit(1)
+                            .eveTruncationHelp(asset.typeName)
                         if asset.isBlueprintCopy {
                             Text("BPC")
                                 .font(.eveMicroBold)

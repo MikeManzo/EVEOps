@@ -523,7 +523,7 @@ struct CommunityShipRow: View {
             }
             .frame(width: 72, height: 72)
             .clipShape(RoundedRectangle(cornerRadius: EVERadius.lg))
-            .overlay(RoundedRectangle(cornerRadius: EVERadius.lg).strokeBorder(.white.opacity(0.08), lineWidth: 0.5))
+            .overlay(RoundedRectangle(cornerRadius: EVERadius.lg).strokeBorder(.primary.opacity(0.08), lineWidth: 0.5))
 
             Text(type.name)
                 .font(.title3)
@@ -548,7 +548,7 @@ struct RecentlyDestroyedRow: View {
             }
             .frame(width: 72, height: 72)
             .clipShape(RoundedRectangle(cornerRadius: EVERadius.lg))
-            .overlay(RoundedRectangle(cornerRadius: EVERadius.lg).strokeBorder(.white.opacity(0.08), lineWidth: 0.5))
+            .overlay(RoundedRectangle(cornerRadius: EVERadius.lg).strokeBorder(.primary.opacity(0.08), lineWidth: 0.5))
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(entry.name)
@@ -810,7 +810,7 @@ struct CommunityModuleRow: View {
                 }
                 .frame(width: 28, height: 28)
                 .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
-                .overlay(RoundedRectangle(cornerRadius: EVERadius.xs).strokeBorder(.white.opacity(0.1), lineWidth: 0.5))
+                .overlay(RoundedRectangle(cornerRadius: EVERadius.xs).strokeBorder(.primary.opacity(0.1), lineWidth: 0.5))
 
                 Text(name ?? "Type #\(module.typeId)")
                     .font(.caption)
@@ -859,7 +859,7 @@ struct AttackerShipRow: View {
                 }
                 .frame(width: 28, height: 28)
                 .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
-                .overlay(RoundedRectangle(cornerRadius: EVERadius.xs).strokeBorder(.white.opacity(0.1), lineWidth: 0.5))
+                .overlay(RoundedRectangle(cornerRadius: EVERadius.xs).strokeBorder(.primary.opacity(0.1), lineWidth: 0.5))
 
                 Text(name ?? "Type #\(typeId)")
                     .font(.caption)
