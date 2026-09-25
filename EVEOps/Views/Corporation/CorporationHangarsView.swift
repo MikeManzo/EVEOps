@@ -167,7 +167,7 @@ struct CorporationHangarsView: View {
             }
         }
         .padding()
-        .background(.regularMaterial)
+        .background(EVESurface.bar)
     }
 
     // MARK: Scope warning banners
@@ -244,7 +244,7 @@ struct CorporationHangarsView: View {
             .padding(.vertical, 8)
         }
         .eveEdgeFade()
-        .background(.bar)
+        .background(EVESurface.bar)
         .overlay(alignment: .bottom) { Divider() }
     }
 
@@ -286,7 +286,7 @@ struct CorporationHangarsView: View {
             .padding(.vertical, 8)
         }
         .eveEdgeFade()
-        .background(.regularMaterial)
+        .background(EVESurface.bar)
         .overlay(alignment: .bottom) { Divider() }
     }
 
@@ -329,7 +329,7 @@ struct CorporationHangarsView: View {
                     .textFieldStyle(.plain)
             }
             .padding(10)
-            .background(.bar)
+            .background(EVESurface.bar)
 
             if visibleItems.isEmpty {
                 if searchText.isEmpty {

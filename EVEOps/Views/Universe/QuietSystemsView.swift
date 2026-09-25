@@ -709,7 +709,7 @@ struct QuietSystemsView: View {
             }
         }
         .frame(maxHeight: .infinity)
-        .background(.regularMaterial)
+        .background(EVESurface.panel)
     }
 
     private func detailRow(_ label: String, @ViewBuilder value: () -> some View) -> some View {

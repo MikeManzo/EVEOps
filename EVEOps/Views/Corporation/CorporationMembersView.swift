@@ -77,7 +77,7 @@ struct CorporationMembersView: View {
                     .foregroundStyle(.secondary)
             }
             .padding(10)
-            .background(.bar)
+            .background(EVESurface.bar)
 
             // Sort picker
             Picker("Sort", selection: $sortOrder) {
@@ -98,7 +98,7 @@ struct CorporationMembersView: View {
                         selectedMemberID = member.characterId
                     }
             }
-            .listStyle(.sidebar)
+            .listStyle(.inset)
             .eveKeyboardSelection(sortedFilteredMembers.map(\.characterId), selection: selectedMemberID) { selectedMemberID = $0 }
         }
         .onChange(of: selectedMemberID) { _, newID in

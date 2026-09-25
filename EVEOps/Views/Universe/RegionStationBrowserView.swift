@@ -145,7 +145,7 @@ struct RegionStationBrowserView: View {
         }
         .padding(.horizontal, EVESpacing.xl)
         .padding(.vertical, EVESpacing.md + 2)
-        .background(.bar)
+        .background(EVESurface.bar)
     }
 
     private var searchField: some View {
@@ -239,7 +239,7 @@ struct RegionStationBrowserView: View {
                     selectedStation = nil
                     return .handled
                 }
-                .listStyle(.sidebar)
+                .listStyle(.inset)
             }
         }
     }

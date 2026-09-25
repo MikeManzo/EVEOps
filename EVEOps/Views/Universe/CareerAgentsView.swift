@@ -223,7 +223,7 @@ struct AgentFinderView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(.bar)
+        .background(EVESurface.bar)
     }
 
     // These act as a tab bar (switching which agent type/division is browsed), so the

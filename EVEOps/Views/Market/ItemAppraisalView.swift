@@ -122,7 +122,7 @@ struct ItemAppraisalView: View {
                             }
                         }
                         .padding()
-                        .background(.regularMaterial)
+                        .background(EVESurface.bar)
 
                         HStack(spacing: 4) {
                             Image(systemName: "checkmark.seal.fill")

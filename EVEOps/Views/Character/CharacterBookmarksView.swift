@@ -77,7 +77,7 @@ struct CharacterBookmarksView: View {
             .padding(.vertical, 8)
         }
         .eveEdgeFade()
-        .background(.bar)
+        .background(EVESurface.bar)
     }
 
     private func folderChip(name: String, folderId: Int?, count: Int) -> some View {

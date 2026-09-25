@@ -78,7 +78,7 @@ struct CalendarEventDetailPanel: View {
                 .background(responseColor(currentResponse).opacity(0.12), in: Capsule())
         }
         .padding(16)
-        .background(.bar)
+        .background(EVESurface.bar)
     }
 
     private func detailBody(_ detail: ESICalendarEventDetail) -> some View {

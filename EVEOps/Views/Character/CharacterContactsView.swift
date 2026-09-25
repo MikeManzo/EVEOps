@@ -76,7 +76,7 @@ struct CharacterContactsView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
-            .background(.bar)
+            .background(EVESurface.bar)
             Divider()
             LoadingStateView(isLoading: isLoading, error: error, isEmpty: contacts.isEmpty, emptyMessage: "No Contacts", emptySystemImage: "person.crop.circle") {
                 HStack(spacing: 0) {
@@ -396,7 +396,7 @@ struct CharacterContactsView: View {
                 .textFieldStyle(.roundedBorder)
         }
         .padding(10)
-        .background(.bar)
+        .background(EVESurface.bar)
     }
 
     private func typeLabel(_ type: String) -> String {

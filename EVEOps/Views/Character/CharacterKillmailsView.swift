@@ -77,7 +77,7 @@ struct CharacterKillmailsView: View {
                 .foregroundStyle(.red).font(.caption)
         }
         .padding(10)
-        .background(.bar)
+        .background(EVESurface.bar)
     }
 
     private var killmailList: some View {
@@ -391,7 +391,7 @@ struct KillmailDetailPane: View {
             }
         }
         .frame(maxHeight: .infinity)
-        .background(.regularMaterial)
+        .background(EVESurface.panel)
         .task {
             victimShipName = (await UniverseCache.shared.type(id: killmail.victim.shipTypeId))?.name ?? ""
             systemName = await NameResolver.shared.resolve(id: killmail.solarSystemId)

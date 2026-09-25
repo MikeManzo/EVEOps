@@ -78,7 +78,7 @@ struct CorporationWalletsView: View {
             Spacer()
         }
         .padding()
-        .background(.regularMaterial)
+        .background(EVESurface.bar)
     }
 
     private var divisionPicker: some View {
@@ -109,7 +109,7 @@ struct CorporationWalletsView: View {
             .padding(.vertical, 8)
         }
         .eveEdgeFade()
-        .background(.bar)
+        .background(EVESurface.bar)
     }
 
     private var tabPicker: some View {

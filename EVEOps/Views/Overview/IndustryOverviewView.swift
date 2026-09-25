@@ -40,7 +40,7 @@ struct IndustryOverviewView: View {
                         .foregroundStyle(.secondary)
                 }
                 .padding(10)
-                .background(.bar)
+                .background(EVESurface.bar)
 
                 if #available(macOS 26.0, *), IntelligenceService.isSupported {
                     IndustryAIInsightCard(jobs: jobs)

@@ -126,7 +126,7 @@ extension MarketBrowserView {
                         Task { await selectType(result.typeId, name: result.name) }
                     }
             }
-            .listStyle(.sidebar)
+            .listStyle(.inset)
             .eveKeyboardSelection(searchResults.map(\.typeId), selection: selectedTypeId) { id in
                 if let id, let result = searchResults.first(where: { $0.typeId == id }) {
                     Task { await selectType(id, name: result.name) }
@@ -178,7 +178,7 @@ extension MarketBrowserView {
                 }
                 .eveSelectableListRow(isSelected: isSelected, palette: palette) { selectedGroupId = node.id }
             }
-            .listStyle(.sidebar)
+            .listStyle(.inset)
             .onChange(of: selectedGroupId) { _, newId in
                 if let id = newId, let group = fetchedGroups[id] {
                     selectedTypeId = nil
@@ -229,7 +229,7 @@ extension MarketBrowserView {
                         Task { await selectType(result.typeId, name: result.name) }
                     }
             }
-            .listStyle(.sidebar)
+            .listStyle(.inset)
             .eveKeyboardSelection(groupTypes.map(\.typeId), selection: selectedTypeId) { id in
                 if let id, let result = groupTypes.first(where: { $0.typeId == id }) {
                     Task { await selectType(id, name: result.name) }

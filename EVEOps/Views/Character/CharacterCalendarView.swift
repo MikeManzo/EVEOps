@@ -229,9 +229,9 @@ struct CharacterCalendarView: View {
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
             .frame(minHeight: 34)
-            .background(.bar)
+            .background(EVESurface.bar)
         }
-        .background(.bar)
+        .background(EVESurface.bar)
     }
 
     private var allFiltersOn: Bool { activeFilters.count == CalendarItemSource.allCases.count }
@@ -284,7 +284,7 @@ struct CharacterCalendarView: View {
             Text("\(dayFilteredItems.count)")
                 .font(.caption).foregroundStyle(.tertiary).monospacedDigit()
         }
-        .padding(.horizontal, 12).padding(.vertical, 10).background(.bar)
+        .padding(.horizontal, 12).padding(.vertical, 10).background(EVESurface.bar)
     }
 
     private var listBody: some View {

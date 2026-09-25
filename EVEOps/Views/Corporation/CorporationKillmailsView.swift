@@ -80,7 +80,7 @@ struct CorporationKillmailsView: View {
                 .foregroundStyle(.red).font(.caption)
         }
         .padding(10)
-        .background(.bar)
+        .background(EVESurface.bar)
     }
 
     private var killmailList: some View {

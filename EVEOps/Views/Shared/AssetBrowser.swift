@@ -198,7 +198,7 @@ struct AssetBrowser: View {
             .fixedSize()
         }
         .padding(10)
-        .background(.bar)
+        .background(EVESurface.bar)
     }
 
     private var groupedList: some View {
@@ -231,7 +231,7 @@ struct AssetBrowser: View {
                 }
             }
         }
-        .listStyle(.sidebar)
+        .listStyle(.inset)
         .eveKeyboardSelection(
             sections.filter { !collapsedSections.contains($0.key) }.flatMap { $0.items.map(\.id) },
             selection: selectedAssetID

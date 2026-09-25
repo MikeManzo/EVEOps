@@ -204,7 +204,7 @@ struct SimLeftPanel: View {
                         }
                     }
                 }
-                .listStyle(.sidebar)
+                .listStyle(.inset)
             }
 
             if shipLoadIncomplete {
@@ -368,7 +368,7 @@ struct SimLeftPanel: View {
                             }
                         }
                     }
-                    .listStyle(.sidebar)
+                    .listStyle(.inset)
 
                     if let msg = noSlotMessage {
                         Text(msg)

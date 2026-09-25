@@ -148,7 +148,7 @@ struct ExplorationCodexView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
-        .background(.bar)
+        .background(EVESurface.bar)
     }
 
     // MARK: Data
@@ -436,7 +436,7 @@ private struct ExplorationSiteDetailPane: View {
             }
         }
         .frame(maxHeight: .infinity)
-        .background(.regularMaterial)
+        .background(EVESurface.panel)
     }
 
     private var metaBox: some View {

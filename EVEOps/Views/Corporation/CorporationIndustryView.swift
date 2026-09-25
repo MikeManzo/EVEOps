@@ -33,7 +33,7 @@ struct CorporationIndustryView: View {
                         .foregroundStyle(.secondary)
                 }
                 .padding(10)
-                .background(.bar)
+                .background(EVESurface.bar)
 
                 jobsTable
             }

@@ -40,6 +40,20 @@ enum EVERadius {
     static let xxl: CGFloat = 14
 }
 
+// MARK: - Surfaces
+
+/// Content surfaces. Glass (translucent materials, `.sidebar` list style) is reserved for
+/// real sidebars and floating controls, per macOS 26 convention — everything in the
+/// content area sits on these solid, appearance-adaptive fills so screens look alike no
+/// matter how they're built (list, table or cards).
+enum EVESurface {
+    /// Side panels and inspectors within a screen (detail panes, plan panels).
+    static var panel: some ShapeStyle { BackgroundStyle() }
+    /// Header, filter and summary bars across a content pane — solid, one step apart
+    /// from the panel so the bar still reads as a bar.
+    static var bar: some ShapeStyle { BackgroundStyle().secondary }
+}
+
 // MARK: - Typography
 
 /// Named type scale. Sizes match what screens were already using as literals, so moving a

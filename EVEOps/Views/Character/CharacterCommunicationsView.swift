@@ -38,7 +38,7 @@ struct CharacterCommunicationsView: View {
                             .foregroundStyle(.secondary)
                     }
                     .padding(10)
-                    .background(.bar)
+                    .background(EVESurface.bar)
 
                     // No `selection:` binding — see `eveSelectableListRow` (theme-colored selection).
                     List(filteredNotifications) { notification in
@@ -153,7 +153,7 @@ struct NotificationDetailView: View {
                 }
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.bar)
+                .background(EVESurface.bar)
 
                 VStack(alignment: .leading, spacing: 16) {
                     // Details

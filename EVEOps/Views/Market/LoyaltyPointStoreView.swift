@@ -119,7 +119,7 @@ struct LoyaltyPointStoreView: View {
             .padding(.horizontal, 12)
             .padding(.top, 10)
             .padding(.bottom, 8)
-            .background(.bar)
+            .background(EVESurface.bar)
 
             Divider()
 
@@ -146,7 +146,7 @@ struct LoyaltyPointStoreView: View {
                         selectedCorpId = lp.corporationId
                     }
                 }
-                .listStyle(.sidebar)
+                .listStyle(.inset)
                 .eveKeyboardSelection(lpData.map(\.corporationId), selection: selectedCorpId) { selectedCorpId = $0 }
             }
         }

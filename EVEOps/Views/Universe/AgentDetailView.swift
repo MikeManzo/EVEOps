@@ -30,7 +30,7 @@ struct AgentDetailView: View {
                     .padding(16)
             }
         }
-        .background(.regularMaterial)
+        .background(EVESurface.panel)
     }
 
     // MARK: Header
@@ -84,7 +84,7 @@ struct AgentDetailView: View {
             }
         }
         .padding(.horizontal, 12).padding(.vertical, 8)
-        .background(.bar)
+        .background(EVESurface.bar)
     }
 
     // MARK: Info

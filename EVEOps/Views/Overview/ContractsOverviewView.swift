@@ -72,7 +72,7 @@ struct ContractsOverviewView: View {
             Spacer()
         }
         .padding(10)
-        .background(.bar)
+        .background(EVESurface.bar)
     }
 
     private var contractList: some View {

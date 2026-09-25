@@ -144,7 +144,7 @@ struct MarketBrowserView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
-            .background(.bar)
+            .background(EVESurface.bar)
             Divider()
             // ── Top row ───────────────────────────────────────────────
             HStack(spacing: 0) {

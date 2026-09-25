@@ -47,7 +47,7 @@ struct SkillPlannerView: View {
                 Spacer(minLength: 15)    // MRM
                 planPanel
                     .frame(width: 320)
-                    .background(.regularMaterial)
+                    .background(EVESurface.panel)
                 Divider()
                 skillBrowser
             }

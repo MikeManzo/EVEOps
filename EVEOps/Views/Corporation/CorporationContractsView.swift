@@ -57,7 +57,7 @@ struct CorporationContractsView: View {
                 .font(.caption).foregroundStyle(.secondary)
         }
         .padding(10)
-        .background(.bar)
+        .background(EVESurface.bar)
     }
 
     private var filteredContracts: [ESIContract] {

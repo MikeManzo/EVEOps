@@ -382,7 +382,7 @@ struct AssetDetailView: View {
                     Spacer()
                 }
                 .padding()
-                .background(.regularMaterial)
+                .background(EVESurface.bar)
 
                 Divider()
 

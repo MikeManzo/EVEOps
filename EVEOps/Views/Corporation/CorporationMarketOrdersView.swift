@@ -91,7 +91,7 @@ struct CorporationMarketOrdersView: View {
                 .font(.caption).foregroundStyle(.secondary)
         }
         .padding(10)
-        .background(.bar)
+        .background(EVESurface.bar)
     }
 
     private var summaryCards: some View {

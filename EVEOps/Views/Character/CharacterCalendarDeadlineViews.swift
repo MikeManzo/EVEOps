@@ -75,7 +75,7 @@ struct DeadlineHeader: View {
                 .background(source.color.opacity(0.12), in: Capsule())
         }
         .padding(16)
-        .background(.bar)
+        .background(EVESurface.bar)
     }
 }
 

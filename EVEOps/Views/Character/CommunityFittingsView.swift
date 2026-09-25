@@ -221,7 +221,7 @@ struct CommunityFittingsView: View {
                                     selectedTypeId = entry.typeId
                                 }
                         }
-                        .listStyle(.sidebar)
+                        .listStyle(.inset)
                         .eveKeyboardSelection(recentlyDestroyed.map(\.typeId), selection: selectedTypeId) { selectedTypeId = $0 }
                     }
                 }
@@ -239,7 +239,7 @@ struct CommunityFittingsView: View {
                             selectedTypeId = type.typeId
                         }
                 }
-                .listStyle(.sidebar)
+                .listStyle(.inset)
                 .eveKeyboardSelection(searchResults.map(\.typeId), selection: selectedTypeId) { selectedTypeId = $0 }
             }
         }

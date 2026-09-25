@@ -95,7 +95,7 @@ extension SkillPlannerView {
                     .padding(.bottom, 8)
                 }
                 .eveEdgeFade()
-                .background(.bar)
+                .background(EVESurface.bar)
 
                 Divider()
 
@@ -128,7 +128,7 @@ extension SkillPlannerView {
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 6)
                                     .frame(maxWidth: .infinity)
-                                    .background(.bar)
+                                    .background(EVESurface.bar)
                                 }
                             }
                         }

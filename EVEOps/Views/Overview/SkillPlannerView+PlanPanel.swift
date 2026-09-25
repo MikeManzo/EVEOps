@@ -20,7 +20,7 @@ extension SkillPlannerView {
                 attributesBar(attrs)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
-                    .background(.bar)
+                    .background(EVESurface.bar)
                     .help("Estimates assume Omega clone. Alpha clone trains at 50% speed.")
                 Divider()
             }

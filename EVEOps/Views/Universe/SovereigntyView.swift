@@ -603,7 +603,7 @@ private struct SovDetailPane: View {
             }
         }
         .frame(maxHeight: .infinity)
-        .background(.regularMaterial)
+        .background(EVESurface.panel)
     }
 
     // MARK: Campaign

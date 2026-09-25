@@ -270,7 +270,7 @@ private struct IncursionDetailPane: View {
             }
         }
         .frame(maxHeight: .infinity)
-        .background(.regularMaterial)
+        .background(EVESurface.panel)
     }
 
     private var stateBadge: some View {
