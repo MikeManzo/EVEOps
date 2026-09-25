@@ -3,16 +3,15 @@
     <channel>
         <title>EVEOps</title>
         <item>
-            <title>0.9.4</title>
-            <pubDate>Fri, 25 Sep 2026 07:38:19 -0400</pubDate>
-            <sparkle:version>154</sparkle:version>
-            <sparkle:shortVersionString>0.9.4</sparkle:shortVersionString>
+            <title>0.9.4.1</title>
+            <pubDate>Fri, 25 Sep 2026 11:33:22 -0400</pubDate>
+            <sparkle:version>155</sparkle:version>
+            <sparkle:shortVersionString>0.9.4.1</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
             <description><![CDATA[<ul>
-<li>Content areas now use solid surfaces; glass is reserved for the app and Settings sidebars and floating controls</li>
-<li>Detail panels and header/filter bars switched from translucent materials to solid surface</li>
+<li>Cleaning up a lot of UI bugs and making a more consistent user experince across the entire app.</li>
 </ul>]]></description>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.4/EVEOps.dmg" length="33086324" type="application/octet-stream" sparkle:edSignature="RNlw60jwx8oMUXMDUfppMk+dfXUQRr6RNr5mJXYqvmIDXCwi2tqrGkyUTy5yCDc3Z8uEwpJmLi7ij4znKZexCQ=="/>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.4.1/EVEOps.dmg" length="33434286" type="application/octet-stream" sparkle:edSignature="AGtu1DkUj5Dy2RAW2YgIgzV1tV2kl+VL8HVK2KDCqBhdUnjEZxOY3NihL2AN43vEfhij3UFW7JguLC/tRJ66CA=="/>
         </item>
     </channel>
 </rss>
