@@ -21,6 +21,7 @@ struct SkillPlannerView: View {
     @State var trainingData: [CharacterTrainingInfo] = []
     @State var attributes: ESICharacterAttributes?
     @State var planItems: [SkillPlanItem] = []
+    @Environment(\.undoManager) var undoManager
     @State var skillTypes: [Int: ESIType] = [:]
     @State var searchText = ""
     @State var selectedGroupId: Int?

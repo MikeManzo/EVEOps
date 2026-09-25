@@ -33,7 +33,7 @@ extension GalaxyMapView {
 
             if pt.id == currentConstellationId {
                 Label("Current constellation", systemImage: "location.fill")
-                    .font(.caption2).foregroundStyle(.blue)
+                    .font(.caption2).foregroundStyle(Color.eveThemeAccent)
             }
 
             Label("\(pt.systemCount) solar system\(pt.systemCount == 1 ? "" : "s")", systemImage: "sun.max.fill")
@@ -68,7 +68,7 @@ extension GalaxyMapView {
                     .font(.caption)
             }
             .buttonStyle(.plain)
-            .foregroundStyle(.blue)
+            .foregroundStyle(Color.eveThemeAccent)
 
             // Set autopilot destination to first system in this constellation
             if let systemId = pt.systemIds.first, accountManager.selectedAccount != nil {
@@ -80,7 +80,7 @@ extension GalaxyMapView {
                         .font(.caption)
                 }
                 .buttonStyle(.plain)
-                .foregroundStyle(.blue)
+                .foregroundStyle(Color.eveThemeAccent)
             }
 
             // Start a route from this constellation
@@ -96,7 +96,7 @@ extension GalaxyMapView {
                     .font(.caption)
             }
             .buttonStyle(.plain)
-            .foregroundStyle(.orange)
+            .foregroundStyle(Color.eveThemeAccent)
         }
         .padding(12)
         .frame(width: 230)

@@ -325,7 +325,7 @@ struct CorporationHangarsView: View {
             HStack {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
-                TextField("Search \(divisionDisplayName(for: selectedFlag))...", text: $searchText)
+                TextField("Search \(divisionDisplayName(for: selectedFlag))...", text: $searchText).eveFindTarget()
                     .textFieldStyle(.plain)
             }
             .padding(10)

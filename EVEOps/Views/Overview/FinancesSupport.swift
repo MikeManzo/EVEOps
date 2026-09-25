@@ -169,6 +169,7 @@ struct BalanceSparkline: View {
         .chartYAxis(.hidden)
         .chartXSelection(value: $hoveredDate)
         .accessibilityLabel("Wallet balance history")
+        .eveChartAccessibility(String(localized: "Wallet balance"), points: points.map { ($0.date, $0.balance) })
     }
 }
 
@@ -362,5 +363,6 @@ struct NetWorthHistoryCard: View {
         .eveDateXAxis()
         .chartXSelection(value: $hoveredDate)
         .accessibilityLabel("Net worth history")
+        .eveChartAccessibility(String(localized: "Net worth"), points: points.map { ($0.date, $0.netWorth) })
     }
 }

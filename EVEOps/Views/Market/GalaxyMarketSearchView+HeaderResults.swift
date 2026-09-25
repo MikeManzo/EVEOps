@@ -35,7 +35,7 @@ extension GalaxyMarketSearchView {
                             .foregroundStyle(.secondary)
                             .font(.subheadline)
                     }
-                    TextField("Search for an item…", text: $itemSearchText)
+                    TextField("Search for an item…", text: $itemSearchText).eveFindTarget()
                         .textFieldStyle(.plain)
                         .onChange(of: itemSearchText) { _, v in onItemSearchChanged(v) }
                     if isSearchingItems {

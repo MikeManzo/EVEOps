@@ -381,6 +381,10 @@ extension MarketBrowserView {
                     }
                 }
                 .chartXSelection(value: $hoveredHistoryDate)
+                .eveChartAccessibility(String(localized: "Average price"),
+                                       points: history.compactMap { entry in
+                                           parseHistoryDate(entry.date).map { ($0, entry.average) }
+                                       })
                 .frame(height: 270)
                 .padding(12)
                 .eveCard()

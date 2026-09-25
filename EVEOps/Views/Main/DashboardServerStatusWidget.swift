@@ -274,6 +274,9 @@ struct ServerStatusWidgetView: View {
             }
             .chartXAxis(.hidden)
             .chartYAxis(.hidden)
+            .eveChartAccessibility(String(localized: "Players online"),
+                                   points: samples.map { ($0.date, Double($0.players)) },
+                                   format: { Int($0).formatted() })
             .frame(maxWidth: .infinity)
             .frame(height: 60)
         } else {

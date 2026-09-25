@@ -144,7 +144,7 @@ struct RegionStationBrowserView: View {
         HStack(spacing: EVESpacing.sm) {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(.secondary)
-            TextField("Search stations or systems", text: $searchText)
+            TextField("Search stations or systems", text: $searchText).eveFindTarget()
                 .textFieldStyle(.plain)
             if !searchText.isEmpty {
                 Button { searchText = "" } label: {

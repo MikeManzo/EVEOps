@@ -98,6 +98,19 @@ extension Color {
     }
 }
 
+extension Color {
+    /// The active faction theme's accent, for places with no access to `ThemeManager`
+    /// (static color tables on enums, component defaults). Resolved at draw time from the
+    /// stored theme, so it follows theme changes. Use instead of `.accentColor`, which is
+    /// the app/system accent and never follows the faction theme.
+    static let eveThemeAccent = Color(NSColor(name: nil) { _ in
+        let raw = UserDefaults.standard.string(forKey: ThemeManager.storageKey) ?? FactionTheme.eveOps.rawValue
+        // The palette accent is itself appearance-aware (light/dark), so returning it
+        // lets AppKit resolve the right variant for the drawing context.
+        return NSColor((FactionTheme(rawValue: raw) ?? .eveOps).palette.accent)
+    })
+}
+
 /// The full set of colors a screen can pull from — some vary per `FactionTheme`
 /// (the "category" slots: accent, knowledge, location, industry, contracts, colonies),
 /// others are fixed (`EVEUniversalColor`, folded in here so call sites don't need to

@@ -134,7 +134,7 @@ struct CommunityFittingsView: View {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
                     .font(.subheadline)
-                TextField("Search ship type\u{2026}", text: $searchText)
+                TextField("Search ship type\u{2026}", text: $searchText).eveFindTarget()
                     .textFieldStyle(.plain)
                     .onChange(of: searchText) { _, query in
                         searchTask?.cancel()

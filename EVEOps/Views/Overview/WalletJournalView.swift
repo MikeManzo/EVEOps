@@ -181,7 +181,7 @@ struct WalletJournalView: View {
         HStack(spacing: EVESpacing.md) {
             HStack(spacing: EVESpacing.sm) {
                 Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                TextField("Search journal", text: $searchText)
+                TextField("Search journal", text: $searchText).eveFindTarget()
                     .textFieldStyle(.plain)
                 if !searchText.isEmpty {
                     Button { searchText = "" } label: {
@@ -310,7 +310,10 @@ struct WalletJournalView: View {
         .padding(.vertical, 2)
         .contentShape(Rectangle())
         .contextMenu {
-            Button("Copy Entry", systemImage: "doc.on.doc") { copy(entry) }
+            Button("Copy Entry", systemImage: "doc.on.doc") {
+                copy(entry)
+                ToastCenter.shared.copied(String(localized: "journal entry"))
+            }
         }
     }
 

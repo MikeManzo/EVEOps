@@ -681,6 +681,7 @@ struct FittingShopView: View {
             .joined(separator: "\n")
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(text, forType: .string)
+        ToastCenter.shared.show(String(localized: "Copied for Multibuy — paste into EVE's Multibuy window"), systemImage: "cart.fill")
     }
 
 }

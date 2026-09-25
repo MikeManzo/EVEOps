@@ -194,6 +194,41 @@ struct MenuBarView: View {
                         dismiss()
                         WindowService.shared.showSettings()
                     }
+
+                    Spacer()
+
+                    // Help lives here too: as a menu-bar app, EVEOps usually has no main menu
+                    // (and so no Help menu) unless the Dock icon is turned on.
+                    Menu {
+                        Button("What’s New in EVEOps", systemImage: "sparkles") {
+                            dismiss()
+                            WindowService.shared.showMain()
+                            AppRouter.shared.showWhatsNew()
+                        }
+                        Button("Keyboard Shortcuts", systemImage: "keyboard") {
+                            dismiss()
+                            WindowService.shared.showMain()
+                            AppRouter.shared.showKeyboardShortcuts()
+                        }
+                        Divider()
+                        if let url = URL(string: "https://github.com/MikeManzo/EVEOps") {
+                            Link(destination: url) {
+                                Label("EVEOps on GitHub", systemImage: "arrow.up.right.square")
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "questionmark.circle")
+                            .font(.system(size: 13))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 26, height: 26)
+                            .contentShape(Circle())
+                    }
+                    .menuStyle(.button)
+                    .buttonStyle(.plain)
+                    .menuIndicator(.hidden)
+                    .fixedSize()
+                    .help("Help")
+                    .accessibilityLabel("Help")
                 }
 
                 Divider()

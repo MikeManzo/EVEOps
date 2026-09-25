@@ -66,16 +66,19 @@ struct EVEEntityMenuItems: View {
     @Environment(AccountManager.self) private var accountManager
 
     var body: some View {
-        Button("Copy Name", systemImage: "doc.on.doc") { copy(entity.name) }
+        Button("Copy Name", systemImage: "doc.on.doc") {
+            copy(entity.name)
+            ToastCenter.shared.copied("“\(entity.name)”")
+        }
 
         switch entity {
-        case .system(let id, _):
+        case .system(let id, let name):
             Divider()
             Button("Set Destination", systemImage: "location.fill") {
-                Task { await autopilot(systemID: id, clear: true) }
+                Task { await autopilot(systemID: id, name: name, clear: true) }
             }
             Button("Add Waypoint", systemImage: "mappin.and.ellipse") {
-                Task { await autopilot(systemID: id, clear: false) }
+                Task { await autopilot(systemID: id, name: name, clear: false) }
             }
             Button("Plan Route To", systemImage: "point.topleft.down.to.point.bottomright.curvepath") {
                 AppRouter.shared.pendingRoute = .init(originId: nil, destinationId: id, autoPlot: false)
@@ -86,7 +89,10 @@ struct EVEEntityMenuItems: View {
             Button("Search Market", systemImage: "cart") {
                 WindowService.shared.showGalaxySearch(typeId: typeID, typeName: name)
             }
-            Button("Copy Type ID", systemImage: "number") { copy(String(typeID)) }
+            Button("Copy Type ID", systemImage: "number") {
+                copy(String(typeID))
+                ToastCenter.shared.copied(String(localized: "type ID \(typeID)"))
+            }
         default:
             EmptyView()
         }
@@ -105,14 +111,23 @@ struct EVEEntityMenuItems: View {
         NSPasteboard.general.setString(string, forType: .string)
     }
 
-    private func autopilot(systemID: Int, clear: Bool) async {
+    private func autopilot(systemID: Int, name: String, clear: Bool) async {
         let result = clear
             ? await AutopilotService.setDestination(systemId: systemID, accountManager: accountManager)
             : await AutopilotService.addWaypoint(systemId: systemID, accountManager: accountManager)
-        // A context-menu action has nowhere to show inline feedback; a beep is the
-        // standard macOS signal that the command didn't go through.
-        if case .ok = result { return }
-        NSSound.beep()
+        let toasts = ToastCenter.shared
+        switch result {
+        case .ok:
+            toasts.show(clear ? String(localized: "Destination set to \(name)")
+                              : String(localized: "Waypoint added: \(name)"),
+                        systemImage: "location.fill")
+        case .notSignedIn:
+            toasts.show(String(localized: "Sign in to set a destination"), style: .failure)
+        case .missingScope:
+            toasts.show(String(localized: "Re-add this character to allow setting destinations"), style: .failure)
+        case .failed(let message):
+            toasts.show(message, style: .failure)
+        }
     }
 }
 

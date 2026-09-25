@@ -363,7 +363,7 @@ struct EVEInspectorSection<Content: View>: View {
 /// indicator: forcing that control's fixed height logs a "min <= max" layout assertion.
 struct EVEProgressBar: View {
     let value: Double
-    var tint: Color = .accentColor
+    var tint: Color = .eveThemeAccent
     var height: CGFloat = 3
 
     var body: some View {
@@ -1051,7 +1051,7 @@ extension View {
 struct EVEChartCallout: View {
     let title: String
     let value: String
-    var tint: Color = .accentColor
+    var tint: Color = .eveThemeAccent
 
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
@@ -1068,5 +1068,61 @@ struct EVEChartCallout: View {
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: EVERadius.sm))
         .overlay(RoundedRectangle(cornerRadius: EVERadius.sm).strokeBorder(tint.opacity(0.35), lineWidth: 0.5))
         .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
+    }
+}
+
+// MARK: - Chart accessibility
+
+/// VoiceOver audio-graph support for a date → value series: a spoken summary (range,
+/// start/end, overall change) plus data points VoiceOver can step through or play as tones.
+struct EVETimeSeriesChartDescriptor: AXChartDescriptorRepresentable {
+    let title: String
+    let points: [(date: Date, value: Double)]
+    /// Formats a value for speech, e.g. ISK abbreviations.
+    let format: @Sendable (Double) -> String
+
+    func makeChartDescriptor() -> AXChartDescriptor {
+        let dates = points.map(\.date)
+        let values = points.map(\.value)
+        let minDate = dates.min() ?? .now
+        let maxDate = dates.max() ?? .now
+        let minValue = values.min() ?? 0
+        let maxValue = values.max() ?? 0
+
+        let xAxis = AXNumericDataAxisDescriptor(
+            title: String(localized: "Date"),
+            range: minDate.timeIntervalSince1970...max(maxDate.timeIntervalSince1970, minDate.timeIntervalSince1970 + 1),
+            gridlinePositions: []
+        ) { Date(timeIntervalSince1970: $0).formatted(date: .abbreviated, time: .omitted) }
+
+        let yAxis = AXNumericDataAxisDescriptor(
+            title: title,
+            range: minValue...max(maxValue, minValue + 1),
+            gridlinePositions: []
+        ) { format($0) }
+
+        let series = AXDataSeriesDescriptor(
+            name: title,
+            isContinuous: true,
+            dataPoints: points.map { AXDataPoint(x: $0.date.timeIntervalSince1970, y: $0.value) }
+        )
+
+        var summary = String(localized: "\(points.count) points from \(format(minValue)) to \(format(maxValue)).")
+        if let first = points.first, let last = points.last, first.value != 0 {
+            let change = (last.value - first.value) / abs(first.value)
+            let direction = change >= 0 ? String(localized: "up") : String(localized: "down")
+            summary += " " + String(localized: "Overall \(direction) \(abs(change).formatted(.percent.precision(.fractionLength(1)))), ending at \(format(last.value)).")
+        }
+
+        return AXChartDescriptor(title: title, summary: summary, xAxis: xAxis, yAxis: yAxis,
+                                 additionalAxes: [], series: [series])
+    }
+}
+
+extension View {
+    /// Makes a date/value chart explorable as a VoiceOver audio graph.
+    func eveChartAccessibility(_ title: String, points: [(date: Date, value: Double)],
+                               format: @escaping @Sendable (Double) -> String = { EVEFormatters.formatISKShort($0) }) -> some View {
+        accessibilityChartDescriptor(EVETimeSeriesChartDescriptor(title: title, points: points, format: format))
     }
 }

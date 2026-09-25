@@ -25,6 +25,7 @@ struct MainContentView: View {
     @State private var showCommandPalette = false
     @State private var showOnboarding = false
     @State private var showShortcuts = false
+    @State private var whatsNew: WhatsNewService.Notes?
     @AppStorage(OnboardingView.completedKey) private var onboardingCompleted = false
 
     var body: some View {
@@ -140,8 +141,22 @@ struct MainContentView: View {
         .onChange(of: AppRouter.shared.commandPaletteTick) { _, _ in
             showCommandPalette = true
         }
-        .onChange(of: AppRouter.shared.shortcutsTick) { _, _ in
-            showShortcuts = true
+        .onChange(of: AppRouter.shared.whatsNewTick) { _, _ in presentPendingHelp() }
+        .onChange(of: AppRouter.shared.shortcutsTick) { _, _ in presentPendingHelp() }
+        .onAppear { presentPendingHelp() }
+        .sheet(item: $whatsNew) { notes in
+            WhatsNewView(notes: notes) {
+                // Only the running version's notes count as seen — opening older notes from
+                // the Help menu mustn't suppress the automatic sheet for a newer release.
+                if notes.version == WhatsNewService.currentVersion { WhatsNewService.markSeen() }
+                whatsNew = nil
+            }
+        }
+        .task {
+            // After an update, once per version. Waits out onboarding so a first launch
+            // never stacks two sheets.
+            guard !showOnboarding else { return }
+            whatsNew = await WhatsNewService.pendingNotes(hasAccounts: !accountManager.accounts.isEmpty)
         }
         .sheet(isPresented: $showShortcuts) {
             KeyboardShortcutsView { showShortcuts = false }
@@ -169,6 +184,26 @@ struct MainContentView: View {
         selectedSection = all[(index + delta + all.count) % all.count]
     }
 
+    /// Shows What's New / Keyboard Shortcuts if requested — including requests made before
+    /// this window existed (see `AppRouter.pendingWhatsNew`).
+    private func presentPendingHelp() {
+        let router = AppRouter.shared
+        if router.pendingShortcuts {
+            router.pendingShortcuts = false
+            showShortcuts = true
+        }
+        if router.pendingWhatsNew {
+            router.pendingWhatsNew = false
+            Task {
+                if let notes = await WhatsNewService.latestNotes() {
+                    whatsNew = notes
+                } else {
+                    ToastCenter.shared.show(String(localized: "Couldn’t load release notes — check your connection"), style: .failure)
+                }
+            }
+        }
+    }
+
     private func handlePaletteAction(_ action: PaletteAction) {
         switch action {
         case .openSettings:
@@ -179,6 +214,10 @@ struct MainContentView: View {
             AppRouter.shared.requestRefresh()
         case .diagnostics:
             selectedSection = .diagnosticLogs
+        case .whatsNew:
+            AppRouter.shared.showWhatsNew()
+        case .keyboardShortcuts:
+            AppRouter.shared.showKeyboardShortcuts()
         }
     }
 

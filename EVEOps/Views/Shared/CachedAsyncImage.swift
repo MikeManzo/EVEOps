@@ -96,6 +96,7 @@ struct CachedAsyncImage<Content: View>: View {
     private let content: (AsyncImagePhase) -> Content
 
     @State private var phase: AsyncImagePhase = .empty
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(
         url: URL?,
@@ -126,7 +127,14 @@ struct CachedAsyncImage<Content: View>: View {
         phase = .empty
         let image = await ImageCache.shared.image(for: url)
         guard !Task.isCancelled else { return }
-        withTransaction(transaction) {
+        // Images that had to be fetched fade in (placeholder → image swaps with the
+        // default opacity transition) instead of popping. Memory-cache hits above are
+        // set instantly, so scrolling back through a list never re-fades.
+        var arrival = transaction
+        if arrival.animation == nil && !reduceMotion {
+            arrival.animation = .easeOut(duration: 0.25)
+        }
+        withTransaction(arrival) {
             phase = image.map { .success(Image(nsImage: $0)) }
                 ?? .failure(URLError(.cannotDecodeContentData))
         }

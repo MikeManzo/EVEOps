@@ -17,7 +17,7 @@ import Observation
 /// reads the same live palette instead of each window picking its own.
 @Observable
 final class ThemeManager {
-    private static let storageKey = "factionTheme"
+    static let storageKey = "factionTheme"
 
     var faction: FactionTheme {
         didSet {

@@ -48,7 +48,7 @@ extension MarketBrowserView {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(.secondary)
                 .font(.subheadline)
-            TextField("Search items...", text: $searchText)
+            TextField("Search items...", text: $searchText).eveFindTarget()
                 .textFieldStyle(.plain)
                 .font(.subheadline)
             if !searchText.isEmpty {

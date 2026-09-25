@@ -46,6 +46,14 @@ extension SkillPlannerView {
                 Divider()
             }
 
+            if planItems.count > 1, let attrs = attributes {
+                SkillQueueTimeline(queue: plannedQueue(attrs: attrs), tint: .eveThemeAccent,
+                                   endLabel: "Plan completes", warnsWhenEndingSoon: false)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+                Divider()
+            }
+
             if planItems.isEmpty {
                 EVEEmptyState("No Skills Planned", systemImage: "list.bullet.clipboard", message: "Browse skills on the right and tap + to add them to your plan.")
             } else {
@@ -88,6 +96,21 @@ extension SkillPlannerView {
                 .foregroundStyle(color)
         }
         .frame(maxWidth: .infinity)
+    }
+
+    /// The plan laid end to end from now, as queue entries for `SkillQueueTimeline`.
+    func plannedQueue(attrs: ESICharacterAttributes) -> [TrainingQueueEntry] {
+        var cursor = Date()
+        return planItems.enumerated().map { index, item in
+            let start = cursor
+            cursor = cursor.addingTimeInterval(trainingTime(for: item, attrs: attrs))
+            return TrainingQueueEntry(
+                position: index, skillId: item.skillId, skillName: item.skillName,
+                level: item.targetLevel, startDate: start, finishDate: cursor,
+                levelStartSP: nil, levelEndSP: nil, trainingStartSP: nil,
+                isCurrentlyTraining: false
+            )
+        }
     }
 
     var planSummaryBar: some View {
@@ -174,8 +197,9 @@ extension SkillPlannerView {
                 .help("Import plan from clipboard")
 
                 Button(role: .destructive) {
-                    planItems.removeAll()
-                    savePlan()
+                    let count = planItems.count
+                    replacePlan(with: [], actionName: String(localized: "Clear Plan"))
+                    ToastCenter.shared.show(String(localized: "Cleared \(count) skills — ⌘Z to undo"), systemImage: "trash.fill")
                 } label: {
                     Image(systemName: "trash")
                         .foregroundStyle(planItems.isEmpty ? Color.secondary : Color.red)
@@ -255,8 +279,9 @@ extension SkillPlannerView {
             }
 
             Button(role: .destructive) {
-                planItems.removeAll { $0.skillId == item.skillId }
-                savePlan()
+                replacePlan(with: planItems.filter { $0.skillId != item.skillId },
+                            actionName: String(localized: "Remove Skill"))
+                ToastCenter.shared.show(String(localized: "Removed \(item.skillName) — ⌘Z to undo"), systemImage: "minus.circle.fill")
             } label: {
                 Image(systemName: "minus.circle.fill")
                     .foregroundStyle(.red)

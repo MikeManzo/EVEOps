@@ -119,6 +119,7 @@ struct MarketMiniHistory: View {
         }
         .eveISKYAxis(desiredCount: 3)
         .eveDateXAxis(desiredCount: 3)
+        .eveChartAccessibility(String(localized: "Average price"), points: visible.map { ($0.date, $0.average) })
         .frame(height: 96)
     }
 

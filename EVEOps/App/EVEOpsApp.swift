@@ -50,6 +50,10 @@ final class AppRouter {
     /// Bumped by the "Add Character…" menu command (⌘N).
     var addCharacterTick = 0
     var shortcutsTick = 0
+    /// Bumped by Edit › Find (⌘F); the current screen's search field takes focus.
+    var findTick = 0
+    /// Bumped by Help › What's New in EVEOps.
+    var whatsNewTick = 0
 
     /// −1 / +1 from the Previous/Next Section commands (⌘[ / ⌘]); consumed and
     /// reset to 0 by MainContentView, which owns the ordered section list.
@@ -58,7 +62,15 @@ final class AppRouter {
     func requestRefresh() { refreshTick &+= 1 }
     func openCommandPalette() { commandPaletteTick &+= 1 }
     func requestAddCharacter() { addCharacterTick &+= 1 }
-    func showKeyboardShortcuts() { shortcutsTick &+= 1 }
+    func showKeyboardShortcuts() { pendingShortcuts = true; shortcutsTick &+= 1 }
+    func requestFind() { findTick &+= 1 }
+    func showWhatsNew() { pendingWhatsNew = true; whatsNewTick &+= 1 }
+
+    /// Set alongside the ticks so a request made before the main window exists (e.g. from
+    /// the menu bar popover, which opens the window in the same click) is still honored
+    /// when the window appears — a tick alone fires before anything is listening.
+    var pendingWhatsNew = false
+    var pendingShortcuts = false
     func stepSection(_ delta: Int) { sectionStep = delta }
 }
 

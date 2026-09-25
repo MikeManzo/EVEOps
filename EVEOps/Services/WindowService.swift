@@ -401,6 +401,7 @@ private struct ThemedRoot<Content: View>: View {
         content()
             .tint(themeManager.palette.accent)
             .listItemTint(themeManager.palette.accent)
+            .eveToastOverlay()
     }
 }
 

@@ -69,7 +69,7 @@ struct CorporationMembersView: View {
             HStack {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
-                TextField("Search members...", text: $searchText)
+                TextField("Search members...", text: $searchText).eveFindTarget()
                     .textFieldStyle(.plain)
                 Spacer()
                 Text("\(members.count)")

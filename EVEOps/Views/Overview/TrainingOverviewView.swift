@@ -82,7 +82,7 @@ struct TrainingOverviewView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "magnifyingglass")
                         .foregroundStyle(.secondary)
-                    TextField("Search known skills...", text: $skillSearchText)
+                    TextField("Search known skills...", text: $skillSearchText).eveFindTarget()
                         .textFieldStyle(.plain)
                     if !skillSearchText.isEmpty {
                         Button {

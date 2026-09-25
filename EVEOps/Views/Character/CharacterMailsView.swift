@@ -15,6 +15,7 @@ struct CharacterMailsView: View {
     @Environment(ThemeManager.self) private var themeManager
     private var palette: EVEPalette { themeManager.palette }
     @State private var mails: [ESIMailHeader] = []
+    @State private var mailPendingDelete: ESIMailHeader?
     @State private var selectedMail: ESIMailHeader?
     @State private var mailBody: String?
     @State private var isLoading = true
@@ -35,9 +36,7 @@ struct CharacterMailsView: View {
                     }
                     .buttonStyle(.borderless)
                     Button(role: .destructive) {
-                        Task {
-                            if let mail = selectedMail { await deleteMail(mail) }
-                        }
+                        mailPendingDelete = selectedMail
                     } label: {
                         Label("Delete Mail", systemImage: "trash")
                     }
@@ -123,7 +122,7 @@ struct CharacterMailsView: View {
                 .eveSelectableListRow(isSelected: isSelected, palette: palette) { selectedMail = mail }
                 .swipeActions(edge: .trailing) {
                     Button(role: .destructive) {
-                        Task { await deleteMail(mail) }
+                        mailPendingDelete = mail
                     } label: {
                         Label("Delete", systemImage: "trash")
                     }
@@ -131,6 +130,15 @@ struct CharacterMailsView: View {
             }
         }
         .eveKeyboardSelection(mails, selection: selectedMail) { selectedMail = $0 }
+        .confirmationDialog(
+            Text("Delete “\(mailPendingDelete?.subject ?? String(localized: "this mail"))”?"),
+            isPresented: Binding(get: { mailPendingDelete != nil }, set: { if !$0 { mailPendingDelete = nil } }),
+            presenting: mailPendingDelete
+        ) { mail in
+            Button("Delete Mail", role: .destructive) { Task { await deleteMail(mail) } }
+        } message: { _ in
+            Text("This deletes the mail in EVE as well. It can’t be undone.")
+        }
     }
 
     /// Sender portrait — characters get their portrait; corporations, alliances and mailing
@@ -250,8 +258,10 @@ struct CharacterMailsView: View {
             if selectedMail?.mailId == mail.mailId {
                 selectedMail = mails.first
             }
+            ToastCenter.shared.show(String(localized: "Mail deleted"), systemImage: "trash.fill")
         } catch {
-            self.error = error.localizedDescription
+            // A failed delete shouldn't replace the whole mailbox with an error page.
+            ToastCenter.shared.show(String(localized: "Couldn’t delete mail: \(error.localizedDescription)"), style: .failure)
         }
     }
 

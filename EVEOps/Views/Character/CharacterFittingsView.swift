@@ -83,6 +83,7 @@ struct CharacterFittingsView: View {
     @State private var savingsError: String?
     @State private var savedFittingsLoaded = false
     @State private var selectedFitting: SavedFittingEntry?
+    @State private var fittingPendingDelete: SavedFittingEntry?
 
     @State private var activeTab: FittingsTab = .ships
     @State private var shipListID = UUID()
@@ -292,7 +293,7 @@ struct CharacterFittingsView: View {
                     )) {
                         ForEach(section.fittings) { fitting in
                             SavedFittingRow(fitting: fitting, showCharacterName: multiAccount) {
-                                Task { await deleteFitting(fitting) }
+                                fittingPendingDelete = fitting
                             }
                             .id(fitting)
                             .eveSelectableListRow(isSelected: fitting == selectedFitting, palette: palette) {
@@ -313,6 +314,15 @@ struct CharacterFittingsView: View {
             }
             .id(fittingListID)
             .eveKeyboardSelection(visibleFittings, selection: selectedFitting) { selectedFitting = $0 }
+            .confirmationDialog(
+                Text("Delete the fitting “\(fittingPendingDelete?.name ?? "")”?"),
+                isPresented: Binding(get: { fittingPendingDelete != nil }, set: { if !$0 { fittingPendingDelete = nil } }),
+                presenting: fittingPendingDelete
+            ) { fitting in
+                Button("Delete Fitting", role: .destructive) { Task { await deleteFitting(fitting) } }
+            } message: { _ in
+                Text("This deletes the saved fitting in EVE as well. It can’t be undone.")
+            }
             .frame(maxWidth: .infinity)
 
             if let fitting = selectedFitting {
@@ -572,8 +582,10 @@ struct CharacterFittingsView: View {
             if selectedFitting?.id == entry.fittingId {
                 selectedFitting = fittingSections.first?.fittings.first
             }
+            ToastCenter.shared.show(String(localized: "Fitting “\(entry.name)” deleted"), systemImage: "trash.fill")
         } catch {
             savingsError = error.localizedDescription
+            ToastCenter.shared.show(String(localized: "Couldn’t delete fitting: \(error.localizedDescription)"), style: .failure)
         }
     }
 

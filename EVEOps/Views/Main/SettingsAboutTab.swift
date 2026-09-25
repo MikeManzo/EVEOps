@@ -70,6 +70,11 @@ struct AboutTab: View {
                             .font(.system(size: 26, weight: .bold))
                             .tracking(0.5)
                         versionPill
+                        linkButton("sparkles", "What’s New") {
+                            WindowService.shared.showMain()
+                            AppRouter.shared.showWhatsNew()
+                        }
+                        .padding(.top, 4)
                     }
                     .padding(.top, 28)
 

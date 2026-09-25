@@ -92,7 +92,7 @@ extension GalaxyMapView {
                 HStack(spacing: 6) {
                     Image(systemName: "magnifyingglass")
                         .foregroundStyle(.secondary).font(.caption)
-                    TextField("Search constellation or region…", text: $searchText)
+                    TextField("Search constellation or region…", text: $searchText).eveFindTarget()
                         .textFieldStyle(.plain).font(.caption).frame(width: 200)
                 }
                 .padding(.horizontal, 8).padding(.vertical, 4)

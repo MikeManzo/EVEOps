@@ -16,6 +16,7 @@ struct CharacterContactsView: View {
     @Environment(ThemeManager.self) private var themeManager
     private var palette: EVEPalette { themeManager.palette }
     @State private var contacts: [ESIContact] = []
+    @State private var contactPendingDelete: ESIContact?
     @State private var isLoading = false
     @State private var error: String?
     @State private var contactNames: [Int: String] = [:]
@@ -142,7 +143,7 @@ struct CharacterContactsView: View {
                             }
                             .swipeActions(edge: .trailing) {
                                 Button(role: .destructive) {
-                                    Task { await deleteContact(contact) }
+                                    contactPendingDelete = contact
                                 } label: {
                                     Label("Delete", systemImage: "trash")
                                 }
@@ -159,7 +160,7 @@ struct CharacterContactsView: View {
                                 }
                                 Divider()
                                 Button(role: .destructive) {
-                                    Task { await deleteContact(contact) }
+                                    contactPendingDelete = contact
                                 } label: {
                                     Label("Remove Contact", systemImage: "person.badge.minus")
                                 }
@@ -170,6 +171,15 @@ struct CharacterContactsView: View {
             }
             .eveKeyboardSelection(groupedContacts.flatMap { $0.1.map(\.contactId) }, selection: selectedContactID) {
                 selectedContactID = $0
+            }
+            .confirmationDialog(
+                Text("Remove \(contactPendingDelete.flatMap { contactNames[$0.contactId] } ?? String(localized: "this contact")) from your contacts?"),
+                isPresented: Binding(get: { contactPendingDelete != nil }, set: { if !$0 { contactPendingDelete = nil } }),
+                presenting: contactPendingDelete
+            ) { contact in
+                Button("Remove Contact", role: .destructive) { Task { await deleteContact(contact) } }
+            } message: { _ in
+                Text("This removes the contact and its standing in EVE as well.")
             }
             .onChange(of: selectedContactID) { _, newID in
                 if let id = newID {
@@ -392,7 +402,7 @@ struct CharacterContactsView: View {
                 Text("Alliances").tag("alliance")
             }
             .eveSegmentedPicker()
-            TextField("Filter contacts", text: $searchFilter)
+            TextField("Filter contacts", text: $searchFilter).eveFindTarget()
                 .textFieldStyle(.roundedBorder)
         }
         .padding(10)
@@ -535,8 +545,9 @@ struct CharacterContactsView: View {
                 selectedContactID = nil
                 selectedDetail = nil
             }
+            ToastCenter.shared.show(String(localized: "Contact removed"), systemImage: "person.badge.minus")
         } catch {
-            self.error = error.localizedDescription
+            ToastCenter.shared.show(String(localized: "Couldn’t remove contact: \(error.localizedDescription)"), style: .failure)
         }
     }
 

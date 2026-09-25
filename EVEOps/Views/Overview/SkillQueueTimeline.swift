@@ -17,6 +17,11 @@ import SwiftUI
 struct SkillQueueTimeline: View {
     let queue: [TrainingQueueEntry]
     let tint: Color
+    /// Caption for the end marker — "Queue ends" for a live queue, "Plan completes" for a
+    /// skill plan laid out from now.
+    var endLabel: LocalizedStringKey = "Queue ends"
+    /// Tint the end orange when it's under a day away (a live queue about to run dry).
+    var warnsWhenEndingSoon = true
 
     private struct Segment: Identifiable {
         let entry: TrainingQueueEntry
@@ -34,7 +39,7 @@ struct SkillQueueTimeline: View {
             if let first = segments.first, let last = segments.last {
                 let total = max(last.end.timeIntervalSince(first.start), 1)
                 let remaining = last.end.timeIntervalSince(now)
-                let endsSoon = remaining < Self.warningWindow
+                let endsSoon = warnsWhenEndingSoon && remaining < Self.warningWindow
                 VStack(alignment: .leading, spacing: EVESpacing.sm) {
                     GeometryReader { geo in
                         HStack(spacing: 1.5) {
@@ -55,7 +60,7 @@ struct SkillQueueTimeline: View {
                             .font(.eveLabel)
                             .foregroundStyle(.secondary)
                         Spacer()
-                        Text("Queue ends \(EVEDates.short(last.end, now: now)) · \(EVEFormatters.timeUntil(last.end))")
+                        Text("\(Text(endLabel)) \(EVEDates.short(last.end, now: now)) · \(EVEFormatters.timeUntil(last.end))")
                             .font(.eveLabel.monospacedDigit())
                             .foregroundStyle(endsSoon ? AnyShapeStyle(.orange) : AnyShapeStyle(.secondary))
                             .help(EVEDates.full(last.end))

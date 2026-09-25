@@ -322,6 +322,9 @@ struct RoutePlannerView: View {
                 }
                 .padding(.bottom, 8)
 
+                RouteSecurityStrip(route: route)
+                    .padding(.bottom, 10)
+
                 if let autopilotMessage {
                     HStack(spacing: 6) {
                         Image(systemName: autopilotMessage.hasPrefix("Route set") ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")

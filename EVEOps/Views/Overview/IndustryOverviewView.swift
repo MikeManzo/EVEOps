@@ -21,6 +21,9 @@ struct IndustryOverviewView: View {
     @State private var lastRefresh: Date?
     @State private var error: String?
     @AppStorage("industry.activeJobsOnly") private var showActiveOnly = true
+    @State private var blueprintNames: [Int: String] = [:]
+    /// Estimated Jita buy value per job ID (manufacturing jobs only).
+    @State private var estimatedValues: [Int: Double] = [:]
 
     var body: some View {
         LoadingStateView(
@@ -47,17 +50,10 @@ struct IndustryOverviewView: View {
                         .padding(10)
                 }
 
-                List {
-                    ForEach(filteredJobs, id: \.characterName) { group in
-                        Section(group.characterName) {
-                            ForEach(group.jobs) { job in
-                                IndustryJobRow(job: job)
-                            }
-                        }
-                    }
-                }
+                IndustryJobsTable(records: records)
             }
         }
+        .task(id: jobs.flatMap(\.jobs).map(\.jobId)) { await resolveNamesAndValues() }
         .eveScreenHeader("Industry Overview", section: .industry) {
             RelativeTimestamp(date: lastRefresh)
             RefreshButton(isRefreshing: isRefreshing) {
@@ -79,6 +75,42 @@ struct IndustryOverviewView: View {
         isRefreshing = true
         defer { isRefreshing = false }
         await loadJobs()
+    }
+
+    /// Every visible job across pilots, flattened for the shared jobs table. The
+    /// Character column appears only when more than one pilot is signed in.
+    private var records: [IndustryJobRecord] {
+        let multiPilot = accountManager.accounts.count > 1
+        return filteredJobs.flatMap { group in
+            group.jobs.map { job in
+                IndustryJobRecord(
+                    job: job,
+                    blueprintName: blueprintNames[job.blueprintTypeId] ?? "Blueprint #\(job.blueprintTypeId)",
+                    characterName: multiPilot ? group.characterName : nil,
+                    estimatedValue: estimatedValues[job.jobId]
+                )
+            }
+        }
+    }
+
+    /// Blueprint names and output value estimates, each fetched in one batch rather than
+    /// per row.
+    private func resolveNamesAndValues() async {
+        let all = jobs.flatMap(\.jobs)
+        let missing = Array(Set(all.map(\.blueprintTypeId)).subtracting(blueprintNames.keys))
+        if !missing.isEmpty {
+            let types = await UniverseCache.shared.types(ids: missing)
+            for (id, type) in types { blueprintNames[id] = type.name }
+        }
+        let manufacturing = all.filter { $0.activityId == 1 && $0.productTypeId != nil }
+        let products = Array(Set(manufacturing.compactMap(\.productTypeId)))
+        guard !products.isEmpty,
+              let prices = try? await FuzzworkClient.shared.prices(typeIds: products) else { return }
+        for job in manufacturing {
+            if let product = job.productTypeId, let price = prices[product] {
+                estimatedValues[job.jobId] = price.buyPercentile * Double(job.runs)
+            }
+        }
     }
 
     private var totalJobCount: Int {
@@ -148,98 +180,6 @@ struct CharacterIndustryGroup {
     let jobs: [ESIIndustryJob]
 }
 
-struct IndustryJobRow: View {
-    let job: ESIIndustryJob
-    @State private var blueprintName: String = ""
-    @State private var estimatedValue: Double? = nil
-
-    var body: some View {
-        HStack {
-            Image(systemName: activityIcon)
-                .foregroundStyle(activityColor)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(blueprintName.isEmpty ? "Blueprint #\(job.blueprintTypeId)" : blueprintName)
-                    .font(.body)
-                Text("\(activityName) - \(job.runs) run\(job.runs > 1 ? "s" : "")")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
-            VStack(alignment: .trailing, spacing: 2) {
-                if job.status == "active" {
-                    if job.endDate > Date() {
-                        Text(EVEFormatters.timeUntil(job.endDate))
-                            .font(.caption.monospacedDigit())
-                            .foregroundStyle(.blue)
-                    } else {
-                        Text("Ready")
-                            .font(.caption)
-                            .foregroundStyle(.green)
-                    }
-                } else {
-                    Text(job.status.capitalized)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                if let value = estimatedValue {
-                    Text("≈ \(EVEFormatters.formatISKShort(value))")
-                        .font(.caption2.monospacedDigit())
-                        .foregroundStyle(.mint)
-                        .help("Estimated Jita buy-order value · \(job.runs) run\(job.runs == 1 ? "" : "s") · via Fuzzwork")
-                }
-            }
-        }
-        .task {
-            if let typeInfo = await UniverseCache.shared.type(id: job.blueprintTypeId) {
-                blueprintName = typeInfo.name
-            }
-        }
-        .task {
-            guard job.activityId == 1, let productTypeId = job.productTypeId else { return }
-            if let prices = try? await FuzzworkClient.shared.prices(typeIds: [productTypeId]),
-               let price = prices[productTypeId] {
-                estimatedValue = price.buyPercentile * Double(job.runs)
-            }
-        }
-    }
-
-    private var activityName: String {
-        switch job.activityId {
-        case 1: return "Manufacturing"
-        case 3: return "TE Research"
-        case 4: return "ME Research"
-        case 5: return "Copying"
-        case 8: return "Invention"
-        case 9: return "Reactions"
-        default: return "Activity \(job.activityId)"
-        }
-    }
-
-    private var activityIcon: String {
-        switch job.activityId {
-        case 1: return "hammer.fill"
-        case 3, 4: return "flask.fill"
-        case 5: return "doc.on.doc.fill"
-        case 8: return "lightbulb.fill"
-        case 9: return "atom"
-        default: return "gearshape.fill"
-        }
-    }
-
-    private var activityColor: Color {
-        switch job.activityId {
-        case 1: return .blue
-        case 3, 4: return .purple
-        case 5: return .cyan
-        case 8: return .orange
-        case 9: return .green
-        default: return .secondary
-        }
-    }
-}
 
 // MARK: Industry AI Insight Card
 

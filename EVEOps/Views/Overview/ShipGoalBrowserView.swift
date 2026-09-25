@@ -308,7 +308,7 @@ struct ShipGoalBrowserView: View {
     private var shipSearchBar: some View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-            TextField("Search for a ship…", text: $searchText)
+            TextField("Search for a ship…", text: $searchText).eveFindTarget()
                 .textFieldStyle(.plain)
                 .onChange(of: searchText) { _, new in triggerSearch(new) }
                 .onSubmit {

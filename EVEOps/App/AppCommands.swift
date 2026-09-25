@@ -31,6 +31,12 @@ struct AppCommands: Commands {
             Button("Check for Updates…") { updater.checkForUpdates() }
         }
 
+        CommandGroup(after: .pasteboard) {
+            Divider()
+            Button("Find…") { AppRouter.shared.requestFind() }
+                .keyboardShortcut("f", modifiers: .command)
+        }
+
         CommandGroup(replacing: .appSettings) {
             Button("Settings…") { WindowService.shared.showSettings() }
                 .keyboardShortcut(",", modifiers: .command)
@@ -76,6 +82,10 @@ struct AppCommands: Commands {
                 AppRouter.shared.showKeyboardShortcuts()
             }
             .keyboardShortcut("/", modifiers: .command)
+            Button("What’s New in EVEOps") {
+                WindowService.shared.showMain()
+                AppRouter.shared.showWhatsNew()
+            }
             Divider()
             Button("EVEOps on GitHub") {
                 if let url = URL(string: "https://github.com/MikeManzo/EVEOps") {

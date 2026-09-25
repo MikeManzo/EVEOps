@@ -164,3 +164,25 @@ private struct ButtonStyleOutsideToolbar<S: PrimitiveButtonStyle>: ViewModifier 
         }
     }
 }
+
+// MARK: - Find (⌘F)
+
+private struct FindTargetModifier: ViewModifier {
+    @FocusState private var isFocused: Bool
+    @Environment(\.controlActiveState) private var activeState
+
+    func body(content: Content) -> some View {
+        content
+            .focused($isFocused)
+            .onChange(of: AppRouter.shared.findTick) { _, _ in
+                // Only the focused window's field answers, so ⌘F in the Galaxy Market
+                // Search window doesn't also grab the main window's search.
+                if activeState == .key { isFocused = true }
+            }
+    }
+}
+
+extension View {
+    /// Makes this text field the screen's search: Edit › Find (⌘F) focuses it.
+    func eveFindTarget() -> some View { modifier(FindTargetModifier()) }
+}

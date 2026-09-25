@@ -20,6 +20,7 @@ struct RouteSystemRow: View {
     var onAddWaypoint: (() async -> Void)? = nil
 
     @State private var showWaypointMenu = false
+    @Environment(ThemeManager.self) private var themeManager
 
     var body: some View {
         HStack(spacing: 0) {
@@ -30,7 +31,7 @@ struct RouteSystemRow: View {
                     .frame(width: 2)
                     .frame(maxHeight: .infinity)
                 Circle()
-                    .fill(isFirst ? Color.blue : isLast ? Color.green : system.securityColor)
+                    .fill(isFirst ? themeManager.palette.accent : isLast ? Color.green : system.securityColor)
                     .frame(width: 8, height: 8)
                 Rectangle()
                     .fill(isLast ? Color.clear : Color.secondary.opacity(0.25))
@@ -47,13 +48,8 @@ struct RouteSystemRow: View {
                     .foregroundStyle(.tertiary)
                     .frame(width: 24, alignment: .trailing)
 
-                // Security badge
-                Text(system.displaySecurity)
-                    .font(.caption.bold().monospacedDigit())
-                    .foregroundStyle(system.securityColor)
-                    .frame(width: 30, alignment: .center)
-                    .padding(.vertical, 2)
-                    .background(system.securityColor.opacity(0.15), in: RoundedRectangle(cornerRadius: EVERadius.sm))
+                EVESecurityBadge(status: max(0, system.securityStatus))
+                    .frame(width: 34)
 
                 // System name
                 Text(system.name)
@@ -86,9 +82,9 @@ struct RouteSystemRow: View {
                 Spacer()
 
                 if isFirst {
-                    Text("ORIGIN").font(.caption2.bold()).foregroundStyle(.blue)
+                    Text("ORIGIN").font(.caption2.bold()).foregroundStyle(themeManager.palette.accent)
                         .padding(.horizontal, 6).padding(.vertical, 2)
-                        .background(.blue.opacity(0.15), in: Capsule())
+                        .background(themeManager.palette.accent.opacity(0.15), in: Capsule())
                 } else if isLast {
                     Text("DEST").font(.caption2.bold()).foregroundStyle(.green)
                         .padding(.horizontal, 6).padding(.vertical, 2)
@@ -113,10 +109,50 @@ struct RouteSystemRow: View {
                 }
             }
             .padding(.horizontal, 10)
-            .padding(.vertical, 8)
+            .eveRowPadding()
+            .padding(.vertical, 4)
         }
         .frame(minHeight: 36)
-        .background(isFirst ? Color.blue.opacity(0.05) : isLast ? Color.green.opacity(0.05) : Color.clear)
+        .background(isFirst ? themeManager.palette.accent.opacity(0.05) : isLast ? Color.green.opacity(0.05) : Color.clear)
+        .eveContextMenu(.system(id: system.id, name: system.name))
+    }
+}
+
+// MARK:  Route Security Strip
+
+/// The whole route at a glance, EVE-client style: one square per system in its security
+/// color, with a dot on systems that saw kills in the last hour. Hover a square for the
+/// system; squares shrink to fit long routes.
+struct RouteSecurityStrip: View {
+    let route: [RouteSystem]
+
+    var body: some View {
+        GeometryReader { geo in
+            let spacing: CGFloat = route.count > 60 ? 1 : 2
+            let side = min(14, max(3, (geo.size.width - spacing * CGFloat(max(route.count - 1, 0))) / CGFloat(max(route.count, 1))))
+            HStack(spacing: spacing) {
+                ForEach(Array(route.enumerated()), id: \.offset) { index, system in
+                    RoundedRectangle(cornerRadius: min(2, side / 4))
+                        .fill(system.securityColor)
+                        .frame(width: side, height: 14)
+                        .overlay(alignment: .top) {
+                            if system.danger.combatKills > 0 {
+                                Circle()
+                                    .fill(dangerColor(system.dangerLevel))
+                                    .overlay(Circle().strokeBorder(.background, lineWidth: 1))
+                                    .frame(width: 6, height: 6)
+                                    .offset(y: -4)
+                            }
+                        }
+                        .help("\(index + 1). \(system.name) · \(system.displaySecurity)"
+                              + (system.danger.combatKills > 0 ? " · \(system.danger.combatKills) kills/h" : ""))
+                }
+                Spacer(minLength: 0)
+            }
+        }
+        .frame(height: 16)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text("Route security: \(route.count) systems"))
     }
 }
 

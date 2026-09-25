@@ -100,6 +100,7 @@ extension SkillPlannerView {
         let text = planItems.map { "\($0.skillName) \($0.targetLevel)" }.joined(separator: "\n")
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(text, forType: .string)
+        ToastCenter.shared.show(String(localized: "Plan copied — paste into EVE's skill queue"), systemImage: "doc.on.doc.fill")
     }
 
     func importFromClipboard() async {

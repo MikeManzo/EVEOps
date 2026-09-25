@@ -234,7 +234,7 @@ struct LoyaltyPointStoreView: View {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
                     .font(.subheadline)
-                TextField("Search offers…", text: $searchText)
+                TextField("Search offers…", text: $searchText).eveFindTarget()
                     .textFieldStyle(.plain)
                 if !searchText.isEmpty {
                     Button { searchText = "" } label: {

@@ -110,16 +110,6 @@
         }
       }
     },
-    "%@ - %lld run%@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ - %2$lld run%3$@"
-          }
-        }
-      }
-    },
     "%@ – %@" : {
       "localizations" : {
         "en" : {
@@ -259,6 +249,16 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ %2$@ — done %3$@ (%4$@)"
+          }
+        }
+      }
+    },
+    "%@ %@ · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@ · %3$@"
           }
         }
       }
@@ -584,6 +584,16 @@
         }
       }
     },
+    "%lld extractor%@ · %@ left" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld extractor%2$@ · %3$@ left"
+          }
+        }
+      }
+    },
     "%lld extractors offline" : {
 
     },
@@ -724,6 +734,9 @@
     "%lld kills" : {
 
     },
+    "%lld log entries" : {
+
+    },
     "%lld logins" : {
 
     },
@@ -803,18 +816,28 @@
     "%lld pilots" : {
 
     },
-    "%lld pins - Level %lld" : {
+    "%lld pins · Level %lld" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "%1$lld pins - Level %2$lld"
+            "value" : "%1$lld pins · Level %2$lld"
           }
         }
       }
     },
     "%lld pod kills" : {
 
+    },
+    "%lld points from %@ to %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld points from %2$@ to %3$@."
+          }
+        }
+      }
     },
     "%lld pts" : {
 
@@ -1111,9 +1134,6 @@
     "<%@>" : {
 
     },
-    "≈ %@" : {
-
-    },
     "≤ %lld kill%@/h" : {
       "localizations" : {
         "en" : {
@@ -1140,6 +1160,9 @@
 
     },
     "1 day" : {
+
+    },
+    "1 log entry" : {
 
     },
     "1 minute" : {
@@ -1597,6 +1620,9 @@
     "Average" : {
 
     },
+    "Average price" : {
+
+    },
     "Avoid Systems" : {
 
     },
@@ -1865,7 +1891,13 @@
     "Clear Model Cache" : {
 
     },
+    "Clear Plan" : {
+
+    },
     "Clear, no kills reported in the last hour" : {
+
+    },
+    "Cleared %lld skills — ⌘Z to undo" : {
 
     },
     "Clearing…" : {
@@ -2027,6 +2059,9 @@
     "Contact Online" : {
 
     },
+    "Contact removed" : {
+
+    },
     "Contacts" : {
 
     },
@@ -2055,6 +2090,15 @@
 
     },
     "Contracts updated" : {
+
+    },
+    "Copied" : {
+
+    },
+    "Copied %@" : {
+
+    },
+    "Copied for Multibuy — paste into EVE's Multibuy window" : {
 
     },
     "Copies your plan as plain text — one skill per line:" : {
@@ -2153,13 +2197,25 @@
     "Could Not Load Model" : {
 
     },
+    "Couldn’t delete fitting: %@" : {
+
+    },
+    "Couldn’t delete mail: %@" : {
+
+    },
     "Couldn't load" : {
+
+    },
+    "Couldn’t load release notes — check your connection" : {
 
     },
     "Couldn't load sovereignty" : {
 
     },
     "Couldn't load the star-map data." : {
+
+    },
+    "Couldn’t remove contact: %@" : {
 
     },
     "Counts down %llds — the short end of the observed response window. Hit Start the moment you land. Treat 0:30 as your hard bail-out." : {
@@ -2311,10 +2367,16 @@
     "Delete" : {
 
     },
+    "Delete “%@”?" : {
+
+    },
     "Delete Fitting" : {
 
     },
     "Delete Mail" : {
+
+    },
+    "Delete the fitting “%@”?" : {
 
     },
     "Describe your goal… e.g. \"market trader\", \"PvP pilot\", \"miner\"" : {
@@ -2330,6 +2392,9 @@
 
     },
     "Destination" : {
+
+    },
+    "Destination set to %@" : {
 
     },
     "Destroyed" : {
@@ -2535,15 +2600,11 @@
     "est. buy value" : {
 
     },
-    "Estimated Jita buy-order value · %lld run%@ · via Fuzzwork" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Estimated Jita buy-order value · %1$lld run%2$@ · via Fuzzwork"
-          }
-        }
-      }
+    "Est. Value" : {
+
+    },
+    "Estimated Jita buy value of the output · via Fuzzwork" : {
+
     },
     "Estimates assume Omega clone. Alpha clone trains at 50% speed." : {
 
@@ -2668,10 +2729,16 @@
     "Expand or Collapse" : {
 
     },
+    "Expire < 24h" : {
+
+    },
     "Expired" : {
 
     },
     "Expires" : {
+
+    },
+    "Expires %@" : {
 
     },
     "Expires in" : {
@@ -2707,10 +2774,10 @@
     "Extend to L%lld" : {
 
     },
-    "Extraction Details" : {
+    "Extracting" : {
 
     },
-    "Extraction may be offline" : {
+    "Extraction Details" : {
 
     },
     "Extraction Start" : {
@@ -2806,6 +2873,9 @@
     "Find Quiet Systems" : {
 
     },
+    "Find…" : {
+
+    },
     "Finding…" : {
 
     },
@@ -2831,6 +2901,9 @@
 
     },
     "Fitting" : {
+
+    },
+    "Fitting “%@” deleted" : {
 
     },
     "Fitting name" : {
@@ -2897,6 +2970,9 @@
 
     },
     "Full Galaxy Search" : {
+
+    },
+    "Full Release Notes" : {
 
     },
     "Fuzzwork Enterprises" : {
@@ -3276,6 +3352,9 @@
     "Journal (%lld)" : {
 
     },
+    "journal entry" : {
+
+    },
     "Jump Anywhere" : {
 
     },
@@ -3613,6 +3692,9 @@
     "Mail Activity" : {
 
     },
+    "Mail deleted" : {
+
+    },
     "Mails" : {
 
     },
@@ -3780,6 +3862,9 @@
     "Net for the day" : {
 
     },
+    "Net worth" : {
+
+    },
     "Net Worth" : {
 
     },
@@ -3881,6 +3966,9 @@
 
     },
     "No events on this day" : {
+
+    },
+    "No extractors" : {
 
     },
     "No fitting slots detected for this ship type" : {
@@ -4294,6 +4382,16 @@
     "Outstanding" : {
 
     },
+    "Overall %@ %@, ending at %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Overall %1$@ %2$@, ending at %3$@."
+          }
+        }
+      }
+    },
     "Owner" : {
 
     },
@@ -4381,7 +4479,16 @@
     "Pinned" : {
 
     },
+    "Pinned %@ to the sidebar" : {
+
+    },
     "Pinned is full — unpin something first (%lld max)" : {
+
+    },
+    "Plan completes" : {
+
+    },
+    "Plan copied — paste into EVE's skill queue" : {
 
     },
     "Plan Route" : {
@@ -4403,6 +4510,9 @@
 
     },
     "Players" : {
+
+    },
+    "Players online" : {
 
     },
     "Plot Route" : {
@@ -4492,15 +4602,8 @@
     "Queue empty" : {
 
     },
-    "Queue ends %@ · %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Queue ends %1$@ · %2$@"
-          }
-        }
-      }
+    "Queue ends" : {
+
     },
     "Queue is empty — nothing to analyze." : {
 
@@ -4533,6 +4636,9 @@
 
     },
     "Range" : {
+
+    },
+    "Re-add this character to allow setting destinations" : {
 
     },
     "Re-authenticate" : {
@@ -4652,6 +4758,9 @@
     "Remove" : {
 
     },
+    "Remove %@ from your contacts?" : {
+
+    },
     "Remove %@?" : {
 
     },
@@ -4665,6 +4774,12 @@
 
     },
     "Remove from Plan" : {
+
+    },
+    "Remove Skill" : {
+
+    },
+    "Removed %@ — ⌘Z to undo" : {
 
     },
     "Repair" : {
@@ -4718,6 +4833,12 @@
     "Response" : {
 
     },
+    "Restart needed" : {
+
+    },
+    "Restart Needed" : {
+
+    },
     "Restore Missing Pilots" : {
 
     },
@@ -4749,6 +4870,9 @@
 
     },
     "Route risk" : {
+
+    },
+    "Route security: %lld systems" : {
 
     },
     "Route Type" : {
@@ -5136,6 +5260,9 @@
     "Sidebar scope" : {
 
     },
+    "Sign in to set a destination" : {
+
+    },
     "Sign in with a character to see live activity where you are." : {
 
     },
@@ -5488,7 +5615,22 @@
     "This character has never used a neural remap." : {
 
     },
+    "this contact" : {
+
+    },
+    "This deletes the mail in EVE as well. It can’t be undone." : {
+
+    },
+    "This deletes the saved fitting in EVE as well. It can’t be undone." : {
+
+    },
     "This list" : {
+
+    },
+    "this mail" : {
+
+    },
+    "This removes the contact and its standing in EVE as well." : {
 
     },
     "This ship doesn't have a model in the community library yet." : {
@@ -5629,6 +5771,9 @@
     "Type #%lld" : {
 
     },
+    "type ID %lld" : {
+
+    },
     "Type Information" : {
 
     },
@@ -5663,6 +5808,9 @@
 
     },
     "Unpin from the sidebar's Pinned section" : {
+
+    },
+    "Unpinned %@" : {
 
     },
     "unpriced" : {
@@ -5702,9 +5850,6 @@
 
     },
     "updated %@" : {
-
-    },
-    "Updated %@ ago" : {
 
     },
     "Use local textures" : {
@@ -5807,6 +5952,9 @@
     "Wallet" : {
 
     },
+    "Wallet balance" : {
+
+    },
     "Wallet balance at the end of the day" : {
 
     },
@@ -5840,6 +5988,9 @@
     "Waypoint" : {
 
     },
+    "Waypoint added: %@" : {
+
+    },
     "Wealth Distribution" : {
 
     },
@@ -5850,6 +6001,12 @@
 
     },
     "What it trains" : {
+
+    },
+    "What’s New in EVEOps" : {
+
+    },
+    "What’s New in EVEOps %@" : {
 
     },
     "What's Not Simulated" : {

@@ -19,6 +19,7 @@ struct CharacterBookmarksView: View {
     @State private var locationNames: [Int: String] = [:]
     @State private var selectedFolderId: Int? = nil  // nil = all, -1 = uncategorized
     @State private var searchText = ""
+    @FocusState private var searchFocused: Bool
     @State private var isLoading = false
     @State private var error: String?
 
@@ -53,6 +54,8 @@ struct CharacterBookmarksView: View {
             FreshnessIndicator(isLoading: isLoading) { await loadBookmarks() }
         }
         .searchable(text: $searchText, prompt: "Search bookmarks")
+        .searchFocused($searchFocused)
+        .onChange(of: AppRouter.shared.findTick) { _, _ in searchFocused = true }
         .task(id: accountManager.selectedCharacterID) {
             await loadBookmarks()
         }

@@ -302,9 +302,9 @@ private struct PaletteRowView: View {
 // MARK: - Quick actions
 
 enum PaletteAction: String, CaseIterable {
-    case openSettings, addCharacter, refresh, diagnostics
+    case openSettings, addCharacter, refresh, diagnostics, whatsNew, keyboardShortcuts
 
-    static var always: [PaletteAction] { [.openSettings, .addCharacter, .refresh] }
+    static var always: [PaletteAction] { [.openSettings, .addCharacter, .refresh, .whatsNew, .keyboardShortcuts] }
 
     var title: String {
         switch self {
@@ -312,6 +312,8 @@ enum PaletteAction: String, CaseIterable {
         case .addCharacter: return "Add Character…"
         case .refresh: return "Refresh Current View"
         case .diagnostics: return "Open Diagnostic Logs"
+        case .whatsNew: return "What’s New in EVEOps"
+        case .keyboardShortcuts: return "Keyboard Shortcuts"
         }
     }
     var icon: String {
@@ -320,6 +322,8 @@ enum PaletteAction: String, CaseIterable {
         case .addCharacter: return "person.badge.plus"
         case .refresh: return "arrow.clockwise"
         case .diagnostics: return "stethoscope"
+        case .whatsNew: return "sparkles"
+        case .keyboardShortcuts: return "keyboard"
         }
     }
 }

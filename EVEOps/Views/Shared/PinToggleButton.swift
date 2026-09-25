@@ -64,9 +64,11 @@ struct PinToggleButton: View {
         var current = pinnedSections
         if let index = current.firstIndex(of: section) {
             current.remove(at: index)
+            ToastCenter.shared.show(String(localized: "Unpinned \(section.rawValue)"), systemImage: "pin.slash")
         } else {
             guard current.count < Self.maxPinned else { return }
             current.append(section)
+            ToastCenter.shared.show(String(localized: "Pinned \(section.rawValue) to the sidebar"), systemImage: "pin.fill")
         }
         pinnedSectionsRaw = current.map(\.rawValue).joined(separator: ",")
     }

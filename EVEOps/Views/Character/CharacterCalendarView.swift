@@ -14,7 +14,7 @@ enum CalendarItemSource: String, CaseIterable, Hashable {
 
     var color: Color {
         switch self {
-        case .eveEvent:       return .accentColor
+        case .eveEvent:       return .eveThemeAccent
         case .skill:          return .purple
         case .industryJob:    return .orange
         case .piExpiry:       return .green

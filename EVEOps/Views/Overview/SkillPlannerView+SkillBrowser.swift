@@ -68,7 +68,7 @@ extension SkillPlannerView {
             // Search bar
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                TextField("Search skills...", text: $searchText)
+                TextField("Search skills...", text: $searchText).eveFindTarget()
                     .textFieldStyle(.plain)
                 if !searchText.isEmpty {
                     Button { searchText = "" } label: {

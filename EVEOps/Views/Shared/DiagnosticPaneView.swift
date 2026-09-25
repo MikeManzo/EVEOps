@@ -91,7 +91,7 @@ struct DiagnosticPaneView: View {
                 Image(systemName: "magnifyingglass")
                     .font(.eveLabel)
                     .foregroundStyle(.tertiary)
-                TextField("Filter", text: $searchText)
+                TextField("Filter", text: $searchText).eveFindTarget()
                     .textFieldStyle(.plain)
                     .font(.eveCaption)
                 if !searchText.isEmpty {
@@ -304,6 +304,7 @@ struct DiagnosticPaneView: View {
             .joined(separator: "\n")
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(lines, forType: .string)
+        ToastCenter.shared.copied(ids.count == 1 ? String(localized: "1 log entry") : String(localized: "\(ids.count) log entries"))
     }
 }
 

@@ -57,7 +57,7 @@ struct WalletTransactionsTable: View {
                 summary
                 HStack(spacing: EVESpacing.sm) {
                     Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                    TextField("Search items", text: $searchText).textFieldStyle(.plain)
+                    TextField("Search items", text: $searchText).eveFindTarget().textFieldStyle(.plain)
                 }
                 .padding(.horizontal, EVESpacing.md)
                 .padding(.vertical, 5)

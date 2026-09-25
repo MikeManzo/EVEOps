@@ -74,6 +74,19 @@ extension SkillPlannerView {
         "skillPlan-\(accountManager.selectedAccount?.characterID ?? 0)"
     }
 
+    /// Replaces the plan and saves it, registering the reverse with the window's undo
+    /// manager so Edit › Undo (⌘Z) restores it — local plan edits are undoable rather
+    /// than confirmed. Undoing re-registers, which gives Redo for free.
+    func replacePlan(with newItems: [SkillPlanItem], actionName: String) {
+        let previous = planItems
+        planItems = newItems
+        savePlan()
+        undoManager?.registerUndo(withTarget: PlanUndoTarget.shared) { _ in
+            replacePlan(with: previous, actionName: actionName)
+        }
+        undoManager?.setActionName(actionName)
+    }
+
     func savePlan() {
         if let data = try? JSONEncoder().encode(planItems) {
             UserDefaults.standard.set(data, forKey: planKey)
@@ -237,4 +250,10 @@ extension SkillPlannerView {
         if hours > 0 { return "\(hours)h \(minutes)m" }
         return "\(minutes)m"
     }
+}
+
+/// Stable object for `UndoManager.registerUndo(withTarget:)`, which needs a reference type;
+/// the plan itself lives in SwiftUI state.
+final class PlanUndoTarget {
+    static let shared = PlanUndoTarget()
 }

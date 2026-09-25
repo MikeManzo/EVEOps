@@ -26,7 +26,7 @@ private enum SkillNodeStatus: Equatable {
 
     var color: Color {
         switch self {
-        case .root:    return .accentColor
+        case .root:    return .eveThemeAccent
         case .met:     return .green
         case .partial: return .orange
         case .missing: return .red
@@ -135,7 +135,7 @@ struct ItemSkillTreeView: View {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(.secondary)
 
-            TextField("Search for a ship or module…", text: $searchText)
+            TextField("Search for a ship or module…", text: $searchText).eveFindTarget()
                 .textFieldStyle(.plain)
                 .onChange(of: searchText) { _, new in triggerSearch(new) }
                 .onSubmit {
@@ -411,6 +411,7 @@ struct ItemSkillTreeView: View {
             Button {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(nameForMarket, forType: .string)
+                ToastCenter.shared.copied("“\(nameForMarket)”")
             } label: {
                 Label("Copy Name", systemImage: "doc.on.doc")
             }
