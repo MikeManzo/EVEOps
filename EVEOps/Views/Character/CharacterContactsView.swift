@@ -311,7 +311,7 @@ struct CharacterContactsView: View {
         VStack(alignment: .leading, spacing: 10) {
             EVESectionTitle("Character Info")
 
-            infoRow("Birthday", value: EVEFormatters.dateFormatter.string(from: info.birthday))
+            infoRow("Birthday", value: EVEDates.short(info.birthday))
             infoRow("Race", value: raceName(info.raceId))
             infoRow("Bloodline", value: bloodlineName(info.bloodlineId))
             if let sec = info.securityStatus {
@@ -353,7 +353,7 @@ struct CharacterContactsView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(entry.corporationName)
                             .font(.subheadline)
-                        Text("Joined \(EVEFormatters.dateFormatter.string(from: entry.startDate))")
+                        Text("Joined \(EVEDates.short(entry.startDate))")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
@@ -657,7 +657,7 @@ struct ContactRow: View {
                     .foregroundStyle(.red)
             }
         }
-        .padding(.vertical, 2)
+        .eveRowPadding()
     }
 }
 

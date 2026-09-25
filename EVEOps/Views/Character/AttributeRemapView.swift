@@ -121,7 +121,7 @@ struct AttributeRemapView: View {
 
                 if let lastRemap = data.lastRemapDate {
                     Divider().frame(height: 14)
-                    Label(EVEFormatters.dateFormatter.string(from: lastRemap), systemImage: "calendar")
+                    Label(EVEDates.short(lastRemap), systemImage: "calendar")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -131,11 +131,11 @@ struct AttributeRemapView: View {
 
             // Date subtitle — shown whenever a relevant date is known
             if let cooldown = data.nextAnnualRemap, cooldown > now {
-                Text("Available \(EVEFormatters.dateFormatter.string(from: cooldown))")
+                Text("Available \(EVEDates.short(cooldown))")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             } else if let since = data.availableSinceDate {
-                Text("Available since \(EVEFormatters.dateFormatter.string(from: since))")
+                Text("Available since \(EVEDates.short(since))")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             } else if data.lastRemapDate == nil {

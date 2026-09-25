@@ -208,16 +208,10 @@ struct QuietSystemsView: View {
 
             Divider().frame(height: 16)
 
-            Picker("Group", selection: $groupBy) {
-                ForEach(GroupMode.allCases) { mode in
-                    if mode != .distance || originSystemId != nil {
-                        Text("Group: \(mode.rawValue)").tag(mode)
-                    }
-                }
-            }
-            .pickerStyle(.menu)
-            .fixedSize()
-            .labelsHidden()
+            EVEMenuPicker("Group", selection: $groupBy,
+                          options: GroupMode.allCases
+                            .filter { $0 != .distance || originSystemId != nil }
+                            .map { EVEMenuOption($0, verbatim: String(localized: "Group: \($0.rawValue)")) })
 
             if effectiveGroupBy != .none, !sectionKeys.isEmpty {
                 let allCollapsed = sectionKeys.allSatisfy { collapsedGroups.contains($0) }

@@ -54,6 +54,51 @@ enum EVESurface {
     static var bar: some ShapeStyle { BackgroundStyle().secondary }
 }
 
+// MARK: - Row density
+
+/// List row density (Settings > General). Compact trims vertical padding on data-heavy
+/// rows so dense screens (journal, mail, killmails, assets) fit ~30% more per screen,
+/// in the spirit of Mail's list-preview setting.
+enum EVERowDensity: String, CaseIterable, Identifiable {
+    case comfortable, compact
+
+    static let storageKey = "appearance.rowDensity"
+
+    var id: String { rawValue }
+
+    var title: LocalizedStringKey {
+        switch self {
+        case .comfortable: "Comfortable"
+        case .compact:     "Compact"
+        }
+    }
+
+    /// Vertical padding for a list row's content. Comfortable matches the rows' original
+    /// padding, so the default look is unchanged.
+    var rowPadding: CGFloat {
+        switch self {
+        case .comfortable: EVESpacing.xs
+        case .compact:     1
+        }
+    }
+}
+
+extension EnvironmentValues {
+    @Entry var eveRowDensity: EVERowDensity = .comfortable
+}
+
+private struct EVERowPaddingModifier: ViewModifier {
+    @Environment(\.eveRowDensity) private var density
+    func body(content: Content) -> some View {
+        content.padding(.vertical, density.rowPadding)
+    }
+}
+
+extension View {
+    /// Vertical row padding that follows the user's row-density setting.
+    func eveRowPadding() -> some View { modifier(EVERowPaddingModifier()) }
+}
+
 // MARK: - Typography
 
 /// Named type scale. Sizes match what screens were already using as literals, so moving a
@@ -413,6 +458,228 @@ extension View {
     /// to the `ScrollView` itself.
     func eveEdgeFade(width: CGFloat = 28) -> some View {
         modifier(EVEEdgeFadeModifier(width: width))
+    }
+}
+
+// MARK: - Menu picker
+
+/// One choice in an `EVEMenuPicker`.
+struct EVEMenuOption<Value: Hashable>: Identifiable {
+    let value: Value
+    let title: Text
+    var systemImage: String? = nil
+    /// A custom icon (e.g. a faction crest) — takes precedence over `systemImage`.
+    var image: Image? = nil
+    /// Draw a separator above this option (e.g. between "All" and the specific choices).
+    var dividerBefore = false
+
+    var id: Value { value }
+
+    init(_ value: Value, _ title: LocalizedStringKey, systemImage: String? = nil, dividerBefore: Bool = false) {
+        self.value = value
+        self.title = Text(title)
+        self.systemImage = systemImage
+        self.dividerBefore = dividerBefore
+    }
+
+    init(_ value: Value, verbatim title: String, systemImage: String? = nil, image: Image? = nil, dividerBefore: Bool = false) {
+        self.value = value
+        self.title = Text(title)
+        self.systemImage = systemImage
+        self.image = image
+        self.dividerBefore = dividerBefore
+    }
+}
+
+/// A popup picker that follows the faction theme end to end.
+///
+/// Why not `Picker(.menu)`: on macOS it's an AppKit popup button whose chevron ignores
+/// `.tint`, and its open menu is an `NSMenu` highlighted in the app's *static*
+/// AccentColor asset — macOS has no API to change an app's accent at runtime, so no
+/// native menu can follow the theme. This draws both the control and the open list in
+/// SwiftUI (a popover), themed throughout: accent chevron, accent hover/selection
+/// highlight, accent checkmark. ↑/↓ move, Return chooses, Escape closes.
+///
+/// Set `EVEMenuPicker.usesNativeMenu` to fall back to a native menu everywhere.
+struct EVEMenuPicker<Value: Hashable>: View {
+    static var usesNativeMenu: Bool { false }
+
+    let title: LocalizedStringKey
+    @Binding var selection: Value
+    let options: [EVEMenuOption<Value>]
+
+    @Environment(ThemeManager.self) private var themeManager
+    @Environment(\.isEnabled) private var isEnabled
+    @State private var isHovering = false
+    @State private var isOpen = false
+
+    init(_ title: LocalizedStringKey, selection: Binding<Value>, options: [EVEMenuOption<Value>]) {
+        self.title = title
+        self._selection = selection
+        self.options = options
+    }
+
+    private var current: EVEMenuOption<Value>? { options.first { $0.value == selection } }
+
+    var body: some View {
+        if Self.usesNativeMenu {
+            nativeMenu
+        } else {
+            Button { isOpen.toggle() } label: { controlLabel }
+                .buttonStyle(.plain)
+                .fixedSize()
+                .onHover { isHovering = $0 }
+                .animation(.easeOut(duration: 0.12), value: isHovering)
+                .popover(isPresented: $isOpen, arrowEdge: .bottom) {
+                    EVEMenuList(options: options, selection: $selection, accent: themeManager.palette.accent) {
+                        isOpen = false
+                    }
+                }
+                .accessibilityLabel(Text(title))
+                .accessibilityValue(current?.title ?? Text(verbatim: ""))
+                .accessibilityHint(Text("Opens a list of choices"))
+        }
+    }
+
+    private var controlLabel: some View {
+        HStack(spacing: EVESpacing.sm) {
+            if let image = current?.image {
+                image.resizable().interpolation(.high)
+                    .frame(width: 14, height: 14)
+                    .clipShape(RoundedRectangle(cornerRadius: 3))
+            } else if let symbol = current?.systemImage {
+                Image(systemName: symbol).foregroundStyle(.secondary)
+            }
+            (current?.title ?? Text(verbatim: "—"))
+                .lineLimit(1)
+            Image(systemName: "chevron.up.chevron.down")
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(isEnabled ? themeManager.palette.accent : Color.secondary)
+        }
+        .font(.callout)
+        .padding(.horizontal, EVESpacing.md + 2)
+        .padding(.vertical, 4)
+        .background(Color.primary.opacity(isHovering || isOpen ? 0.1 : 0.06),
+                    in: RoundedRectangle(cornerRadius: EVERadius.sm))
+        .contentShape(Rectangle())
+    }
+
+    private var nativeMenu: some View {
+        Menu {
+            Picker(title, selection: $selection) {
+                ForEach(options) { option in
+                    if option.dividerBefore { Divider() }
+                    if let symbol = option.systemImage {
+                        Label { option.title } icon: { Image(systemName: symbol) }.tag(option.value)
+                    } else {
+                        option.title.tag(option.value)
+                    }
+                }
+            }
+            .pickerStyle(.inline)
+            .labelsHidden()
+        } label: { controlLabel }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .menuIndicator(.hidden)
+        .fixedSize()
+    }
+}
+
+/// The open list of an `EVEMenuPicker`: rows drawn in SwiftUI so hover, keyboard focus
+/// and the selected checkmark all use the faction accent.
+private struct EVEMenuList<Value: Hashable>: View {
+    let options: [EVEMenuOption<Value>]
+    @Binding var selection: Value
+    let accent: Color
+    let dismiss: () -> Void
+
+    @State private var highlighted: Value?
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 1) {
+                    ForEach(options) { option in
+                        if option.dividerBefore {
+                            Divider().padding(.vertical, EVESpacing.xs).padding(.horizontal, EVESpacing.md)
+                        }
+                        row(option).id(option.value)
+                    }
+                }
+                .padding(EVESpacing.xs + 1)
+            }
+            .frame(minWidth: 200)
+            .frame(maxHeight: 420)
+            .fixedSize(horizontal: true, vertical: options.count <= 14)
+            .focusable()
+            .focusEffectDisabled()
+            .focused($focused)
+            .onAppear {
+                highlighted = selection
+                focused = true
+                proxy.scrollTo(selection, anchor: .center)
+            }
+            .onKeyPress(.downArrow) { move(1, proxy); return .handled }
+            .onKeyPress(.upArrow) { move(-1, proxy); return .handled }
+            .onKeyPress(.return) {
+                if let highlighted { choose(highlighted) }
+                return .handled
+            }
+            .onKeyPress(.escape) { dismiss(); return .handled }
+        }
+    }
+
+    private func row(_ option: EVEMenuOption<Value>) -> some View {
+        let isHighlighted = highlighted == option.value
+        let isSelected = selection == option.value
+        return HStack(spacing: EVESpacing.sm) {
+            Image(systemName: "checkmark")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(isHighlighted ? Color.white : accent)
+                .opacity(isSelected ? 1 : 0)
+                .frame(width: 12)
+            if let image = option.image {
+                image.resizable().interpolation(.high)
+                    .frame(width: 16, height: 16)
+                    .clipShape(RoundedRectangle(cornerRadius: 3))
+                    .frame(width: 18)
+            } else if let symbol = option.systemImage {
+                Image(systemName: symbol)
+                    .foregroundStyle(isHighlighted ? Color.white : accent)
+                    .frame(width: 18)
+            }
+            option.title
+                .foregroundStyle(isHighlighted ? Color.white : Color.primary)
+                .lineLimit(1)
+            Spacer(minLength: EVESpacing.lg)
+        }
+        .font(.body)
+        .padding(.horizontal, EVESpacing.sm)
+        .padding(.vertical, 5)
+        .background(
+            RoundedRectangle(cornerRadius: EVERadius.sm)
+                .fill(isHighlighted ? accent : .clear)
+        )
+        .contentShape(Rectangle())
+        .onHover { if $0 { highlighted = option.value } }
+        .onTapGesture { choose(option.value) }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+    }
+
+    private func move(_ delta: Int, _ proxy: ScrollViewProxy) {
+        guard !options.isEmpty else { return }
+        let index = options.firstIndex { $0.value == highlighted } ?? -1
+        let next = options[min(max(index + delta, 0), options.count - 1)].value
+        highlighted = next
+        proxy.scrollTo(next)
+    }
+
+    private func choose(_ value: Value) {
+        selection = value
+        dismiss()
     }
 }
 

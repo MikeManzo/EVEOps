@@ -127,13 +127,11 @@ struct SovereigntyView: View {
         } else {
         VStack(spacing: 0) {
             HStack(spacing: 10) {
-                Picker("Alliance", selection: $structureAllianceFilter) {
-                    Text("All alliances").tag(Int?.none)
-                    ForEach(structureAlliances, id: \.id) { Text($0.name).tag(Int?.some($0.id)) }
-                }
-                .pickerStyle(.menu)
-                .labelsHidden()
-                .frame(maxWidth: 260)
+                EVEMenuPicker("Alliance", selection: $structureAllianceFilter, options:
+                    [EVEMenuOption(Int?.none, "All alliances")] +
+                    structureAlliances.enumerated().map { index, alliance in
+                        EVEMenuOption(Int?.some(alliance.id), verbatim: alliance.name, dividerBefore: index == 0)
+                    })
 
                 Toggle("Include ADM ≥ 4", isOn: $showAllStructures)
                     .toggleStyle(.checkbox)

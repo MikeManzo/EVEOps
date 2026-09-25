@@ -154,25 +154,17 @@ struct AgentFinderView: View {
                     Text("Level")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
-                    Picker("Level", selection: $levelFilter) {
-                        Text("Any").tag(Optional<Int>.none)
-                        ForEach(1...5, id: \.self) { l in Text("L\(l)").tag(Optional<Int>.some(l)) }
-                    }
-                    .pickerStyle(.menu)
-                    .labelsHidden()
-                    .controlSize(.small)
+                    EVEMenuPicker("Level", selection: $levelFilter, options:
+                        [EVEMenuOption(Int?.none, "Any")] +
+                        (1...5).map { EVEMenuOption(Int?.some($0), verbatim: "L\($0)") })
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Security")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
-                    Picker("Security", selection: $secFilter) {
-                        ForEach(SecurityRangeFilter.allCases) { s in Text(s.title).tag(s) }
-                    }
-                    .pickerStyle(.menu)
-                    .labelsHidden()
-                    .controlSize(.small)
+                    EVEMenuPicker("Security", selection: $secFilter,
+                                  options: SecurityRangeFilter.allCases.map { EVEMenuOption($0, $0.title) })
                 }
 
                 if !availableFactions.isEmpty {
@@ -180,29 +172,12 @@ struct AgentFinderView: View {
                         Text("Faction")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.secondary)
-                        Picker("Faction", selection: $factionFilter) {
-                            Label("All", systemImage: "globe").tag(Optional<Int>.none)
-                            ForEach(availableFactions, id: \.id) { f in
-                                Label {
-                                    Text(f.shortName)
-                                } icon: {
-                                    if let img = factionImages[f.id] {
-                                        Image(nsImage: img)
-                                            .resizable()
-                                            .interpolation(.high)
-                                            .frame(width: 16, height: 16)
-                                            .clipShape(RoundedRectangle(cornerRadius: 3))
-                                    } else {
-                                        Image(systemName: "shield.fill")
-                                            .foregroundStyle(Self.factionColor(f.id))
-                                    }
-                                }
-                                .tag(Optional<Int>.some(f.id))
-                            }
-                        }
-                        .pickerStyle(.menu)
-                        .labelsHidden()
-                        .controlSize(.small)
+                        EVEMenuPicker("Faction", selection: $factionFilter, options:
+                            [EVEMenuOption(Int?.none, "All", systemImage: "globe")] +
+                            availableFactions.enumerated().map { index, f in
+                                EVEMenuOption(Int?.some(f.id), verbatim: f.shortName, systemImage: "shield.fill",
+                                              image: factionImages[f.id].map { Image(nsImage: $0) }, dividerBefore: index == 0)
+                            })
                     }
                 }
 

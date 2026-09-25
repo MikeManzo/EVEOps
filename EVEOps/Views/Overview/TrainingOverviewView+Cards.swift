@@ -80,6 +80,12 @@ extension TrainingOverviewView {
                     Divider().padding(.horizontal, 12)
                 }
 
+                if info.queue.count > 1 {
+                    SkillQueueTimeline(queue: info.queue, tint: palette.knowledge)
+                        .padding(.horizontal, 12)
+                        .padding(.top, 10)
+                }
+
                 let queuedOnly = info.queue.filter { !$0.isCurrentlyTraining }
                 if !queuedOnly.isEmpty {
                     queueList(queuedOnly, info: info)
@@ -237,7 +243,7 @@ extension TrainingOverviewView {
                                 Text("Started")
                                     .font(.caption2)
                                     .foregroundStyle(.tertiary)
-                                Text(EVEFormatters.dateFormatter.string(from: start))
+                                Text(EVEDates.short(start))
                                     .font(.caption2.monospacedDigit())
                                     .foregroundStyle(.secondary)
                             }
@@ -247,7 +253,7 @@ extension TrainingOverviewView {
                                 Text("Finishes")
                                     .font(.caption2)
                                     .foregroundStyle(.tertiary)
-                                Text(EVEFormatters.dateFormatter.string(from: finish))
+                                Text(EVEDates.short(finish))
                                     .font(.caption2.monospacedDigit())
                                     .foregroundStyle(.secondary)
                             }

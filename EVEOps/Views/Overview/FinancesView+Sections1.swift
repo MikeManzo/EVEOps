@@ -477,9 +477,9 @@ extension FinancesView {
         .frame(maxWidth: 640)
 
         switch selectedTab {
-        case 0: journalSection(finance.journal)
+        case 0: WalletJournalView(journal: finance.journal)
         case 4: breakdownSection(finance.journal)
-        case 1: transactionSection(finance.transactions)
+        case 1: WalletTransactionsTable(transactions: finance.transactions, typeNames: typeNames)
         case 2: marketOrdersSection(finance.marketOrders)
         case 3: loyaltyPointsSection(finance.loyaltyPoints)
         default: EmptyView()

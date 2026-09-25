@@ -80,15 +80,12 @@ struct DiagnosticPaneView: View {
 
             Divider().frame(height: 14)
 
-            Picker("Level", selection: $minLevel) {
-                Text("Debug").tag(LogEntry.Level.debug)
-                Text("Info").tag(LogEntry.Level.info)
-                Text("Warnings").tag(LogEntry.Level.notice)
-                Text("Errors").tag(LogEntry.Level.error)
-            }
-            .pickerStyle(.menu)
-            .controlSize(.mini)
-            .fixedSize()
+            EVEMenuPicker("Level", selection: $minLevel, options: [
+                EVEMenuOption(LogEntry.Level.debug, "Debug"),
+                EVEMenuOption(LogEntry.Level.info, "Info"),
+                EVEMenuOption(LogEntry.Level.notice, "Warnings"),
+                EVEMenuOption(LogEntry.Level.error, "Errors"),
+            ])
 
             HStack(spacing: 4) {
                 Image(systemName: "magnifyingglass")

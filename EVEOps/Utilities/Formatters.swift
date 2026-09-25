@@ -78,10 +78,4 @@ nonisolated enum EVEFormatters {
         return formatDuration(Int(interval))
     }
 
-    static let dateFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateStyle = .medium
-        f.timeStyle = .short
-        return f
-    }()
 }

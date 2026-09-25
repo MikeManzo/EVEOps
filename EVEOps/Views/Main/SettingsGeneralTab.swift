@@ -66,15 +66,16 @@ struct GeneralTab: View {
             .onChange(of: dockProgress) { _, _ in refreshDockTile() }
 
             Section("Background Refresh") {
-                Picker("Check interval", selection: $pollInterval) {
-                    Text("1 minute").tag(60.0)
-                    Text("2 minutes").tag(120.0)
-                    Text("5 minutes").tag(300.0)
-                    Text("10 minutes").tag(600.0)
-                    Text("15 minutes").tag(900.0)
-                    Text("30 minutes").tag(1800.0)
+                LabeledContent("Check interval") {
+                    EVEMenuPicker("Check interval", selection: $pollInterval, options: [
+                        EVEMenuOption(60.0, "1 minute"),
+                        EVEMenuOption(120.0, "2 minutes"),
+                        EVEMenuOption(300.0, "5 minutes"),
+                        EVEMenuOption(600.0, "10 minutes"),
+                        EVEMenuOption(900.0, "15 minutes"),
+                        EVEMenuOption(1800.0, "30 minutes"),
+                    ])
                 }
-                .pickerStyle(.menu)
                 Button(isRefreshing ? "Refreshing\u{2026}" : "Refresh Now") {
                     Task {
                         isRefreshing = true
@@ -178,6 +179,7 @@ struct AppearanceTab: View {
     @Environment(ThemeManager.self) private var themeManager
     @AppStorage("colorScheme") private var colorSchemePref: String = "system"
     @AppStorage("appearance.ambientBackground") private var ambientBackground = false
+    @AppStorage(EVERowDensity.storageKey) private var rowDensity: EVERowDensity = .comfortable
 
     @AppStorage("sidebar.showPinned") private var showPinned = true
     @AppStorage("sidebar.showPilot") private var showPilot = true
@@ -197,6 +199,13 @@ struct AppearanceTab: View {
                     Text("Dark").tag("dark")
                 }
                 .pickerStyle(.radioGroup)
+                Picker(selection: $rowDensity) {
+                    ForEach(EVERowDensity.allCases) { Text($0.title).tag($0) }
+                } label: {
+                    Text("List density")
+                    Text("Compact fits more rows on data-heavy screens like Mail, Journal and Kill Mails.")
+                }
+                .pickerStyle(.segmented)
                 Toggle(isOn: $ambientBackground) {
                     Text("Ambient space background")
                     Text("A faint faction-tinted glow behind the main window, with a starfield in Dark appearance and a star-chart grid in Light.")

@@ -406,7 +406,7 @@ struct AttributeDetailPopover: View {
 
             if let last = status.lastRemapDate {
                 Label {
-                    Text("Last remap \(EVEFormatters.dateFormatter.string(from: last))")
+                    Text("Last remap \(EVEDates.short(last))")
                 } icon: {
                     Image(systemName: "calendar")
                 }

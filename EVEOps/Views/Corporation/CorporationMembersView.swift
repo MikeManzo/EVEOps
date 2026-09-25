@@ -172,7 +172,7 @@ struct CorporationMembersView: View {
                 .accessibilityHidden(true)
             }
         }
-        .padding(.vertical, EVESpacing.xs)
+        .eveRowPadding()
     }
 
     // MARK:  Detail Pane
@@ -292,7 +292,7 @@ struct CorporationMembersView: View {
                 EVESectionTitle("Character Info")
 
                 if let info = detail.charInfo {
-                    infoRow("Birthday", value: EVEFormatters.dateFormatter.string(from: info.birthday))
+                    infoRow("Birthday", value: EVEDates.short(info.birthday))
                     infoRow("Race", value: raceName(info.raceId))
                     infoRow("Bloodline", value: bloodlineName(info.bloodlineId))
                     if let sec = info.securityStatus {
@@ -319,13 +319,13 @@ struct CorporationMembersView: View {
 
                 if let track = detail.tracking {
                     if let logon = track.logonDate {
-                        infoRow("Last Login", value: EVEFormatters.dateFormatter.string(from: logon))
+                        infoRow("Last Login", value: EVEDates.short(logon))
                     }
                     if let logoff = track.logoffDate {
-                        infoRow("Last Logout", value: EVEFormatters.dateFormatter.string(from: logoff))
+                        infoRow("Last Logout", value: EVEDates.short(logoff))
                     }
                     if let joinDate = track.startDate {
-                        infoRow("Corp Join Date", value: EVEFormatters.dateFormatter.string(from: joinDate))
+                        infoRow("Corp Join Date", value: EVEDates.short(joinDate))
                     }
                     if let systemId = track.systemId {
                         infoRow("System", value: detail.systemName ?? "#\(systemId)")
@@ -403,7 +403,7 @@ struct CorporationMembersView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(entry.corporationName)
                             .font(.subheadline)
-                        Text("Joined \(EVEFormatters.dateFormatter.string(from: entry.startDate))")
+                        Text("Joined \(EVEDates.short(entry.startDate))")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }

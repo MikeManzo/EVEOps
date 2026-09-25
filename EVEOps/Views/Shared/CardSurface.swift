@@ -73,6 +73,21 @@ extension View {
             )
             .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
             .accessibilityAction { onSelect() }
+            .modifier(CompactRowInsets())
+    }
+}
+
+/// In Compact density, trims the List's own row insets — most of a macOS list row's
+/// vertical space — not just the padding inside the row.
+private struct CompactRowInsets: ViewModifier {
+    @Environment(\.eveRowDensity) private var density
+
+    func body(content: Content) -> some View {
+        if density == .compact {
+            content.listRowInsets(EdgeInsets(top: 1, leading: EVESpacing.lg, bottom: 1, trailing: EVESpacing.lg))
+        } else {
+            content
+        }
     }
 }
 

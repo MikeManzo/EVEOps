@@ -105,7 +105,7 @@ struct CharacterMailsView: View {
                                 .eveTruncationHelp(mail.from.flatMap { senderNames[$0] } ?? mail.from.map { "#\($0)" } ?? "Unknown Sender")
                             Spacer(minLength: EVESpacing.sm)
                             if let timestamp = mail.timestamp {
-                                Text(Self.shortStamp(timestamp))
+                                Text(EVEDates.short(timestamp))
                                     .font(.caption.monospacedDigit())
                                     .foregroundStyle(isSelected ? AnyShapeStyle(.white.opacity(0.75)) : AnyShapeStyle(.tertiary))
                             }
@@ -118,7 +118,7 @@ struct CharacterMailsView: View {
                             .eveTruncationHelp(mail.subject ?? "(No Subject)")
                     }
                 }
-                .padding(.vertical, EVESpacing.xs)
+                .eveRowPadding()
                 .id(mail)
                 .eveSelectableListRow(isSelected: isSelected, palette: palette) { selectedMail = mail }
                 .swipeActions(edge: .trailing) {
@@ -153,17 +153,6 @@ struct CharacterMailsView: View {
         .accessibilityHidden(true)
     }
 
-    /// Time for today's mail, "Yesterday", weekday within the week, otherwise a short date —
-    /// the same scheme Mail.app uses.
-    private static func shortStamp(_ date: Date) -> String {
-        let cal = Calendar.current
-        if cal.isDateInToday(date) { return date.formatted(date: .omitted, time: .shortened) }
-        if cal.isDateInYesterday(date) { return String(localized: "Yesterday") }
-        if let days = cal.dateComponents([.day], from: date, to: .now).day, days < 7 {
-            return date.formatted(.dateTime.weekday(.wide))
-        }
-        return date.formatted(date: .numeric, time: .omitted)
-    }
 
     @ViewBuilder
     private var mailDetail: some View {

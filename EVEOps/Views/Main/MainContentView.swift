@@ -18,6 +18,7 @@ struct MainContentView: View {
     @Environment(ThemeManager.self) private var themeManager
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage("appearance.ambientBackground") private var ambientBackground = false
+    @AppStorage(EVERowDensity.storageKey) private var rowDensity: EVERowDensity = .comfortable
     /// Last-viewed section, restored across launches. `nil` (fresh install or all
     /// characters removed) falls through to the Dashboard.
     @AppStorage("nav.lastSection") private var selectedSection: NavigationSection?
@@ -61,6 +62,7 @@ struct MainContentView: View {
                 }
         }
         .navigationSplitViewStyle(.balanced)
+        .environment(\.eveRowDensity, rowDensity)
         .toolbarVisibility(.visible, for: .windowToolbar)
         .toolbar {
             ToolbarItem(placement: .automatic) {

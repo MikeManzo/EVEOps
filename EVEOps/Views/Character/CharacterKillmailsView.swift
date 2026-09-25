@@ -255,14 +255,14 @@ struct KillmailRow: View {
                         .labelStyle(.titleAndIcon)
                         .help("\(entry.killmail.attackers.count) attackers")
                     Text("·").foregroundStyle(.tertiary)
-                    Text(entry.killmail.killmailTime, format: .relative(presentation: .named, unitsStyle: .abbreviated))
-                        .help(entry.killmail.killmailTime.formatted(date: .abbreviated, time: .shortened))
+                    Text(EVEDates.short(entry.killmail.killmailTime))
+                        .help(EVEDates.full(entry.killmail.killmailTime))
                 }
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
             }
         }
-        .padding(.vertical, EVESpacing.xs)
+        .eveRowPadding()
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Text("\(entry.isKill ? "Kill" : "Loss"): \(shipName)"))
         .task {
@@ -294,158 +294,303 @@ struct KillmailDetailPane: View {
     var killmail: ESIKillmail { entry.killmail }
     @State private var victimShipName = ""
     @State private var systemName = ""
+    @State private var systemSecurity: Double?
+    @State private var victimName = ""
+    @State private var attackerNames: [Int: String] = [:]
+
+    private var outcomeColor: Color { entry.isKill ? .green : .red }
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 8) {
-                Image(systemName: entry.isKill ? "flame.fill" : "xmark.circle.fill")
-                    .foregroundStyle(entry.isKill ? .green : .red)
-                Text(entry.isKill ? "Kill" : "Loss")
-                    .font(.headline)
-                Text("#\(killmail.killmailId)")
-                    .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
-                Spacer()
-                if let url = URL(string: "https://zkillboard.com/kill/\(killmail.killmailId)/") {
-                    Link(destination: url) { Image(systemName: "arrow.up.right.square") }
-                        .buttonStyle(.plain).foregroundStyle(.secondary)
-                        .help("Open on zKillboard")
-                }
-                Button { onClose() } label: {
-                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
-                }
-                .accessibilityLabel("Clear")
-                .buttonStyle(.plain)
-                .keyboardShortcut(.escape)
-            }
-            .padding(.horizontal, 14).padding(.vertical, 10)
-            Divider()
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    GroupBox {
-                        HStack(spacing: 12) {
-                            CachedAsyncImage(url: EVEImageURL.typeIcon(killmail.victim.shipTypeId, size: 64)) { image in
-                                image.resizable()
-                            } placeholder: {
-                                RoundedRectangle(cornerRadius: EVERadius.xs).fill(.quaternary)
-                            }
-                            .frame(width: 48, height: 48)
-                            .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                if let charId = killmail.victim.characterId {
-                                    KillmailCharacterLabel(id: charId)
-                                }
-                                Text(victimShipName.isEmpty ? "Ship #\(killmail.victim.shipTypeId)" : victimShipName)
-                                    .font(.subheadline).foregroundStyle(.secondary)
-                                Text(systemName.isEmpty ? "System #\(killmail.solarSystemId)" : systemName)
-                                    .font(.caption).foregroundStyle(.secondary)
-                                Text(killmail.killmailTime.formatted(.dateTime))
-                                    .font(.caption2).foregroundStyle(.tertiary)
-                            }
-                            Spacer()
-                            VStack(alignment: .trailing, spacing: 2) {
-                                Text("\(killmail.victim.damageTaken)")
-                                    .font(.title3.bold()).foregroundStyle(.red)
-                                Text("damage taken").font(.caption2).foregroundStyle(.secondary)
-                            }
-                        }
-                    } label: {
-                        Label("Victim", systemImage: "xmark.circle.fill").foregroundStyle(.red)
-                    }
-
-                    if let zkb = entry.zkb {
-                        iskBreakdownBox(zkb: zkb)
-                    }
-
-                    GroupBox {
-                        LazyVStack(spacing: 8) {
-                            ForEach(Array(killmail.attackers.sorted { $0.finalBlow && !$1.finalBlow }.enumerated()), id: \.offset) { _, attacker in
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                header
+                VStack(alignment: .leading, spacing: EVESpacing.xxl) {
+                    if let zkb = entry.zkb { valueSection(zkb) }
+                    damageSection
+                    EVEInspectorSection("Attackers (\(killmail.attackers.count))") {
+                        LazyVStack(spacing: EVESpacing.md) {
+                            ForEach(Array(sortedAttackers.enumerated()), id: \.offset) { _, attacker in
                                 KillmailAttackerRow(attacker: attacker)
                             }
                         }
-                    } label: {
-                        Label("Attackers (\(killmail.attackers.count))", systemImage: "flame.fill")
-                            .foregroundStyle(.orange)
                     }
-
-                    if let items = killmail.victim.items, !items.isEmpty {
-                        let sorted = items.sorted {
-                            (($0.quantityDestroyed ?? 0) + ($0.quantityDropped ?? 0)) >
-                            (($1.quantityDestroyed ?? 0) + ($1.quantityDropped ?? 0))
-                        }
-                        GroupBox {
-                            LazyVStack(spacing: 6) {
-                                ForEach(Array(sorted.enumerated()), id: \.offset) { _, item in
-                                    KillmailItemRow(item: item)
-                                }
-                            }
-                        } label: {
-                            Label("Items Lost (\(items.count))", systemImage: "shippingbox.fill")
-                                .foregroundStyle(.secondary)
-                        }
-                    }
+                    itemsSection
                 }
-                .padding()
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(EVESpacing.xl)
             }
         }
         .frame(maxHeight: .infinity)
         .background(EVESurface.panel)
         .task {
             victimShipName = (await UniverseCache.shared.type(id: killmail.victim.shipTypeId))?.name ?? ""
-            systemName = await NameResolver.shared.resolve(id: killmail.solarSystemId)
+            let system = await UniverseCache.shared.solarSystem(id: killmail.solarSystemId)
+            systemName = system?.name ?? ""
+            systemSecurity = system?.securityStatus
+            if let id = killmail.victim.characterId ?? killmail.victim.corporationId {
+                victimName = await NameResolver.shared.resolve(id: id)
+            }
+            let ids = sortedAttackers.prefix(5).compactMap { $0.characterId ?? $0.corporationId }
+            if !ids.isEmpty { attackerNames = await NameResolver.shared.resolve(ids: ids) }
         }
     }
 
-    @ViewBuilder
-    private func iskBreakdownBox(zkb: ZKBMeta) -> some View {
-        GroupBox {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 16) {
-                    if let total = zkb.totalValue, total > 0 {
-                        iskStat("Total", value: total, color: .primary)
+    private var sortedAttackers: [ESIKillmailAttacker] {
+        killmail.attackers.sorted { a, b in
+            if a.finalBlow != b.finalBlow { return a.finalBlow }
+            return a.damageDone > b.damageDone
+        }
+    }
+
+    // MARK: Header
+
+    private var header: some View {
+        ZStack(alignment: .bottomLeading) {
+            CachedAsyncImage(url: EVEImageURL.typeRender(killmail.victim.shipTypeId, size: 512)) { phase in
+                if let image = phase.image {
+                    image.resizable().aspectRatio(contentMode: .fill)
+                } else {
+                    LinearGradient(colors: [outcomeColor.opacity(0.3), Color(white: 0.08)],
+                                   startPoint: .topLeading, endPoint: .bottomTrailing)
+                }
+            }
+            .frame(height: 170)
+            .frame(maxWidth: .infinity)
+            .clipped()
+            .allowsHitTesting(false)
+
+            LinearGradient(colors: [.clear, .black.opacity(0.35), .black.opacity(0.85)],
+                           startPoint: .top, endPoint: .bottom)
+                .allowsHitTesting(false)
+
+            VStack(alignment: .leading, spacing: EVESpacing.xs) {
+                HStack(spacing: EVESpacing.sm) {
+                    Text(entry.isKill ? "KILL" : "LOSS")
+                        .font(.eveMicroBold)
+                        .kerning(0.6)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, EVESpacing.sm)
+                        .padding(.vertical, 2)
+                        .background(outcomeColor, in: Capsule())
+                    Text(EVEDates.short(killmail.killmailTime))
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.8))
+                        .help(EVEDates.full(killmail.killmailTime))
+                }
+                Text(victimShipName.isEmpty ? "Ship #\(killmail.victim.shipTypeId)" : victimShipName)
+                    .font(.title3.bold())
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                HStack(spacing: EVESpacing.sm) {
+                    if let charID = killmail.victim.characterId {
+                        CachedAsyncImage(url: EVEImageURL.characterPortrait(charID, size: 64)) { image in
+                            image.resizable()
+                        } placeholder: { Circle().fill(.white.opacity(0.1)) }
+                        .frame(width: 18, height: 18)
+                        .clipShape(Circle())
                     }
-                    if let fitted = zkb.fittedValue, fitted > 0 {
-                        iskStat("Fitted", value: fitted, color: .secondary)
+                    if !victimName.isEmpty {
+                        Text(victimName)
+                            .eveContextMenu(killmail.victim.characterId.map { .character(id: $0, name: victimName) })
+                        Text("·").foregroundStyle(.white.opacity(0.5))
                     }
-                    if let destroyed = zkb.destroyedValue, destroyed > 0 {
-                        iskStat("Destroyed", value: destroyed, color: .red)
-                    }
-                    if let dropped = zkb.droppedValue, dropped > 0 {
-                        iskStat("Dropped", value: dropped, color: .green)
-                    }
+                    if let systemSecurity { EVESecurityBadge(status: systemSecurity, compact: true) }
+                    Text(systemName.isEmpty ? "System #\(killmail.solarSystemId)" : systemName)
+                        .eveContextMenu(systemName.isEmpty ? nil : .system(id: killmail.solarSystemId, name: systemName))
+                }
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.85))
+                .lineLimit(1)
+            }
+            .padding(EVESpacing.lg)
+        }
+        .frame(height: 170)
+        .clipped()
+        .overlay(alignment: .topTrailing) {
+            HStack(spacing: EVESpacing.sm) {
+                if let url = URL(string: "https://zkillboard.com/kill/\(killmail.killmailId)/") {
+                    Link(destination: url) { Image(systemName: "arrow.up.right") }
+                        .help("Open on zKillboard")
+                        .accessibilityLabel("Open on zKillboard")
+                }
+                Button { onClose() } label: { Image(systemName: "xmark") }
+                    .keyboardShortcut(.escape)
+                    .help("Close")
+                    .accessibilityLabel("Close")
+            }
+            .buttonStyle(.plain)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.white)
+            .frame(height: 26)
+            .padding(.horizontal, EVESpacing.md)
+            .glassEffect(.regular, in: Capsule())
+            .padding(EVESpacing.md)
+        }
+    }
+
+    // MARK: Value
+
+    private func valueSection(_ zkb: ZKBMeta) -> some View {
+        EVEInspectorSection("Value") {
+            VStack(alignment: .leading, spacing: EVESpacing.md) {
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: EVESpacing.sm), GridItem(.flexible())],
+                          spacing: EVESpacing.sm) {
+                    if let total = zkb.totalValue, total > 0 { valueTile("Total", total, .primary) }
+                    if let fitted = zkb.fittedValue, fitted > 0 { valueTile("Fitted", fitted, .secondary) }
+                    if let destroyed = zkb.destroyedValue, destroyed > 0 { valueTile("Destroyed", destroyed, .red) }
+                    if let dropped = zkb.droppedValue, dropped > 0 { valueTile("Dropped", dropped, .green) }
                 }
                 if zkb.isSolo || zkb.isNPC || zkb.isAWOX || (zkb.points ?? 0) > 0 {
-                    HStack(spacing: 6) {
-                        if zkb.isSolo {
-                            badge("Solo", color: .blue)
-                        }
-                        if zkb.isNPC {
-                            badge("NPC", color: .secondary)
-                        }
-                        if zkb.isAWOX {
-                            badge("AWOX", color: .orange)
-                        }
+                    HStack(spacing: EVESpacing.sm) {
+                        if zkb.isSolo { badge("Solo", color: .blue) }
+                        if zkb.isNPC { badge("NPC", color: .secondary) }
+                        if zkb.isAWOX { badge("AWOX", color: .orange) }
                         if let pts = zkb.points, pts > 0 {
-                            Text("\(pts) pts")
-                                .font(.caption2.monospacedDigit())
-                                .foregroundStyle(.secondary)
+                            Text("\(pts) pts").font(.caption.monospacedDigit()).foregroundStyle(.secondary)
                         }
                     }
                 }
             }
-        } label: {
-            Label("Combat Value", systemImage: "banknote.fill").foregroundStyle(.yellow)
         }
     }
 
-    private func iskStat(_ label: String, value: Double, color: Color) -> some View {
+    private func valueTile(_ label: LocalizedStringKey, _ value: Double, _ color: Color) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(label).font(.caption2).foregroundStyle(.secondary)
+            Text(label).font(.eveLabel).foregroundStyle(.secondary)
             Text(EVEFormatters.formatISKShort(value))
-                .font(.caption.monospacedDigit().bold())
+                .font(.eveStatCompact)
                 .foregroundStyle(color)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(EVESpacing.md + 2)
+        .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: EVERadius.md))
+    }
+
+    // MARK: Damage
+
+    private static let damagePalette: [Color] = [.red, .orange, .yellow, .pink, .purple]
+
+    /// Share of total damage per attacker: the top five named, the rest as "Others".
+    @ViewBuilder
+    private var damageSection: some View {
+        let total = max(killmail.victim.damageTaken, 1)
+        let top = Array(killmail.attackers.sorted { $0.damageDone > $1.damageDone }.prefix(5))
+        let othersDamage = killmail.attackers.reduce(0) { $0 + $1.damageDone } - top.reduce(0) { $0 + $1.damageDone }
+        if killmail.victim.damageTaken > 0 {
+            EVEInspectorSection("Damage · \(killmail.victim.damageTaken.formatted())") {
+                VStack(alignment: .leading, spacing: EVESpacing.sm) {
+                    GeometryReader { geo in
+                        HStack(spacing: 1) {
+                            ForEach(Array(top.enumerated()), id: \.offset) { index, attacker in
+                                Rectangle()
+                                    .fill(Self.damagePalette[index % Self.damagePalette.count])
+                                    .frame(width: max(geo.size.width * Double(attacker.damageDone) / Double(total) - 1, 1))
+                            }
+                            if othersDamage > 0 {
+                                Rectangle().fill(Color.secondary.opacity(0.4))
+                            }
+                        }
+                    }
+                    .frame(height: 10)
+                    .clipShape(Capsule())
+
+                    ForEach(Array(top.enumerated()), id: \.offset) { index, attacker in
+                        HStack(spacing: EVESpacing.sm) {
+                            Circle().fill(Self.damagePalette[index % Self.damagePalette.count]).frame(width: 7, height: 7)
+                            Text(attackerLabel(attacker)).lineLimit(1)
+                            if attacker.finalBlow {
+                                Image(systemName: "bolt.fill").foregroundStyle(.orange).help("Final blow")
+                            }
+                            Spacer()
+                            Text((Double(attacker.damageDone) / Double(total)).formatted(.percent.precision(.fractionLength(0))))
+                                .monospacedDigit()
+                                .foregroundStyle(.secondary)
+                        }
+                        .font(.caption)
+                    }
+                    if othersDamage > 0 {
+                        HStack(spacing: EVESpacing.sm) {
+                            Circle().fill(Color.secondary.opacity(0.4)).frame(width: 7, height: 7)
+                            Text("\(killmail.attackers.count - top.count) others")
+                            Spacer()
+                            Text((Double(othersDamage) / Double(total)).formatted(.percent.precision(.fractionLength(0))))
+                                .monospacedDigit()
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
+                }
+            }
+        }
+    }
+
+    private func attackerLabel(_ attacker: ESIKillmailAttacker) -> String {
+        if let id = attacker.characterId ?? attacker.corporationId, let name = attackerNames[id] { return name }
+        if attacker.characterId == nil && attacker.corporationId == nil { return String(localized: "NPC") }
+        return String(localized: "Pilot")
+    }
+
+    // MARK: Items
+
+    private enum SlotGroup: Int, CaseIterable {
+        case high, mid, low, rigs, subsystems, drones, fighters, cargo, other
+
+        var title: LocalizedStringKey {
+            switch self {
+            case .high: "High Slots"
+            case .mid: "Mid Slots"
+            case .low: "Low Slots"
+            case .rigs: "Rigs"
+            case .subsystems: "Subsystems"
+            case .drones: "Drone Bay"
+            case .fighters: "Fighter Bay"
+            case .cargo: "Cargo"
+            case .other: "Other"
+            }
+        }
+
+        /// ESI inventory flag → slot group.
+        init(flag: Int) {
+            switch flag {
+            case 27...34:   self = .high
+            case 19...26:   self = .mid
+            case 11...18:   self = .low
+            case 92...99:   self = .rigs
+            case 125...132: self = .subsystems
+            case 87:        self = .drones
+            case 158, 159...163: self = .fighters
+            case 5:         self = .cargo
+            default:        self = .other
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var itemsSection: some View {
+        if let items = killmail.victim.items, !items.isEmpty {
+            let groups = Dictionary(grouping: items) { SlotGroup(flag: $0.flag) }
+            EVEInspectorSection("Items (\(items.count))") {
+                VStack(alignment: .leading, spacing: EVESpacing.lg) {
+                    ForEach(SlotGroup.allCases, id: \.rawValue) { group in
+                        if let groupItems = groups[group] {
+                            VStack(alignment: .leading, spacing: EVESpacing.xs + 1) {
+                                Text(group.title)
+                                    .font(.caption.weight(.medium))
+                                    .foregroundStyle(.tertiary)
+                                ForEach(Array(groupItems.enumerated()), id: \.offset) { _, item in
+                                    KillmailItemRow(item: item)
+                                }
+                            }
+                        }
+                    }
+                    HStack(spacing: EVESpacing.md) {
+                        Label("Destroyed", systemImage: "xmark.circle.fill").foregroundStyle(.red)
+                        Label("Dropped", systemImage: "arrow.down.circle.fill").foregroundStyle(.green)
+                    }
+                    .font(.eveMicro)
+                    .labelStyle(.titleAndIcon)
+                    .imageScale(.small)
+                }
+            }
         }
     }
 
@@ -583,7 +728,7 @@ struct AttackerInfoPopover: View {
                     }
                     popoverRow("Damage Done", value: "\(attacker.damageDone)")
                     if let info = charInfo {
-                        popoverRow("Birthday", value: EVEFormatters.dateFormatter.string(from: info.birthday))
+                        popoverRow("Birthday", value: EVEDates.short(info.birthday))
                         popoverRow("Race", value: raceName(info.raceId))
                         popoverRow("Bloodline", value: bloodlineName(info.bloodlineId))
                         if let title = info.title, !title.isEmpty {

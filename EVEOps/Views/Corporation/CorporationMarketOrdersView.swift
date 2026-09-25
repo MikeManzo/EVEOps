@@ -77,14 +77,11 @@ struct CorporationMarketOrdersView: View {
     private var toolbar: some View {
         HStack {
             if !divisions.isEmpty {
-                Picker("Division", selection: $selectedDivision) {
-                    Text("All Divisions").tag(nil as Int?)
-                    ForEach(divisions, id: \.self) { div in
-                        Text("Division \(div)").tag(Optional(div))
-                    }
-                }
-                .pickerStyle(.menu)
-                .frame(maxWidth: 200)
+                EVEMenuPicker("Division", selection: $selectedDivision, options:
+                    [EVEMenuOption(Int?.none, "All Divisions")] +
+                    divisions.enumerated().map { index, div in
+                        EVEMenuOption(Optional(div), verbatim: String(localized: "Division \(div)"), dividerBefore: index == 0)
+                    })
             }
             Spacer()
             Text("\(filteredOrders.count) orders")

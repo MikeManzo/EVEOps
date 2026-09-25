@@ -218,8 +218,15 @@ struct NetWorthSparkline: View {
     var body: some View {
         let low = points.map(\.netWorth).min() ?? 0
         let high = points.map(\.netWorth).max() ?? 1
+        // Scale to the range, not from zero — a flat-looking line hides real movement.
+        let floor = low * 0.995
+        let yDomain = floor...(max(high, low + 1) * 1.005)
         Chart(points) { point in
-            AreaMark(x: .value("Day", point.date), y: .value("Net Worth", point.netWorth))
+            // Fill from the visible floor, not from 0 ISK — otherwise the fill extends far
+            // below the plot (Charts doesn't clip marks) and washes over the page.
+            AreaMark(x: .value("Day", point.date),
+                     yStart: .value("Floor", floor),
+                     yEnd: .value("Net Worth", point.netWorth))
                 .foregroundStyle(.eveAreaFill(tint))
                 .interpolationMethod(.monotone)
             LineMark(x: .value("Day", point.date), y: .value("Net Worth", point.netWorth))
@@ -227,8 +234,9 @@ struct NetWorthSparkline: View {
                 .lineStyle(StrokeStyle(lineWidth: 1.2))
                 .interpolationMethod(.monotone)
         }
-        // Scale to the range, not from zero — a flat-looking line hides real movement.
-        .chartYScale(domain: (low * 0.995)...(max(high, low + 1) * 1.005))
+        .chartYScale(domain: yDomain)
+        .chartXScale(domain: NetWorthHistoryCard.dayDomain(days: 30, points: points))
+        .chartPlotStyle { $0.clipped() }
         .chartXAxis(.hidden)
         .chartYAxis(.hidden)
         .accessibilityHidden(true)
@@ -261,6 +269,21 @@ struct NetWorthHistoryCard: View {
 
     private var points: [NetWorthHistory.Point] {
         NetWorthHistory.shared.points(characterID: characterID, days: range == .all ? nil : range.rawValue)
+    }
+
+    /// X-axis domain: the last `days` days up to today (or, for All, from the first
+    /// snapshot), never shorter than a week so ticks always land on distinct days.
+    static func dayDomain(days: Int?, points: [NetWorthHistory.Point]) -> ClosedRange<Date> {
+        let cal = Calendar.current
+        let end = cal.startOfDay(for: .now)
+        let minimumStart = cal.date(byAdding: .day, value: -7, to: end) ?? end
+        let start: Date
+        if let days {
+            start = cal.date(byAdding: .day, value: -days, to: end) ?? minimumStart
+        } else {
+            start = min(points.first?.date ?? minimumStart, minimumStart)
+        }
+        return start...end
     }
 
     private var hoveredPoint: NetWorthHistory.Point? {
@@ -299,9 +322,14 @@ struct NetWorthHistoryCard: View {
     private var chart: some View {
         let low = points.map(\.netWorth).min() ?? 0
         let high = points.map(\.netWorth).max() ?? 1
+        let floor = low * 0.98
+        let yDomain = floor...(max(high, low + 1) * 1.02)
         return Chart {
             ForEach(points) { point in
-                AreaMark(x: .value("Day", point.date), y: .value("Net Worth", point.netWorth))
+                // Fill from the visible floor, not from 0 ISK (see NetWorthSparkline).
+                AreaMark(x: .value("Day", point.date),
+                         yStart: .value("Floor", floor),
+                         yEnd: .value("Net Worth", point.netWorth))
                     .foregroundStyle(.eveAreaFill(tint))
                     .interpolationMethod(.monotone)
                 LineMark(x: .value("Day", point.date), y: .value("Net Worth", point.netWorth))
@@ -325,7 +353,11 @@ struct NetWorthHistoryCard: View {
                     .symbolSize(30)
             }
         }
-        .chartYScale(domain: (low * 0.98)...(max(high, low + 1) * 1.02))
+        .chartYScale(domain: yDomain)
+        // Span the selected range, so the axis reads in days even while history is young
+        // (auto-scaling to one day of data produced hourly ticks all labelled "Sep 24").
+        .chartXScale(domain: Self.dayDomain(days: range == .all ? nil : range.rawValue, points: points))
+        .chartPlotStyle { $0.clipped() }
         .eveISKYAxis()
         .eveDateXAxis()
         .chartXSelection(value: $hoveredDate)

@@ -12,7 +12,7 @@ import Foundation
 
 /// Buckets ESI wallet-journal `ref_type` values into a handful of human categories
 /// so a character's income and spending can be summarised without a per-ref-type wall.
-enum WalletCategory: String, CaseIterable, Sendable {
+nonisolated enum WalletCategory: String, CaseIterable, Sendable {
     case bountiesMissions
     case market
     case industry

@@ -93,16 +93,8 @@ struct RegionStationBrowserView: View {
     private var filterBar: some View {
         VStack(alignment: .leading, spacing: EVESpacing.md) {
             HStack(spacing: EVESpacing.md) {
-                Picker(selection: $selectedRegionId) {
-                    ForEach(availableRegions, id: \.id) { region in
-                        Text(region.name).tag(region.id)
-                    }
-                } label: {
-                    EmptyView()
-                }
-                .labelsHidden()
-                .pickerStyle(.menu)
-                .fixedSize()
+                EVEMenuPicker("Region", selection: $selectedRegionId,
+                              options: availableRegions.map { EVEMenuOption($0.id, verbatim: $0.name, systemImage: "map") })
                 .disabled(availableRegions.isEmpty)
                 .help("Region")
 
@@ -498,7 +490,7 @@ private struct StationRow: View {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Text("Services"))
         }
-        .padding(.vertical, EVESpacing.xs)
+        .eveRowPadding()
         .accessibilityElement(children: .combine)
     }
 

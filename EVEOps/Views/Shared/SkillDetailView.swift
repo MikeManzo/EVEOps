@@ -128,7 +128,7 @@ struct SkillDetailView: View {
                     VStack(alignment: .leading, spacing: 1) {
                         Text("Started")
                             .font(.caption2).foregroundStyle(.tertiary)
-                        Text(EVEFormatters.dateFormatter.string(from: start))
+                        Text(EVEDates.short(start))
                             .font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
                     }
                 }
@@ -136,7 +136,7 @@ struct SkillDetailView: View {
                     VStack(alignment: .leading, spacing: 1) {
                         Text("Finishes")
                             .font(.caption2).foregroundStyle(.tertiary)
-                        Text(EVEFormatters.dateFormatter.string(from: finish))
+                        Text(EVEDates.short(finish))
                             .font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
                     }
                     Spacer()

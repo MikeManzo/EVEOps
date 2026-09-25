@@ -37,14 +37,8 @@ struct ItemAppraisalView: View {
                     Text("Market")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    Picker("Market", selection: $selectedMarket) {
-                        ForEach(JaniceMarket.allCases) { market in
-                            Text(market.displayName).tag(market)
-                        }
-                    }
-                    .labelsHidden()
-                    .pickerStyle(.menu)
-                    .fixedSize()
+                    EVEMenuPicker("Market", selection: $selectedMarket,
+                                  options: JaniceMarket.allCases.map { EVEMenuOption($0, verbatim: $0.displayName) })
                 }
 
                 TextEditor(text: $pasteText)

@@ -59,22 +59,19 @@ struct AdvancedTab: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                Picker("Max log entries", selection: $diagMaxEntries) {
-                    Text("250").tag(250)
-                    Text("500").tag(500)
-                    Text("1,000").tag(1000)
-                    Text("2,500").tag(2500)
-                    Text("5,000").tag(5000)
+                LabeledContent("Max log entries") {
+                    EVEMenuPicker("Max log entries", selection: $diagMaxEntries,
+                                  options: [250, 500, 1000, 2500, 5000].map { EVEMenuOption($0, verbatim: $0.formatted()) })
                 }
-                .pickerStyle(.menu)
-                Picker("Keep logs for", selection: $diagMaxDays) {
-                    Text("1 day").tag(1)
-                    Text("3 days").tag(3)
-                    Text("7 days").tag(7)
-                    Text("14 days").tag(14)
-                    Text("30 days").tag(30)
+                LabeledContent("Keep logs for") {
+                    EVEMenuPicker("Keep logs for", selection: $diagMaxDays, options: [
+                        EVEMenuOption(1, "1 day"),
+                        EVEMenuOption(3, "3 days"),
+                        EVEMenuOption(7, "7 days"),
+                        EVEMenuOption(14, "14 days"),
+                        EVEMenuOption(30, "30 days"),
+                    ])
                 }
-                .pickerStyle(.menu)
                 HStack {
                     Button("Clear Log Now") {
                         logStore.clear()

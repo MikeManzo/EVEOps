@@ -449,7 +449,7 @@ struct FleetMemberDetailPopover: View {
             Text("Character Info")
                 .font(.headline)
 
-            detailRow(label: "Birthday", value: EVEFormatters.dateFormatter.string(from: info.birthday))
+            detailRow(label: "Birthday", value: EVEDates.short(info.birthday))
             detailRow(label: "Race", value: raceName(info.raceId))
             detailRow(label: "Bloodline", value: bloodlineName(info.bloodlineId))
             if let sec = info.securityStatus {
@@ -494,7 +494,7 @@ struct FleetMemberDetailPopover: View {
                         Text(entry.corporationName)
                             .font(.subheadline)
                             .fixedSize(horizontal: false, vertical: true)
-                        Text("Joined \(EVEFormatters.dateFormatter.string(from: entry.startDate))")
+                        Text("Joined \(EVEDates.short(entry.startDate))")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }

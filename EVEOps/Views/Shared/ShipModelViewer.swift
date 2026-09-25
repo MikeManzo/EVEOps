@@ -831,14 +831,8 @@ struct ShipModelSheet: View {
             }
             Spacer()
             if case .ready = phase {
-                Picker("", selection: $lightingPreset) {
-                    ForEach(LightingPreset.allCases) { preset in
-                        Text(preset.title).tag(preset)
-                    }
-                }
-                .pickerStyle(.menu)
-                .labelsHidden()
-                .frame(width: 120)
+                EVEMenuPicker("Lighting", selection: $lightingPreset,
+                              options: LightingPreset.allCases.map { EVEMenuOption($0, $0.title, systemImage: "lightbulb") })
 
                 Button {
                     WindowService.shared.showShipModel(shipName: shipName, shipClass: shipClass)

@@ -292,19 +292,8 @@ struct LoyaltyPointStoreView: View {
             // Market hub / sort — hidden when this store's rewards have no market data at all
             // (e.g. Paragon/EverMarks — checked from the actual fetch, not assumed from corp ID).
             if offersHaveMarketData {
-                HStack(spacing: 4) {
-                    Image(systemName: "building.columns")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                    Picker("Market", selection: $selectedHub) {
-                        ForEach(LPMarketHub.allCases) { hub in
-                            Text(hub.displayName).tag(hub)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    .labelsHidden()
-                    .frame(width: 80)
-                }
+                EVEMenuPicker("Market", selection: $selectedHub,
+                              options: LPMarketHub.allCases.map { EVEMenuOption($0, verbatim: $0.displayName, systemImage: "building.columns") })
                 .help("Reference market for reward and required-item prices")
 
                 Picker("Sort", selection: $sortByISKLP) {

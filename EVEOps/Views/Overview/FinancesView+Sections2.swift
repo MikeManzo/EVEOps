@@ -12,102 +12,6 @@ import SwiftUI
 import Charts
 
 extension FinancesView {
-    // MARK:  Journal
-
-    func journalSection(_ journal: [ESIWalletJournalEntry]) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if journal.isEmpty {
-                Text("No journal entries")
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, minHeight: 100)
-            } else {
-                // Summary by ref type
-                let grouped = Dictionary(grouping: journal) { $0.refType }
-                let topTypes = grouped.sorted { a, b in
-                    let aTotal = a.value.compactMap(\.amount).map(abs).reduce(0, +)
-                    let bTotal = b.value.compactMap(\.amount).map(abs).reduce(0, +)
-                    return aTotal > bTotal
-                }.prefix(5)
-
-                if !topTypes.isEmpty {
-                    HStack(spacing: 12) {
-                        ForEach(Array(topTypes), id: \.key) { refType, entries in
-                            let total = entries.compactMap(\.amount).reduce(0, +)
-                            VStack(spacing: 2) {
-                                Text(formatRefType(refType))
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
-                                Text(EVEFormatters.formatISKShort(total))
-                                    .font(.caption.bold().monospacedDigit())
-                                    .foregroundStyle(total >= 0 ? .green : .red)
-                                Text("\(entries.count)x")
-                                    .font(.caption2)
-                                    .foregroundStyle(.tertiary)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(8)
-                            .eveCard(cornerRadius: EVERadius.md)
-                        }
-                    }
-                }
-
-                // Journal entries list
-                LazyVStack(spacing: 1) {
-                    ForEach(journal) { entry in
-                        journalRow(entry)
-                    }
-                }
-                .eveCard()
-            }
-        }
-    }
-
-    func journalRow(_ entry: ESIWalletJournalEntry) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: (entry.amount ?? 0) >= 0 ? "arrow.down.circle.fill" : "arrow.up.circle.fill")
-                .foregroundStyle((entry.amount ?? 0) >= 0 ? .green : .red)
-                .font(.title3)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(formatRefType(entry.refType))
-                    .font(.subheadline)
-                if !entry.description.isEmpty {
-                    Text(entry.description.strippingEVEMarkup)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                }
-                if let reason = entry.reason, !reason.isEmpty {
-                    Text(reason)
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                        .lineLimit(1)
-                }
-            }
-
-            Spacer()
-
-            VStack(alignment: .trailing, spacing: 2) {
-                if let amount = entry.amount {
-                    Text((amount >= 0 ? "+" : "") + EVEFormatters.formatISKShort(amount))
-                        .font(.subheadline.bold().monospacedDigit())
-                        .foregroundStyle(amount >= 0 ? .green : .red)
-                }
-                if let balance = entry.balance {
-                    Text(EVEFormatters.formatISKShort(balance))
-                        .font(.caption2.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                }
-                Text(EVEFormatters.dateFormatter.string(from: entry.date))
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-    }
-
     // MARK:  Breakdown
 
     struct WalletFlowDatum: Identifiable {
@@ -133,7 +37,7 @@ extension FinancesView {
                 }
 
                 if let earliest = bd.earliest, let latest = bd.latest {
-                    Text("\(bd.entryCount) entries · \(EVEFormatters.dateFormatter.string(from: earliest)) – \(EVEFormatters.dateFormatter.string(from: latest))")
+                    Text("\(bd.entryCount) entries · \(EVEDates.short(earliest)) – \(EVEDates.short(latest))")
                         .font(.caption2).foregroundStyle(.tertiary)
                 }
 
@@ -212,115 +116,6 @@ extension FinancesView {
                 Text("in \(EVEFormatters.formatISKShort(summary.income)) · out \(EVEFormatters.formatISKShort(summary.expense))")
                     .font(.caption2).foregroundStyle(.tertiary)
                     .fixedSize()
-            }
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-    }
-
-    // MARK:  Transactions
-
-    func transactionSection(_ transactions: [ESIWalletTransaction]) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if transactions.isEmpty {
-                Text("No transactions")
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, minHeight: 100)
-            } else {
-                // Summary
-                let buyTotal = transactions.filter(\.isBuy).reduce(0.0) { $0 + $1.unitPrice * Double($1.quantity) }
-                let sellTotal = transactions.filter { !$0.isBuy }.reduce(0.0) { $0 + $1.unitPrice * Double($1.quantity) }
-
-                HStack(spacing: 16) {
-                    VStack(spacing: 2) {
-                        Text("Bought")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Text(EVEFormatters.formatISKShort(buyTotal))
-                            .font(.subheadline.bold().monospacedDigit())
-                            .foregroundStyle(.orange)
-                            .eveNumeric(buyTotal)
-                        Text("\(transactions.filter(\.isBuy).count) orders")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(10)
-                    .eveCard(cornerRadius: EVERadius.md)
-
-                    VStack(spacing: 2) {
-                        Text("Sold")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Text(EVEFormatters.formatISKShort(sellTotal))
-                            .font(.subheadline.bold().monospacedDigit())
-                            .foregroundStyle(.green)
-                            .eveNumeric(sellTotal)
-                        Text("\(transactions.filter { !$0.isBuy }.count) orders")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(10)
-                    .eveCard(cornerRadius: EVERadius.md)
-
-                    VStack(spacing: 2) {
-                        Text("Net")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        let net = sellTotal - buyTotal
-                        Text(EVEFormatters.formatISKShort(net))
-                            .font(.subheadline.bold().monospacedDigit())
-                            .foregroundStyle(net >= 0 ? .green : .red)
-                            .eveNumeric(net)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(10)
-                    .eveCard(cornerRadius: EVERadius.md)
-                }
-
-                LazyVStack(spacing: 1) {
-                    ForEach(transactions) { tx in
-                        transactionRow(tx)
-                    }
-                }
-                .eveCard()
-            }
-        }
-    }
-
-    func transactionRow(_ tx: ESIWalletTransaction) -> some View {
-        HStack(spacing: 10) {
-            CachedAsyncImage(url: EVEImageURL.typeIcon(tx.typeId, size: 64)) { image in
-                image.resizable()
-            } placeholder: {
-                RoundedRectangle(cornerRadius: EVERadius.xs).fill(.quaternary)
-            }
-            .frame(width: 32, height: 32)
-            .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(typeNames[tx.typeId] ?? "Type #\(tx.typeId)")
-                    .font(.subheadline)
-                Text("\(tx.quantity)x @ \(EVEFormatters.formatISK(tx.unitPrice))")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
-            VStack(alignment: .trailing, spacing: 2) {
-                let total = tx.unitPrice * Double(tx.quantity)
-                Text(EVEFormatters.formatISKShort(total))
-                    .font(.subheadline.bold().monospacedDigit())
-                    .foregroundStyle(tx.isBuy ? .red : .green)
-                    .eveNumeric(total)
-                Text(tx.isBuy ? "Buy" : "Sell")
-                    .font(.caption2)
-                    .foregroundStyle(tx.isBuy ? .orange : .green)
-                Text(EVEFormatters.dateFormatter.string(from: tx.date))
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
             }
         }
         .padding(.horizontal, 12)
@@ -453,7 +248,7 @@ extension FinancesView {
                 Text("\(order.duration)d \u{2022} \(order.range)")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
-                Text("Issued: \(EVEFormatters.dateFormatter.string(from: order.issued))")
+                Text("Issued: \(EVEDates.short(order.issued))")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
