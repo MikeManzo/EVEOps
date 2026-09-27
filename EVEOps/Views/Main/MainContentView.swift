@@ -342,7 +342,7 @@ struct ReauthBanner: View {
     }
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: EVESpacing.md) {
             Image(systemName: "lock.trianglebadge.exclamationmark.fill")
                 .foregroundStyle(.red)
             Text("Re-authentication required: \(names)")
@@ -355,7 +355,7 @@ struct ReauthBanner: View {
             .buttonStyle(.plain)
             .foregroundStyle(.red)
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, EVESpacing.xl)
         .padding(.vertical, 10)
         .background(.red.opacity(0.10))
         .transition(.move(edge: .top).combined(with: .opacity))
@@ -377,14 +377,14 @@ struct APIStatusBanner: View {
     }
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: EVESpacing.md) {
             Image(systemName: icon)
                 .foregroundStyle(.orange)
             Text(message.isEmpty ? "Unable to reach EVE servers" : message)
                 .font(.callout)
             Spacer()
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, EVESpacing.xl)
         .padding(.vertical, 10)
         .background(.orange.opacity(0.12))
         .transition(.move(edge: .top).combined(with: .opacity))

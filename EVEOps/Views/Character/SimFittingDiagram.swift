@@ -50,7 +50,7 @@ struct SimFittingDiagram: View {
                     shipHero
                     Divider()
                     slotGrid
-                        .padding(16)
+                        .padding(EVESpacing.xl)
                 }
             }
             .sheet(isPresented: $showModelViewer) {
@@ -87,7 +87,7 @@ struct SimFittingDiagram: View {
             )
 
             HStack(alignment: .bottom) {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: EVESpacing.xs) {
                     if simState.isLoadingShip {
                         ProgressView().tint(.white)
                     } else {
@@ -108,7 +108,7 @@ struct SimFittingDiagram: View {
                 Button { showModelViewer = true } label: {
                     Label("View 3D", systemImage: "cube.transparent")
                         .font(.caption.bold())
-                        .padding(.horizontal, 10).padding(.vertical, 6)
+                        .padding(.horizontal, 10).padding(.vertical, EVESpacing.sm)
                         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
                         .foregroundStyle(.white)
                 }
@@ -117,7 +117,7 @@ struct SimFittingDiagram: View {
                     Button { showShopView = true } label: {
                         Label("Shop Fit", systemImage: "cart.fill")
                             .font(.caption.bold())
-                            .padding(.horizontal, 10).padding(.vertical, 6)
+                            .padding(.horizontal, 10).padding(.vertical, EVESpacing.sm)
                             .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
                             .foregroundStyle(.white)
                     }
@@ -125,7 +125,7 @@ struct SimFittingDiagram: View {
                     Button { Task { await simState.clearAll() } } label: {
                         Label("Clear Fit", systemImage: "trash")
                             .font(.caption.bold())
-                            .padding(.horizontal, 10).padding(.vertical, 6)
+                            .padding(.horizontal, 10).padding(.vertical, EVESpacing.sm)
                             .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
                             .foregroundStyle(.white)
                     }
@@ -144,7 +144,7 @@ struct SimFittingDiagram: View {
             // none. Without this, someone fitting one from scratch sees only the Rig
             // and Subsystem rows with no clue those other rows exist at all.
             if highSlots.isEmpty && medSlots.isEmpty && lowSlots.isEmpty && !subSlots.isEmpty {
-                HStack(spacing: 8) {
+                HStack(spacing: EVESpacing.md) {
                     Image(systemName: "info.circle")
                         .foregroundStyle(.secondary)
                     Text("Fit all 4 subsystems below to unlock this ship's High, Medium, and Low slots.")
@@ -185,7 +185,7 @@ struct SimSlotRowView: View {
     @Environment(SimulatorState.self) private var simState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: EVESpacing.sm) {
             Label(category.displayName, systemImage: category.icon)
                 .font(.caption.bold())
                 .foregroundStyle(category.color)
@@ -338,7 +338,7 @@ struct SimSlotSocketView: View {
                         } placeholder: {
                             RoundedRectangle(cornerRadius: EVERadius.sm).fill(.quaternary)
                         }
-                        .padding(6)
+                        .padding(EVESpacing.sm)
                         .opacity(liveIsOnline ? 1.0 : 0.35)
                         .overlay(alignment: .bottomTrailing) {
                             if !liveIsOnline {
@@ -346,7 +346,7 @@ struct SimSlotSocketView: View {
                                     .font(.eveLabelSemibold)
                                     .foregroundStyle(.orange)
                                     .shadow(color: .black.opacity(0.6), radius: 2, x: 0, y: 1)
-                                    .padding(4)
+                                    .padding(EVESpacing.xs)
                             }
                         }
                     } else if isInvalidDropTarget {
@@ -454,7 +454,7 @@ struct SimModuleDragPreview: View {
                     .font(.caption2).foregroundStyle(category.color)
             }
         }
-        .padding(.horizontal, 12).padding(.vertical, 8)
+        .padding(.horizontal, EVESpacing.lg).padding(.vertical, EVESpacing.md)
         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.lg))
     }
 }
@@ -503,7 +503,7 @@ struct SimModulePopover: View {
                 }
             } else if let t = moduleType, let typeId = liveTypeId {
                 // ── Header ────────────────────────────────────────────────
-                HStack(spacing: 12) {
+                HStack(spacing: EVESpacing.lg) {
                     CachedAsyncImage(url: EVEImageURL.typeIcon(typeId, size: 128)) { img in
                         img.resizable().aspectRatio(contentMode: .fit)
                     } placeholder: {
@@ -514,7 +514,7 @@ struct SimModulePopover: View {
                     .overlay(RoundedRectangle(cornerRadius: EVERadius.md)
                         .strokeBorder(.primary.opacity(0.1), lineWidth: 0.5))
 
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: EVESpacing.xs) {
                         Text(t.name).font(.headline).lineLimit(2)
                             .fixedSize(horizontal: false, vertical: true)
                         Label(slot.category.displayName, systemImage: slot.category.icon)
@@ -536,7 +536,7 @@ struct SimModulePopover: View {
                     characterSkills: accountManager.selectedAccount != nil ? simState.characterSkills : nil
                 )
                 .padding(.horizontal, 14)
-                .padding(.vertical, 6)
+                .padding(.vertical, EVESpacing.sm)
 
                 // ── Footer actions ────────────────────────────────────────
                 Divider()
@@ -569,7 +569,7 @@ struct SimModulePopover: View {
                     }
                     .buttonStyle(.borderless).foregroundStyle(.red)
                 }
-                .padding(.horizontal, 10).padding(.vertical, 8)
+                .padding(.horizontal, 10).padding(.vertical, EVESpacing.md)
             }
         }
         .frame(width: 280)
@@ -610,7 +610,7 @@ private struct SimModuleStatsSections: View {
                     statRow(icon: "gearshape.2", label: String(localized: "Calibration"), value: "\(fmtNum(v)) pts")
                 }
             }
-            .padding(.horizontal, 14).padding(.vertical, 8)
+            .padding(.horizontal, 14).padding(.vertical, EVESpacing.md)
         }
     }
 
@@ -627,7 +627,7 @@ private struct SimModuleStatsSections: View {
                 statRow(icon: "timer",      label: String(localized: "Duration"),
                         value: "\(fmtNum(dur / 1000)) s")
             }
-            .padding(.horizontal, 14).padding(.vertical, 8)
+            .padding(.horizontal, 14).padding(.vertical, EVESpacing.md)
         }
     }
 
@@ -642,7 +642,7 @@ private struct SimModuleStatsSections: View {
                     statRow(icon: row.icon, label: row.label, value: row.value)
                 }
             }
-            .padding(.horizontal, 14).padding(.vertical, 8)
+            .padding(.horizontal, 14).padding(.vertical, EVESpacing.md)
         }
     }
 
@@ -689,7 +689,7 @@ private struct SimModuleStatsSections: View {
     }
 
     private func statRow(icon: String, label: String, value: String) -> some View {
-        HStack(spacing: 6) {
+        HStack(spacing: EVESpacing.sm) {
             Image(systemName: icon)
                 .font(.eveLabel)
                 .foregroundStyle(.secondary)
@@ -698,7 +698,7 @@ private struct SimModuleStatsSections: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
             Spacer()
-            Text(value)
+            Text(value).textSelection(.enabled)
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.primary)
         }

@@ -71,7 +71,7 @@ struct DiagnosticPaneView: View {
     // MARK:  Toolbar
 
     private var toolbar: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: EVESpacing.sm) {
             categoryChip("All", value: nil)
 
             ForEach(availableCategories, id: \.self) { cat in
@@ -87,26 +87,7 @@ struct DiagnosticPaneView: View {
                 EVEMenuOption(LogEntry.Level.error, "Errors"),
             ])
 
-            HStack(spacing: 4) {
-                Image(systemName: "magnifyingglass")
-                    .font(.eveLabel)
-                    .foregroundStyle(.tertiary)
-                TextField("Filter", text: $searchText).eveFindTarget()
-                    .textFieldStyle(.plain)
-                    .font(.eveCaption)
-                if !searchText.isEmpty {
-                    Button { searchText = "" } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.eveLabel)
-                            .foregroundStyle(.tertiary)
-                    }
-                    .accessibilityLabel("Clear")
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal, 6)
-            .padding(.vertical, 3)
-            .background(.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: EVERadius.sm))
+            EVESearchField("Filter", text: $searchText, controlSize: .small)
 
             Spacer()
 
@@ -129,7 +110,7 @@ struct DiagnosticPaneView: View {
             .help("Clear log entries")
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 6)
+        .padding(.vertical, EVESpacing.sm)
     }
 
     // MARK:  Service Status
@@ -138,7 +119,7 @@ struct DiagnosticPaneView: View {
     private var serviceStatusBar: some View {
         let routeTotal = apiStatus.esiRoutesGreen + apiStatus.esiRoutesYellow + apiStatus.esiRoutesRed
         DisclosureGroup(isExpanded: $showServiceStatus) {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: EVESpacing.sm) {
                 HStack(spacing: 10) {
                     labelValue("EVE reachable", apiStatus.isReachable ? "yes" : "no",
                                apiStatus.isReachable ? .green : .red)
@@ -181,9 +162,9 @@ struct DiagnosticPaneView: View {
                 }
             }
             .padding(.horizontal, 10)
-            .padding(.vertical, 6)
+            .padding(.vertical, EVESpacing.sm)
         } label: {
-            HStack(spacing: 6) {
+            HStack(spacing: EVESpacing.sm) {
                 Circle()
                     .fill(apiStatus.isReachable && !apiStatus.hasServiceIssue ? Color.green : Color.orange)
                     .frame(width: 7, height: 7)
@@ -194,13 +175,13 @@ struct DiagnosticPaneView: View {
         }
         .disclosureGroupStyle(.automatic)
         .padding(.horizontal, 10)
-        .padding(.vertical, 4)
+        .padding(.vertical, EVESpacing.xs)
         .background(.primary.opacity(0.03))
         Divider()
     }
 
     private func labelValue(_ label: String, _ value: String, _ color: Color) -> some View {
-        HStack(spacing: 4) {
+        HStack(spacing: EVESpacing.xs) {
             Text(label).font(.eveMicro).foregroundStyle(.tertiary)
             Text(value).font(.eveLabelMedium.monospacedDigit()).foregroundStyle(color)
         }
@@ -241,7 +222,7 @@ struct DiagnosticPaneView: View {
                         Text(group.label)
                             .font(.eveCaptionSemibold)
                             .foregroundStyle(.secondary)
-                            .padding(.vertical, 2)
+                            .padding(.vertical, EVESpacing.xxs)
                     }
                 }
             }
@@ -288,8 +269,8 @@ struct DiagnosticPaneView: View {
         } label: {
             Text(label)
                 .font(.eveLabelSemibold)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 2)
+                .padding(.horizontal, EVESpacing.md)
+                .padding(.vertical, EVESpacing.xxs)
                 .background(isSelected ? color.opacity(0.18) : Color.clear, in: Capsule())
                 .overlay(Capsule().strokeBorder(color.opacity(isSelected ? 0.55 : 0.28), lineWidth: 0.5))
                 .foregroundStyle(isSelected ? color : .secondary)
@@ -314,7 +295,7 @@ private struct LogEntryRow: View {
     let entry: LogEntry
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: EVESpacing.sm) {
             Text(diagTimeFormatter.string(from: entry.date))
                 .font(.eveCode)
                 .foregroundStyle(.tertiary)
@@ -322,7 +303,7 @@ private struct LogEntryRow: View {
 
             Text(entry.category)
                 .font(.eveMicroBold)
-                .padding(.horizontal, 4)
+                .padding(.horizontal, EVESpacing.xs)
                 .padding(.vertical, 1)
                 .background(diagCategoryColor(entry.category).opacity(0.12), in: Capsule())
                 .foregroundStyle(diagCategoryColor(entry.category))
@@ -341,7 +322,7 @@ private struct LogEntryRow: View {
 
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 8)
+        .padding(.horizontal, EVESpacing.md)
         .padding(.vertical, 3)
     }
 }

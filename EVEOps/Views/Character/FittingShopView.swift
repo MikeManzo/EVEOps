@@ -39,6 +39,11 @@ struct FittingShopView: View {
     @State private var galaxySearched = 0
     @State private var galaxyTotal = 0
     @State private var selectedQuoteId: Int?
+    /// Complete stations first, cheapest first — the same order the search produces.
+    @State private var quoteSortOrder: [KeyPathComparator<StationQuote>] = [
+        KeyPathComparator(\.completeTotalSortKey),
+        KeyPathComparator(\.missingCount)
+    ]
     @State private var waypointMessage: String?
     @State private var waypointIsSuccess = false
     @State private var popoverItem: ItemQuote?
@@ -90,7 +95,7 @@ struct FittingShopView: View {
             .frame(width: 45, height: 45)
             .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 Text("Shop This Fitting")
                     .font(.title3.bold())
                 Text("\(input.fittingName) · \(input.items.count) items")
@@ -120,7 +125,7 @@ struct FittingShopView: View {
     }
 
     private var controlBar: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: EVESpacing.lg) {
             if isSearchingHubs {
                 ProgressView().controlSize(.mini)
                 Text("Searching trade hubs…")
@@ -160,113 +165,82 @@ struct FittingShopView: View {
             .help("Search all k-space regions for the cheapest station — takes 30–60 seconds")
         }
         .padding(.horizontal, 20)
-        .padding(.vertical, 12)
+        .padding(.vertical, EVESpacing.lg)
     }
 
     // MARK: Results Table
 
+    private var sortedQuotes: [StationQuote] { quotes.sorted(using: quoteSortOrder) }
+
     private var resultsTable: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 0) {
-                Text("Station / System")
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.leading, 27)
-                Text("Total ISK")
-                    .frame(width: 163, alignment: .trailing)
-                Text("Items")
-                    .frame(width: 85, alignment: .center)
-                Text("Sec")
-                    .frame(width: 55, alignment: .center)
-                    .padding(.trailing, 20)
-            }
-            .font(.subheadline.bold())
-            .foregroundStyle(.secondary)
-            .padding(.vertical, 8)
-            .background(Color(NSColor.separatorColor).opacity(0.15))
-
-            Divider()
-
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    ForEach(Array(quotes.enumerated()), id: \.element.id) { index, quote in
-                        quoteRow(quote, isEven: index % 2 == 0)
-                            .contentShape(Rectangle())
-                            .onTapGesture { selectedQuoteId = quote.id }
-                        Divider().padding(.leading, 20)
+        let rows = sortedQuotes
+        return Table(rows, selection: $selectedQuoteId, sortOrder: $quoteSortOrder) {
+            TableColumn("Station / System", value: \.stationName) { quote in
+                HStack(spacing: EVESpacing.md) {
+                    Capsule()
+                        .fill(quote.isComplete ? Color.green : Color.orange)
+                        .frame(width: 3, height: 26)
+                        .accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: EVESpacing.xxs) {
+                        Text(quote.stationName)
+                            .lineLimit(1)
+                            .eveTruncationHelp(quote.stationName)
+                        Text(quote.systemName + (quote.regionName.isEmpty ? "" : " · " + quote.regionName))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
                     }
                 }
             }
-        }
-    }
+            .width(min: 200, ideal: 300)
 
-    private func quoteRow(_ quote: StationQuote, isEven: Bool) -> some View {
-        let isSelected = selectedQuoteId == quote.id
-        let accentColor: Color = quote.isComplete ? .green : .orange
-
-        return HStack(spacing: 0) {
-            Rectangle()
-                .fill(accentColor.opacity(0.75))
-                .frame(width: 4)
-
-            HStack(spacing: 0) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(quote.stationName)
-                        .font(.callout)
-                        .lineLimit(1)
-                    HStack(spacing: 5) {
-                        Text(quote.systemName)
-                        if !quote.regionName.isEmpty {
-                            Text("·")
-                            Text(quote.regionName)
-                        }
-                    }
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.leading, 12)
-
+            TableColumn("Total ISK", value: \.completeTotalSortKey) { quote in
                 Text(quote.isComplete ? EVEFormatters.formatISKShort(quote.totalISK) : "—")
-                    .font(.subheadline.monospacedDigit().bold())
+                    .monospacedDigit()
+                    .fontWeight(.semibold)
                     .foregroundStyle(quote.isComplete ? .green : .secondary)
-                    .frame(width: 163, alignment: .trailing)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+            .width(min: 90, ideal: 120)
 
+            TableColumn("Items", value: \.missingCount) { quote in
                 Group {
                     if quote.isComplete {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundStyle(.green)
-                            .font(.body)
+                            .accessibilityLabel("All items available")
                     } else {
-                        Text("\(quote.missingCount) missing")
-                            .font(.eveCaptionBold)
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                            .background(.orange, in: Capsule())
+                        EVEChip(Text("\(quote.missingCount) missing"), tint: .orange)
                     }
                 }
-                .frame(width: 85, alignment: .center)
-
-                Text(String(format: "%.1f", max(0, quote.securityStatus)))
-                    .font(.eveCaptionBold.monospacedDigit())
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
-                    .background(eveSecurityColor(quote.securityStatus), in: Capsule())
-                    .frame(width: 55, alignment: .center)
-                    .padding(.trailing, 20)
+                .frame(maxWidth: .infinity)
             }
-            .padding(.vertical, 12)
+            .width(min: 70, ideal: 90)
+
+            TableColumn("Sec", value: \.securityStatus) { quote in
+                EVESecurityBadge(status: quote.securityStatus, compact: true)
+                    .frame(maxWidth: .infinity)
+            }
+            .width(48)
         }
-        .background(isSelected
-            ? palette.accent.opacity(0.15)
-            : (isEven ? Color.primary.opacity(0.03) : Color.clear))
-        .overlay(
-            isSelected
-                ? RoundedRectangle(cornerRadius: 0)
-                    .strokeBorder(palette.accent.opacity(0.4), lineWidth: 1)
-                : nil
-        )
+        .tableStyle(.inset(alternatesRowBackgrounds: true))
+        .contextMenu(forSelectionType: StationQuote.ID.self) { ids in
+            if let id = ids.first, let quote = rows.first(where: { $0.id == id }) {
+                Button("Set Destination: \(quote.stationName)", systemImage: "location.fill") {
+                    Task { await setDestination(locationId: quote.locationId) }
+                }
+                Divider()
+                Button("Copy Station Name", systemImage: "doc.on.doc") {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(quote.stationName, forType: .string)
+                }
+            }
+        } primaryAction: { ids in
+            // Double-click a station: set it as the autopilot destination.
+            guard let id = ids.first, let quote = rows.first(where: { $0.id == id }) else { return }
+            Task { await setDestination(locationId: quote.locationId) }
+        }
+        .copyable(rows.filter { $0.id == selectedQuoteId }.map(\.copyText))
     }
 
     // MARK: Item Detail Pane
@@ -274,7 +248,7 @@ struct FittingShopView: View {
     private func itemDetailPane(_ quote: StationQuote) -> some View {
         VStack(spacing: 0) {
             HStack {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                     Text(quote.stationName)
                         .font(.caption.bold())
                         .lineLimit(1)
@@ -299,8 +273,8 @@ struct FittingShopView: View {
                 .tint(palette.accent)
                 .foregroundStyle(palette.accent)
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
+            .padding(.horizontal, EVESpacing.xl)
+            .padding(.top, EVESpacing.lg)
             .padding(.bottom, 10)
 
             Divider()
@@ -324,7 +298,7 @@ struct FittingShopView: View {
                             }
                             .accessibilityLabel(included ? "Included" : "Excluded")
                             .buttonStyle(.plain)
-                            .padding(.leading, 8)
+                            .padding(.leading, EVESpacing.md)
 
                             itemQuoteRow(item)
                                 .opacity(included ? 1 : 0.4)
@@ -362,7 +336,7 @@ struct FittingShopView: View {
                         .font(.caption.bold().monospacedDigit())
                         .foregroundStyle(deselectedTypeIds.isEmpty ? .green : .primary)
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, EVESpacing.xl)
                 .padding(.vertical, 10)
             }
         }
@@ -404,9 +378,9 @@ struct FittingShopView: View {
                     .lineLimit(1)
             }
         }
-        .padding(.leading, 4)
-        .padding(.trailing, 16)
-        .padding(.vertical, 6)
+        .padding(.leading, EVESpacing.xs)
+        .padding(.trailing, EVESpacing.xl)
+        .padding(.vertical, EVESpacing.sm)
     }
 
     // MARK: Empty State
@@ -420,7 +394,7 @@ struct FittingShopView: View {
     private var actionBar: some View {
         HStack(spacing: 15) {
             if let quote = selectedQuote {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                     Text(quote.stationName)
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -439,7 +413,7 @@ struct FittingShopView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 if let msg = waypointMessage {
-                    HStack(spacing: 6) {
+                    HStack(spacing: EVESpacing.sm) {
                         Image(systemName: waypointIsSuccess ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                             .foregroundStyle(waypointIsSuccess ? .green : .orange)
                         Text(msg)
@@ -471,7 +445,7 @@ struct FittingShopView: View {
             }
         }
         .padding(.horizontal, 20)
-        .padding(.vertical, 16)
+        .padding(.vertical, EVESpacing.xl)
     }
 
     // MARK: Hub Search
@@ -697,7 +671,7 @@ private struct ItemShopPopover: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Header: icon + name + availability
-            HStack(spacing: 12) {
+            HStack(spacing: EVESpacing.lg) {
                 CachedAsyncImage(url: EVEImageURL.typeIcon(item.typeId, size: 64)) { image in
                     image.resizable().aspectRatio(contentMode: .fit)
                 } placeholder: {
@@ -706,7 +680,7 @@ private struct ItemShopPopover: View {
                 .frame(width: 64, height: 64)
                 .clipShape(RoundedRectangle(cornerRadius: EVERadius.md))
 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: EVESpacing.xs) {
                     Text(item.name)
                         .font(.headline)
                         .lineLimit(2)
@@ -714,7 +688,7 @@ private struct ItemShopPopover: View {
                 }
                 Spacer(minLength: 0)
             }
-            .padding(16)
+            .padding(EVESpacing.xl)
 
             Divider()
 
@@ -725,18 +699,18 @@ private struct ItemShopPopover: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(6)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
+                    .padding(.horizontal, EVESpacing.xl)
+                    .padding(.vertical, EVESpacing.lg)
                 Divider()
             } else if isLoading {
-                HStack(spacing: 8) {
+                HStack(spacing: EVESpacing.md) {
                     ProgressView().controlSize(.small)
                     Text("Loading item data…")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
+                .padding(.horizontal, EVESpacing.xl)
+                .padding(.vertical, EVESpacing.lg)
                 Divider()
             }
 
@@ -767,7 +741,7 @@ private struct ItemShopPopover: View {
 
                 Divider()
                     .gridCellUnsizedAxes(.horizontal)
-                    .padding(.vertical, 2)
+                    .padding(.vertical, EVESpacing.xxs)
 
                 if item.canFill {
                     GridRow {
@@ -793,7 +767,7 @@ private struct ItemShopPopover: View {
                 }
             }
             .font(.subheadline)
-            .padding(16)
+            .padding(EVESpacing.xl)
         }
         .frame(minWidth: 280, maxWidth: 360)
         .task {
@@ -840,5 +814,20 @@ private actor GalaxyOrderAccumulator {
         for order in orders where !order.isBuyOrder {
             index[typeId, default: [:]][order.locationId, default: []].append(order)
         }
+    }
+}
+
+// MARK: - Table sort keys
+
+private extension StationQuote {
+    /// Complete stations by price; incomplete ones (whose total is only partial) after
+    /// every complete one.
+    var completeTotalSortKey: Double { isComplete ? totalISK : .infinity }
+
+    /// Tab-separated line for ⌘C.
+    var copyText: String {
+        [stationName, systemName, regionName,
+         isComplete ? EVEFormatters.formatISK(totalISK) : "\(missingCount) missing"]
+            .joined(separator: "\t")
     }
 }

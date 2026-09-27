@@ -217,12 +217,7 @@ extension SkillPlannerView {
     // MARK:  Visual Helpers
 
     func levelBadge(_ level: Int) -> some View {
-        Text("L\(level)")
-            .font(.caption2.bold())
-            .foregroundStyle(levelColor(level))
-            .padding(.horizontal, 6)
-            .padding(.vertical, 1)
-            .background(levelColor(level).opacity(0.15), in: Capsule())
+        EVEChip(Text("L\(level)"), tint: levelColor(level), size: .small)
     }
 
     func levelColor(_ level: Int) -> Color {

@@ -19,11 +19,11 @@ struct CorporationStructuresView: View {
     var body: some View {
         LoadingStateView(isLoading: isLoading, error: error, isEmpty: structures.isEmpty, emptyMessage: "None are owned by this corporation, or the selected character lacks the Station Manager or Director role required to view them.", emptyTitle: "No Structures", emptySystemImage: "building.2") {
             List(structures, id: \.structureId) { structure in
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: EVESpacing.md) {
                     HStack {
                         Image(systemName: "building.2.fill")
                             .foregroundStyle(stateColor(structure.state))
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                             Text(structure.name)
                                 .font(.headline)
                             Text(structure.typeName)
@@ -31,7 +31,7 @@ struct CorporationStructuresView: View {
                                 .foregroundStyle(.secondary)
                         }
                         Spacer()
-                        VStack(alignment: .trailing, spacing: 2) {
+                        VStack(alignment: .trailing, spacing: EVESpacing.xxs) {
                             Text(structure.systemName)
                                 .font(.subheadline)
                             stateLabel(structure.state)
@@ -75,9 +75,9 @@ struct CorporationStructuresView: View {
                     }
 
                     if !structure.services.isEmpty {
-                        HStack(spacing: 8) {
+                        HStack(spacing: EVESpacing.md) {
                             ForEach(structure.services, id: \.name) { service in
-                                HStack(spacing: 4) {
+                                HStack(spacing: EVESpacing.xs) {
                                     Circle()
                                         .fill(service.state == "online" ? .green : .red)
                                         .frame(width: 6, height: 6)
@@ -88,7 +88,7 @@ struct CorporationStructuresView: View {
                         }
                     }
                 }
-                .padding(.vertical, 4)
+                .padding(.vertical, EVESpacing.xs)
             }
         }
         .eveScreenHeader("Corp Structures", section: .corpStructures) {
@@ -114,8 +114,8 @@ struct CorporationStructuresView: View {
     private func stateLabel(_ state: String) -> some View {
         Text(state.replacingOccurrences(of: "_", with: " ").capitalized)
             .font(.caption)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
+            .padding(.horizontal, EVESpacing.sm)
+            .padding(.vertical, EVESpacing.xxs)
             .background(stateColor(state).opacity(0.2), in: Capsule())
             .foregroundStyle(stateColor(state))
     }

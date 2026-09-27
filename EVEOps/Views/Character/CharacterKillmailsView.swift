@@ -29,7 +29,7 @@ struct CharacterKillmailsView: View {
             isEmpty: groups.isEmpty,
             emptyMessage: "No Kills or Losses Yet",
             emptySystemImage: "scope",
-            loadingMessage: loadingDetail ?? "Loading...",
+            loadingMessage: loadingDetail ?? "Loading…",
             // Streams per-page progress text, so keep the labelled spinner over a skeleton.
             showsSkeleton: false
         ) {
@@ -38,12 +38,10 @@ struct CharacterKillmailsView: View {
                     filterBar
                     killmailList
                 }
-                if let entry = selectedEntry {
-                    Divider()
-                    KillmailDetailPane(entry: entry, onClose: { selectedEntry = nil })
-                        .frame(width: 400)
-                        .id(entry.id)
-                }
+            }
+            .eveInspector(item: $selectedEntry, width: 400) { entry in
+                KillmailDetailPane(entry: entry, onClose: { selectedEntry = nil })
+                    .id(entry.id)
             }
         }
         .eveScreenHeader("Kill/Loss Mails", section: .killmails) {
@@ -61,7 +59,7 @@ struct CharacterKillmailsView: View {
     }
 
     private var filterBar: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: EVESpacing.lg) {
             Picker("Type", selection: $filter) {
                 Text("All").tag("all")
                 Text("Kills").tag("kills")
@@ -116,12 +114,12 @@ struct CharacterKillmailsView: View {
                 // Try zKillboard first — covers complete lifetime history
                 var killRefs: [(killmailId: Int, hash: String, zkb: ZKBMeta?)] = []
                 do {
-                    loadingDetail = "Fetching history from zKillboard..."
+                    loadingDetail = "Fetching history from zKillboard…"
                     let zkbRefs = try await ZKillboardClient.shared.fetchKillRefs(characterID: account.characterID)
                     killRefs = zkbRefs.map { ($0.killmailId, $0.zkb.hash, $0.zkb) }
                 } catch {
                     // Fall back to ESI recent killmails
-                    loadingDetail = "Fetching kill history..."
+                    loadingDetail = "Fetching kill history…"
                     let esiRefs: [ESIKillmailRef] = try await ESIClient.shared.fetchPages(
                         "/characters/\(account.characterID)/killmails/recent/", token: token
                     )
@@ -132,7 +130,7 @@ struct CharacterKillmailsView: View {
                     continue
                 }
 
-                loadingDetail = "Loading \(killRefs.count) killmail details..."
+                loadingDetail = "Loading \(killRefs.count) killmail details…"
 
                 var entries: [KillmailEntry] = []
                 await withTaskGroup(of: KillmailEntry?.self) { group in
@@ -213,7 +211,7 @@ struct KillmailRow: View {
             .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
             .accessibilityHidden(true)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 HStack(spacing: EVESpacing.sm) {
                     Text(shipName.isEmpty ? "Ship #\(victim.shipTypeId)" : shipName)
                         .font(.subheadline.weight(.medium))
@@ -240,7 +238,7 @@ struct KillmailRow: View {
 
             Spacer(minLength: EVESpacing.md)
 
-            VStack(alignment: .trailing, spacing: 2) {
+            VStack(alignment: .trailing, spacing: EVESpacing.xxs) {
                 if let totalValue = entry.zkb?.totalValue, totalValue > 0 {
                     Text(EVEFormatters.formatISKShort(totalValue))
                         .font(.subheadline.weight(.semibold).monospacedDigit())
@@ -263,6 +261,24 @@ struct KillmailRow: View {
             }
         }
         .eveRowPadding()
+        .contextMenu {
+            if let url = URL(string: "https://zkillboard.com/kill/\(entry.killmail.killmailId)/") {
+                Button("Open Killmail in zKillboard", systemImage: "scope") { NSWorkspace.shared.open(url) }
+                Divider()
+            }
+            if let id = victim.characterId, !victimName.isEmpty {
+                Menu { EVEEntityMenuItems(entity: .character(id: id, name: victimName)) }
+                    label: { Label(victimName, systemImage: "person") }
+            }
+            if !shipName.isEmpty {
+                Menu { EVEEntityMenuItems(entity: .item(typeID: victim.shipTypeId, name: shipName)) }
+                    label: { Label(shipName, systemImage: "shippingbox") }
+            }
+            if !systemName.isEmpty {
+                Menu { EVEEntityMenuItems(entity: .system(id: entry.killmail.solarSystemId, name: systemName)) }
+                    label: { Label(systemName, systemImage: "sparkle") }
+            }
+        }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Text("\(entry.isKill ? "Kill" : "Loss"): \(shipName)"))
         .task {
@@ -369,7 +385,7 @@ struct KillmailDetailPane: View {
                         .kerning(0.6)
                         .foregroundStyle(.white)
                         .padding(.horizontal, EVESpacing.sm)
-                        .padding(.vertical, 2)
+                        .padding(.vertical, EVESpacing.xxs)
                         .background(outcomeColor, in: Capsule())
                     Text(EVEDates.short(killmail.killmailTime))
                         .font(.caption)
@@ -454,7 +470,7 @@ struct KillmailDetailPane: View {
     }
 
     private func valueTile(_ label: LocalizedStringKey, _ value: Double, _ color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: EVESpacing.xxs) {
             Text(label).font(.eveLabel).foregroundStyle(.secondary)
             Text(EVEFormatters.formatISKShort(value))
                 .font(.eveStatCompact)
@@ -597,7 +613,7 @@ struct KillmailDetailPane: View {
     private func badge(_ text: String, color: Color) -> some View {
         Text(text)
             .font(.caption2.bold())
-            .padding(.horizontal, 6).padding(.vertical, 2)
+            .padding(.horizontal, EVESpacing.sm).padding(.vertical, EVESpacing.xxs)
             .background(color.opacity(0.15), in: Capsule())
             .foregroundStyle(color)
     }
@@ -607,7 +623,7 @@ struct KillmailCharacterLabel: View {
     let id: Int
     @State private var name = ""
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: EVESpacing.sm) {
             CachedAsyncImage(url: EVEImageURL.characterPortrait(id, size: 64)) { image in
                 image.resizable()
             } placeholder: { Circle().fill(.quaternary) }
@@ -625,8 +641,8 @@ struct KillmailAttackerRow: View {
     @State private var showPopover = false
 
     var body: some View {
-        HStack(spacing: 8) {
-            HStack(spacing: 8) {
+        HStack(spacing: EVESpacing.md) {
+            HStack(spacing: EVESpacing.md) {
                 if let charId = attacker.characterId {
                     CachedAsyncImage(url: EVEImageURL.characterPortrait(charId, size: 64)) { image in
                         image.resizable()
@@ -636,7 +652,7 @@ struct KillmailAttackerRow: View {
                     Circle().fill(.quaternary).frame(width: 28, height: 28)
                 }
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                     Text(name.isEmpty ? (attacker.characterId.map { "Character #\($0)" } ?? "NPC") : name)
                         .font(.subheadline)
                     Text(shipName.isEmpty ? (attacker.shipTypeId.map { "Ship #\($0)" } ?? "Unknown") : shipName)
@@ -653,10 +669,10 @@ struct KillmailAttackerRow: View {
 
             Spacer()
 
-            VStack(alignment: .trailing, spacing: 2) {
+            VStack(alignment: .trailing, spacing: EVESpacing.xxs) {
                 if attacker.finalBlow {
                     Text("Final Blow").font(.caption2.bold())
-                        .padding(.horizontal, 6).padding(.vertical, 2)
+                        .padding(.horizontal, EVESpacing.sm).padding(.vertical, EVESpacing.xxs)
                         .background(.red.opacity(0.15), in: Capsule())
                         .foregroundStyle(.red)
                 }
@@ -685,7 +701,7 @@ struct AttackerInfoPopover: View {
     @State private var isLoading = true
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: EVESpacing.lg) {
             HStack(spacing: 10) {
                 if let charId = attacker.characterId {
                     CachedAsyncImage(url: EVEImageURL.characterPortrait(charId, size: 256)) { image in
@@ -696,13 +712,13 @@ struct AttackerInfoPopover: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(name.isEmpty ? "Unknown" : name)
                         .font(.headline)
-                    HStack(spacing: 6) {
+                    HStack(spacing: EVESpacing.sm) {
                         Label(String(format: "%.2f", attacker.securityStatus), systemImage: "shield.fill")
                             .font(.caption)
                             .foregroundStyle(pilotSecurityColor(attacker.securityStatus))
                         if attacker.finalBlow {
                             Text("Final Blow").font(.caption2.bold())
-                                .padding(.horizontal, 6).padding(.vertical, 2)
+                                .padding(.horizontal, EVESpacing.sm).padding(.vertical, EVESpacing.xxs)
                                 .background(.red.opacity(0.15), in: Capsule())
                                 .foregroundStyle(.red)
                         }
@@ -715,7 +731,7 @@ struct AttackerInfoPopover: View {
             if isLoading {
                 ProgressView().controlSize(.small).frame(maxWidth: .infinity)
             } else {
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: EVESpacing.sm) {
                     if !corpName.isEmpty {
                         popoverRow("Corporation", value: corpName)
                     }
@@ -735,7 +751,7 @@ struct AttackerInfoPopover: View {
                             popoverRow("Title", value: title)
                         }
                         if let desc = info.description, !desc.isEmpty {
-                            Text("Bio").font(.caption).foregroundStyle(.secondary).padding(.top, 4)
+                            Text("Bio").font(.caption).foregroundStyle(.secondary).padding(.top, EVESpacing.xs)
                             Text(desc.strippingEVEMarkup)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -827,7 +843,7 @@ struct KillmailItemRow: View {
     @State private var typeName = ""
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: EVESpacing.md) {
             CachedAsyncImage(url: EVEImageURL.typeIcon(item.itemTypeId, size: 32)) { image in
                 image.resizable()
             } placeholder: {
@@ -841,7 +857,7 @@ struct KillmailItemRow: View {
 
             Spacer()
 
-            HStack(spacing: 6) {
+            HStack(spacing: EVESpacing.sm) {
                 let destroyed = item.quantityDestroyed ?? 0
                 let dropped = item.quantityDropped ?? 0
                 if destroyed > 0 || (destroyed == 0 && dropped == 0) {

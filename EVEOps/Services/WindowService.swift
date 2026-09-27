@@ -122,34 +122,26 @@ final class WindowService: NSObject {
             galaxySearchWindow = nil
         } else if let window = galaxySearchWindow {
             if window.isMiniaturized { window.deminiaturize(nil) }
-            window.makeKeyAndOrderFront(nil)
-            applyActivationPolicy()
+            bringToFront(window)
             return
         }
 
         guard let am = accountManager, let pf = prefetcher, let tm = themeManager else { return }
 
-        let content = ThemedRoot {
+        let window = makeWindow(
+            title: "Galaxy Market Search",
+            autosaveName: "EVEOpsGalaxySearchWindow",
+            contentSize: NSSize(width: 1100, height: 680),
+            minSize: NSSize(width: 800, height: 500),
+            theme: tm
+        ) {
             GalaxyMarketSearchView(initialTypeId: typeId, initialTypeName: typeName)
                 .environment(am)
                 .environment(pf)
         }
-        .environment(tm)
-
-        let controller = NSHostingController(rootView: content)
-        let window = NSWindow(contentViewController: controller)
-        window.appearance = resolvedNSAppearance
-        window.title = "Galaxy Market Search"
-        window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
-        window.minSize = NSSize(width: 800, height: 500)
-        window.setContentSize(NSSize(width: 1100, height: 680))
-        window.isReleasedWhenClosed = false
-        window.setFrameAutosaveName("EVEOpsGalaxySearchWindow")
-        window.center()
 
         galaxySearchWindow = window
-        window.makeKeyAndOrderFront(nil)
-        applyActivationPolicy()
+        bringToFront(window)
     }
 
     // MARK: Trade Hub Comparison
@@ -160,34 +152,25 @@ final class WindowService: NSObject {
             tradeHubWindow = nil
         } else if let window = tradeHubWindow {
             if window.isMiniaturized { window.deminiaturize(nil) }
-            window.makeKeyAndOrderFront(nil)
-            applyActivationPolicy()
+            bringToFront(window)
             return
         }
 
         guard let am = accountManager, let tm = themeManager else { return }
 
-        let content = ThemedRoot {
+        let window = makeWindow(
+            title: "Trade Hub Comparison",
+            autosaveName: "EVEOpsTradeHubWindow",
+            contentSize: NSSize(width: 780, height: 520),
+            minSize: NSSize(width: 680, height: 440),
+            theme: tm
+        ) {
             TradeHubComparisonView(initialTypeId: typeId, initialTypeName: typeName)
                 .environment(am)
         }
-        .environment(tm)
-
-        let controller = NSHostingController(rootView: content)
-        let window = NSWindow(contentViewController: controller)
-        window.appearance = resolvedNSAppearance
-        window.title = "Trade Hub Comparison"
-        window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
-        window.minSize = NSSize(width: 680, height: 440)
-        window.setContentSize(NSSize(width: 780, height: 520))
-        window.isReleasedWhenClosed = false
-        window.setFrameAutosaveName("EVEOpsTradeHubWindow")
-        window.delegate = self
-        window.center()
 
         tradeHubWindow = window
-        window.makeKeyAndOrderFront(nil)
-        applyActivationPolicy()
+        bringToFront(window)
     }
 
     // MARK: Item Skill Tree
@@ -207,7 +190,13 @@ final class WindowService: NSObject {
             }
         }
 
-        let content = ThemedRoot {
+        let window = makeWindow(
+            title: "Skill Tree — \(typeName)",
+            autosaveName: "EVEOpsItemSkillTreeWindow",
+            contentSize: NSSize(width: 820, height: 620),
+            minSize: NSSize(width: 640, height: 480),
+            theme: tm
+        ) {
             ItemSkillTreeView(
                 characterSkills: characterSkills,
                 initialTypeId: typeId,
@@ -215,23 +204,9 @@ final class WindowService: NSObject {
             )
             .environment(am)
         }
-        .environment(tm)
-
-        let controller = NSHostingController(rootView: content)
-        let window = NSWindow(contentViewController: controller)
-        window.appearance = resolvedNSAppearance
-        window.title = "Skill Tree — \(typeName)"
-        window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
-        window.minSize = NSSize(width: 640, height: 480)
-        window.setContentSize(NSSize(width: 820, height: 620))
-        window.isReleasedWhenClosed = false
-        window.delegate = self
-        window.setFrameAutosaveName("EVEOpsItemSkillTreeWindow")
-        window.center()
 
         itemSkillTreeWindow = window
-        window.makeKeyAndOrderFront(nil)
-        applyActivationPolicy()
+        bringToFront(window)
     }
 
     // MARK: Ship Model Viewer
@@ -239,28 +214,24 @@ final class WindowService: NSObject {
     func showShipModel(shipName: String, shipClass: String = "") {
         if let existing = shipModelWindows[shipName] {
             if existing.isMiniaturized { existing.deminiaturize(nil) }
-            existing.makeKeyAndOrderFront(nil)
-            applyActivationPolicy()
+            bringToFront(existing)
             return
         }
 
         guard let tm = themeManager else { return }
 
-        let content = ThemedRoot {
+        // One autosave slot for every ship window: a per-ship name would leave a
+        // stale frame in defaults for every hull ever opened.
+        let window = makeWindow(
+            title: shipName,
+            subtitle: "3D Ship Model",
+            autosaveName: "EVEOpsShipModelWindow",
+            contentSize: NSSize(width: 800, height: 600),
+            minSize: NSSize(width: 680, height: 520),
+            theme: tm
+        ) {
             ShipModelSheet(shipName: shipName, shipClass: shipClass)
         }
-        .environment(tm)
-        let controller = NSHostingController(rootView: content)
-        let window = NSWindow(contentViewController: controller)
-        window.appearance = resolvedNSAppearance
-        window.title = shipName
-        window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
-        window.minSize = NSSize(width: 680, height: 520)
-        window.setContentSize(NSSize(width: 800, height: 600))
-        window.isReleasedWhenClosed = false
-        window.setFrameAutosaveName("EVEOpsShipModel_\(shipName)")
-        window.center()
-        window.delegate = self
 
         shipModelWindows[shipName] = window
         bringToFront(window)
@@ -293,9 +264,10 @@ final class WindowService: NSObject {
         window.title = "Settings"
         window.styleMask = [.titled, .closable]
         window.isReleasedWhenClosed = false
+        let hasSavedFrame = window.setFrameUsingName("EVEOpsSettingsWindow")
         window.setFrameAutosaveName("EVEOpsSettingsWindow")
         window.delegate = self
-        window.center()
+        if !hasSavedFrame { window.center() }
 
         settingsWindow = window
         bringToFront(window)
@@ -337,6 +309,42 @@ final class WindowService: NSObject {
     }
 
     // MARK: Helpers
+
+    /// Builds a standard, resizable document-style window. Every secondary window goes
+    /// through here so they share one chrome: full-size content view (content runs up
+    /// under a unified titlebar, like the main window), the resolved light/dark
+    /// appearance, the faction tint, and a remembered frame — `center()` only on first
+    /// open, so a window the user moved comes back where they left it.
+    private func makeWindow<Content: View>(
+        title: String,
+        subtitle: String = "",
+        autosaveName: String,
+        contentSize: NSSize,
+        minSize: NSSize,
+        theme: ThemeManager,
+        @ViewBuilder content: @escaping () -> Content
+    ) -> NSWindow {
+        let host = EVEHostWindow()
+        let root = ThemedRoot { content().environment(\.hostWindow, host) }
+            .environment(theme)
+
+        let window = NSWindow(contentViewController: NSHostingController(rootView: root))
+        host.window = window
+        window.appearance = resolvedNSAppearance
+        window.title = title
+        window.subtitle = subtitle
+        window.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
+        window.toolbarStyle = .unified
+        window.minSize = minSize
+        window.setContentSize(contentSize)
+        window.isReleasedWhenClosed = false
+        window.delegate = self
+        window.tabbingMode = .disallowed
+        let hasSavedFrame = window.setFrameUsingName(autosaveName)
+        window.setFrameAutosaveName(autosaveName)
+        if !hasSavedFrame { window.center() }
+        return window
+    }
 
     // MenuBarExtra popovers dismiss *after* the button action returns, so
     // activate/makeKeyAndOrderFront called synchronously get overridden when
@@ -414,8 +422,26 @@ extension WindowService: NSWindowDelegate {
             if window === settingsWindow { settingsWindow = nil }
             if window === aboutWindow { aboutWindow = nil }
             if window === tradeHubWindow { tradeHubWindow = nil }
+            if window === galaxySearchWindow { galaxySearchWindow = nil }
             if window === itemSkillTreeWindow { itemSkillTreeWindow = nil }
             shipModelWindows = shipModelWindows.filter { $0.value !== window }
         }
     }
+}
+
+// MARK: Host window
+
+/// The AppKit window a view is hosted in, when it was opened as a standalone window by
+/// `WindowService` rather than presented as a sheet. `DismissAction` is a no-op for a
+/// root view in an `NSHostingController`, so views that double as sheets and windows
+/// read this to close themselves and to hide sheet-only chrome (close buttons, "open in
+/// window").
+@MainActor
+final class EVEHostWindow {
+    weak var window: NSWindow?
+    func close() { window?.performClose(nil) }
+}
+
+extension EnvironmentValues {
+    @Entry var hostWindow: EVEHostWindow? = nil
 }

@@ -60,7 +60,7 @@ struct CorpHoldingRow: View {
                 }
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, EVESpacing.xs)
     }
 }
 
@@ -84,10 +84,10 @@ struct LPOfferDetailPopover: View {
             VStack(alignment: .leading, spacing: 0) {
 
                 // Header — large thumbnail + name + classification
-                HStack(alignment: .top, spacing: 12) {
+                HStack(alignment: .top, spacing: EVESpacing.lg) {
                     LPTypeImage(typeId: offer.typeId, size: 72)
                         .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: EVESpacing.xs) {
                         Text(resolved.typeName)
                             .font(.headline)
                             .fixedSize(horizontal: false, vertical: true)
@@ -110,13 +110,13 @@ struct LPOfferDetailPopover: View {
                     }
                     Spacer(minLength: 0)
                 }
-                .padding(16)
+                .padding(EVESpacing.xl)
 
                 // Physical properties row (volume / portion size)
                 let hasVolume   = (typeInfo?.volume ?? 0) > 0
                 let hasPortion  = (typeInfo?.portionSize ?? 1) > 1
                 if hasVolume || hasPortion {
-                    HStack(spacing: 12) {
+                    HStack(spacing: EVESpacing.lg) {
                         if hasVolume, let vol = typeInfo?.volume {
                             Label(String(format: "%.2f m³", vol), systemImage: "cube")
                                 .font(.caption)
@@ -129,7 +129,7 @@ struct LPOfferDetailPopover: View {
                         }
                         Spacer(minLength: 0)
                     }
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, EVESpacing.xl)
                     .padding(.bottom, 10)
                 }
 
@@ -137,17 +137,17 @@ struct LPOfferDetailPopover: View {
 
                 // Description
                 if let desc = typeInfo?.description, !desc.isEmpty {
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                         sectionLabel("DESCRIPTION")
                         Text(desc.strippingEVEMarkup)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                             .textSelection(.enabled)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 4)
+                            .padding(.horizontal, EVESpacing.xl)
+                            .padding(.vertical, EVESpacing.xs)
                     }
-                    .padding(.bottom, 6)
+                    .padding(.bottom, EVESpacing.sm)
                     Divider()
                 } else if typeInfo == nil {
                     HStack {
@@ -156,16 +156,16 @@ struct LPOfferDetailPopover: View {
                             .font(.caption)
                             .foregroundStyle(.tertiary)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
+                    .padding(.horizontal, EVESpacing.xl)
+                    .padding(.vertical, EVESpacing.md)
                     Divider()
                 }
 
                 // Exchange Cost
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                     sectionLabel("EXCHANGE COST")
                     detailRow(isEverMarks ? "EverMarks Cost" : "LP Cost") {
-                        HStack(spacing: 4) {
+                        HStack(spacing: EVESpacing.xs) {
                             Image(systemName: lpCurrencyIcon(isEverMarks: isEverMarks))
                                 .font(.caption)
                                 .foregroundStyle(lpCurrencyColor(isEverMarks: isEverMarks))
@@ -197,12 +197,12 @@ struct LPOfferDetailPopover: View {
                         }
                     }
                 }
-                .padding(.bottom, 8)
+                .padding(.bottom, EVESpacing.md)
 
                 Divider()
 
                 // Reward
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                     sectionLabel("REWARD")
                     detailRow("Quantity") {
                         Text("×\(offer.quantity)").foregroundStyle(.primary)
@@ -232,14 +232,14 @@ struct LPOfferDetailPopover: View {
                         }
                     }
                 }
-                .padding(.bottom, 8)
+                .padding(.bottom, EVESpacing.md)
 
                 // ISK/LP badge
                 if showPricing, let iskLP = resolved.iskPerLP {
                     let color = lpISKPerLPColor(iskLP)
                     HStack {
                         Spacer()
-                        VStack(spacing: 2) {
+                        VStack(spacing: EVESpacing.xxs) {
                             Text(lpFormatISKPerLP(iskLP))
                                 .font(.eveStat)
                                 .foregroundStyle(.white)
@@ -253,16 +253,16 @@ struct LPOfferDetailPopover: View {
                         .shadow(color: color.opacity(0.45), radius: 6, x: 0, y: 2)
                         Spacer()
                     }
-                    .padding(.vertical, 12)
+                    .padding(.vertical, EVESpacing.lg)
                 }
 
                 // Required items
                 if !offer.requiredItems.isEmpty {
                     Divider()
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                         sectionLabel("REQUIRED ITEMS (\(offer.requiredItems.count))")
                         ForEach(offer.requiredItems, id: \.typeId) { item in
-                            HStack(spacing: 8) {
+                            HStack(spacing: EVESpacing.md) {
                                 Text("×\(item.quantity)")
                                     .font(.caption.monospacedDigit())
                                     .foregroundStyle(.secondary)
@@ -272,7 +272,7 @@ struct LPOfferDetailPopover: View {
                                     .foregroundStyle(.primary)
                                 Spacer(minLength: 0)
                             }
-                            .padding(.horizontal, 16)
+                            .padding(.horizontal, EVESpacing.xl)
                             .padding(.vertical, 3)
                         }
                     }
@@ -288,9 +288,9 @@ struct LPOfferDetailPopover: View {
         Text(title)
             .font(.caption2.bold())
             .foregroundStyle(.tertiary)
-            .padding(.horizontal, 16)
+            .padding(.horizontal, EVESpacing.xl)
             .padding(.top, 10)
-            .padding(.bottom, 2)
+            .padding(.bottom, EVESpacing.xxs)
     }
 
     private func detailRow<Content: View>(
@@ -306,7 +306,7 @@ struct LPOfferDetailPopover: View {
                 .font(.subheadline)
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, EVESpacing.xl)
         .padding(.vertical, 3)
     }
 
@@ -369,18 +369,18 @@ struct LPSpendPlanPopover: View {
             header
             Divider()
             if isLoading {
-                HStack(spacing: 8) {
+                HStack(spacing: EVESpacing.md) {
                     ProgressView().controlSize(.small)
                     Text("Calculating best value…")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                .padding(16)
+                .padding(EVESpacing.xl)
             } else if let loadError {
                 Text(loadError)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .padding(16)
+                    .padding(EVESpacing.xl)
             } else if let emptyReason {
                 emptyStateView(emptyReason)
             } else {
@@ -388,7 +388,7 @@ struct LPSpendPlanPopover: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, EVESpacing.xl)
                     .padding(.vertical, 10)
                 Divider()
                 ScrollView {
@@ -411,8 +411,8 @@ struct LPSpendPlanPopover: View {
     private func emptyStateView(_ reason: LPSpendPlanEmptyReason) -> some View {
         switch reason {
         case .noMarketData:
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(alignment: .top, spacing: 8) {
+            VStack(alignment: .leading, spacing: EVESpacing.md) {
+                HStack(alignment: .top, spacing: EVESpacing.md) {
                     Image(systemName: "xmark.seal")
                         .foregroundStyle(.tertiary)
                     Text("None of \(corp.corporationName)'s rewards are tradeable on the market — there's no ISK value to optimize for here.")
@@ -421,11 +421,11 @@ struct LPSpendPlanPopover: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            .padding(16)
+            .padding(EVESpacing.xl)
 
         case .noProfitableOffers(let closest):
             VStack(alignment: .leading, spacing: 10) {
-                HStack(alignment: .top, spacing: 8) {
+                HStack(alignment: .top, spacing: EVESpacing.md) {
                     Image(systemName: "chart.line.downtrend.xyaxis")
                         .foregroundStyle(.tertiary)
                     Text("None of \(corp.corporationName)'s offers clear break-even at current prices, even checking every major hub.")
@@ -435,12 +435,12 @@ struct LPSpendPlanPopover: View {
                 }
                 if !closest.isEmpty {
                     Divider()
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: EVESpacing.xs) {
                         Text("CLOSEST TO PROFITABLE")
                             .font(.caption2.bold())
                             .foregroundStyle(.tertiary)
                         ForEach(closest) { offer in
-                            HStack(spacing: 8) {
+                            HStack(spacing: EVESpacing.md) {
                                 Text(offer.typeName)
                                     .font(.caption)
                                     .lineLimit(1)
@@ -459,11 +459,11 @@ struct LPSpendPlanPopover: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            .padding(16)
+            .padding(EVESpacing.xl)
 
         case .lpTooLow(let cheapest, let shortfall):
             VStack(alignment: .leading, spacing: 10) {
-                HStack(alignment: .top, spacing: 8) {
+                HStack(alignment: .top, spacing: EVESpacing.md) {
                     Image(systemName: "medal")
                         .foregroundStyle(.tertiary)
                     Text("You don't have enough LP yet for a profitable redemption.")
@@ -472,11 +472,11 @@ struct LPSpendPlanPopover: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Divider()
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: EVESpacing.xs) {
                     Text("CHEAPEST PROFITABLE OFFER")
                         .font(.caption2.bold())
                         .foregroundStyle(.tertiary)
-                    HStack(spacing: 8) {
+                    HStack(spacing: EVESpacing.md) {
                         Text(cheapest.typeName)
                             .font(.caption.bold())
                             .lineLimit(1)
@@ -494,12 +494,12 @@ struct LPSpendPlanPopover: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            .padding(16)
+            .padding(EVESpacing.xl)
         }
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: EVESpacing.xxs) {
             Text("Optimized LP Spend")
                 .font(.headline)
             Text("\(corp.corporationName) · \(lpFormatLP(corp.loyaltyPoints)) LP available")
@@ -509,13 +509,13 @@ struct LPSpendPlanPopover: View {
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         }
-        .padding(16)
+        .padding(EVESpacing.xl)
     }
 
     private var planList: some View {
         VStack(alignment: .leading, spacing: 0) {
             ForEach(plan) { entry in
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                HStack(alignment: .firstTextBaseline, spacing: EVESpacing.md) {
                     Text("×\(entry.redemptions)")
                         .font(.caption.monospacedDigit().bold())
                         .foregroundStyle(.secondary)
@@ -542,11 +542,11 @@ struct LPSpendPlanPopover: View {
                     }
                     .fixedSize()
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 6)
+                .padding(.horizontal, EVESpacing.xl)
+                .padding(.vertical, EVESpacing.sm)
             }
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, EVESpacing.sm)
     }
 
     /// Plain-English readout of the plan, generated by templating the numbers we
@@ -564,7 +564,7 @@ struct LPSpendPlanPopover: View {
     }
 
     private var summary: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: EVESpacing.sm) {
             HStack {
                 Text("LP Used")
                     .font(.caption)
@@ -582,7 +582,7 @@ struct LPSpendPlanPopover: View {
                     .foregroundStyle(.green)
             }
         }
-        .padding(16)
+        .padding(EVESpacing.xl)
     }
 
     private func buildPlan() async {
@@ -667,7 +667,7 @@ struct LPOfferRow: View {
                             showPricing: showPricing
                         )
                     }
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                     Text(resolved.typeName)
                         .font(.subheadline.bold())
                         .lineLimit(1)
@@ -682,7 +682,7 @@ struct LPOfferRow: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.leading, 12)
+            .padding(.leading, EVESpacing.lg)
 
             // LP / EverMarks cost
             HStack(spacing: 3) {
@@ -726,7 +726,7 @@ struct LPOfferRow: View {
                 // ISK/LP badge
                 iskPerLPBadge
                     .frame(width: 110, alignment: .trailing)
-                    .padding(.trailing, 16)
+                    .padding(.trailing, EVESpacing.xl)
             }
         }
         .padding(.vertical, 10)
@@ -767,7 +767,7 @@ struct LPOfferRow: View {
                 .font(.caption.monospacedDigit().bold())
                 .foregroundStyle(.white)
                 .padding(.horizontal, 10)
-                .padding(.vertical, 4)
+                .padding(.vertical, EVESpacing.xs)
                 .background(color, in: Capsule())
                 .shadow(color: color.opacity(0.4), radius: 3, x: 0, y: 1)
         } else if resolved.marketSell == nil {
@@ -779,7 +779,7 @@ struct LPOfferRow: View {
                 .font(.caption.bold())
                 .foregroundStyle(.white)
                 .padding(.horizontal, 10)
-                .padding(.vertical, 4)
+                .padding(.vertical, EVESpacing.xs)
                 .background(Color.red.opacity(0.75), in: Capsule())
         }
     }

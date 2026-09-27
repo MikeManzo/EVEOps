@@ -174,7 +174,7 @@ private struct FWStatsCard: View {
     private var isEnlisted: Bool { stats.factionId != nil }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: EVESpacing.xl) {
             enrollmentHeader
             Divider()
             rankRow
@@ -191,11 +191,11 @@ private struct FWStatsCard: View {
                         total: stats.victoryPoints.total,
                         color: .blue)
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, EVESpacing.md)
     }
 
     private var enrollmentHeader: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: EVESpacing.lg) {
             if let factionId = stats.factionId {
                 CachedAsyncImage(url: EVEImageURL.corporationLogo(factionId, size: 64)) { image in
                     image.resizable().scaledToFit()
@@ -211,7 +211,7 @@ private struct FWStatsCard: View {
                     .frame(width: 48, height: 48)
             }
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: EVESpacing.xs) {
                 if let name = entry.factionName {
                     Text(name).font(.headline)
                 } else {
@@ -236,12 +236,12 @@ private struct FWStatsCard: View {
 
     private var rankRow: some View {
         HStack {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: EVESpacing.xs) {
                 Text("Current Rank").font(.caption).foregroundStyle(.secondary)
                 Text(rankLabel(stats.currentRank)).font(.subheadline.bold())
             }
             Spacer()
-            VStack(alignment: .trailing, spacing: 4) {
+            VStack(alignment: .trailing, spacing: EVESpacing.xs) {
                 Text("Highest Rank").font(.caption).foregroundStyle(.secondary)
                 Text(rankLabel(stats.highestRank)).font(.subheadline.bold())
             }
@@ -249,7 +249,7 @@ private struct FWStatsCard: View {
     }
 
     private func periodTable(label: String, yesterday: Int, lastWeek: Int, total: Int, color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
             Text(label).font(.caption.bold()).foregroundStyle(.secondary)
             Grid(alignment: .leading, horizontalSpacing: 0, verticalSpacing: 4) {
                 GridRow {
@@ -327,8 +327,8 @@ private struct WarzoneRow: View {
             .frame(width: 32, height: 32)
             .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
 
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
+                HStack(spacing: EVESpacing.sm) {
                     Text(stat.factionName)
                         .font(.subheadline.bold())
                     if isYourFaction {
@@ -338,7 +338,7 @@ private struct WarzoneRow: View {
                     }
                 }
                 if stat.systemsContested > 0 || stat.systemsOccupied > 0 {
-                    HStack(spacing: 6) {
+                    HStack(spacing: EVESpacing.sm) {
                         if stat.systemsContested > 0 {
                             Text("\(stat.systemsContested) contested")
                                 .font(.caption2)
@@ -440,7 +440,7 @@ private struct WarzoneFactionPopover: View {
     // MARK:  Header
 
     private var header: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: EVESpacing.lg) {
             CachedAsyncImage(url: EVEImageURL.corporationLogo(stat.factionId, size: 64)) { image in
                 image.resizable().scaledToFit()
             } placeholder: {
@@ -450,7 +450,7 @@ private struct WarzoneFactionPopover: View {
             .clipShape(RoundedRectangle(cornerRadius: EVERadius.md))
 
             VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
+                HStack(spacing: EVESpacing.sm) {
                     Text(stat.factionName).font(.headline)
                     if isYourFaction {
                         Label("You", systemImage: "star.fill")
@@ -464,18 +464,18 @@ private struct WarzoneFactionPopover: View {
             }
             Spacer(minLength: 0)
         }
-        .padding(12)
+        .padding(EVESpacing.lg)
     }
 
     // MARK:  War Opponents
 
     private var warSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: EVESpacing.sm) {
             sectionLabel("AT WAR WITH")
             FlowChips(items: opponentFactionIds.map { factionNames[$0] ?? "Faction #\($0)" })
-                .padding(.horizontal, 12)
+                .padding(.horizontal, EVESpacing.lg)
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, EVESpacing.md)
     }
 
     // MARK:  Combat Stats
@@ -492,12 +492,12 @@ private struct WarzoneFactionPopover: View {
                       lastWeek: amount(for: leaderboard.victoryPoints.lastWeek),
                       total: amount(for: leaderboard.victoryPoints.activeTotal))
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, EVESpacing.lg)
+        .padding(.vertical, EVESpacing.md)
     }
 
     private func periodRow(label: String, color: Color, yesterday: Int, lastWeek: Int, total: Int) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: EVESpacing.xs) {
             Text(label).font(.caption.bold()).foregroundStyle(.secondary)
             HStack {
                 statPill("Yesterday", yesterday, color)
@@ -526,28 +526,24 @@ private struct WarzoneFactionPopover: View {
     // MARK:  Systems
 
     private var systemsSection: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: EVESpacing.xxs) {
             sectionLabel("SYSTEMS (\(ownedSystems.count))")
             ForEach(ownedSystems, id: \.solarSystemId) { sys in
                 systemRow(sys)
             }
         }
-        .padding(.bottom, 8)
+        .padding(.bottom, EVESpacing.md)
     }
 
     private func systemRow(_ sys: ESIFWSystem) -> some View {
         let isOccupied = sys.occupierFactionId != sys.ownerFactionId
         let fraction = vpFraction(sys)
         return VStack(alignment: .leading, spacing: 3) {
-            HStack(spacing: 6) {
+            HStack(spacing: EVESpacing.sm) {
                 Text(systemNames[sys.solarSystemId] ?? "System #\(sys.solarSystemId)")
                     .font(.caption.bold())
                 if sys.contested != "uncontested" {
-                    Text("Contested")
-                        .font(.eveMicroBold)
-                        .foregroundStyle(.orange)
-                        .padding(.horizontal, 6).padding(.vertical, 1)
-                        .background(Color.orange.opacity(0.15), in: Capsule())
+                    EVEChip(Text("Contested"), tint: .orange)
                 }
                 Spacer(minLength: 0)
                 Text(fraction.formatted(.percent.precision(.fractionLength(0))))
@@ -571,8 +567,8 @@ private struct WarzoneFactionPopover: View {
             }
             .frame(height: 4)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
+        .padding(.horizontal, EVESpacing.lg)
+        .padding(.vertical, EVESpacing.sm)
     }
 
     private func vpFraction(_ sys: ESIFWSystem) -> Double {
@@ -584,9 +580,9 @@ private struct WarzoneFactionPopover: View {
         Text(title)
             .font(.caption2.bold())
             .foregroundStyle(.tertiary)
-            .padding(.horizontal, 12)
+            .padding(.horizontal, EVESpacing.lg)
             .padding(.top, 10)
-            .padding(.bottom, 2)
+            .padding(.bottom, EVESpacing.xxs)
     }
 }
 
@@ -600,12 +596,7 @@ private struct FlowChips: View {
         // chips can wrap onto multiple lines within the popover's fixed width.
         FlowLayout(spacing: 6) {
             ForEach(items, id: \.self) { name in
-                Text(name)
-                    .font(.caption2.bold())
-                    .foregroundStyle(.red)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(Color.red.opacity(0.12), in: Capsule())
+                EVEChip(Text(name), tint: .red)
             }
         }
     }

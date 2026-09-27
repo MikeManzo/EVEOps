@@ -94,10 +94,19 @@ struct GalaxyOrder: Identifiable {
     let securityStatus: Double
     var jumps: Int?
     var id: Int { order.orderId }
-}
 
-enum SortColumn {
-    case price, qty, location, region, sec, jumps
+    // Sort keys for the results `Table`'s column comparators.
+    var price: Double { order.price }
+    var quantity: Int { order.volumeRemain }
+    /// Unknown jump counts sort after every known one.
+    var jumpsSortKey: Int { jumps ?? .max }
+    var side: String { isBuyOrder ? "Buy" : "Sell" }
+
+    /// Tab-separated line for ⌘C on selected rows.
+    var copyText: String {
+        [side, EVEFormatters.formatISK(price), String(quantity), locationName, systemName, regionName]
+            .joined(separator: "\t")
+    }
 }
 
 enum OrderTypeFilter: String {
@@ -122,7 +131,7 @@ struct GalaxyMarketSearchView: View {
     @Environment(ThemeManager.self) var themeManager
     var palette: EVEPalette { themeManager.palette }
     @Environment(DashboardPrefetcher.self) var prefetcher
-    @Environment(\.dismiss) var dismiss
+    @Environment(\.hostWindow) var hostWindow
 
     // Item selection
     @State var itemSearchText = ""
@@ -152,9 +161,9 @@ struct GalaxyMarketSearchView: View {
     @State var characterSystemId: Int?
     @State var jumpCache: [Int: Int] = [:]
 
-    // Sorting
-    @State var sortColumn: SortColumn = .price
-    @State var sortAscending = true
+    // Sorting & selection (results table)
+    @State var sortOrder: [KeyPathComparator<GalaxyOrder>] = [KeyPathComparator(\.price)]
+    @State var selectedOrderIDs = Set<GalaxyOrder.ID>()
 
     // Autopilot feedback
     @State var waypointMessage: String?
@@ -180,33 +189,18 @@ struct GalaxyMarketSearchView: View {
     }
 
     var sortedOrders: [GalaxyOrder] {
-        filteredOrders.sorted { a, b in
-            let asc = sortAscending
-            switch sortColumn {
-            case .price:    return asc ? a.order.price < b.order.price : a.order.price > b.order.price
-            case .qty:      return asc ? a.order.volumeRemain < b.order.volumeRemain : a.order.volumeRemain > b.order.volumeRemain
-            case .location: return asc ? a.locationName < b.locationName : a.locationName > b.locationName
-            case .region:   return asc ? a.regionName < b.regionName : a.regionName > b.regionName
-            case .sec:      return asc ? a.securityStatus < b.securityStatus : a.securityStatus > b.securityStatus
-            case .jumps:
-                let aj = a.jumps ?? Int.max
-                let bj = b.jumps ?? Int.max
-                return asc ? aj < bj : aj > bj
-            }
-        }
+        filteredOrders.sorted(using: sortOrder)
+    }
+
+    /// Cheapest-first for sell orders, highest-first for buy orders — the order a trader
+    /// actually wants to read them in. Applied only while price is the sort column.
+    func applyNaturalPriceSort(for filter: OrderTypeFilter) {
+        guard sortOrder.first?.keyPath == \GalaxyOrder.price else { return }
+        sortOrder = [KeyPathComparator(\.price, order: filter == .buy ? .reverse : .forward)]
     }
 
     var sellCount: Int { orders.filter { !$0.isBuyOrder }.count }
     var buyCount:  Int { orders.filter {  $0.isBuyOrder }.count }
-
-    func toggleSort(_ column: SortColumn) {
-        if sortColumn == column {
-            sortAscending.toggle()
-        } else {
-            sortColumn = column
-            sortAscending = true
-        }
-    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -215,6 +209,7 @@ struct GalaxyMarketSearchView: View {
             contentArea
         }
         .frame(minWidth: 900, idealWidth: 1100, minHeight: 580)
+        .onExitCommand { hostWindow?.close() }
         .onAppear {
             if let id = initialTypeId, !initialTypeName.isEmpty {
                 selectedTypeId = id
@@ -239,8 +234,7 @@ struct GalaxyMarketSearchView: View {
         }
         .onChange(of: orderTypeFilter) { _, newType in
             // Auto-flip price sort direction to the natural default for each type
-            guard sortColumn == .price else { return }
-            sortAscending = newType != .buy
+            applyNaturalPriceSort(for: newType)
         }
     }
 

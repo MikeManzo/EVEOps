@@ -26,10 +26,27 @@ final class DiscordRichPresenceStatus {
         case connected        // actively pushing activity to Discord
     }
 
-    private(set) var state: State = .off
+    /// Why the state is `.searching`, when known — lets Settings tell "no Discord
+    /// client is listening" apart from "Discord is there but hasn't answered" or
+    /// "we just don't have character data yet". `nil` means a generic wait (e.g. the
+    /// connection dropped and the next attempt hasn't happened yet).
+    enum SearchReason: Equatable {
+        /// No `discord-ipc-N` socket accepted a connection. Either Discord isn't
+        /// running, or the running client doesn't host the local Rich Presence
+        /// server (e.g. Swiftcord) — any leftover socket file just refuses.
+        case noRichPresenceClient
+        /// A socket accepted the connection but never sent `DISPATCH READY`.
+        case handshakeTimedOut
+        /// Feature is on, but there's no selected character / prefetched data yet.
+        case awaitingCharacterData
+    }
 
-    fileprivate func setState(_ newState: State) {
+    private(set) var state: State = .off
+    private(set) var searchReason: SearchReason?
+
+    fileprivate func setState(_ newState: State, reason: SearchReason? = nil) {
         state = newState
+        searchReason = newState == .searching ? reason : nil
     }
 }
 
@@ -53,6 +70,9 @@ actor DiscordRichPresence {
     private var connected = false
     private var readLoopTask: Task<Void, Never>?
     private var reconnectNotBefore: Date?
+    /// Why the most recent `connect()` failed — reused while backing off, so the
+    /// status badge keeps showing the real cause between attempts.
+    private var lastConnectFailure: DiscordRichPresenceStatus.SearchReason?
     /// Cached from the most recent `update()` call so `retryWithoutImage()` — triggered
     /// when Discord rejects an unrecognized asset key — can resend the same text without
     /// needing request/response correlation on every call.
@@ -84,7 +104,7 @@ actor DiscordRichPresence {
 
         if !connected {
             guard await connect() else {
-                await DiscordRichPresenceStatus.shared.setState(.searching)
+                await DiscordRichPresenceStatus.shared.setState(.searching, reason: lastConnectFailure)
                 return
             }
         }
@@ -139,10 +159,11 @@ actor DiscordRichPresence {
     /// that know the feature is enabled but have nothing to show yet (e.g. character
     /// data hasn't been prefetched), so the status badge doesn't read as "disabled".
     func disconnectPendingData() async {
-        await disconnect(reportAs: .searching)
+        await disconnect(reportAs: .searching, reason: .awaitingCharacterData)
     }
 
-    private func disconnect(reportAs status: DiscordRichPresenceStatus.State) async {
+    private func disconnect(reportAs status: DiscordRichPresenceStatus.State,
+                            reason: DiscordRichPresenceStatus.SearchReason? = nil) async {
         if socketFD >= 0 {
             if connected {
                 let payload: [String: Any] = [
@@ -159,7 +180,7 @@ actor DiscordRichPresence {
             socketFD = -1
             connected = false
         }
-        await DiscordRichPresenceStatus.shared.setState(status)
+        await DiscordRichPresenceStatus.shared.setState(status, reason: reason)
     }
 
     /// Suspends until the read loop reports Discord's `DISPATCH READY` event for the
@@ -208,6 +229,7 @@ actor DiscordRichPresence {
 
         let tmpDir = ProcessInfo.processInfo.environment["TMPDIR"] ?? NSTemporaryDirectory()
         let base = tmpDir.hasSuffix("/") ? String(tmpDir.dropLast()) : tmpDir
+        var sawHandshakeTimeout = false
 
         for i in 0..<10 {
             let path = "\(base)/discord-ipc-\(i)"
@@ -247,17 +269,22 @@ actor DiscordRichPresence {
                 readLoopTask = nil
                 close(fd)
                 socketFD = -1
+                sawHandshakeTimeout = true
                 continue
             }
 
             connected = true
             reconnectNotBefore = nil
+            lastConnectFailure = nil
             await Logger.richPresence.info("[RichPresence] Connected via \(path)")
             return true
         }
 
-        // None of the candidate sockets worked — Discord probably isn't running.
+        // None of the candidate sockets worked — Discord isn't running, or the client
+        // that is running doesn't host the IPC server (a stale socket file left by a
+        // previous official-client session just refuses the connection).
         // Back off before trying again on the next update() call.
+        lastConnectFailure = sawHandshakeTimeout ? .handshakeTimedOut : .noRichPresenceClient
         reconnectNotBefore = Date().addingTimeInterval(30)
         return false
     }

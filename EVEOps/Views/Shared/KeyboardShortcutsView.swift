@@ -90,7 +90,7 @@ struct KeyboardShortcutsView: View {
                         Text(shortcut.keys)
                             .font(.callout.monospaced().weight(.semibold))
                             .padding(.horizontal, EVESpacing.sm)
-                            .padding(.vertical, 2)
+                            .padding(.vertical, EVESpacing.xxs)
                             .background(Color.primary.opacity(0.07), in: RoundedRectangle(cornerRadius: EVERadius.xs))
                             .gridColumnAlignment(.trailing)
                         Text(shortcut.action)

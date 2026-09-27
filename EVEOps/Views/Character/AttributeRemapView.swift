@@ -100,8 +100,8 @@ struct AttributeRemapView: View {
     // MARK:  Remap Status
 
     private func remapStatusCard(_ data: CharacterRemapData) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: EVESpacing.xs) {
+            HStack(spacing: EVESpacing.lg) {
                 Label("\(data.bonusRemaps) bonus remap\(data.bonusRemaps == 1 ? "" : "s")",
                       systemImage: "arrow.triangle.2.circlepath")
                     .font(.caption.bold())
@@ -144,8 +144,8 @@ struct AttributeRemapView: View {
                     .foregroundStyle(.yellow)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, EVESpacing.lg)
+        .padding(.vertical, EVESpacing.md)
         .eveCard(cornerRadius: EVERadius.md)
     }
 
@@ -166,13 +166,13 @@ struct AttributeRemapView: View {
         let pairs = data.queuePairs.sorted { $0.value > $1.value }
         let dominantPair = pairs.first.map { splitPair($0.key) }
 
-        return VStack(alignment: .leading, spacing: 12) {
+        return VStack(alignment: .leading, spacing: EVESpacing.lg) {
             Text("Attributes")
                 .font(.headline)
 
-            HStack(alignment: .top, spacing: 24) {
+            HStack(alignment: .top, spacing: EVESpacing.xxl) {
                 // Left: Current totals
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: EVESpacing.md) {
                     Text("Current")
                         .font(.subheadline.bold())
                     Text("Total values including implants.")
@@ -204,7 +204,7 @@ struct AttributeRemapView: View {
                 Divider()
 
                 // Right: Implant breakdown
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: EVESpacing.md) {
                     Text("Implants")
                         .font(.subheadline.bold())
                     Text("Base (light) plus attribute-enhancing implants (bright).")
@@ -218,7 +218,7 @@ struct AttributeRemapView: View {
 
                             Text(bonus > 0 ? "+\(bonus)" : "—")
                                 .font(.caption2.bold())
-                                .padding(.horizontal, 6).padding(.vertical, 2)
+                                .padding(.horizontal, EVESpacing.sm).padding(.vertical, EVESpacing.xxs)
                                 .background(gradeColor(bonus).opacity(0.15))
                                 .foregroundStyle(gradeColor(bonus))
                                 .clipShape(Capsule())
@@ -253,10 +253,10 @@ struct AttributeRemapView: View {
                         let upgradeGain = (5 - primaryBonus) + (5 - secondaryBonus) / 2
                         if upgradeGain > 0 {
                             Divider()
-                            HStack(spacing: 8) {
+                            HStack(spacing: EVESpacing.md) {
                                 Image(systemName: "arrow.up.circle.fill")
                                     .foregroundStyle(.blue)
-                                VStack(alignment: .leading, spacing: 2) {
+                                VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                                     Text("Implant Upgrade Potential")
                                         .font(.caption.bold())
                                     let pLabel = primaryBonus > 0 ? "+\(primaryBonus) → +5" : "none → +5"
@@ -291,7 +291,7 @@ struct AttributeRemapView: View {
         let pairs = data.queuePairs.sorted { $0.value > $1.value }
         let totalSP = pairs.reduce(0) { $0 + $1.value }
 
-        return VStack(alignment: .leading, spacing: 12) {
+        return VStack(alignment: .leading, spacing: EVESpacing.lg) {
             Text("Queue Attribute Demand")
                 .font(.headline)
             Text("SP distribution across training attribute pairs in your current queue.")
@@ -331,10 +331,10 @@ struct AttributeRemapView: View {
                     let currentRate = currentP + currentS / 2
 
                     Divider()
-                    HStack(spacing: 8) {
+                    HStack(spacing: EVESpacing.md) {
                         Image(systemName: dominant.value > (totalSP / 2) ? "lightbulb.fill" : "lightbulb")
                             .foregroundStyle(.yellow)
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                             Text("Your queue is \((Double(dominant.value) / Double(totalSP)).formatted(.percent.precision(.fractionLength(0)))) **\(p)/\(s)** skills.")
                                 .font(.caption)
                             Text("Current speed: \(currentRate) SP/min • \(currentRate * 60) SP/hr")
@@ -394,7 +394,7 @@ struct AttributeRemapView: View {
 
         let best = entries.map(\.rate).max() ?? 1
 
-        return VStack(alignment: .leading, spacing: 12) {
+        return VStack(alignment: .leading, spacing: EVESpacing.lg) {
             Text("Training Speed by Attribute Pair")
                 .font(.headline)
             Text("SP per minute = primary + floor(secondary ÷ 2). Higher is faster.")
@@ -495,7 +495,7 @@ struct AttributeRemapView: View {
         return AnyView(
             VStack(alignment: .leading, spacing: 14) {
                 // Header
-                HStack(spacing: 8) {
+                HStack(spacing: EVESpacing.md) {
                     Image(systemName: remapReady ? "checkmark.circle.fill" : "clock.fill")
                         .foregroundStyle(remapReady ? .green : .orange)
                     Text(remapReady ? "Remap Available — Recommendation" : "Remap on Cooldown — Planned Recommendation")
@@ -517,18 +517,18 @@ struct AttributeRemapView: View {
                 }
                 let remapMax = remapAttrs.map { $0.1 + $0.2 }.max() ?? 1
 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: EVESpacing.xs) {
                     Text("Enter in EVE's Remap Screen")
                         .font(.caption.bold())
                         .foregroundStyle(.secondary)
                     Text("Floor (muted) = 17 + implants. Bright segment = remap points added.")
                         .font(.caption2).foregroundStyle(.tertiary)
 
-                    VStack(spacing: 6) {
+                    VStack(spacing: EVESpacing.sm) {
                         ForEach(remapAttrs, id: \.0) { name, floor, alloc, total, color in
                             let isPrimary   = name == primary
                             let isSecondary = name == secondary
-                            HStack(spacing: 8) {
+                            HStack(spacing: EVESpacing.md) {
                                 Text(name)
                                     .font(.subheadline)
                                     .frame(width: 110, alignment: .trailing)
@@ -569,14 +569,14 @@ struct AttributeRemapView: View {
 
                 // Speed comparison
                 HStack(spacing: 20) {
-                    VStack(spacing: 2) {
+                    VStack(spacing: EVESpacing.xxs) {
                         Text("Current speed")
                             .font(.caption).foregroundStyle(.secondary)
                         Text("\(currentSpeed) SP/min")
                             .font(.subheadline.bold().monospacedDigit())
                     }
                     Image(systemName: "arrow.right").foregroundStyle(.secondary)
-                    VStack(spacing: 2) {
+                    VStack(spacing: EVESpacing.xxs) {
                         Text("After remap")
                             .font(.caption).foregroundStyle(.secondary)
                         Text("\(optimalSpeed) SP/min")
@@ -586,20 +586,20 @@ struct AttributeRemapView: View {
                     if optimalSpeed > currentSpeed {
                         Text("+\(optimalSpeed - currentSpeed) SP/min")
                             .font(.caption.bold())
-                            .padding(.horizontal, 8).padding(.vertical, 3)
+                            .padding(.horizontal, EVESpacing.md).padding(.vertical, 3)
                             .background(Color.green.opacity(0.15))
                             .foregroundStyle(.green)
                             .clipShape(Capsule())
                     } else {
                         Text("Already optimal for this pair")
                             .font(.caption.bold())
-                            .padding(.horizontal, 8).padding(.vertical, 3)
+                            .padding(.horizontal, EVESpacing.md).padding(.vertical, 3)
                             .background(Color.secondary.opacity(0.15))
                             .foregroundStyle(.secondary)
                             .clipShape(Capsule())
                     }
                     if optimalSpeed < maxSpeed {
-                        VStack(spacing: 2) {
+                        VStack(spacing: EVESpacing.xxs) {
                             Text("+5 implants")
                                 .font(.caption).foregroundStyle(.secondary)
                             Text("\(maxSpeed) SP/min")
@@ -610,7 +610,7 @@ struct AttributeRemapView: View {
                 }
 
                 // Instruction
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: EVESpacing.xs) {
                     Label(remapReady ? "How to remap:" : "How to remap when ready:", systemImage: "info.circle")
                         .font(.caption.bold()).foregroundStyle(.secondary)
                     Text("In EVE: Character Sheet → Neural Remap → Manually Remap. Set each attribute to the value shown in the table above. EVE's remap screen shows the floor automatically — just drag each slider to the target number. This uses all 14 remap points (10 to \(primary), 4 to \(secondary)).")

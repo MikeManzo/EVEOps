@@ -41,7 +41,7 @@ struct MarketMiniHistory: View {
             if failed || (!isLoading && (series?.points.isEmpty ?? true)) {
                 EmptyView()
             } else {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: EVESpacing.md) {
                     header
                     if isLoading {
                         ProgressView()
@@ -64,7 +64,7 @@ struct MarketMiniHistory: View {
     // MARK: Header
 
     private var header: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: EVESpacing.md) {
             Label("Price Trend (\(regionLabel))", systemImage: "chart.xyaxis.line")
                 .font(.subheadline.bold())
                 .foregroundStyle(.secondary)
@@ -142,7 +142,7 @@ struct MarketMiniHistory: View {
     }
 
     private func stat(_ label: String, _ value: String) -> some View {
-        VStack(spacing: 2) {
+        VStack(spacing: EVESpacing.xxs) {
             Text(label).font(.caption2).foregroundStyle(.tertiary)
             Text(value).font(.caption.monospacedDigit())
         }

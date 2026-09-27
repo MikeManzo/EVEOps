@@ -65,7 +65,7 @@ struct CharacterBookmarksView: View {
 
     private var folderBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
+            HStack(spacing: EVESpacing.sm) {
                 folderChip(name: "All", folderId: nil, count: bookmarks.count)
                 ForEach(folders.sorted { ($0.name ?? "") < ($1.name ?? "") }) { folder in
                     let count = bookmarks.filter { $0.folderId == folder.folderId }.count
@@ -76,8 +76,8 @@ struct CharacterBookmarksView: View {
                     folderChip(name: "Uncategorized", folderId: -1, count: uncatCount)
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
+            .padding(.horizontal, EVESpacing.xl)
+            .padding(.vertical, EVESpacing.md)
         }
         .eveEdgeFade()
         .background(EVESurface.bar)
@@ -93,13 +93,13 @@ struct CharacterBookmarksView: View {
                     .font(.caption)
                 Text("\(count)")
                     .font(.eveMicro)
-                    .padding(.horizontal, 4)
+                    .padding(.horizontal, EVESpacing.xs)
                     .padding(.vertical, 1)
                     .background(isSelected ? palette.accent : Color.gray.opacity(0.25), in: Capsule())
                     .foregroundStyle(isSelected ? Color.white : Color.gray)
             }
             .padding(.horizontal, 10)
-            .padding(.vertical, 6)
+            .padding(.vertical, EVESpacing.sm)
             .background(isSelected ? palette.accent.opacity(0.12) : Color.clear)
             .clipShape(Capsule())
             .overlay(Capsule().stroke(isSelected ? palette.accent : Color.clear, lineWidth: 1))
@@ -148,7 +148,7 @@ struct BookmarkRow: View {
     let locationName: String?
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: EVESpacing.lg) {
             Image(systemName: iconName)
                 .font(.title3)
                 .foregroundStyle(.blue)
@@ -172,7 +172,7 @@ struct BookmarkRow: View {
 
             Spacer()
 
-            VStack(alignment: .trailing, spacing: 2) {
+            VStack(alignment: .trailing, spacing: EVESpacing.xxs) {
                 if let coords = bookmark.coordinates {
                     Text(String(format: "%.2e", coords.x))
                         .font(.eveCodeSmall)
@@ -183,7 +183,7 @@ struct BookmarkRow: View {
                     .foregroundStyle(.tertiary)
             }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, EVESpacing.xxs)
     }
 
     private var iconName: String {

@@ -39,7 +39,7 @@ struct SkillDetailView: View {
             VStack(spacing: 0) {
                 headerSection
 
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: EVESpacing.xl) {
                     if let entry = queueEntry {
                         trainingStatusSection(entry)
                         Divider()
@@ -78,7 +78,7 @@ struct SkillDetailView: View {
                     }
                 }
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 Text(skillName)
                     .font(.headline)
                     .foregroundStyle(.white)
@@ -87,7 +87,7 @@ struct SkillDetailView: View {
                     .foregroundStyle(.white.opacity(0.7))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(12)
+            .padding(EVESpacing.lg)
             .background(.ultraThinMaterial.opacity(0.9))
         }
     }
@@ -95,7 +95,7 @@ struct SkillDetailView: View {
     // MARK:  Training Status
 
     private func trainingStatusSection(_ entry: TrainingQueueEntry) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
             HStack {
                 Image(systemName: entry.isCurrentlyTraining ? "play.circle.fill" : "clock.fill")
                     .foregroundStyle(entry.isCurrentlyTraining ? .green : palette.knowledge)
@@ -123,7 +123,7 @@ struct SkillDetailView: View {
                 }
             }
 
-            HStack(spacing: 16) {
+            HStack(spacing: EVESpacing.xl) {
                 if let start = entry.startDate {
                     VStack(alignment: .leading, spacing: 1) {
                         Text("Started")
@@ -155,7 +155,7 @@ struct SkillDetailView: View {
     // MARK:  Levels
 
     private var levelsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
             HStack {
                 EVESectionTitle("Skill Levels")
                 Spacer()
@@ -178,12 +178,12 @@ struct SkillDetailView: View {
         let isTargetLevel = queueEntry?.level == level
         let spRequired = skillRank.map { spBase[level - 1] * $0 }
 
-        return HStack(spacing: 8) {
+        return HStack(spacing: EVESpacing.md) {
             levelBadge(level)
                 .opacity(isTrained || isTargetLevel ? 1.0 : 0.35)
 
             // 5 mini pips representing levels up to this level
-            HStack(spacing: 2) {
+            HStack(spacing: EVESpacing.xxs) {
                 ForEach(1...5, id: \.self) { pip in
                     RoundedRectangle(cornerRadius: EVERadius.hairline)
                         .fill(pipFill(pip: pip, forLevel: level, trained: trainedLevel,
@@ -215,13 +215,13 @@ struct SkillDetailView: View {
                     .lineLimit(1)
             }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, EVESpacing.xxs)
     }
 
     private func pipFill(pip: Int, forLevel level: Int, trained: Int, active: Int, targetLevel: Int?) -> Color {
         guard pip == level else {
             // Only fill the pip matching this level row's level
-            return Color.white.opacity(0.05)
+            return EVEFill.track
         }
         if level <= active {
             return levelColor(level)
@@ -230,13 +230,13 @@ struct SkillDetailView: View {
         } else if level == targetLevel {
             return (queueEntry?.isCurrentlyTraining == true ? Color.green : palette.knowledge).opacity(0.5)
         }
-        return Color.white.opacity(0.05)
+        return EVEFill.track
     }
 
     // MARK:  Skill Info
 
     private var skillInfoSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
             EVESectionTitle("Skill Information")
 
             infoRow(label: "Group", value: groupName)
@@ -272,12 +272,7 @@ struct SkillDetailView: View {
     // MARK:  Helpers
 
     private func levelBadge(_ level: Int) -> some View {
-        Text("L\(level)")
-            .font(.caption2.bold())
-            .foregroundStyle(levelColor(level))
-            .padding(.horizontal, 6)
-            .padding(.vertical, 1)
-            .background(levelColor(level).opacity(0.15), in: Capsule())
+        EVEChip(Text("L\(level)"), tint: levelColor(level), size: .small)
     }
 
     private func levelColor(_ level: Int) -> Color {

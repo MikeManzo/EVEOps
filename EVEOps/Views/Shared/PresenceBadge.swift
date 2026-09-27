@@ -98,9 +98,9 @@ struct PresenceDetailPopover: View {
     ]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: EVESpacing.lg) {
             // Header
-            HStack(spacing: 8) {
+            HStack(spacing: EVESpacing.md) {
                 stateIcon
                 VStack(alignment: .leading, spacing: 1) {
                     Text(score.state.title)
@@ -126,7 +126,7 @@ struct PresenceDetailPopover: View {
             }
 
             // Score bar
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: EVESpacing.xs) {
                 Text("Presence Score")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
@@ -189,7 +189,7 @@ private struct LabeledRow: View {
     let value: LocalizedStringKey
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: EVESpacing.sm) {
             Image(systemName: icon)
                 .font(.caption)
                 .foregroundStyle(.secondary)

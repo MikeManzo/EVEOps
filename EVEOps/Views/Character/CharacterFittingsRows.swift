@@ -17,7 +17,7 @@ struct ShipRow: View {
     var showCharacterName: Bool = false
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: EVESpacing.lg) {
             CachedAsyncImage(url: EVEImageURL.typeRender(ship.typeId, size: 256)) { image in
                 image.resizable().aspectRatio(contentMode: .fill)
             } placeholder: {
@@ -48,7 +48,7 @@ struct ShipRow: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
-                HStack(spacing: 4) {
+                HStack(spacing: EVESpacing.xs) {
                     if ship.isSingleton {
                         Label("Assembled", systemImage: "checkmark.circle.fill")
                             .font(.caption2)
@@ -106,7 +106,7 @@ struct ShipDetailPane: View {
             // content rather than ZStack siblings with their own fixed height, so they
             // always exactly fill however tall the content needs to be (at least 190),
             // instead of a fixed-height image leaving a blank gap when text wraps.
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: EVESpacing.md) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(ship.displayName)
                         .font(.headline)
@@ -122,12 +122,12 @@ struct ShipDetailPane: View {
                         .lineLimit(1)
                     SkillRequirementsView(typeId: ship.typeId, typeInfo: nil, characterSkills: characterSkills)
                 }
-                HStack(spacing: 8) {
+                HStack(spacing: EVESpacing.md) {
                     Button { showModelViewer = true } label: {
                         Label("View 3D", systemImage: "cube.transparent")
                             .font(.caption.bold())
                             .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
+                            .padding(.vertical, EVESpacing.sm)
                             .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
                             .foregroundStyle(.white)
                     }
@@ -137,7 +137,7 @@ struct ShipDetailPane: View {
                             Label("Save Fitting", systemImage: "bookmark.fill")
                                 .font(.caption.bold())
                                 .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
+                                .padding(.vertical, EVESpacing.sm)
                                 .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
                                 .foregroundStyle(.white)
                         }
@@ -146,7 +146,7 @@ struct ShipDetailPane: View {
                             Label("Shop Fit", systemImage: "cart.fill")
                                 .font(.caption.bold())
                                 .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
+                                .padding(.vertical, EVESpacing.sm)
                                 .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
                                 .foregroundStyle(.white)
                         }
@@ -154,7 +154,7 @@ struct ShipDetailPane: View {
                     }
                 }
             }
-            .padding(12)
+            .padding(EVESpacing.lg)
             .frame(maxWidth: .infinity, minHeight: 190, alignment: .bottomLeading)
             .background {
                 LinearGradient(

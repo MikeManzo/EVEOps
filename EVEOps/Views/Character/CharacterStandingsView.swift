@@ -115,6 +115,18 @@ struct StandingRow: View {
         }
     }
 
+    /// Right-click target — nil until the name resolves, so "Copy Name" never copies a
+    /// placeholder.
+    private var entity: EVEEntity? {
+        guard !name.isEmpty else { return nil }
+        switch standing.fromType {
+        case "faction":  return .faction(id: standing.fromId, name: name)
+        case "npc_corp": return .corporation(id: standing.fromId, name: name)
+        case "agent":    return .character(id: standing.fromId, name: name)
+        default:         return nil
+        }
+    }
+
     var body: some View {
         HStack(spacing: 10) {
             CachedAsyncImage(url: iconURL) { image in
@@ -125,11 +137,11 @@ struct StandingRow: View {
             .frame(width: 32, height: 32)
             .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 Text(name.isEmpty ? "ID #\(standing.fromId)" : name).font(.subheadline)
             }
             Spacer()
-            HStack(spacing: 8) {
+            HStack(spacing: EVESpacing.md) {
                 EVEStandingBar(standing: standing.standing, width: 100)
 
                 EVEStandingBadge(standing: standing.standing)
@@ -138,6 +150,7 @@ struct StandingRow: View {
         }
         .contentShape(Rectangle())
         .onTapGesture { showPopover = true }
+        .eveContextMenu(entity)
         .popover(isPresented: $showPopover) {
             if standing.fromType == "faction" {
                 FactionPopoverView(standing: standing).frame(width: 320)
@@ -161,9 +174,9 @@ struct FactionPopoverView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: EVESpacing.lg) {
             // Header: logo + name + standing
-            HStack(spacing: 12) {
+            HStack(spacing: EVESpacing.lg) {
                 CachedAsyncImage(url: EVEImageURL.corporationLogo(standing.fromId, size: 64)) { image in
                     image.resizable().scaledToFit()
                 } placeholder: {
@@ -172,7 +185,7 @@ struct FactionPopoverView: View {
                 .frame(width: 64, height: 64)
                 .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: EVESpacing.xs) {
                     if let faction {
                         Text(faction.name).font(.headline)
                     } else {
@@ -239,8 +252,8 @@ struct NpcCorpPopoverView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: EVESpacing.lg) {
+            HStack(spacing: EVESpacing.lg) {
                 CachedAsyncImage(url: EVEImageURL.corporationLogo(standing.fromId, size: 64)) { image in
                     image.resizable().scaledToFit()
                 } placeholder: {
@@ -249,7 +262,7 @@ struct NpcCorpPopoverView: View {
                 .frame(width: 64, height: 64)
                 .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: EVESpacing.xs) {
                     if let corp {
                         Text(corp.name).font(.headline)
                         Text("[\(corp.ticker)]").font(.subheadline).foregroundStyle(.secondary)
@@ -310,8 +323,8 @@ struct AgentPopoverView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: EVESpacing.lg) {
+            HStack(spacing: EVESpacing.lg) {
                 CachedAsyncImage(url: EVEImageURL.characterPortrait(standing.fromId, size: 64)) { image in
                     image.resizable().scaledToFit()
                 } placeholder: {
@@ -320,7 +333,7 @@ struct AgentPopoverView: View {
                 .frame(width: 64, height: 64)
                 .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: EVESpacing.xs) {
                     if let agentInfo {
                         Text(agentInfo.name).font(.headline)
                     } else {

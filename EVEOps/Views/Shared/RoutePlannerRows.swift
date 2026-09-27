@@ -39,7 +39,7 @@ struct RouteSystemRow: View {
                     .frame(maxHeight: .infinity)
             }
             .frame(width: 20)
-            .padding(.leading, 8)
+            .padding(.leading, EVESpacing.md)
 
             HStack(spacing: 10) {
                 // Jump number
@@ -63,8 +63,8 @@ struct RouteSystemRow: View {
                             .font(.caption2.bold().monospacedDigit())
                     }
                     .foregroundStyle(dangerColor(system.dangerLevel))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
+                    .padding(.horizontal, EVESpacing.sm)
+                    .padding(.vertical, EVESpacing.xxs)
                     .background(dangerColor(system.dangerLevel).opacity(0.15), in: Capsule())
                     .help(rowDangerTooltip(system))
                 }
@@ -83,11 +83,11 @@ struct RouteSystemRow: View {
 
                 if isFirst {
                     Text("ORIGIN").font(.caption2.bold()).foregroundStyle(themeManager.palette.accent)
-                        .padding(.horizontal, 6).padding(.vertical, 2)
+                        .padding(.horizontal, EVESpacing.sm).padding(.vertical, EVESpacing.xxs)
                         .background(themeManager.palette.accent.opacity(0.15), in: Capsule())
                 } else if isLast {
                     Text("DEST").font(.caption2.bold()).foregroundStyle(.green)
-                        .padding(.horizontal, 6).padding(.vertical, 2)
+                        .padding(.horizontal, EVESpacing.sm).padding(.vertical, EVESpacing.xxs)
                         .background(.green.opacity(0.15), in: Capsule())
                 }
 
@@ -99,7 +99,7 @@ struct RouteSystemRow: View {
                         Image(systemName: "paperplane")
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                            .padding(6)
+                            .padding(EVESpacing.sm)
                             .background(.quaternary.opacity(0.6), in: RoundedRectangle(cornerRadius: EVERadius.sm))
                     }
                     .accessibilityLabel("Send to autopilot")
@@ -110,7 +110,7 @@ struct RouteSystemRow: View {
             }
             .padding(.horizontal, 10)
             .eveRowPadding()
-            .padding(.vertical, 4)
+            .padding(.vertical, EVESpacing.xs)
         }
         .frame(minHeight: 36)
         .background(isFirst ? themeManager.palette.accent.opacity(0.05) : isLast ? Color.green.opacity(0.05) : Color.clear)
@@ -177,15 +177,11 @@ struct TheraConnectionRow: View {
                     .frame(width: 8, height: 8)
 
                 VStack(alignment: .leading, spacing: 1) {
-                    HStack(spacing: 6) {
+                    HStack(spacing: EVESpacing.sm) {
                         Text(connection.destinationSystemName)
                             .font(.caption.bold())
                         if isOnRoute {
-                            Text("ON ROUTE")
-                                .font(.eveMicroBold)
-                                .foregroundStyle(.green)
-                                .padding(.horizontal, 6).padding(.vertical, 2)
-                                .background(.green.opacity(0.15), in: Capsule())
+                            EVEChip(Text("ON ROUTE"), tint: .green, size: .small)
                         }
                         if connection.isNearEOL {
                             Image(systemName: "exclamationmark.circle.fill")
@@ -199,7 +195,7 @@ struct TheraConnectionRow: View {
 
                 Spacer()
 
-                HStack(spacing: 6) {
+                HStack(spacing: EVESpacing.sm) {
                     if let eol = connection.estimatedEol {
                         Text(eol)
                             .font(.eveCode)
@@ -208,7 +204,7 @@ struct TheraConnectionRow: View {
 
                     Text(connection.maxShipSize.label)
                         .font(.eveLabelBold)
-                        .padding(.horizontal, 6).padding(.vertical, 2)
+                        .padding(.horizontal, EVESpacing.sm).padding(.vertical, EVESpacing.xxs)
                         .background(.quaternary, in: RoundedRectangle(cornerRadius: EVERadius.xs))
                         .help(connection.maxShipSize.tooltip)
 
@@ -222,19 +218,19 @@ struct TheraConnectionRow: View {
                         .foregroundStyle(.tertiary)
                 }
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
+            .padding(.horizontal, EVESpacing.md)
+            .padding(.vertical, EVESpacing.sm)
 
             if isSelected {
-                HStack(spacing: 8) {
+                HStack(spacing: EVESpacing.md) {
                     Spacer()
                     Button("Set as Origin") { onSetAsOrigin() }
                         .buttonStyle(.bordered).controlSize(.small)
                     Button("Set as Destination") { onSetAsDestination() }
                         .buttonStyle(.borderedProminent).controlSize(.small)
                 }
-                .padding(.horizontal, 8)
-                .padding(.bottom, 6)
+                .padding(.horizontal, EVESpacing.md)
+                .padding(.bottom, EVESpacing.sm)
             }
         }
         .background(

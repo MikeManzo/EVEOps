@@ -30,7 +30,7 @@ extension FinancesView {
         } else {
             let bd = WalletBreakdown(journal: journal)
             VStack(alignment: .leading, spacing: 14) {
-                HStack(spacing: 12) {
+                HStack(spacing: EVESpacing.lg) {
                     breakdownStat("Income", bd.totalIncome, .green)
                     breakdownStat("Expenses", -bd.totalExpense, .red)
                     breakdownStat("Net", bd.net, bd.net >= 0 ? .green : .red)
@@ -53,7 +53,7 @@ extension FinancesView {
                 .eveISKYAxis()
                 .chartLegend(position: .bottom, spacing: 8)
                 .frame(height: 240)
-                .padding(12)
+                .padding(EVESpacing.lg)
                 .eveCard()
 
                 VStack(spacing: 1) {
@@ -80,7 +80,7 @@ extension FinancesView {
     }
 
     func breakdownStat(_ title: String, _ value: Double, _ color: Color) -> some View {
-        VStack(spacing: 4) {
+        VStack(spacing: EVESpacing.xs) {
             Text(title).font(.caption).foregroundStyle(.secondary)
             Text(EVEFormatters.formatISKShort(value))
                 .font(.eveStatCompact)
@@ -93,8 +93,8 @@ extension FinancesView {
     }
 
     func breakdownRow(_ summary: WalletCategorySummary, maxGross: Double) -> some View {
-        VStack(spacing: 4) {
-            HStack(spacing: 8) {
+        VStack(spacing: EVESpacing.xs) {
+            HStack(spacing: EVESpacing.md) {
                 Circle().fill(summary.category.color).frame(width: 8, height: 8)
                 Text(summary.category.label).font(.subheadline)
                 Text("\(summary.count)x").font(.caption2).foregroundStyle(.tertiary)
@@ -103,7 +103,7 @@ extension FinancesView {
                     .font(.subheadline.bold().monospacedDigit())
                     .foregroundStyle(summary.net >= 0 ? .green : .red)
             }
-            HStack(spacing: 6) {
+            HStack(spacing: EVESpacing.sm) {
                 GeometryReader { geo in
                     let frac = maxGross > 0 ? summary.gross / maxGross : 0
                     ZStack(alignment: .leading) {
@@ -118,14 +118,14 @@ extension FinancesView {
                     .fixedSize()
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, EVESpacing.lg)
+        .padding(.vertical, EVESpacing.md)
     }
 
     // MARK:  Market Orders
 
     func marketOrdersSection(_ orders: [ESIMarketOrder]) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
             if orders.isEmpty {
                 Text("No active market orders")
                     .foregroundStyle(.secondary)
@@ -135,8 +135,8 @@ extension FinancesView {
                 let buyOrders = orders.filter { $0.isBuyOrder ?? false }
 
                 // Summary
-                HStack(spacing: 16) {
-                    VStack(spacing: 2) {
+                HStack(spacing: EVESpacing.xl) {
+                    VStack(spacing: EVESpacing.xxs) {
                         Text("Sell Orders")
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -151,7 +151,7 @@ extension FinancesView {
                     .padding(10)
                     .eveCard(cornerRadius: EVERadius.md)
 
-                    VStack(spacing: 2) {
+                    VStack(spacing: EVESpacing.xxs) {
                         Text("Buy Orders")
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -166,7 +166,7 @@ extension FinancesView {
                     .padding(10)
                     .eveCard(cornerRadius: EVERadius.md)
 
-                    VStack(spacing: 2) {
+                    VStack(spacing: EVESpacing.xxs) {
                         Text("In Escrow")
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -183,7 +183,7 @@ extension FinancesView {
                 if !sellOrders.isEmpty {
                     Text("Sell Orders")
                         .font(.subheadline.bold())
-                        .padding(.top, 4)
+                        .padding(.top, EVESpacing.xs)
                     LazyVStack(spacing: 1) {
                         ForEach(sellOrders) { order in
                             marketOrderRow(order)
@@ -195,7 +195,7 @@ extension FinancesView {
                 if !buyOrders.isEmpty {
                     Text("Buy Orders")
                         .font(.subheadline.bold())
-                        .padding(.top, 4)
+                        .padding(.top, EVESpacing.xs)
                     LazyVStack(spacing: 1) {
                         ForEach(buyOrders) { order in
                             marketOrderRow(order)
@@ -218,7 +218,7 @@ extension FinancesView {
             .frame(width: 32, height: 32)
             .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 Text(typeNames[order.typeId] ?? "Type #\(order.typeId)")
                     .font(.subheadline)
                 Text("\(order.volumeRemain)/\(order.volumeTotal) remaining")
@@ -239,7 +239,7 @@ extension FinancesView {
 
             Spacer()
 
-            VStack(alignment: .trailing, spacing: 2) {
+            VStack(alignment: .trailing, spacing: EVESpacing.xxs) {
                 Text(EVEFormatters.formatISK(order.price))
                     .font(.subheadline.monospacedDigit())
                 Text(EVEFormatters.formatISKShort(order.price * Double(order.volumeRemain)))
@@ -253,8 +253,8 @@ extension FinancesView {
                     .foregroundStyle(.tertiary)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, EVESpacing.lg)
+        .padding(.vertical, EVESpacing.md)
     }
 
 }

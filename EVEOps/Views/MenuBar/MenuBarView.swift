@@ -62,7 +62,7 @@ struct MenuBarView: View {
     var body: some View {
         VStack(spacing: 0) {
             if !apiStatus.isReachable {
-                HStack(spacing: 6) {
+                HStack(spacing: EVESpacing.sm) {
                     Image(systemName: "clock.badge.exclamationmark")
                         .foregroundStyle(.orange)
                         .font(.caption)
@@ -71,13 +71,13 @@ struct MenuBarView: View {
                         .foregroundStyle(.secondary)
                     Spacer()
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
+                .padding(.horizontal, EVESpacing.lg)
+                .padding(.vertical, EVESpacing.sm)
                 .background(.orange.opacity(0.1))
 
                 Divider()
             } else if timeUntilDowntime <= 15 * 60 {
-                HStack(spacing: 6) {
+                HStack(spacing: EVESpacing.sm) {
                     Image(systemName: "clock.badge.exclamationmark")
                         .foregroundStyle(.orange)
                         .font(.caption)
@@ -86,8 +86,8 @@ struct MenuBarView: View {
                         .foregroundStyle(.secondary)
                     Spacer()
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
+                .padding(.horizontal, EVESpacing.lg)
+                .padding(.vertical, EVESpacing.sm)
                 .background(.orange.opacity(0.1))
 
                 Divider()
@@ -98,7 +98,7 @@ struct MenuBarView: View {
                     dismiss()
                     appUpdater.checkForUpdates()
                 } label: {
-                    HStack(spacing: 6) {
+                    HStack(spacing: EVESpacing.sm) {
                         Image(systemName: "arrow.down.circle.fill")
                             .foregroundStyle(palette.accent)
                             .font(.caption)
@@ -113,15 +113,15 @@ struct MenuBarView: View {
                         Text("Install")
                             .font(.caption2.weight(.semibold))
                             .foregroundStyle(.white)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 2)
+                            .padding(.horizontal, EVESpacing.md)
+                            .padding(.vertical, EVESpacing.xxs)
                             .background(palette.accent, in: Capsule())
                     }
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
+                .padding(.horizontal, EVESpacing.lg)
+                .padding(.vertical, EVESpacing.sm)
                 .background(palette.accent.opacity(0.1))
                 .help("Install the available update")
                 .accessibilityLabel(
@@ -244,8 +244,8 @@ struct MenuBarView: View {
                     NSApplication.shared.terminate(nil)
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            .padding(.horizontal, EVESpacing.lg)
+            .padding(.vertical, EVESpacing.md)
         }
         .frame(width: 330)
         .task {

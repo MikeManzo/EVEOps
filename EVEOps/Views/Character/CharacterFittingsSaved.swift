@@ -46,7 +46,7 @@ struct SaveFittingSheet: View {
 
             Form {
                 Section("Ship") {
-                    HStack(spacing: 12) {
+                    HStack(spacing: EVESpacing.lg) {
                         CachedAsyncImage(url: EVEImageURL.typeRender(ship.typeId, size: 128)) { image in
                             image.resizable().aspectRatio(contentMode: .fill)
                         } placeholder: {
@@ -55,13 +55,13 @@ struct SaveFittingSheet: View {
                         .frame(width: 44, height: 44)
                         .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
 
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                             Text(ship.typeName).font(.subheadline.bold())
                             Text(ship.shipClassName).font(.caption).foregroundStyle(.secondary)
                             Text("\(modules.count) modules").font(.caption2).foregroundStyle(.tertiary)
                         }
                     }
-                    .padding(.vertical, 2)
+                    .padding(.vertical, EVESpacing.xxs)
                 }
 
                 Section("Name") {
@@ -138,7 +138,7 @@ struct SavedFittingRow: View {
     let onDelete: () -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: EVESpacing.lg) {
             CachedAsyncImage(url: EVEImageURL.typeRender(fitting.shipTypeId, size: 256)) { image in
                 image.resizable().aspectRatio(contentMode: .fill)
             } placeholder: {
@@ -219,7 +219,7 @@ struct SavedFittingDetailPane: View {
             // content rather than ZStack siblings with their own fixed height, so they
             // always exactly fill however tall the content needs to be (at least 190),
             // instead of a fixed-height image leaving a blank gap when text wraps.
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: EVESpacing.md) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(fitting.name)
                         .font(.headline)
@@ -235,12 +235,12 @@ struct SavedFittingDetailPane: View {
                     }
                     SkillRequirementsView(typeId: fitting.shipTypeId, typeInfo: nil, characterSkills: characterSkills)
                 }
-                HStack(spacing: 8) {
+                HStack(spacing: EVESpacing.md) {
                     Button { showModelViewer = true } label: {
                         Label("View 3D", systemImage: "cube.transparent")
                             .font(.caption.bold())
                             .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
+                            .padding(.vertical, EVESpacing.sm)
                             .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
                             .foregroundStyle(.white)
                     }
@@ -249,7 +249,7 @@ struct SavedFittingDetailPane: View {
                         Label("Export…", systemImage: "arrow.down.doc")
                             .font(.caption.bold())
                             .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
+                            .padding(.vertical, EVESpacing.sm)
                             .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
                             .foregroundStyle(.white)
                     }
@@ -259,7 +259,7 @@ struct SavedFittingDetailPane: View {
                             Label("Shop Fit", systemImage: "cart.fill")
                                 .font(.caption.bold())
                                 .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
+                                .padding(.vertical, EVESpacing.sm)
                                 .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
                                 .foregroundStyle(.white)
                         }
@@ -267,7 +267,7 @@ struct SavedFittingDetailPane: View {
                     }
                 }
             }
-            .padding(12)
+            .padding(EVESpacing.lg)
             .frame(maxWidth: .infinity, minHeight: 190, alignment: .bottomLeading)
             .background {
                 LinearGradient(
@@ -366,7 +366,7 @@ struct SavedFittingSlotPane: View {
                     }
                 }
             }
-            .padding(12)
+            .padding(EVESpacing.lg)
         }
     }
 
@@ -433,7 +433,7 @@ struct SavedModuleCell: View {
 
     var body: some View {
         Button { showPopover = true } label: {
-            HStack(spacing: 8) {
+            HStack(spacing: EVESpacing.md) {
                 CachedAsyncImage(url: EVEImageURL.typeIcon(item.typeId, size: 64)) { image in
                     image.resizable()
                 } placeholder: {
@@ -459,14 +459,14 @@ struct SavedModuleCell: View {
                 }
                 Spacer(minLength: 0)
             }
-            .padding(8)
+            .padding(EVESpacing.md)
             .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: EVERadius.md))
             .contentShape(RoundedRectangle(cornerRadius: EVERadius.md))
         }
         .buttonStyle(.plain)
         .overlay(alignment: .topTrailing) {
             SkillStatusDot(typeId: item.typeId, characterSkills: characterSkills)
-                .padding(4)
+                .padding(EVESpacing.xs)
         }
         .popover(isPresented: $showPopover, arrowEdge: .trailing) {
             ModuleDetailPopover(typeId: item.typeId, name: name, quantity: item.quantity)

@@ -49,15 +49,14 @@ struct SovereigntyView: View {
                     ForEach(Tab.allCases) { Text($0.rawValue).tag($0) }
                 }
                 .eveSegmentedPicker()
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
+                .padding(.horizontal, EVESpacing.xl)
+                .padding(.vertical, EVESpacing.md)
                 Divider()
 
                 if isLoading {
-                    ProgressView("Loading sovereignty data…")
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    EVELoadingPane("Loading sovereignty data…")
                 } else if let error {
-                    ContentUnavailableView("Couldn't load sovereignty", systemImage: "exclamationmark.triangle", description: Text(error))
+                    EVEEmptyState("Couldn't load sovereignty", systemImage: "exclamationmark.triangle", message: Text(error), tint: .orange)
                 } else {
                     switch tab {
                     case .campaigns:  campaignsList
@@ -66,20 +65,17 @@ struct SovereigntyView: View {
                     }
                 }
             }
-
-            if let detail {
-                Divider()
-                SovDetailPane(
-                    detail: detail,
-                    campaignsBySystem: Dictionary(campaigns.map { ($0.campaign.solarSystemId, $0) }, uniquingKeysWith: { a, _ in a }),
-                    structuresBySystem: Dictionary(grouping: structures, by: \.solarSystemId),
-                    sovMap: sovMap,
-                    allianceNames: allianceNames,
-                    onClose: { self.detail = nil }
-                )
-                .frame(width: 340)
-                .id(detail.id)
-            }
+        }
+        .eveInspector(item: $detail, width: 340) { detail in
+            SovDetailPane(
+                detail: detail,
+                campaignsBySystem: Dictionary(campaigns.map { ($0.campaign.solarSystemId, $0) }, uniquingKeysWith: { a, _ in a }),
+                structuresBySystem: Dictionary(grouping: structures, by: \.solarSystemId),
+                sovMap: sovMap,
+                allianceNames: allianceNames,
+                onClose: { self.detail = nil }
+            )
+            .id(detail.id)
         }
         .eveScreenHeader("Sovereignty", subtitle: (isLoading || error != nil) ? nil : Text("\(campaigns.count) campaigns · \(structuresLoading ? "…" : "\(structures.count)") structures"), section: .sovereignty)
         .task { await load() }
@@ -92,12 +88,15 @@ struct SovereigntyView: View {
     @ViewBuilder
     private var campaignsList: some View {
         if campaigns.isEmpty {
-            ContentUnavailableView("No active campaigns", systemImage: "flag.slash",
-                                   description: Text("There are no sovereignty campaigns running right now."))
+            EVEEmptyState("No active campaigns", systemImage: "flag.slash", message: Text("There are no sovereignty campaigns running right now."))
         } else {
             List(campaigns) { camp in
                 Button { detail = .campaign(camp) } label: { CampaignRow(item: camp) }
                     .buttonStyle(.plain)
+                    .eveContextMenu([
+                        .system(id: camp.campaign.solarSystemId, name: camp.systemName),
+                        camp.campaign.defenderId.flatMap { id in camp.defenderName.map { .alliance(id: id, name: $0) } }
+                    ])
                     .listRowBackground(rowBackground(selected: detail?.id == SovDetail.campaignID(camp.id)))
             }
         }
@@ -122,8 +121,7 @@ struct SovereigntyView: View {
     @ViewBuilder
     private var structuresList: some View {
         if structuresLoading && structures.isEmpty {
-            ProgressView("Loading structures…")
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            LoadingSkeleton(rows: 10, showsHeader: false)
         } else {
         VStack(spacing: 0) {
             HStack(spacing: 10) {
@@ -141,18 +139,18 @@ struct SovereigntyView: View {
                 Text("\(visibleStructures.count) shown")
                     .font(.caption).foregroundStyle(.secondary)
             }
-            .padding(.horizontal, 16).padding(.vertical, 8)
+            .padding(.horizontal, EVESpacing.xl).padding(.vertical, EVESpacing.md)
             Divider()
 
             if visibleStructures.isEmpty {
-                ContentUnavailableView("Nothing to show", systemImage: "line.3.horizontal.decrease.circle",
-                                       description: Text("No structures match the current filter."))
+                EVEEmptyState("Nothing to show", systemImage: "line.3.horizontal.decrease.circle", message: Text("No structures match the current filter."))
             } else {
                 List(visibleStructures) { s in
                     Button { detail = .structure(s) } label: {
                         StructureRow(item: s, allianceName: allianceNames[s.allianceId])
                     }
                     .buttonStyle(.plain)
+                    .eveContextMenu(allianceNames[s.allianceId].map { .alliance(id: s.allianceId, name: $0) })
                     .listRowBackground(rowBackground(selected: detail?.id == SovDetail.structureID(s.id)))
                 }
             }
@@ -165,11 +163,9 @@ struct SovereigntyView: View {
     @ViewBuilder
     private var holdersList: some View {
         if holdersLoading && holders.isEmpty {
-            ProgressView("Loading the sovereignty map…")
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            EVELoadingPane("Loading the sovereignty map…")
         } else if holders.isEmpty {
-            ContentUnavailableView("No holdings data", systemImage: "globe",
-                                   description: Text("The sovereignty map returned nothing."))
+            EVEEmptyState("No holdings data", systemImage: "globe", message: Text("The sovereignty map returned nothing."))
         } else {
             let maxCount = holders.first?.systemCount ?? 1
             List(Array(holders.enumerated()), id: \.element.id) { idx, h in
@@ -177,6 +173,7 @@ struct SovereigntyView: View {
                     HolderRow(rank: idx + 1, holding: h, maxCount: maxCount)
                 }
                 .buttonStyle(.plain)
+                .eveContextMenu(.alliance(id: h.allianceId, name: h.name))
                 .listRowBackground(rowBackground(selected: detail?.id == SovDetail.holderID(h.id)))
             }
         }
@@ -375,7 +372,7 @@ private struct CampaignRow: View {
     private var c: ESISovereigntyCampaign { item.campaign }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: EVESpacing.lg) {
             if let defenderId = c.defenderId {
                 CachedAsyncImage(url: EVEImageURL.allianceLogo(defenderId, size: 64)) { $0.resizable().scaledToFit() }
                 placeholder: { RoundedRectangle(cornerRadius: EVERadius.md).fill(.quaternary) }
@@ -386,8 +383,8 @@ private struct CampaignRow: View {
                     .overlay(Image(systemName: "flag").foregroundStyle(.secondary))
             }
 
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: EVESpacing.xs) {
+                HStack(spacing: EVESpacing.md) {
                     Label(SovereigntyFormat.eventLabel(c.eventType),
                           systemImage: SovereigntyFormat.eventIcon(c.eventType))
                         .font(.caption.bold())
@@ -396,15 +393,11 @@ private struct CampaignRow: View {
                         .font(.caption.monospacedDigit())
                         .foregroundStyle(c.startTime.timeIntervalSinceNow <= 0 ? .red : .secondary)
                     if c.startTime.timeIntervalSinceNow <= 0 {
-                        Text("IN PROGRESS")
-                            .font(.eveMicroBold)
-                            .foregroundStyle(.red)
-                            .padding(.horizontal, 4).padding(.vertical, 1)
-                            .background(.red.opacity(0.15), in: Capsule())
+                        EVEChip(Text("IN PROGRESS"), tint: .red, size: .small)
                     }
                 }
 
-                HStack(spacing: 6) {
+                HStack(spacing: EVESpacing.sm) {
                     if let sec = item.securityStatus {
                         EVESecurityBadge(status: sec, compact: true)
                     }
@@ -424,11 +417,11 @@ private struct CampaignRow: View {
             }
             Spacer(minLength: 0)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, EVESpacing.xs)
     }
 
     private func scoreBar(defender: Double, attackers: Double) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: EVESpacing.xxs) {
             GeometryReader { geo in
                 let total = max(defender + attackers, 0.0001)
                 HStack(spacing: 0) {
@@ -449,7 +442,7 @@ private struct CampaignRow: View {
             .font(.eveMicro.monospacedDigit())
         }
         .frame(maxWidth: 260)
-        .padding(.top, 2)
+        .padding(.top, EVESpacing.xxs)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Contest score")
         .accessibilityValue("Defender \(defender.formatted(.percent.precision(.fractionLength(0)))), attackers \(attackers.formatted(.percent.precision(.fractionLength(0))))")
@@ -467,14 +460,14 @@ private struct StructureRow: View {
     @State private var securityStatus: Double?
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: EVESpacing.lg) {
             CachedAsyncImage(url: EVEImageURL.allianceLogo(item.allianceId, size: 64)) { $0.resizable().scaledToFit() }
             placeholder: { RoundedRectangle(cornerRadius: EVERadius.sm).fill(.quaternary) }
             .frame(width: 36, height: 36)
             .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
 
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
+                HStack(spacing: EVESpacing.sm) {
                     Label(SovereigntyFormat.structureName(item.structureTypeId),
                           systemImage: SovereigntyFormat.structureIcon(item.structureTypeId))
                         .font(.caption.bold())
@@ -497,11 +490,7 @@ private struct StructureRow: View {
             Spacer(minLength: 0)
 
             if let adm = item.vulnerabilityOccupancyLevel {
-                Text(String(format: "ADM %.1f", adm))
-                    .font(.caption.bold().monospacedDigit())
-                    .foregroundStyle(SovereigntyFormat.admColor(adm))
-                    .padding(.horizontal, 8).padding(.vertical, 3)
-                    .background(SovereigntyFormat.admColor(adm).opacity(0.15), in: Capsule())
+                EVEChip(Text(String(format: "ADM %.1f", adm)), tint: SovereigntyFormat.admColor(adm), size: .regular, monospacedDigits: true)
             }
         }
         .padding(.vertical, 3)
@@ -585,7 +574,7 @@ private struct SovDetailPane: View {
             .padding(.horizontal, 14).padding(.vertical, 10)
             Divider()
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: EVESpacing.xl) {
                     switch detail {
                     case .campaign(let c):  campaignBody(c)
                     case .structure(let s): structureBody(s)
@@ -596,7 +585,7 @@ private struct SovDetailPane: View {
                             .font(.caption).foregroundStyle(.green)
                     }
                 }
-                .padding(16)
+                .padding(EVESpacing.xl)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
@@ -612,7 +601,7 @@ private struct SovDetailPane: View {
         let local = structuresBySystem[c.solarSystemId] ?? []
         let holder = local.first?.allianceId
 
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: EVESpacing.sm) {
             Label(SovereigntyFormat.eventLabel(c.eventType), systemImage: SovereigntyFormat.eventIcon(c.eventType))
                 .font(.headline).foregroundStyle(.orange)
             Text(c.startTime.timeIntervalSinceNow <= 0
@@ -632,10 +621,10 @@ private struct SovDetailPane: View {
         AllianceInfoCard(allianceId: c.defenderId, role: "Defender", allianceNames: allianceNames)
 
         if let participants = c.participants, !participants.isEmpty {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: EVESpacing.sm) {
                 Text("ATTACKERS").font(.caption2.bold()).foregroundStyle(.tertiary)
                 ForEach(participants.filter { $0.allianceId != c.defenderId }) { p in
-                    HStack(spacing: 8) {
+                    HStack(spacing: EVESpacing.md) {
                         CachedAsyncImage(url: EVEImageURL.allianceLogo(p.allianceId, size: 32)) { $0.resizable().scaledToFit() }
                         placeholder: { RoundedRectangle(cornerRadius: EVERadius.xs).fill(.quaternary) }
                         .frame(width: 22, height: 22).clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
@@ -665,7 +654,7 @@ private struct SovDetailPane: View {
 
     @ViewBuilder
     private func structureBody(_ s: ESISovereigntyStructure) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: EVESpacing.sm) {
             Label(SovereigntyFormat.structureName(s.structureTypeId),
                   systemImage: SovereigntyFormat.structureIcon(s.structureTypeId))
                 .font(.headline)
@@ -681,7 +670,7 @@ private struct SovDetailPane: View {
         AllianceInfoCard(allianceId: s.allianceId, role: "Holder", allianceNames: allianceNames)
 
         if let start = s.vulnerableStartTime, let end = s.vulnerableEndTime {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 Text("VULNERABILITY WINDOW").font(.caption2.bold()).foregroundStyle(.tertiary)
                 Text("\(start.formatted(.dateTime.weekday().hour().minute())) – \(end.formatted(.dateTime.weekday().hour().minute()))")
                     .font(.caption)
@@ -698,10 +687,10 @@ private struct SovDetailPane: View {
 
         let siblings = (structuresBySystem[s.solarSystemId] ?? []).filter { $0.id != s.id }
         if !siblings.isEmpty {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: EVESpacing.xs) {
                 Text("OTHER STRUCTURES HERE").font(.caption2.bold()).foregroundStyle(.tertiary)
                 ForEach(siblings) { sib in
-                    HStack(spacing: 6) {
+                    HStack(spacing: EVESpacing.sm) {
                         Image(systemName: SovereigntyFormat.structureIcon(sib.structureTypeId)).font(.caption2)
                         Text(SovereigntyFormat.structureName(sib.structureTypeId)).font(.caption)
                         if let adm = sib.vulnerabilityOccupancyLevel {
@@ -734,7 +723,7 @@ private struct SovDetailPane: View {
             (c.campaign.participants ?? []).contains { $0.allianceId == h.allianceId } && c.campaign.defenderId != h.allianceId
         }.count
 
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
             metaRow("Systems held", "\(h.systemCount)")
             metaRow("Territorial Claim Units", "\(tcus)")
             metaRow("Infrastructure Hubs", "\(ihubs)")
@@ -742,7 +731,7 @@ private struct SovDetailPane: View {
             metaRow("Attacking campaigns", "\(attacking)")
         }
 
-        HStack(spacing: 8) {
+        HStack(spacing: EVESpacing.md) {
             externalLink("zKillboard", "https://zkillboard.com/alliance/\(h.allianceId)/")
             if let name = allianceNames[h.allianceId] {
                 externalLink("Dotlan", "https://evemaps.dotlan.net/alliance/\(name.replacingOccurrences(of: " ", with: "_"))")
@@ -753,15 +742,15 @@ private struct SovDetailPane: View {
     // MARK: Shared pieces
 
     private func metaRow(_ label: String, _ value: String) -> some View {
-        HStack(spacing: 6) {
+        HStack(spacing: EVESpacing.sm) {
             Text(label).font(.caption).foregroundStyle(.secondary)
             Spacer()
-            Text(value).font(.caption.monospacedDigit())
+            Text(value).textSelection(.enabled).font(.caption.monospacedDigit())
         }
     }
 
     private func scoreBar(defender: Double, attackers: Double) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: EVESpacing.xxs) {
             GeometryReader { geo in
                 let total = max(defender + attackers, 0.0001)
                 HStack(spacing: 0) {
@@ -786,7 +775,7 @@ private struct SovDetailPane: View {
 
     @ViewBuilder
     private func systemActions(systemId: Int, systemName: String) -> some View {
-        HStack(spacing: 8) {
+        HStack(spacing: EVESpacing.md) {
             if accountManager.selectedAccount != nil {
                 Button {
                     Task { await setDestination(systemId: systemId) }
@@ -841,9 +830,9 @@ private struct ResolvedSystemLine: View {
     @State private var region: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: EVESpacing.xxs) {
             Text("SYSTEM").font(.caption2.bold()).foregroundStyle(.tertiary)
-            HStack(spacing: 6) {
+            HStack(spacing: EVESpacing.sm) {
                 if let sec {
                     EVESecurityBadge(status: sec, compact: true)
                 }
@@ -880,21 +869,21 @@ private struct AllianceInfoCard: View {
     @State private var executorName: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
             Text(role.uppercased()).font(.caption2.bold()).foregroundStyle(.tertiary)
             if let allianceId {
-                HStack(spacing: 12) {
+                HStack(spacing: EVESpacing.lg) {
                     CachedAsyncImage(url: EVEImageURL.allianceLogo(allianceId, size: 128)) { $0.resizable().scaledToFit() }
                     placeholder: { RoundedRectangle(cornerRadius: EVERadius.md).fill(.quaternary) }
                     .frame(width: 52, height: 52).clipShape(RoundedRectangle(cornerRadius: EVERadius.md))
 
                     VStack(alignment: .leading, spacing: 3) {
-                        HStack(spacing: 6) {
+                        HStack(spacing: EVESpacing.sm) {
                             Text(info?.name ?? allianceNames[allianceId] ?? "Alliance #\(allianceId)")
                                 .font(.headline)
                             if let t = info?.ticker { Text("[\(t)]").font(.caption).foregroundStyle(.secondary) }
                         }
-                        HStack(spacing: 12) {
+                        HStack(spacing: EVESpacing.lg) {
                             if let corpCount {
                                 Label("\(corpCount) corps", systemImage: "person.3.fill").font(.caption2)
                             }
@@ -913,7 +902,7 @@ private struct AllianceInfoCard: View {
                 Text("Not published for this campaign.").font(.callout).foregroundStyle(.secondary)
             }
         }
-        .padding(12)
+        .padding(EVESpacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: EVERadius.lg))
         .task(id: allianceId) {
@@ -937,7 +926,7 @@ private struct HolderRow: View {
     let maxCount: Int
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: EVESpacing.lg) {
             Text("\(rank)")
                 .font(.caption.bold().monospacedDigit())
                 .foregroundStyle(.secondary)
@@ -964,6 +953,6 @@ private struct HolderRow: View {
                 .font(.subheadline.bold().monospacedDigit())
                 .frame(width: 44, alignment: .trailing)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, EVESpacing.xs)
     }
 }

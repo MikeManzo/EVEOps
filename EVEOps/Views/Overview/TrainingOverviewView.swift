@@ -64,43 +64,28 @@ struct TrainingOverviewView: View {
                     .padding()
                 }
 
-                if let skill = selectedSkill {
-                    Divider()
-                    SkillDetailView(
-                        skillId: skill.skillId,
-                        skillName: skill.skillName,
-                        groupName: skill.groupName,
-                        knownSkill: skill.knownSkill,
-                        queueEntry: skill.queueEntry
-                    )
-                    .frame(width: 320)
-                }
+            }
+            .eveInspector(item: $selectedSkill, width: 320) { skill in
+                SkillDetailView(
+                    skillId: skill.skillId,
+                    skillName: skill.skillName,
+                    groupName: skill.groupName,
+                    knownSkill: skill.knownSkill,
+                    queueEntry: skill.queueEntry
+                )
             }
         }
         .safeAreaInset(edge: .top, spacing: 0) {
             VStack(spacing: 0) {
-                HStack(spacing: 8) {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundStyle(.secondary)
-                    TextField("Search known skills...", text: $skillSearchText).eveFindTarget()
-                        .textFieldStyle(.plain)
-                    if !skillSearchText.isEmpty {
-                        Button {
-                            skillSearchText = ""
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(.secondary)
-                        }
-                        .accessibilityLabel("Clear")
-                        .buttonStyle(.plain)
-                    }
+                HStack(spacing: EVESpacing.md) {
+                    EVESearchField("Search known skills…", text: $skillSearchText)
                     if !trainingData.isEmpty {
                         Divider()
                             .frame(height: 16)
                         Button {
                             Task { await exportSkillsToCSV() }
                         } label: {
-                            HStack(spacing: 4) {
+                            HStack(spacing: EVESpacing.xs) {
                                 if isExportingSkills {
                                     ProgressView().controlSize(.small)
                                 } else {
@@ -119,7 +104,7 @@ struct TrainingOverviewView: View {
                     Button {
                         Task { await exportAllSkillsToCSV() }
                     } label: {
-                        HStack(spacing: 4) {
+                        HStack(spacing: EVESpacing.xs) {
                             if isExportingAllSkills {
                                 ProgressView().controlSize(.small)
                             } else {
@@ -134,10 +119,10 @@ struct TrainingOverviewView: View {
                     .help("Export every published skill in EVE (name, group, rank, training attributes) to CSV")
                 }
                 .padding(.horizontal, 10)
-                .padding(.vertical, 8)
+                .padding(.vertical, EVESpacing.md)
                 .eveCard(cornerRadius: EVERadius.md)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
+                .padding(.horizontal, EVESpacing.xl)
+                .padding(.vertical, EVESpacing.md)
 
                 Divider()
             }

@@ -29,7 +29,7 @@ extension LocationOverviewView {
 
     func locationCard(_ info: CharacterLocationInfo) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: EVESpacing.lg) {
                 // Character · Location · Ship — single row
                 HStack(alignment: .top, spacing: 20) {
 
@@ -47,8 +47,8 @@ extension LocationOverviewView {
                         .evePortraitRing(cornerRadius: EVERadius.lg, accent: palette.location)
 
                         // Name + corp + online status
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack(spacing: 6) {
+                        VStack(alignment: .leading, spacing: EVESpacing.xxs) {
+                            HStack(spacing: EVESpacing.sm) {
                                 Circle()
                                     .fill(info.isOnline ? .green : .gray)
                                     .frame(width: 8, height: 8)
@@ -63,16 +63,16 @@ extension LocationOverviewView {
                             Text(info.isOnline ? "Online" : "Offline")
                                 .font(.caption2.bold())
                                 .foregroundStyle(info.isOnline ? .green : .secondary)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
+                                .padding(.horizontal, EVESpacing.sm)
+                                .padding(.vertical, EVESpacing.xxs)
                                 .background(
                                     (info.isOnline ? Color.green : Color.gray).opacity(0.15),
                                     in: Capsule()
                                 )
                             if info.lastLogin != nil || info.lastLogout != nil || info.loginCount != nil {
-                                VStack(alignment: .leading, spacing: 2) {
+                                VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                                     if let login = info.lastLogin {
-                                        HStack(spacing: 4) {
+                                        HStack(spacing: EVESpacing.xs) {
                                             Text("Login:")
                                                 .font(.caption2)
                                                 .foregroundStyle(.tertiary)
@@ -85,7 +85,7 @@ extension LocationOverviewView {
                                         }
                                     }
                                     if let logout = info.lastLogout {
-                                        HStack(spacing: 4) {
+                                        HStack(spacing: EVESpacing.xs) {
                                             Text("Logout:")
                                                 .font(.caption2)
                                                 .foregroundStyle(.tertiary)
@@ -98,7 +98,7 @@ extension LocationOverviewView {
                                         }
                                     }
                                     if let logins = info.loginCount {
-                                        HStack(spacing: 4) {
+                                        HStack(spacing: EVESpacing.xs) {
                                             Text("Total:")
                                                 .font(.caption2)
                                                 .foregroundStyle(.tertiary)
@@ -132,7 +132,7 @@ extension LocationOverviewView {
                             }
                         }
 
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: EVESpacing.md) {
                         HStack {
                             Image(systemName: "location.fill")
                                 .foregroundStyle(palette.location)
@@ -140,8 +140,8 @@ extension LocationOverviewView {
                                 .font(.subheadline.bold())
                         }
 
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack(spacing: 6) {
+                        VStack(alignment: .leading, spacing: EVESpacing.xs) {
+                            HStack(spacing: EVESpacing.sm) {
                                 Text(info.systemName)
                                     .eveContextMenu(.system(id: info.systemId, name: info.systemName))
                                     .font(.body.bold())
@@ -157,7 +157,7 @@ extension LocationOverviewView {
                             }
 
                             if let docked = info.dockedAt {
-                                HStack(spacing: 4) {
+                                HStack(spacing: EVESpacing.xs) {
                                     Image(systemName: "building.2.fill")
                                         .font(.caption)
                                         .foregroundStyle(.teal)
@@ -166,7 +166,7 @@ extension LocationOverviewView {
                                         .foregroundStyle(.teal)
                                 }
                             } else {
-                                HStack(spacing: 4) {
+                                HStack(spacing: EVESpacing.xs) {
                                     Image(systemName: "airplane")
                                         .font(.caption)
                                         .foregroundStyle(.orange)
@@ -196,7 +196,7 @@ extension LocationOverviewView {
                             }
                         }
 
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: EVESpacing.md) {
                         HStack {
                             Image(systemName: "airplane")
                                 .foregroundStyle(.purple)
@@ -204,8 +204,8 @@ extension LocationOverviewView {
                                 .font(.subheadline.bold())
                         }
 
-                        HStack(alignment: .top, spacing: 8) {
-                            VStack(alignment: .leading, spacing: 4) {
+                        HStack(alignment: .top, spacing: EVESpacing.md) {
+                            VStack(alignment: .leading, spacing: EVESpacing.xs) {
                                 Text(info.shipName)
                                     .font(.headline)
                                     .lineLimit(1)
@@ -221,7 +221,7 @@ extension LocationOverviewView {
                             }
 
                             if info.shipMass != nil || info.shipVolume != nil || info.shipCapacity != nil {
-                                VStack(alignment: .leading, spacing: 6) {
+                                VStack(alignment: .leading, spacing: EVESpacing.sm) {
                                     if let mass = info.shipMass, mass > 0 {
                                         shipStat(label: "Mass", value: formatLarge(mass) + " kg")
                                     }
@@ -276,7 +276,7 @@ extension LocationOverviewView {
                     constellationName: info.constellationName ?? "Constellation"
                 )
             }
-            .padding(12)
+            .padding(EVESpacing.lg)
         }
         .eveCard()
         .clipShape(RoundedRectangle(cornerRadius: EVERadius.xl))
@@ -285,7 +285,7 @@ extension LocationOverviewView {
     // MARK:  Station Services
 
     func stationServicesSection(station: ESIStation, services: [String]) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
             HStack {
                 Image(systemName: "building.2.fill")
                     .foregroundStyle(.teal)
@@ -308,7 +308,7 @@ extension LocationOverviewView {
             }
 
             if let cost = station.officeRentalCost, cost > 0 {
-                HStack(spacing: 4) {
+                HStack(spacing: EVESpacing.xs) {
                     Text("Office Rental:")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
@@ -356,9 +356,9 @@ extension LocationOverviewView {
             set: { stationsExpanded[characterID] = $0 }
         )
         return DisclosureGroup(isExpanded: isExpanded) {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: EVESpacing.sm) {
                 ForEach(stations, id: \.stationId) { station in
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: EVESpacing.xs) {
                         Text(station.name)
                             .font(.caption.bold())
                             .lineLimit(1)
@@ -379,13 +379,13 @@ extension LocationOverviewView {
                             }
                         }
                     }
-                    .padding(.vertical, 4)
+                    .padding(.vertical, EVESpacing.xs)
                     if station.stationId != stations.last?.stationId {
                         Divider()
                     }
                 }
             }
-            .padding(.top, 4)
+            .padding(.top, EVESpacing.xs)
         } label: {
             HStack {
                 Image(systemName: "building.2.fill")

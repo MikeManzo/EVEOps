@@ -119,9 +119,8 @@ extension GalaxyMarketSearchView {
         orders = []
         regionsSearched = 0
         // Set natural sort direction for the selected order type
-        if sortColumn == .price {
-            sortAscending = orderTypeFilter != .buy
-        }
+        applyNaturalPriceSort(for: orderTypeFilter)
+        selectedOrderIDs = []
 
         galaxyTask = Task { await runGalaxySearch(typeId: typeId) }
     }

@@ -22,7 +22,7 @@ struct StationServiceBadge: View {
 
     var body: some View {
         Button { showPopover = true } label: {
-            HStack(spacing: 4) {
+            HStack(spacing: EVESpacing.xs) {
                 Image(systemName: icon)
                     .font(.caption2)
                     .foregroundStyle(color)
@@ -30,8 +30,8 @@ struct StationServiceBadge: View {
                     .font(.caption)
                     .foregroundStyle(.primary)
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
+            .padding(.horizontal, EVESpacing.md)
+            .padding(.vertical, EVESpacing.xs)
             .background(color.opacity(0.12), in: Capsule())
         }
         .buttonStyle(.plain)
@@ -50,11 +50,11 @@ struct StationServicePopover: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
+            HStack(spacing: EVESpacing.md) {
                 Image(systemName: icon)
                     .font(.title3)
                     .foregroundStyle(color)
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                     Text(label)
                         .font(.headline)
                     Text(station.name)
@@ -107,7 +107,7 @@ struct StationServicePopover: View {
             let hasData = station.reprocessingEfficiency != nil || station.reprocessingStationsTake != nil
             if hasData {
                 Divider()
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: EVESpacing.sm) {
                     if let eff = station.reprocessingEfficiency, eff > 0 {
                         detailRow("Base Efficiency", value: eff.formatted(.percent.precision(.fractionLength(1))), color: .green)
                     }
@@ -145,7 +145,7 @@ struct StationServicePopover: View {
         HStack {
             Text(label).font(.caption).foregroundStyle(.tertiary)
             Spacer()
-            Text(value).font(.caption.monospacedDigit().bold()).foregroundStyle(color)
+            Text(value).textSelection(.enabled).font(.caption.monospacedDigit().bold()).foregroundStyle(color)
         }
     }
 

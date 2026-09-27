@@ -46,7 +46,7 @@ struct FleetManagerView: View {
                         }
                         membersSection
                         if let confirmation = inviteConfirmation {
-                            HStack(spacing: 8) {
+                            HStack(spacing: EVESpacing.md) {
                                 Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
                                 Text(confirmation).font(.subheadline)
                             }
@@ -80,10 +80,10 @@ struct FleetManagerView: View {
     }
 
     private func fleetStatusCard(_ info: ESIFleetInfo) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: EVESpacing.lg) {
             Text("Fleet Status").font(.headline)
-            HStack(spacing: 16) {
-                VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: EVESpacing.xl) {
+                VStack(alignment: .leading, spacing: EVESpacing.xs) {
                     Label("In Fleet", systemImage: "dot.radiowaves.left.and.right")
                         .foregroundStyle(.green)
                         .font(.subheadline.bold())
@@ -92,11 +92,11 @@ struct FleetManagerView: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                VStack(alignment: .trailing, spacing: 6) {
+                VStack(alignment: .trailing, spacing: EVESpacing.sm) {
                     Text(fleetRoleLabel(info.role))
                         .font(.subheadline)
                         .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
+                        .padding(.vertical, EVESpacing.xs)
                         .background(roleColor(info.role).opacity(0.15), in: Capsule())
                         .foregroundStyle(roleColor(info.role))
                     if info.wingId > 0 {
@@ -157,7 +157,7 @@ struct FleetManagerView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
-                VStack(spacing: 8) {
+                VStack(spacing: EVESpacing.md) {
                     ForEach(members.sorted(by: { $0.wingId == $1.wingId ? $0.squadId < $1.squadId : $0.wingId < $1.wingId })) { member in
                         FleetMemberRow(
                             member: member,
@@ -168,6 +168,12 @@ struct FleetManagerView: View {
                             roleLabel: fleetRoleLabel(member.role),
                             roleColor: roleColor(member.role)
                         )
+                        .contentShape(Rectangle())
+                        .eveContextMenu([
+                            resolvedNames[member.characterId].map { .character(id: member.characterId, name: $0) },
+                            resolvedNames[member.shipTypeId].map { .item(typeID: member.shipTypeId, name: $0) },
+                            resolvedNames[member.solarSystemId].map { .system(id: member.solarSystemId, name: $0) }
+                        ])
                     }
                 }
             }
@@ -313,7 +319,7 @@ struct FleetMemberRow: View {
                 )
             }
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 Text(characterName)
                     .font(.subheadline.bold())
                     .lineLimit(1)
@@ -340,13 +346,13 @@ struct FleetMemberRow: View {
 
             Text(roleLabel)
                 .font(.caption2)
-                .padding(.horizontal, 8)
+                .padding(.horizontal, EVESpacing.md)
                 .padding(.vertical, 3)
                 .background(roleColor.opacity(0.15), in: Capsule())
                 .foregroundStyle(roleColor)
                 .frame(width: 110, alignment: .center)
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, EVESpacing.xxs)
     }
 }
 
@@ -369,7 +375,7 @@ struct FleetMemberDetailPopover: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: EVESpacing.xl) {
                 header
                 fleetPositionCard
                 if isLoading {
@@ -378,7 +384,7 @@ struct FleetMemberDetailPopover: View {
                         ProgressView().controlSize(.small)
                         Spacer()
                     }
-                    .padding(.vertical, 12)
+                    .padding(.vertical, EVESpacing.lg)
                 } else if let charInfo {
                     characterInfoCard(charInfo)
                     if !history.isEmpty {
@@ -386,7 +392,7 @@ struct FleetMemberDetailPopover: View {
                     }
                 }
             }
-            .padding(16)
+            .padding(EVESpacing.xl)
         }
         .frame(width: 340)
         .frame(maxHeight: 560)
@@ -394,7 +400,7 @@ struct FleetMemberDetailPopover: View {
     }
 
     private var header: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: EVESpacing.lg) {
             CachedAsyncImage(url: EVEImageURL.characterPortrait(member.characterId, size: 256)) { image in
                 image.resizable()
             } placeholder: {
@@ -403,13 +409,13 @@ struct FleetMemberDetailPopover: View {
             .frame(width: 64, height: 64)
             .clipShape(Circle())
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: EVESpacing.xs) {
                 Text(charInfo?.name ?? "Character #\(member.characterId)")
                     .font(.headline)
                     .fixedSize(horizontal: false, vertical: true)
                 Text(Self.fleetRoleLabel(member.role))
                     .font(.caption)
-                    .padding(.horizontal, 8)
+                    .padding(.horizontal, EVESpacing.md)
                     .padding(.vertical, 3)
                     .background(Self.roleColor(member.role).opacity(0.15), in: Capsule())
                     .foregroundStyle(Self.roleColor(member.role))
@@ -477,7 +483,7 @@ struct FleetMemberDetailPopover: View {
     }
 
     private var historySection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
             Text("Corporation History")
                 .font(.headline)
             ForEach(history, id: \.recordId) { entry in
@@ -490,7 +496,7 @@ struct FleetMemberDetailPopover: View {
                     .frame(width: 28, height: 28)
                     .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
 
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                         Text(entry.corporationName)
                             .font(.subheadline)
                             .fixedSize(horizontal: false, vertical: true)
@@ -522,7 +528,7 @@ struct FleetMemberDetailPopover: View {
             Text(label.uppercased())
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(.secondary)
-            HStack(spacing: 6) {
+            HStack(spacing: EVESpacing.sm) {
                 if let icon {
                     CachedAsyncImage(url: icon) { image in
                         image.resizable()
@@ -532,7 +538,7 @@ struct FleetMemberDetailPopover: View {
                     .frame(width: 18, height: 18)
                     .clipShape(RoundedRectangle(cornerRadius: 3))
                 }
-                Text(value)
+                Text(value).textSelection(.enabled)
                     .font(.subheadline)
                     .foregroundStyle(.primary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -660,7 +666,7 @@ struct InviteFleetMemberSheet: View {
 
             VStack(alignment: .leading, spacing: 20) {
                 // Pilot search
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: EVESpacing.md) {
                     Text("Pilot Name").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                     HStack {
                         TextField("Exact character name…", text: $nameInput)
@@ -670,7 +676,7 @@ struct InviteFleetMemberSheet: View {
                             .disabled(nameInput.trimmingCharacters(in: .whitespaces).isEmpty || isSearching)
                     }
                     if isSearching {
-                        HStack(spacing: 6) {
+                        HStack(spacing: EVESpacing.sm) {
                             ProgressView().controlSize(.small)
                             Text("Searching…").font(.caption).foregroundStyle(.secondary)
                         }
@@ -697,7 +703,7 @@ struct InviteFleetMemberSheet: View {
                 }
 
                 // Role picker
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: EVESpacing.md) {
                     Text("Fleet Role").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                     Picker("Role", selection: $selectedRole) {
                         ForEach(roleOptions, id: \.0) { apiRole, label in
@@ -719,7 +725,7 @@ struct InviteFleetMemberSheet: View {
                 .buttonStyle(.borderedProminent)
                 .disabled(searchResult == nil || isInviting)
                 .overlay(alignment: .leading) {
-                    if isInviting { ProgressView().controlSize(.small).padding(.leading, 8) }
+                    if isInviting { ProgressView().controlSize(.small).padding(.leading, EVESpacing.md) }
                 }
             }
             .padding()

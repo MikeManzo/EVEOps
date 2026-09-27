@@ -111,7 +111,7 @@ private struct MedalRow: View {
     @State private var showDetail = false
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: EVESpacing.lg) {
             CachedAsyncImage(url: EVEImageURL.corporationLogo(medal.corporationId, size: 64)) { image in
                 image.resizable().scaledToFit()
             } placeholder: {
@@ -144,7 +144,7 @@ private struct MedalRow: View {
                     .foregroundStyle(.tertiary)
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, EVESpacing.xs)
         .contentShape(Rectangle())
         .onTapGesture { showDetail = true }
         .popover(isPresented: $showDetail) {
@@ -158,8 +158,8 @@ private struct MedalRow: View {
     }
 
     private var medalDetail: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: EVESpacing.lg) {
+            HStack(spacing: EVESpacing.lg) {
                 CachedAsyncImage(url: EVEImageURL.corporationLogo(medal.corporationId, size: 64)) { image in
                     image.resizable().scaledToFit()
                 } placeholder: {
@@ -168,7 +168,7 @@ private struct MedalRow: View {
                 .frame(width: 64, height: 64)
                 .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: EVESpacing.xs) {
                     Text(medal.title).font(.headline)
                     Text(corpName.isEmpty ? "Corp #\(medal.corporationId)" : corpName)
                         .font(.subheadline)

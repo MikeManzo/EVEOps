@@ -18,8 +18,8 @@ extension SkillPlannerView {
         VStack(spacing: 0) {
             if let attrs = attributes {
                 attributesBar(attrs)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
+                    .padding(.horizontal, EVESpacing.lg)
+                    .padding(.vertical, EVESpacing.md)
                     .background(EVESurface.bar)
                     .help("Estimates assume Omega clone. Alpha clone trains at 50% speed.")
                 Divider()
@@ -33,7 +33,7 @@ extension SkillPlannerView {
                     .font(.caption2)
                     .foregroundStyle(.green)
                     .frame(maxWidth: .infinity)
-                    .padding(.bottom, 6)
+                    .padding(.bottom, EVESpacing.sm)
                     .transition(.opacity)
             }
 
@@ -42,7 +42,7 @@ extension SkillPlannerView {
             if #available(macOS 26.0, *), IntelligenceService.isSupported, let info = selectedCharInfo {
                 SkillPlanAIInsightCard(characterInfo: info, onAddSkill: addPlanItem)
                     .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
+                    .padding(.vertical, EVESpacing.md)
                 Divider()
             }
 
@@ -50,7 +50,7 @@ extension SkillPlannerView {
                 SkillQueueTimeline(queue: plannedQueue(attrs: attrs), tint: .eveThemeAccent,
                                    endLabel: "Plan completes", warnsWhenEndingSoon: false)
                     .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
+                    .padding(.vertical, EVESpacing.md)
                 Divider()
             }
 
@@ -120,7 +120,7 @@ extension SkillPlannerView {
         }
 
         return HStack(spacing: 0) {
-            VStack(spacing: 2) {
+            VStack(spacing: EVESpacing.xxs) {
                 Text("Skills")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
@@ -131,7 +131,7 @@ extension SkillPlannerView {
 
             Divider().frame(height: 30)
 
-            VStack(spacing: 2) {
+            VStack(spacing: EVESpacing.xxs) {
                 Text("Total SP")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
@@ -144,7 +144,7 @@ extension SkillPlannerView {
 
             Divider().frame(height: 30)
 
-            VStack(spacing: 2) {
+            VStack(spacing: EVESpacing.xxs) {
                 Text("Time")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
@@ -158,7 +158,7 @@ extension SkillPlannerView {
 
             Divider().frame(height: 30)
 
-            HStack(spacing: 12) {
+            HStack(spacing: EVESpacing.lg) {
                 Button {
                     showingClipboardHelp.toggle()
                 } label: {
@@ -216,7 +216,7 @@ extension SkillPlannerView {
         let sp = spNeeded(for: item)
         let seconds = attributes.map { trainingTime(for: item, attrs: $0) } ?? 0.0
 
-        return HStack(spacing: 8) {
+        return HStack(spacing: EVESpacing.md) {
             CachedAsyncImage(url: EVEImageURL.typeIcon(item.skillId, size: 64)) { phase in
                 if let image = phase.image {
                     image.resizable().frame(width: 28, height: 28).clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
@@ -225,11 +225,11 @@ extension SkillPlannerView {
                 }
             }
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 Text(item.skillName)
                     .font(.caption.bold())
                     .lineLimit(1)
-                HStack(spacing: 4) {
+                HStack(spacing: EVESpacing.xs) {
                     levelBadge(item.fromLevel)
                     Image(systemName: "arrow.right")
                         .font(.caption2)
@@ -240,7 +240,7 @@ extension SkillPlannerView {
 
             Spacer()
 
-            VStack(alignment: .trailing, spacing: 2) {
+            VStack(alignment: .trailing, spacing: EVESpacing.xxs) {
                 Text(formatSP(sp))
                     .font(.caption2.monospacedDigit())
                     .foregroundStyle(.secondary)
@@ -291,7 +291,7 @@ extension SkillPlannerView {
             .buttonStyle(.plain)
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 6)
+        .padding(.vertical, EVESpacing.sm)
     }
 
 }

@@ -177,7 +177,7 @@ struct PilotBackupPassphraseSheet: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: EVESpacing.lg) {
             Text(mode == .export ? "Encrypt Pilot Backup" : "Unlock Pilot Backup")
                 .font(.headline)
             Text(mode == .export

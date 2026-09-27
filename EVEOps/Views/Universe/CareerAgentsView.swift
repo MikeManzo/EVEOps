@@ -57,20 +57,18 @@ struct AgentFinderView: View {
     var body: some View {
         HStack(spacing: 0) {
             leftPanel
-            if let agent = selectedAgent {
-                Divider()
-                AgentDetailView(
-                    agent: agent,
-                    onDestinationSet: { msg in
-                        if let idx = resolvedAgents.firstIndex(where: { $0.id == agent.id }) {
-                            // detail view handles its own message state
-                            _ = idx
-                        }
+        }
+        .eveInspector(item: $selectedAgent, width: 300) { agent in
+            AgentDetailView(
+                agent: agent,
+                onDestinationSet: { msg in
+                    if let idx = resolvedAgents.firstIndex(where: { $0.id == agent.id }) {
+                        // detail view handles its own message state
+                        _ = idx
                     }
-                )
-                .frame(width: 300)
-                .id(agent.id)
-            }
+                }
+            )
+            .id(agent.id)
         }
         .eveScreenHeader("Agent Finder", section: .careerAgents) {
             if dbLoading || isResolvingResults {
@@ -105,14 +103,14 @@ struct AgentFinderView: View {
     // MARK: Filter Panel
 
     private var filterPanel: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: EVESpacing.lg) {
             // Agent type row
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: EVESpacing.sm) {
                 Text("Agent Type")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 6) {
+                    HStack(spacing: EVESpacing.sm) {
                         ForEach(AgentTypeFilter.allCases) { type_ in
                             filterChip(
                                 label: type_.rawValue,
@@ -128,12 +126,12 @@ struct AgentFinderView: View {
 
             // Division sub-filter (only for Basic Mission)
             if typeFilter == .basic && !availableDivisions.isEmpty {
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: EVESpacing.sm) {
                     Text("Division")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                     ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 6) {
+                        HStack(spacing: EVESpacing.sm) {
                             filterChip(label: "Any", icon: "square.grid.2x2", color: .secondary, isSelected: divisionFilter == nil) {
                                 divisionFilter = nil
                             }
@@ -149,8 +147,8 @@ struct AgentFinderView: View {
             }
 
             // Level + Security + Faction row
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: EVESpacing.lg) {
+                VStack(alignment: .leading, spacing: EVESpacing.xs) {
                     Text("Level")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
@@ -159,7 +157,7 @@ struct AgentFinderView: View {
                         (1...5).map { EVEMenuOption(Int?.some($0), verbatim: "L\($0)") })
                 }
 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: EVESpacing.xs) {
                     Text("Security")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
@@ -168,7 +166,7 @@ struct AgentFinderView: View {
                 }
 
                 if !availableFactions.isEmpty {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: EVESpacing.xs) {
                         Text("Faction")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.secondary)
@@ -182,7 +180,7 @@ struct AgentFinderView: View {
                 }
 
                 if standingsLoaded {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: EVESpacing.xs) {
                         Text("Standing")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.secondary)
@@ -196,8 +194,8 @@ struct AgentFinderView: View {
                 }
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.horizontal, EVESpacing.xl)
+        .padding(.vertical, EVESpacing.lg)
         .background(EVESurface.bar)
     }
 
@@ -210,11 +208,11 @@ struct AgentFinderView: View {
         isSelected: Bool, action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            HStack(spacing: 4) {
+            HStack(spacing: EVESpacing.xs) {
                 Image(systemName: icon).font(.caption2)
                 Text(label).font(.caption.weight(.semibold))
             }
-            .padding(.horizontal, 10).padding(.vertical, 6)
+            .padding(.horizontal, 10).padding(.vertical, EVESpacing.sm)
             .background(isSelected ? palette.accent : Color.secondary.opacity(0.08), in: Capsule())
             .foregroundStyle(isSelected ? .white : color)
             .overlay(Capsule().strokeBorder(isSelected ? Color.clear : color.opacity(0.35), lineWidth: 1))
@@ -241,11 +239,11 @@ struct AgentFinderView: View {
                         Text("\(totalFiltered) agents found")
                             .font(.caption).foregroundStyle(.secondary)
                         if isResolvingResults {
-                            ProgressView().controlSize(.mini).padding(.leading, 4)
+                            ProgressView().controlSize(.mini).padding(.leading, EVESpacing.xs)
                         }
                     }
                     Spacer()
-                    HStack(spacing: 8) {
+                    HStack(spacing: EVESpacing.md) {
                         if resolvedAgents.count < totalFiltered && totalFiltered > 0 {
                             Text("Showing top \(resolvedAgents.count)")
                                 .font(.caption2).foregroundStyle(.tertiary)
@@ -262,7 +260,7 @@ struct AgentFinderView: View {
                         .disabled(!dbLoaded || resolvedAgents.isEmpty)
                     }
                 }
-                .padding(.horizontal, 16).padding(.vertical, 8)
+                .padding(.horizontal, EVESpacing.xl).padding(.vertical, EVESpacing.md)
 
                 if resolvedAgents.isEmpty && dbLoaded && !isResolvingResults {
                     Text("No agents match the current filters.")
@@ -297,9 +295,9 @@ struct AgentFinderView: View {
                     }
                 }
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                     Text(agent.displayName).font(.subheadline.weight(.medium)).foregroundStyle(.primary).lineLimit(1)
-                    HStack(spacing: 6) {
+                    HStack(spacing: EVESpacing.sm) {
                         Text(agent.displaySystem).font(.caption).foregroundStyle(.secondary)
                         if let sec = agent.securityStatus {
                             agentSecBadge(sec)
@@ -324,21 +322,21 @@ struct AgentFinderView: View {
 
                 Image(systemName: "chevron.right").font(.caption2).foregroundStyle(.tertiary)
             }
-            .padding(.horizontal, 16).padding(.vertical, 8)
+            .padding(.horizontal, EVESpacing.xl).padding(.vertical, EVESpacing.md)
             .background(isSelected ? typeFilter.color.opacity(0.08) : Color.clear)
             .contentShape(Rectangle())
         }
+        .eveContextMenu([
+            agent.name.map { .character(id: agent.id, name: $0) },
+            agent.systemID.flatMap { id in agent.systemName.map { .system(id: id, name: $0) } }
+        ])
         .buttonStyle(.plain)
     }
 
     private func levelBadge(_ level: Int) -> some View {
         let colors: [Color] = [.secondary, .gray, .blue, .green, .purple, .orange]
         let c = colors[min(level, 5)]
-        return Text("L\(level)")
-            .font(.caption2.bold().monospacedDigit())
-            .foregroundStyle(c)
-            .padding(.horizontal, 6).padding(.vertical, 2)
-            .background(c.opacity(0.15), in: Capsule())
+        return EVEChip(Text("L\(level)"), tint: c, size: .small, monospacedDigits: true)
     }
 
     // MARK: Division Helpers

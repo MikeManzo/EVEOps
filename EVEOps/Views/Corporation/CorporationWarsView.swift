@@ -56,14 +56,14 @@ struct CorporationWarsView: View {
         let opponentID = opponent.corporationId ?? opponent.allianceId ?? 0
         let opponentName = names[opponentID] ?? "Entity #\(opponentID)"
 
-        return HStack(spacing: 12) {
+        return HStack(spacing: EVESpacing.lg) {
             Image(systemName: isAggressor ? "bolt.fill" : "shield.fill")
                 .foregroundStyle(isAggressor ? .red : .blue)
                 .frame(width: 20)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: EVESpacing.xs) {
                 Text(opponentName).font(.subheadline.bold())
-                HStack(spacing: 6) {
+                HStack(spacing: EVESpacing.sm) {
                     statusBadge(isAggressor ? "Aggressor" : "Defender",
                                 color: isAggressor ? .red : .blue)
                     if war.mutual { statusBadge("Mutual", color: .orange) }
@@ -78,8 +78,8 @@ struct CorporationWarsView: View {
 
             Spacer()
 
-            VStack(alignment: .trailing, spacing: 4) {
-                HStack(spacing: 4) {
+            VStack(alignment: .trailing, spacing: EVESpacing.xs) {
+                HStack(spacing: EVESpacing.xs) {
                     Image(systemName: "flame.fill").foregroundStyle(.red).font(.caption2)
                     Text(EVEFormatters.formatISKShort(opponent.iskDestroyed))
                         .font(.caption.bold().monospacedDigit())
@@ -88,13 +88,13 @@ struct CorporationWarsView: View {
                     .font(.caption2).foregroundStyle(.secondary)
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, EVESpacing.xs)
     }
 
     private func statusBadge(_ text: String, color: Color) -> some View {
         Text(text)
             .font(.caption2)
-            .padding(.horizontal, 6).padding(.vertical, 2)
+            .padding(.horizontal, EVESpacing.sm).padding(.vertical, EVESpacing.xxs)
             .background(color.opacity(0.15))
             .foregroundStyle(color)
             .clipShape(Capsule())

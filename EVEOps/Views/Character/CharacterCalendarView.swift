@@ -154,9 +154,9 @@ struct CharacterCalendarView: View {
         VStack(spacing: 0) {
             filterBar
             if isLoading && allItems.isEmpty {
-                ProgressView("Loading…").frame(maxWidth: .infinity, maxHeight: .infinity)
+                EVELoadingPane("Loading…")
             } else if let msg = error, allItems.isEmpty {
-                ContentUnavailableView(msg, systemImage: "calendar.badge.exclamationmark")
+                EVEEmptyState(verbatim: msg, systemImage: "calendar.badge.exclamationmark", tint: .orange)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 CalendarGridView(
@@ -164,7 +164,7 @@ struct CharacterCalendarView: View {
                     selectedDay: $selectedDay,
                     itemsByDay: itemsByDay
                 )
-                .padding(16)
+                .padding(EVESpacing.xl)
                 .onChange(of: selectedDay) { selectedItemID = nil }
 
                 Divider()
@@ -182,7 +182,7 @@ struct CharacterCalendarView: View {
     private var filterBar: some View {
         VStack(spacing: 0) {
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
+                HStack(spacing: EVESpacing.sm) {
                     Button(allFiltersOn ? "None" : "All") {
                         withAnimation(.easeInOut(duration: 0.15)) {
                             activeFilters = allFiltersOn ? [] : Set(CalendarItemSource.allCases)
@@ -204,7 +204,7 @@ struct CharacterCalendarView: View {
                     }
                 }
                 .padding(.horizontal, 10)
-                .padding(.vertical, 8)
+                .padding(.vertical, EVESpacing.md)
             }
             .eveEdgeFade()
 
@@ -227,7 +227,7 @@ struct CharacterCalendarView: View {
                 if isLoading { ProgressView().controlSize(.small) }
             }
             .padding(.horizontal, 10)
-            .padding(.vertical, 6)
+            .padding(.vertical, EVESpacing.sm)
             .frame(minHeight: 34)
             .background(EVESurface.bar)
         }
@@ -265,7 +265,7 @@ struct CharacterCalendarView: View {
     // MARK: List
 
     private var listHeader: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: EVESpacing.md) {
             if let day = selectedDay {
                 Image(systemName: "calendar")
                     .font(.eveCalloutMedium)
@@ -284,7 +284,7 @@ struct CharacterCalendarView: View {
             Text("\(dayFilteredItems.count)")
                 .font(.caption).foregroundStyle(.tertiary).monospacedDigit()
         }
-        .padding(.horizontal, 12).padding(.vertical, 10).background(EVESurface.bar)
+        .padding(.horizontal, EVESpacing.lg).padding(.vertical, 10).background(EVESurface.bar)
     }
 
     private var listBody: some View {

@@ -70,13 +70,13 @@ private struct ShipGoalAICard: View {
     @State private var errorMessage: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
             Label("AI Training Advisor", systemImage: "sparkles")
                 .font(.caption.bold())
                 .foregroundStyle(.secondary)
                 .symbolEffect(.variableColor.iterative.dimInactiveLayers, isActive: isLoading)
 
-            HStack(spacing: 8) {
+            HStack(spacing: EVESpacing.md) {
                 TextField("Describe your goal… e.g. \"market trader\", \"PvP pilot\", \"miner\"", text: $goalText)
                     .textFieldStyle(.plain)
                     .onSubmit { Task { await fetch() } }
@@ -95,11 +95,11 @@ private struct ShipGoalAICard: View {
                     .disabled(goalText.count < 5)
                 }
             }
-            .padding(8)
+            .padding(EVESpacing.md)
             .background(.quaternary, in: RoundedRectangle(cornerRadius: EVERadius.md))
 
             if isLoading {
-                HStack(spacing: 6) {
+                HStack(spacing: EVESpacing.sm) {
                     ProgressView().controlSize(.small)
                     Text(resolvedSkills.isEmpty && recommendation != nil
                          ? "Building training plan…"
@@ -107,7 +107,7 @@ private struct ShipGoalAICard: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                .padding(.vertical, 2)
+                .padding(.vertical, EVESpacing.xxs)
             }
 
             if let err = errorMessage {
@@ -143,7 +143,7 @@ private struct ShipGoalAICard: View {
                         VStack(spacing: 0) {
                             ForEach(resolvedSkills) { skill in
                                 skillRow(skill)
-                                Divider().padding(.leading, 8)
+                                Divider().padding(.leading, EVESpacing.md)
                             }
                         }
                     }
@@ -170,15 +170,15 @@ private struct ShipGoalAICard: View {
     }
 
     private func skillRow(_ skill: ResolvedAISkill) -> some View {
-        HStack(spacing: 8) {
-            VStack(alignment: .leading, spacing: 2) {
+        HStack(spacing: EVESpacing.md) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 Text(skill.name).font(.caption.bold()).lineLimit(1)
                 if !skill.rationale.isEmpty {
                     Text(skill.rationale).font(.caption2).foregroundStyle(.tertiary).lineLimit(1)
                 }
             }
             Spacer()
-            HStack(spacing: 4) {
+            HStack(spacing: EVESpacing.xs) {
                 levelChip(skill.currentLevel, dimmed: true)
                 Image(systemName: "arrow.right").font(.caption2).foregroundStyle(.secondary)
                 levelChip(skill.targetLevel)
@@ -198,8 +198,8 @@ private struct ShipGoalAICard: View {
                 Image(systemName: "checkmark.circle.fill").font(.subheadline).foregroundStyle(.green)
             }
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
+        .padding(.horizontal, EVESpacing.md)
+        .padding(.vertical, EVESpacing.sm)
     }
 
     private func levelChip(_ level: Int, dimmed: Bool = false) -> some View {
@@ -208,7 +208,7 @@ private struct ShipGoalAICard: View {
         return Text("L\(level)")
             .font(.caption2.bold())
             .foregroundStyle(dimmed ? color.opacity(0.5) : color)
-            .padding(.horizontal, 6).padding(.vertical, 1)
+            .padding(.horizontal, EVESpacing.sm).padding(.vertical, 1)
             .background(dimmed ? color.opacity(0.05) : color.opacity(0.15), in: Capsule())
     }
 
@@ -306,26 +306,11 @@ struct ShipGoalBrowserView: View {
     // MARK: Search Bar
 
     private var shipSearchBar: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-            TextField("Search for a ship…", text: $searchText).eveFindTarget()
-                .textFieldStyle(.plain)
-                .onChange(of: searchText) { _, new in triggerSearch(new) }
-                .onSubmit {
-                    if let first = searchResults.first { selectShip(first.id, name: first.name) }
-                }
-            if isSearching {
-                ProgressView().controlSize(.mini)
-            } else if !searchText.isEmpty {
-                Button { clearSelection() } label: {
-                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
-                }
-                .accessibilityLabel("Clear")
-                .buttonStyle(.plain)
+        EVESearchField("Search for a ship…", text: $searchText, isBusy: isSearching, onClear: { clearSelection() })
+            .onChange(of: searchText) { _, new in triggerSearch(new) }
+            .onSubmit {
+                if let first = searchResults.first { selectShip(first.id, name: first.name) }
             }
-        }
-        .padding(8)
-        .eveCard(cornerRadius: EVERadius.md)
     }
 
     // MARK: Content
@@ -333,16 +318,11 @@ struct ShipGoalBrowserView: View {
     @ViewBuilder
     private var content: some View {
         if isSearching {
-            ProgressView("Searching…").frame(maxWidth: .infinity, maxHeight: .infinity)
+            LoadingSkeleton(rows: 8, showsHeader: false)
         } else if !searchResults.isEmpty && selectedShipId == nil {
             searchResultsList
         } else if isResolving {
-            VStack(spacing: 10) {
-                ProgressView()
-                Text("Resolving skill requirements…")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            EVELoadingPane("Resolving skill requirements…")
         } else if let msg = prereqMessage {
             EVEEmptyState("Something Went Wrong", systemImage: "exclamationmark.triangle", message: Text(msg), tint: .orange)
         } else if !prerequisites.isEmpty {
@@ -375,7 +355,7 @@ struct ShipGoalBrowserView: View {
             LazyVStack(spacing: 0) {
                 ForEach(searchResults, id: \.id) { result in
                     Button { selectShip(result.id, name: result.name) } label: {
-                        HStack(spacing: 12) {
+                        HStack(spacing: EVESpacing.lg) {
                             CachedAsyncImage(url: EVEImageURL.typeIcon(result.id, size: 64)) { phase in
                                 if let img = phase.image {
                                     img.resizable()
@@ -391,7 +371,7 @@ struct ShipGoalBrowserView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             Image(systemName: "chevron.right").font(.subheadline).foregroundStyle(.tertiary)
                         }
-                        .padding(.horizontal, 12).padding(.vertical, 10).contentShape(Rectangle())
+                        .padding(.horizontal, EVESpacing.lg).padding(.vertical, 10).contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     Divider().padding(.leading, 72)
@@ -430,7 +410,7 @@ struct ShipGoalBrowserView: View {
                     Button {
                         withAnimation(.easeInOut(duration: 0.2)) { showMetSkills.toggle() }
                     } label: {
-                        HStack(spacing: 8) {
+                        HStack(spacing: EVESpacing.md) {
                             Image(systemName: showMetSkills ? "chevron.down" : "chevron.right")
                                 .font(.caption).foregroundStyle(.secondary).frame(width: 14)
                             Image(systemName: "checkmark.circle.fill")
@@ -439,7 +419,7 @@ struct ShipGoalBrowserView: View {
                                 .font(.subheadline.bold()).foregroundStyle(.secondary)
                             Spacer()
                         }
-                        .padding(.horizontal, 12).padding(.vertical, 10).contentShape(Rectangle())
+                        .padding(.horizontal, EVESpacing.lg).padding(.vertical, 10).contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
 
@@ -470,7 +450,7 @@ struct ShipGoalBrowserView: View {
                 }
             }
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: EVESpacing.xs) {
                 Text(selectedShipName).font(.headline).lineLimit(1)
 
                 if missing.isEmpty {
@@ -516,7 +496,7 @@ struct ShipGoalBrowserView: View {
     }
 
     private var alreadyReadyView: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: EVESpacing.md) {
             Image(systemName: "checkmark.circle.fill").font(.title).foregroundStyle(.green)
             Text("You can already fly this ship!")
                 .font(.headline).foregroundStyle(.green)
@@ -524,16 +504,16 @@ struct ShipGoalBrowserView: View {
                 .font(.caption).foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
-        .padding(24)
+        .padding(EVESpacing.xxl)
     }
 
     private func sectionHeader(icon: String, color: Color, title: String, count: Int) -> some View {
-        HStack(spacing: 8) {
+        HStack(spacing: EVESpacing.md) {
             Image(systemName: icon).foregroundStyle(color).font(.caption)
             Text("\(title) (\(count))").font(.subheadline.bold()).foregroundStyle(.secondary)
             Spacer()
         }
-        .padding(.horizontal, 12).padding(.vertical, 8)
+        .padding(.horizontal, EVESpacing.lg).padding(.vertical, EVESpacing.md)
         .background(Color.secondary.opacity(0.05))
     }
 
@@ -552,9 +532,9 @@ struct ShipGoalBrowserView: View {
                 }
             }
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 Text(entry.name).font(.subheadline).lineLimit(1)
-                HStack(spacing: 4) {
+                HStack(spacing: EVESpacing.xs) {
                     levelBadge(entry.trained, dimmed: true)
                     Image(systemName: "arrow.right").font(.caption2).foregroundStyle(.secondary)
                     levelBadge(entry.required)
@@ -563,7 +543,7 @@ struct ShipGoalBrowserView: View {
 
             Spacer()
 
-            VStack(alignment: .trailing, spacing: 2) {
+            VStack(alignment: .trailing, spacing: EVESpacing.xxs) {
                 if sp > 0 {
                     Text(formatSP(sp)).font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
                 }
@@ -583,7 +563,7 @@ struct ShipGoalBrowserView: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, 12).padding(.vertical, 8)
+        .padding(.horizontal, EVESpacing.lg).padding(.vertical, EVESpacing.md)
     }
 
     private func metRow(_ entry: PrereqEntry) -> some View {
@@ -598,13 +578,13 @@ struct ShipGoalBrowserView: View {
             }
             Text(entry.name).font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
             Spacer()
-            HStack(spacing: 4) {
+            HStack(spacing: EVESpacing.xs) {
                 levelBadge(entry.trained, dimmed: true)
                 Text("/ L\(entry.required)").font(.caption2).foregroundStyle(.tertiary)
             }
             Image(systemName: "checkmark").font(.caption2).foregroundStyle(.green)
         }
-        .padding(.horizontal, 12).padding(.vertical, 6)
+        .padding(.horizontal, EVESpacing.lg).padding(.vertical, EVESpacing.sm)
     }
 
     // MARK: Search Logic
@@ -801,7 +781,7 @@ struct ShipGoalBrowserView: View {
         return Text("L\(level)")
             .font(.caption2.bold())
             .foregroundStyle(dimmed ? color.opacity(0.5) : color)
-            .padding(.horizontal, 6).padding(.vertical, 1)
+            .padding(.horizontal, EVESpacing.sm).padding(.vertical, 1)
             .background((dimmed ? color.opacity(0.05) : color.opacity(0.15)), in: Capsule())
     }
 

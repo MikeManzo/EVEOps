@@ -52,11 +52,11 @@ extension SkillPlannerView {
     }
 
     var clipboardHelpPopover: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: EVESpacing.lg) {
             Text("Clipboard Import / Export")
                 .font(.headline)
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: EVESpacing.sm) {
                 Label("Export", systemImage: "square.and.arrow.up")
                     .font(.subheadline.bold())
                 Text("Copies your plan as plain text — one skill per line:")
@@ -64,12 +64,12 @@ extension SkillPlannerView {
                     .foregroundStyle(.secondary)
                 Text("Navigation 5\nSpaceship Command 4\nDrones 3")
                     .font(.caption.monospaced())
-                    .padding(8)
+                    .padding(EVESpacing.md)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(.quaternary, in: RoundedRectangle(cornerRadius: EVERadius.sm))
             }
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: EVESpacing.sm) {
                 Label("Import", systemImage: "square.and.arrow.down")
                     .font(.subheadline.bold())
                 Text("Reads the same format from your clipboard and adds skills to this plan.")
@@ -79,7 +79,7 @@ extension SkillPlannerView {
 
             Divider()
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: EVESpacing.xs) {
                 Label("Add to EVE Queue", systemImage: "gamecontroller")
                     .font(.subheadline.bold())
                 Text("Export your plan, switch to EVE, then open the skill queue and choose:")
@@ -87,12 +87,12 @@ extension SkillPlannerView {
                     .foregroundStyle(.secondary)
                 Text("☰  →  Add skills listed in clipboard to end of queue")
                     .font(.caption.bold())
-                    .padding(8)
+                    .padding(EVESpacing.md)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(.quaternary, in: RoundedRectangle(cornerRadius: EVERadius.sm))
             }
         }
-        .padding(16)
+        .padding(EVESpacing.xl)
         .frame(width: 300)
     }
 

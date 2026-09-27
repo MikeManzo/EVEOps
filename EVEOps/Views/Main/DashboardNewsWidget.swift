@@ -25,7 +25,7 @@ struct EVENewsWidgetView: View {
             Button {
                 isExpanded.toggle()
             } label: {
-                HStack(spacing: 8) {
+                HStack(spacing: EVESpacing.md) {
                     Image(systemName: "newspaper.fill")
                         .foregroundStyle(.orange)
                         .font(.callout)
@@ -34,7 +34,7 @@ struct EVENewsWidgetView: View {
                     if unreadCount > 0 {
                         Text("\(unreadCount)")
                             .font(.caption.bold())
-                            .padding(.horizontal, 8)
+                            .padding(.horizontal, EVESpacing.md)
                             .padding(.vertical, 3)
                             .background(.blue, in: Capsule())
                             .foregroundStyle(.white)
@@ -44,7 +44,7 @@ struct EVENewsWidgetView: View {
                         .font(.caption.bold())
                         .foregroundStyle(.tertiary)
                 }
-                .padding(.horizontal, 12)
+                .padding(.horizontal, EVESpacing.lg)
                 .padding(.vertical, 10)
                 .background(Color.orange.opacity(0.07), in: RoundedRectangle(cornerRadius: EVERadius.lg))
                 .overlay(RoundedRectangle(cornerRadius: EVERadius.lg).strokeBorder(Color.orange.opacity(0.15), lineWidth: 1))
@@ -56,7 +56,7 @@ struct EVENewsWidgetView: View {
                 if isLoading {
                     HStack {
                         Spacer()
-                        ProgressView("Loading news...")
+                        ProgressView("Loading news…")
                         Spacer()
                     }
                     .padding(.vertical, 20)
@@ -76,7 +76,7 @@ struct EVENewsWidgetView: View {
                             NewsCardView(item: item, readIDs: $readIDs)
                         }
                     }
-                    .padding(.top, 12)
+                    .padding(.top, EVESpacing.lg)
                 }
             }
         }
@@ -114,16 +114,16 @@ struct NewsCardView: View {
                                 .fill(palette.accent)
                                 .frame(width: 10, height: 10)
                                 .shadow(color: .black.opacity(0.4), radius: 2)
-                                .padding(6)
+                                .padding(EVESpacing.sm)
                         }
                     }
 
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: EVESpacing.md) {
+                    HStack(spacing: EVESpacing.md) {
                         Text(item.category.isEmpty ? "EVE News" : item.category)
                             .font(.caption2.bold())
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
+                            .padding(.horizontal, EVESpacing.sm)
+                            .padding(.vertical, EVESpacing.xxs)
                             .background(categoryColor.opacity(0.15), in: Capsule())
                             .foregroundStyle(categoryColor)
                             .lineLimit(1)
@@ -169,7 +169,7 @@ struct NewsCardView: View {
                             .foregroundStyle(.tertiary)
                     }
                 }
-                .padding(12)
+                .padding(EVESpacing.lg)
                 .frame(maxWidth: .infinity, alignment: .topLeading)
             }
             .eveCard()

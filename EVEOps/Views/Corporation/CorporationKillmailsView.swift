@@ -42,12 +42,10 @@ struct CorporationKillmailsView: View {
                     filterBar
                     killmailList
                 }
-                if let entry = selectedEntry {
-                    Divider()
-                    KillmailDetailPane(entry: entry, onClose: { selectedEntry = nil })
-                        .frame(width: 400)
-                        .id(entry.id)
-                }
+            }
+            .eveInspector(item: $selectedEntry, width: 400) { entry in
+                KillmailDetailPane(entry: entry, onClose: { selectedEntry = nil })
+                    .id(entry.id)
             }
         }
         .eveScreenHeader("Corp Kill/Loss Mails", section: .corpKillmails) {
@@ -65,7 +63,7 @@ struct CorporationKillmailsView: View {
     }
 
     private var filterBar: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: EVESpacing.lg) {
             Picker("Type", selection: $filter) {
                 Text("All").tag("all")
                 Text("Kills").tag("kills")
@@ -176,7 +174,7 @@ private struct CorpKillmailSectionHeader: View {
 
     var body: some View {
         Button(action: onToggle) {
-            HStack(spacing: 8) {
+            HStack(spacing: EVESpacing.md) {
                 CachedAsyncImage(url: EVEImageURL.characterPortrait(group.characterID, size: 64)) { image in
                     image.resizable()
                 } placeholder: {

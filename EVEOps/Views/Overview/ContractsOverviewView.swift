@@ -83,7 +83,7 @@ struct ContractsOverviewView: View {
                         HStack {
                             Image(systemName: contractIcon(contract.type))
                                 .foregroundStyle(statusColor(contract.status))
-                            VStack(alignment: .leading, spacing: 2) {
+                            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                                 Text(contract.title ?? "\(contract.type.capitalized) Contract")
                                     .font(.body)
                                 Text("\(contract.type.capitalized) - \(contract.status.replacingOccurrences(of: "_", with: " ").capitalized)")
@@ -91,7 +91,7 @@ struct ContractsOverviewView: View {
                                     .foregroundStyle(.secondary)
                             }
                             Spacer()
-                            VStack(alignment: .trailing, spacing: 2) {
+                            VStack(alignment: .trailing, spacing: EVESpacing.xxs) {
                                 if let price = contract.price, price > 0 {
                                     Text(EVEFormatters.formatISKShort(price))
                                         .font(.caption.monospacedDigit())

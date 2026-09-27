@@ -60,12 +60,9 @@ struct RegionStationBrowserView: View {
             }
             .frame(minWidth: 420)
 
-            if let station = selectedStation {
-                Divider()
-                StationDetailView(entry: station, onNavigateToMarket: onNavigateToMarket)
-                    .frame(width: 340)
-                    .transition(.move(edge: .trailing).combined(with: .opacity))
-            }
+        }
+        .eveInspector(item: $selectedStation, width: 340) { station in
+            StationDetailView(entry: station, onNavigateToMarket: onNavigateToMarket)
         }
         .animation(EVEMotion.snappy, value: selectedStation?.station.stationId)
         .eveScreenHeader("Station Browser", subtitle: stationSubtitle, section: .stationBrowser)
@@ -141,23 +138,7 @@ struct RegionStationBrowserView: View {
     }
 
     private var searchField: some View {
-        HStack(spacing: EVESpacing.sm) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
-            TextField("Search stations or systems", text: $searchText).eveFindTarget()
-                .textFieldStyle(.plain)
-            if !searchText.isEmpty {
-                Button { searchText = "" } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                }
-                .accessibilityLabel("Clear")
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(.horizontal, EVESpacing.md)
-        .padding(.vertical, 5)
-        .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: EVERadius.sm))
+        EVESearchField("Search stations or systems", text: $searchText)
     }
 
     private func serviceChip(_ service: StationService) -> some View {
@@ -274,7 +255,7 @@ struct RegionStationBrowserView: View {
             }
         }
         .textCase(nil)
-        .padding(.vertical, 2)
+        .padding(.vertical, EVESpacing.xxs)
         .eveContextMenu(.system(id: system.systemId, name: system.systemName))
     }
 
@@ -348,7 +329,7 @@ struct RegionStationBrowserView: View {
             return
         }
 
-        loadingProgress = "Loading constellations..."
+        loadingProgress = "Loading constellations…"
         let constellations: [ESIConstellation] = await withTaskGroup(of: ESIConstellation?.self) { group in
             for cid in constellationIds {
                 group.addTask { await UniverseCache.shared.constellation(id: cid) }
@@ -358,7 +339,7 @@ struct RegionStationBrowserView: View {
             return results
         }
 
-        loadingProgress = "Loading systems..."
+        loadingProgress = "Loading systems…"
         let systemIds = constellations.flatMap { $0.systems ?? [] }
         let allSystems: [ESISolarSystem] = await withTaskGroup(of: ESISolarSystem?.self) { group in
             for sid in systemIds {
@@ -386,7 +367,7 @@ struct RegionStationBrowserView: View {
             return
         }
 
-        loadingProgress = "Loading \(stationIds.count) stations..."
+        loadingProgress = "Loading \(stationIds.count) stations…"
         let stationDetails: [ESIStation] = await withTaskGroup(of: ESIStation?.self) { group in
             for sid in stationIds {
                 group.addTask { await UniverseCache.shared.station(id: sid) }

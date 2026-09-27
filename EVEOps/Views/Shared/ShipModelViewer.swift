@@ -786,6 +786,9 @@ struct ShipModelSheet: View {
     let shipName:  String
     var shipClass: String = ""
     @Environment(\.dismiss) private var dismiss
+    /// Set when opened via `WindowService.showShipModel` — the window's own titlebar
+    /// then carries the name and close button, so the sheet header's copies are hidden.
+    @Environment(\.hostWindow) private var hostWindow
 
     @State private var phase:          Phase          = .loading
     @State private var lightingPreset: LightingPreset = .deepSpace
@@ -810,14 +813,27 @@ struct ShipModelSheet: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            header
-            Divider()
+            if hostWindow == nil {
+                header
+                Divider()
+            }
             content
         }
         .frame(minWidth: 680, idealWidth: 800, maxWidth: .infinity,
                minHeight: 520, idealHeight: 600, maxHeight: .infinity)
         .background(Color(.windowBackgroundColor))
+        .toolbar {
+            if hostWindow != nil, case .ready = phase {
+                ToolbarItem(placement: .primaryAction) { lightingPicker }
+            }
+        }
+        .onExitCommand { hostWindow?.close() }
         .task { await load() }
+    }
+
+    private var lightingPicker: some View {
+        EVEMenuPicker("Lighting", selection: $lightingPreset,
+                      options: LightingPreset.allCases.map { EVEMenuOption($0, $0.title, systemImage: "lightbulb") })
     }
 
     // MARK: Header
@@ -831,8 +847,7 @@ struct ShipModelSheet: View {
             }
             Spacer()
             if case .ready = phase {
-                EVEMenuPicker("Lighting", selection: $lightingPreset,
-                              options: LightingPreset.allCases.map { EVEMenuOption($0, $0.title, systemImage: "lightbulb") })
+                lightingPicker
 
                 Button {
                     WindowService.shared.showShipModel(shipName: shipName, shipClass: shipClass)
@@ -850,12 +865,12 @@ struct ShipModelSheet: View {
                 Image(systemName: "xmark.circle.fill")
                     .font(.title2).foregroundStyle(.secondary)
             }
-            .accessibilityLabel("Clear")
+            .accessibilityLabel("Close")
             .buttonStyle(.plain)
             .keyboardShortcut(.cancelAction)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.horizontal, EVESpacing.xl)
+        .padding(.vertical, EVESpacing.lg)
     }
 
     // MARK: Content
@@ -864,13 +879,7 @@ struct ShipModelSheet: View {
     private var content: some View {
         switch phase {
         case .loading:
-            VStack(spacing: 14) {
-                ProgressView()
-                Text("Fetching model…").font(.subheadline).foregroundStyle(.secondary)
-                Text("Downloads are cached after the first view")
-                    .font(.caption).foregroundStyle(.tertiary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            EVELoadingPane("Fetching model…", detail: "Downloads are cached after the first view")
 
         case .ready(let p):
             ShipRealityKitView(
@@ -884,32 +893,32 @@ struct ShipModelSheet: View {
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .overlay(alignment: .topLeading) {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                     Text(shipName).font(.headline.bold()).foregroundStyle(.white)
                     if !shipClass.isEmpty {
                         Text(shipClass).font(.caption).foregroundStyle(.white.opacity(0.65))
                     }
                 }
-                .padding(.horizontal, 10).padding(.vertical, 8)
+                .padding(.horizontal, 10).padding(.vertical, EVESpacing.md)
                 .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
-                .padding(12)
+                .padding(EVESpacing.lg)
             }
             .overlay(alignment: .bottom) {
-                VStack(spacing: 4) {
+                VStack(spacing: EVESpacing.xs) {
                     if p.texturesLoading {
-                        HStack(spacing: 6) {
+                        HStack(spacing: EVESpacing.sm) {
                             ProgressView().controlSize(.small)
                             Text("Loading textures…")
                                 .font(.caption2).foregroundStyle(.white.opacity(0.55))
                         }
-                        .padding(.horizontal, 10).padding(.vertical, 6)
+                        .padding(.horizontal, 10).padding(.vertical, EVESpacing.sm)
                         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
                     }
                     if let warning = p.warning {
                         Label(warning, systemImage: "exclamationmark.triangle.fill")
                             .font(.caption2)
                             .foregroundStyle(.orange)
-                            .padding(.horizontal, 10).padding(.vertical, 6)
+                            .padding(.horizontal, 10).padding(.vertical, EVESpacing.sm)
                             .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
                     }
                     Text("Drag to rotate  ·  Scroll to zoom  ·  Pinch to zoom")

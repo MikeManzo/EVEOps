@@ -100,7 +100,7 @@ struct TradeHubComparisonView: View {
     let initialTypeName: String
 
     @Environment(AccountManager.self) private var accountManager
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.hostWindow) private var hostWindow
 
     @State private var itemSearchText = ""
     @State private var itemSearchResults: [(id: Int, name: String)] = []
@@ -121,6 +121,7 @@ struct TradeHubComparisonView: View {
             contentArea
         }
         .frame(minWidth: 700, idealWidth: 780, minHeight: 460)
+        .onExitCommand { hostWindow?.close() }
         .onAppear {
             if let id = initialTypeId, !initialTypeName.isEmpty {
                 selectedTypeId = id
@@ -134,21 +135,13 @@ struct TradeHubComparisonView: View {
     // MARK:  Header
 
     private var headerPanel: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Label("Trade Hub Comparison", systemImage: "building.2.fill")
-                    .font(.title3.bold())
-                Spacer()
-                Button("Done") { dismiss() }
-                    .keyboardShortcut(.escape)
-            }
-
+        VStack(alignment: .leading, spacing: EVESpacing.lg) {
             HStack(spacing: 10) {
                 if let typeId = selectedTypeId {
                     THCTypeImage(typeId: typeId, size: 28)
                 }
 
-                HStack(spacing: 6) {
+                HStack(spacing: EVESpacing.sm) {
                     if selectedTypeId == nil {
                         Image(systemName: "magnifyingglass")
                             .foregroundStyle(.secondary)
@@ -167,14 +160,14 @@ struct TradeHubComparisonView: View {
                         .buttonStyle(.plain)
                     }
                 }
-                .padding(8)
+                .padding(EVESpacing.md)
                 .eveCard(cornerRadius: EVERadius.md)
                 .frame(maxWidth: 360)
 
                 Spacer()
 
                 if isFetching {
-                    HStack(spacing: 6) {
+                    HStack(spacing: EVESpacing.sm) {
                         ProgressView().controlSize(.mini)
                         Text("\(hubsLoaded)/\(tradeHubs.count) hubs…")
                             .font(.caption)
@@ -183,7 +176,7 @@ struct TradeHubComparisonView: View {
                 }
             }
         }
-        .padding(16)
+        .padding(EVESpacing.xl)
         .fixedSize(horizontal: false, vertical: true)
     }
 
@@ -223,9 +216,10 @@ struct TradeHubComparisonView: View {
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                 }
-                .padding(.vertical, 4)
+                .padding(.vertical, EVESpacing.xs)
             }
             .buttonStyle(.plain)
+            .eveContextMenu(.item(typeID: result.id, name: result.name))
         }
         .listStyle(.plain)
     }
@@ -246,12 +240,12 @@ struct TradeHubComparisonView: View {
                     .frame(width: 140, alignment: .trailing)
                 Text("Margin")
                     .frame(maxWidth: .infinity, alignment: .trailing)
-                    .padding(.trailing, 16)
+                    .padding(.trailing, EVESpacing.xl)
             }
             .font(.subheadline.bold())
             .foregroundStyle(.secondary)
-            .padding(.leading, 16)
-            .padding(.vertical, 8)
+            .padding(.leading, EVESpacing.xl)
+            .padding(.vertical, EVESpacing.md)
             .background(Color(NSColor.separatorColor).opacity(0.15))
 
             Divider()
@@ -271,8 +265,8 @@ struct TradeHubComparisonView: View {
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 6)
+                .padding(.horizontal, EVESpacing.xl)
+                .padding(.vertical, EVESpacing.sm)
         }
     }
 
@@ -286,7 +280,7 @@ struct TradeHubComparisonView: View {
             .frame(width: 80, alignment: .leading)
 
             if hub.isLoading {
-                HStack(spacing: 6) {
+                HStack(spacing: EVESpacing.sm) {
                     ProgressView().controlSize(.mini)
                     Text("Fetching…")
                         .font(.caption)
@@ -324,16 +318,16 @@ struct TradeHubComparisonView: View {
                         .font(.subheadline.monospacedDigit().bold())
                         .foregroundStyle(marginColor(margin))
                         .frame(maxWidth: .infinity, alignment: .trailing)
-                        .padding(.trailing, 16)
+                        .padding(.trailing, EVESpacing.xl)
                 } else {
                     Text("—").foregroundStyle(.tertiary)
                         .frame(maxWidth: .infinity, alignment: .trailing)
-                        .padding(.trailing, 16)
+                        .padding(.trailing, EVESpacing.xl)
                 }
             }
         }
-        .padding(.leading, 16)
-        .padding(.vertical, 16)
+        .padding(.leading, EVESpacing.xl)
+        .padding(.vertical, EVESpacing.xl)
         .background(isEven ? Color.clear : Color(NSColor.separatorColor).opacity(0.06))
         .frame(maxWidth: .infinity)
     }

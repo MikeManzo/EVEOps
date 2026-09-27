@@ -50,9 +50,9 @@ struct DeadlineHeader: View {
     let date: Date?
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 8) {
+        HStack(alignment: .top, spacing: EVESpacing.lg) {
+            VStack(alignment: .leading, spacing: EVESpacing.xs) {
+                HStack(spacing: EVESpacing.md) {
                     Image(systemName: source.icon)
                         .foregroundStyle(source.color)
                         .font(.title3)
@@ -70,11 +70,11 @@ struct DeadlineHeader: View {
             Label(source.title, systemImage: source.icon)
                 .font(.caption.weight(.medium))
                 .foregroundStyle(source.color)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
+                .padding(.horizontal, EVESpacing.md)
+                .padding(.vertical, EVESpacing.xs)
                 .background(source.color.opacity(0.12), in: Capsule())
         }
-        .padding(16)
+        .padding(EVESpacing.xl)
         .background(EVESurface.bar)
     }
 }
@@ -134,7 +134,7 @@ struct SkillDeadlineView: View {
                             .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                     }
                 }
-                .padding(16)
+                .padding(EVESpacing.xl)
             }
         }
     }
@@ -194,7 +194,7 @@ struct IndustryJobDeadlineView: View {
                             .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                     }
                 }
-                .padding(16)
+                .padding(EVESpacing.xl)
             }
         }
     }
@@ -258,7 +258,7 @@ struct PIExpiryDetailView: View {
                     }
 
                     GroupBox {
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: EVESpacing.md) {
                             ForEach(sortedPins) { pin in
                                 if let expiry = pin.expiryTime {
                                     let num = (sortedPins.firstIndex(where: { $0.pinId == pin.pinId }) ?? 0) + 1
@@ -285,7 +285,7 @@ struct PIExpiryDetailView: View {
                             .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                     }
                 }
-                .padding(16)
+                .padding(EVESpacing.xl)
             }
         }
     }
@@ -347,7 +347,7 @@ struct MoonExtractionDetailView: View {
                             .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                     }
                 }
-                .padding(16)
+                .padding(EVESpacing.xl)
             }
         }
     }
@@ -414,7 +414,7 @@ struct ContractDeadlineView: View {
                             .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                     }
                 }
-                .padding(16)
+                .padding(EVESpacing.xl)
             }
         }
     }
@@ -489,7 +489,7 @@ struct MarketOrderDeadlineView: View {
                             .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                     }
                 }
-                .padding(16)
+                .padding(EVESpacing.xl)
             }
         }
     }
@@ -533,7 +533,7 @@ struct AttributeRemapDetailView: View {
                             .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                     }
                 }
-                .padding(16)
+                .padding(EVESpacing.xl)
             }
         }
     }

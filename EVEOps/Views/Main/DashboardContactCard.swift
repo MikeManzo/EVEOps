@@ -36,13 +36,13 @@ struct ContactCardView: View {
                                 .shadow(color: .black.opacity(0.5), radius: 3)
                         }
                     }
-                    .padding(8)
+                    .padding(EVESpacing.md)
                 }
             }
 
             VStack(alignment: .leading, spacing: 10) {
                 // Identity row
-                HStack(spacing: 12) {
+                HStack(spacing: EVESpacing.lg) {
                     ZStack(alignment: .bottomTrailing) {
                         CachedAsyncImage(url: contact.imageURL) { image in
                             image.resizable()
@@ -60,8 +60,8 @@ struct ContactCardView: View {
                     }
 
                     VStack(alignment: .leading, spacing: 3) {
-                        HStack(spacing: 6) {
-                            Text(contact.name.isEmpty ? "Loading..." : contact.name)
+                        HStack(spacing: EVESpacing.sm) {
+                            Text(contact.name.isEmpty ? "Loading…" : contact.name)
                                 .font(.headline)
                             Spacer()
                             if let sec = contact.securityStatus {
@@ -92,7 +92,7 @@ struct ContactCardView: View {
                 Divider()
 
                 // Type badge + flags + standing
-                HStack(spacing: 8) {
+                HStack(spacing: EVESpacing.md) {
                     Image(systemName: contactTypeIcon)
                         .foregroundStyle(.blue)
                         .font(.caption)
@@ -120,7 +120,7 @@ struct ContactCardView: View {
 
                     Spacer()
 
-                    HStack(spacing: 4) {
+                    HStack(spacing: EVESpacing.xs) {
                         Image(systemName: standingIcon)
                             .foregroundStyle(standingColor)
                             .font(.caption)
@@ -133,12 +133,12 @@ struct ContactCardView: View {
                 // Label tags
                 if !contact.labelNames.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 6) {
+                        HStack(spacing: EVESpacing.sm) {
                             ForEach(contact.labelNames, id: \.self) { label in
                                 Text(label)
                                     .font(.caption2)
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
+                                    .padding(.horizontal, EVESpacing.sm)
+                                    .padding(.vertical, EVESpacing.xxs)
                                     .background(.quaternary, in: Capsule())
                                     .foregroundStyle(.secondary)
                             }
@@ -147,7 +147,7 @@ struct ContactCardView: View {
                     .eveEdgeFade()
                 }
             }
-            .padding(12)
+            .padding(EVESpacing.lg)
         }
         .eveCard()
         .clipShape(RoundedRectangle(cornerRadius: EVERadius.xl))

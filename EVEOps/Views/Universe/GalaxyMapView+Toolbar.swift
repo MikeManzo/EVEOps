@@ -89,13 +89,13 @@ extension GalaxyMapView {
 
                 Divider().frame(height: 16)
 
-                HStack(spacing: 6) {
+                HStack(spacing: EVESpacing.sm) {
                     Image(systemName: "magnifyingglass")
                         .foregroundStyle(.secondary).font(.caption)
                     TextField("Search constellation or region…", text: $searchText).eveFindTarget()
                         .textFieldStyle(.plain).font(.caption).frame(width: 200)
                 }
-                .padding(.horizontal, 8).padding(.vertical, 4)
+                .padding(.horizontal, EVESpacing.md).padding(.vertical, EVESpacing.xs)
                 .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.sm))
 
                 Divider().frame(height: 16)
@@ -111,7 +111,7 @@ extension GalaxyMapView {
                     Divider().frame(height: 16)
                 }
 
-                HStack(spacing: 4) {
+                HStack(spacing: EVESpacing.xs) {
                     Button { withAnimation { scale = max(0.3, scale - 0.3); baseScale = scale } } label: {
                         Image(systemName: "minus.magnifyingglass").font(.caption)
                     }.buttonStyle(.plain)
@@ -135,13 +135,13 @@ extension GalaxyMapView {
               }
             }
         }
-        .padding(.horizontal, 16).padding(.vertical, 8)
+        .padding(.horizontal, EVESpacing.xl).padding(.vertical, EVESpacing.md)
     }
 
     // MARK:  Route Banner
 
     var routeBanner: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: EVESpacing.md) {
             if isLoadingRoute {
                 ProgressView().controlSize(.mini)
                 Text("Calculating route…").font(.caption).foregroundStyle(.secondary)
@@ -171,14 +171,14 @@ extension GalaxyMapView {
                     .foregroundStyle(.blue)
             }
         }
-        .padding(.horizontal, 16).padding(.vertical, 6)
+        .padding(.horizontal, EVESpacing.xl).padding(.vertical, EVESpacing.sm)
         .background(Color.orange.opacity(0.06))
     }
 
     // MARK:  Loading View
 
     var loadingView: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: EVESpacing.xl) {
             Spacer()
             ProgressView(value: min(max(loadingProgress, 0), 1)) {
                 Text("Loading galaxy map…").font(.subheadline)

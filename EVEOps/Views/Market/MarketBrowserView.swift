@@ -78,10 +78,10 @@ struct MarketBrowserView: View {
     @State var showModelViewer = false
 
     // Order sort state (sell defaults: price asc; buy defaults: price desc)
-    @State var sellSortKey: OrderSortKey = .price
-    @State var sellSortAsc = true
-    @State var buySortKey:  OrderSortKey = .price
-    @State var buySortAsc  = false
+    // Order-book tables: cheapest sell first, highest buy first.
+    @State var sellSortOrder: [KeyPathComparator<ResolvedOrder>] = [KeyPathComparator(\.price)]
+    @State var buySortOrder:  [KeyPathComparator<ResolvedOrder>] = [KeyPathComparator(\.price, order: .reverse)]
+    @State var selectedOrderIDs = Set<ResolvedOrder.ID>()
 
     // Persisted pane sizes — written only on drag end to avoid UserDefaults
     // writes at 60 Hz, which would cause re-render jitter during dragging.
@@ -103,7 +103,7 @@ struct MarketBrowserView: View {
     var body: some View {
         VStack(spacing: 0) {
             // ── Inline action bar ─────────────────────────────────────
-            HStack(spacing: 8) {
+            HStack(spacing: EVESpacing.md) {
                 Spacer()
                 Button {
                     WindowService.shared.showGalaxySearch(typeId: selectedTypeId, typeName: selectedTypeName)
@@ -142,8 +142,8 @@ struct MarketBrowserView: View {
                 }
                 .disabled(availableRegions.isEmpty)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
+            .padding(.horizontal, EVESpacing.lg)
+            .padding(.vertical, EVESpacing.sm)
             .background(EVESurface.bar)
             Divider()
             // ── Top row ───────────────────────────────────────────────

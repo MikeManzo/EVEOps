@@ -55,13 +55,7 @@ struct WalletTransactionsTable: View {
                     .frame(height: 160)
             } else {
                 summary
-                HStack(spacing: EVESpacing.sm) {
-                    Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                    TextField("Search items", text: $searchText).eveFindTarget().textFieldStyle(.plain)
-                }
-                .padding(.horizontal, EVESpacing.md)
-                .padding(.vertical, 5)
-                .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: EVERadius.sm))
+                EVESearchField("Search items", text: $searchText)
                 .frame(maxWidth: 280)
 
                 table
@@ -85,7 +79,7 @@ struct WalletTransactionsTable: View {
     }
 
     private func tile(_ title: LocalizedStringKey, _ value: Double, _ color: Color, footnote: String?) -> some View {
-        VStack(spacing: 2) {
+        VStack(spacing: EVESpacing.xxs) {
             Text(title).font(.caption).foregroundStyle(.secondary)
             Text(EVEFormatters.formatISKShort(value))
                 .font(.subheadline.bold().monospacedDigit())

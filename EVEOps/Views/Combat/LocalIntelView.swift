@@ -22,7 +22,7 @@ struct LocalIntelView: View {
     @State private var selectedPilot: LocalIntelPilot?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: EVESpacing.lg) {
             Text("In EVE, select-all and copy the Local member list (⌘A, ⌘C), then paste it below.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
@@ -30,7 +30,7 @@ struct LocalIntelView: View {
             TextEditor(text: $pasteText)
                 .font(.system(.body, design: .monospaced))
                 .scrollContentBackground(.hidden)
-                .padding(6)
+                .padding(EVESpacing.sm)
                 .frame(minHeight: 90, maxHeight: 150)
                 .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: EVERadius.sm))
                 .overlay(RoundedRectangle(cornerRadius: EVERadius.sm).stroke(.separator))
@@ -49,7 +49,7 @@ struct LocalIntelView: View {
     }
 
     private var controls: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: EVESpacing.lg) {
             Button {
                 Task { await scan() }
             } label: {
@@ -86,18 +86,10 @@ struct LocalIntelView: View {
     @ViewBuilder
     private var resultsList: some View {
         if !hasScanned {
-            ContentUnavailableView(
-                "No Scan Yet",
-                systemImage: "binoculars",
-                description: Text("Paste a Local member list and tap Scan Local.")
-            )
+            EVEEmptyState("No Scan Yet", systemImage: "binoculars", message: Text("Paste a Local member list and tap Scan Local."))
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if pilots.isEmpty && unresolvedNames.isEmpty {
-            ContentUnavailableView(
-                "No Pilots Found",
-                systemImage: "questionmark.circle",
-                description: Text("Nothing in the pasted text resolved to a known pilot.")
-            )
+            EVEEmptyState("No Pilots Found", systemImage: "questionmark.circle", message: Text("Nothing in the pasted text resolved to a known pilot."))
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             List {
@@ -149,9 +141,9 @@ private struct LocalIntelRow: View {
             .frame(width: 32, height: 32)
             .clipShape(Circle())
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 Text(pilot.name)
-                HStack(spacing: 4) {
+                HStack(spacing: EVESpacing.xs) {
                     if let ticker = pilot.corporationTicker {
                         Text("[\(ticker)]")
                     }
@@ -182,6 +174,6 @@ private struct LocalIntelRow: View {
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, EVESpacing.xxs)
     }
 }

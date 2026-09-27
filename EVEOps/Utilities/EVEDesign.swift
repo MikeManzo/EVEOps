@@ -54,6 +54,33 @@ enum EVESurface {
     static var bar: some ShapeStyle { BackgroundStyle().secondary }
 }
 
+// MARK: - Fills & opacity
+
+/// Appearance-adaptive fills. Built on `.primary` rather than `.white`/`.black`, so an
+/// unfilled pip or empty track reads on light *and* dark content surfaces — a
+/// `.white.opacity(0.05)` fill is invisible in light mode.
+enum EVEFill {
+    /// Unfilled skill pip, empty bar track, placeholder block.
+    static let track = Color.primary.opacity(0.10)
+    /// Hairline outline around an unfilled pip or empty slot.
+    static let trackBorder = Color.primary.opacity(0.14)
+    /// Alternating-row stripe and resting hover wash.
+    static let subtle = Color.primary.opacity(0.04)
+    /// Well behind EVE type/implant icons. CCP's icon art is drawn for a dark backdrop,
+    /// so this stays dark in both appearances on purpose.
+    static let iconWell = Color(white: 0.12)
+}
+
+/// Opacity steps for tinting a fill or stroke with a status/accent color. Pick by role:
+/// `faint` for a background wash, `soft` for a chip or selected-row fill, `medium` for
+/// a border or de-emphasized mark, `strong` for a secondary foreground.
+enum EVEOpacity {
+    static let faint: Double = 0.08
+    static let soft: Double = 0.15
+    static let medium: Double = 0.35
+    static let strong: Double = 0.7
+}
+
 // MARK: - Row density
 
 /// List row density (Settings > General). Compact trims vertical padding on data-heavy
@@ -104,21 +131,25 @@ extension View {
 /// Named type scale. Sizes match what screens were already using as literals, so moving a
 /// call site onto a token never changes how it looks — it just makes the hierarchy
 /// explicit and editable in one place.
+///
+/// Floor: nothing renders below 9 pt, and running text stays at 10 pt or above — the
+/// smallest sizes macOS itself uses. The `Nano`/`Tiny`/`Badge` names survive for glyphs
+/// and chip text that sit inside tight shapes, but they no longer shrink below the floor.
 extension Font {
-    /// 7 pt — map annotations and micro legends.
-    static let eveNano = Font.system(size: 7)
-    /// 7 pt bold.
-    static let eveNanoBold = Font.system(size: 7, weight: .bold)
-    /// 8 pt — the smallest readable secondary text.
-    static let eveTiny = Font.system(size: 8)
-    /// 8 pt bold — tiny badges and counters on icons.
-    static let eveBadge = Font.system(size: 8, weight: .bold)
-    /// 9 pt — dense table metadata, map labels.
-    static let eveMicro = Font.system(size: 9)
-    /// 9 pt bold — uppercase tags and tier labels.
-    static let eveMicroBold = Font.system(size: 9, weight: .bold)
-    /// 9 pt semibold.
-    static let eveMicroSemibold = Font.system(size: 9, weight: .semibold)
+    /// 9 pt — map annotations, micro legends and inline glyphs (stars, arrows).
+    static let eveNano = Font.system(size: 9)
+    /// 9 pt bold.
+    static let eveNanoBold = Font.system(size: 9, weight: .bold)
+    /// 9 pt — the smallest secondary text; prefer `eveMicro` for anything read as prose.
+    static let eveTiny = Font.system(size: 9)
+    /// 9 pt bold — chip text and counters on icons. See `EVEChip`.
+    static let eveBadge = Font.system(size: 9, weight: .bold)
+    /// 10 pt — dense table metadata, map labels.
+    static let eveMicro = Font.system(size: 10)
+    /// 10 pt bold — uppercase tags and tier labels.
+    static let eveMicroBold = Font.system(size: 10, weight: .bold)
+    /// 10 pt semibold.
+    static let eveMicroSemibold = Font.system(size: 10, weight: .semibold)
     /// 10 pt — secondary detail lines.
     static let eveLabel = Font.system(size: 10)
     /// 10 pt medium.
@@ -145,8 +176,8 @@ extension Font {
     static let eveSubsectionTitle = Font.system(size: 15, weight: .semibold)
     /// 17 pt semibold — card headline figures.
     static let eveSectionTitle = Font.system(size: 17, weight: .semibold)
-    /// Monospaced 9/10/11 pt — EFT text, IDs, raw log lines.
-    static let eveCodeSmall = Font.system(size: 9, design: .monospaced)
+    /// Monospaced 10/10/11 pt — EFT text, IDs, raw log lines.
+    static let eveCodeSmall = Font.system(size: 10, design: .monospaced)
     static let eveCode = Font.system(size: 10, design: .monospaced)
     static let eveCodeLarge = Font.system(size: 11, design: .monospaced)
     /// 13 pt rounded bold, tabular — the value inside a small metric tile.
@@ -353,6 +384,53 @@ struct EVEInspectorSection<Content: View>: View {
             content()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+// MARK: - Inspector
+
+private struct EVEInspectorModifier<Value, Pane: View>: ViewModifier {
+    @Binding var item: Value?
+    let minWidth: CGFloat
+    let idealWidth: CGFloat
+    let maxWidth: CGFloat
+    @ViewBuilder let pane: (Value) -> Pane
+
+    func body(content: Content) -> some View {
+        content.inspector(isPresented: Binding(
+            get: { item != nil },
+            set: { if !$0 { item = nil } }
+        )) {
+            Group {
+                if let item { pane(item) }
+            }
+            .inspectorColumnWidth(min: minWidth, ideal: idealWidth, max: maxWidth)
+        }
+    }
+}
+
+extension View {
+    /// Shows the detail for the selected `item` in the window's native inspector column —
+    /// the trailing, user-resizable pane Finder, Mail and Xcode use — instead of a
+    /// fixed-width pane bolted onto an `HStack`. Clearing `item` (a pane's close button,
+    /// Escape, or deselecting the row) closes it with the system animation.
+    func eveInspector<Value, Pane: View>(
+        item: Binding<Value?>,
+        width: CGFloat,
+        @ViewBuilder content: @escaping (Value) -> Pane
+    ) -> some View {
+        modifier(EVEInspectorModifier(item: item, minWidth: width * 0.85, idealWidth: width,
+                                      maxWidth: width * 1.6, pane: content))
+    }
+
+    /// Variant with an explicit width range.
+    func eveInspector<Value, Pane: View>(
+        item: Binding<Value?>,
+        minWidth: CGFloat, idealWidth: CGFloat, maxWidth: CGFloat,
+        @ViewBuilder content: @escaping (Value) -> Pane
+    ) -> some View {
+        modifier(EVEInspectorModifier(item: item, minWidth: minWidth, idealWidth: idealWidth,
+                                      maxWidth: maxWidth, pane: content))
     }
 }
 
@@ -804,6 +882,79 @@ extension EVEEmptyState where Actions == EmptyView {
     /// Runtime-string title (e.g. a caller-supplied `emptyMessage`).
     init<S: StringProtocol>(verbatim title: S, systemImage: String, message: Text? = nil, tint: Color? = nil) {
         self.init(title: Text(title), systemImage: systemImage, message: message, tint: tint) { EmptyView() }
+    }
+}
+
+// MARK: - Chip
+
+/// A small tinted capsule label — status tags ("STAGING", "Active"), counts, tiers.
+/// Screens had grown ~15 hand-built variants of this with slightly different fonts and
+/// padding; this is the one shape they all share now.
+struct EVEChip: View {
+    enum Size {
+        /// 10 pt bold — inline tags beside row titles.
+        case small
+        /// 11 pt bold — standalone status chips in headers and cards.
+        case regular
+    }
+
+    let text: Text
+    var tint: Color
+    var size: Size = .small
+    /// Tabular digits, for chips that show a changing count.
+    var monospacedDigits = false
+
+    init(_ text: Text, tint: Color, size: Size = .small, monospacedDigits: Bool = false) {
+        self.text = text
+        self.tint = tint
+        self.size = size
+        self.monospacedDigits = monospacedDigits
+    }
+
+    var body: some View {
+        let font: Font = size == .small ? .eveMicroBold : .eveCaptionBold
+        text
+            .font(monospacedDigits ? font.monospacedDigit() : font)
+            .lineLimit(1)
+            .foregroundStyle(tint)
+            .padding(.horizontal, size == .small ? EVESpacing.sm : EVESpacing.md)
+            .padding(.vertical, size == .small ? EVESpacing.xxs : 3)
+            .background(tint.opacity(EVEOpacity.soft), in: Capsule())
+    }
+}
+
+// MARK: - Loading pane
+
+/// House style for a pane that's waiting on something that *isn't* a list — a map, a 3D
+/// model, a calculation, a first-run download. List panes use `LoadingSkeleton` instead,
+/// so the layout is already in place when rows arrive. One spinner size, one title
+/// style, one optional detail line, so every wait in the app looks alike.
+struct EVELoadingPane: View {
+    let title: Text
+    var detail: Text?
+
+    init(_ title: LocalizedStringKey = "Loading…", detail: LocalizedStringKey? = nil) {
+        self.title = Text(title)
+        self.detail = detail.map { Text($0) }
+    }
+
+    var body: some View {
+        VStack(spacing: EVESpacing.md) {
+            ProgressView()
+                .controlSize(.regular)
+                .padding(.bottom, EVESpacing.xs)
+            title
+                .font(.callout)
+                .foregroundStyle(.secondary)
+            if let detail {
+                detail
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .multilineTextAlignment(.center)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityElement(children: .combine)
     }
 }
 

@@ -86,7 +86,7 @@ struct MoonExtractionRow: View {
                 .foregroundStyle(state.color)
                 .frame(width: 30)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: EVESpacing.xs) {
                 Text(structureName ?? "Structure #\(extraction.structureId)")
                     .font(.subheadline.bold())
                     .lineLimit(1)
@@ -100,7 +100,7 @@ struct MoonExtractionRow: View {
 
             Spacer()
 
-            VStack(alignment: .trailing, spacing: 4) {
+            VStack(alignment: .trailing, spacing: EVESpacing.xs) {
                 switch state {
                 case .pending:
                     Text(EVEFormatters.timeUntil(extraction.chunkArrivalTime))
@@ -129,7 +129,7 @@ struct MoonExtractionRow: View {
                     .foregroundStyle(.tertiary)
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, EVESpacing.xs)
         .periodicTick(every: 60) { now = Date() }
     }
 

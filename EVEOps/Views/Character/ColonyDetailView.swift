@@ -38,14 +38,12 @@ struct ColonyDetailView: View {
         NavigationStack {
             Group {
                 if isLoading {
-                    ProgressView("Loading colony…")
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    EVELoadingPane("Loading colony…")
                 } else if let errorMsg = error {
-                    ContentUnavailableView("Error", systemImage: "exclamationmark.triangle",
-                                          description: Text(errorMsg))
+                    EVEEmptyState("Error", systemImage: "exclamationmark.triangle", message: Text(errorMsg), tint: .orange)
                 } else {
                     ScrollView {
-                        VStack(spacing: 16) {
+                        VStack(spacing: EVESpacing.xl) {
                             statsBar
                             if !extractors.isEmpty { extractorsSection }
                             if !factories.isEmpty { factoriesSection }
@@ -82,12 +80,12 @@ struct ColonyDetailView: View {
             statTile("Updated", value: relativeTime(colony.lastUpdate), icon: "clock", color: colony.isStale ? .red : .secondary)
         }
         .padding(.vertical, 10)
-        .padding(.horizontal, 12)
+        .padding(.horizontal, EVESpacing.lg)
         .eveCard(cornerRadius: EVERadius.lg)
     }
 
     private func statTile(_ label: String, value: String, icon: String, color: Color) -> some View {
-        HStack(spacing: 6) {
+        HStack(spacing: EVESpacing.sm) {
             Image(systemName: icon).foregroundStyle(color).font(.callout)
             VStack(alignment: .leading, spacing: 1) {
                 Text(label).font(.caption2).foregroundStyle(.secondary)
@@ -100,7 +98,7 @@ struct ColonyDetailView: View {
     // MARK:  Extractors
 
     private var extractorsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
             Label("Extractors (\(extractors.count))", systemImage: "arrow.down.to.line.circle.fill")
                 .font(.headline)
                 .foregroundStyle(.cyan)
@@ -118,7 +116,7 @@ struct ColonyDetailView: View {
         let productName = details.productTypeId.flatMap { typeNames[$0] } ?? (details.productTypeId.map { "Type #\($0)" } ?? "Unknown")
         let isExpired = pin.expiryTime.map { $0 < now } ?? true
 
-        return HStack(spacing: 12) {
+        return HStack(spacing: EVESpacing.lg) {
             CachedAsyncImage(url: details.productTypeId.flatMap { EVEImageURL.typeIcon($0, size: 64) }) { img in
                 img.resizable()
             } placeholder: {
@@ -129,7 +127,7 @@ struct ColonyDetailView: View {
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(productName).font(.subheadline.bold())
-                HStack(spacing: 12) {
+                HStack(spacing: EVESpacing.lg) {
                     if let cycle = details.cycleTime {
                         Label("\(cycle / 60)m cycle", systemImage: "clock.arrow.circlepath")
                             .font(.caption).foregroundStyle(.secondary)
@@ -162,13 +160,13 @@ struct ColonyDetailView: View {
                 }
             }
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, EVESpacing.sm)
     }
 
     // MARK:  Factories
 
     private var factoriesSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
             Label("Processors (\(factories.count))", systemImage: "gearshape.2.fill")
                 .font(.headline)
                 .foregroundStyle(.orange)
@@ -186,7 +184,7 @@ struct ColonyDetailView: View {
         let schematicID = pin.schematicId ?? pin.factoryDetails?.schematicId
         let schematic = schematicID.flatMap { schematics[$0] }
 
-        return HStack(spacing: 12) {
+        return HStack(spacing: EVESpacing.lg) {
             CachedAsyncImage(url: EVEImageURL.typeIcon(pin.typeId, size: 64)) { img in
                 img.resizable()
             } placeholder: {
@@ -200,7 +198,7 @@ struct ColonyDetailView: View {
                 if let schematic {
                     let inputs = schematic.pins.filter(\.isInput)
                     let outputs = schematic.pins.filter { !$0.isInput }
-                    HStack(spacing: 4) {
+                    HStack(spacing: EVESpacing.xs) {
                         ForEach(inputs, id: \.typeId) { p in
                             Text("\(p.quantity)x \(typeNames[p.typeId] ?? "#\(p.typeId)")")
                                 .font(.caption2).foregroundStyle(.secondary)
@@ -223,7 +221,7 @@ struct ColonyDetailView: View {
 
             // Content indicator
             if let contents = pin.contents, !contents.isEmpty {
-                VStack(alignment: .trailing, spacing: 2) {
+                VStack(alignment: .trailing, spacing: EVESpacing.xxs) {
                     Text("Storage")
                         .font(.caption2).foregroundStyle(.secondary)
                     ForEach(contents.prefix(2), id: \.typeId) { content in
@@ -233,13 +231,13 @@ struct ColonyDetailView: View {
                 }
             }
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, EVESpacing.sm)
     }
 
     // MARK:  Storage / Launchpads
 
     private var storageSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
             Label("Storage & Command (\(otherPins.count))", systemImage: "archivebox.fill")
                 .font(.headline)
                 .foregroundStyle(.purple)
@@ -256,7 +254,7 @@ struct ColonyDetailView: View {
         let pinName = typeNames[pin.typeId] ?? "Pin #\(pin.typeId)"
         let contents = pin.contents ?? []
 
-        return HStack(spacing: 12) {
+        return HStack(spacing: EVESpacing.lg) {
             CachedAsyncImage(url: EVEImageURL.typeIcon(pin.typeId, size: 64)) { img in
                 img.resizable()
             } placeholder: {
@@ -282,7 +280,7 @@ struct ColonyDetailView: View {
             }
             Spacer()
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, EVESpacing.xs)
     }
 
     // MARK:  Load

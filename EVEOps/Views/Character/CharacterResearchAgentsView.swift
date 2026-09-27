@@ -44,7 +44,7 @@ struct CharacterResearchAgentsView: View {
         let elapsed = now.timeIntervalSince(agent.startedAt)
         let accumulated = agent.remainderPoints + agent.pointsPerDay * elapsed / 86400
 
-        return HStack(spacing: 12) {
+        return HStack(spacing: EVESpacing.lg) {
             CachedAsyncImage(url: EVEImageURL.characterPortrait(agent.agentId, size: 64)) { img in
                 img.resizable()
             } placeholder: {
@@ -70,7 +70,9 @@ struct CharacterResearchAgentsView: View {
                     .font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, EVESpacing.xs)
+        .contentShape(Rectangle())
+        .eveContextMenu(.character(id: agent.agentId, name: agent.agentName))
     }
 
     // MARK:  Load

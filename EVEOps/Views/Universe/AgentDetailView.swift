@@ -27,7 +27,7 @@ struct AgentDetailView: View {
                 actionBar
                 Divider()
                 infoSection
-                    .padding(16)
+                    .padding(EVESpacing.xl)
             }
         }
         .background(EVESurface.panel)
@@ -56,14 +56,14 @@ struct AgentDetailView: View {
                     Text(agent.displayCorp).font(.caption).foregroundStyle(.secondary)
                 }
             }
-            .padding(12)
+            .padding(EVESpacing.lg)
         }
     }
 
     // MARK: Action Bar
 
     private var actionBar: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: EVESpacing.md) {
             if accountManager.selectedAccount != nil {
                 Button {
                     Task { await setDestination() }
@@ -83,7 +83,7 @@ struct AgentDetailView: View {
                     .lineLimit(1)
             }
         }
-        .padding(.horizontal, 12).padding(.vertical, 8)
+        .padding(.horizontal, EVESpacing.lg).padding(.vertical, EVESpacing.md)
         .background(EVESurface.bar)
     }
 
@@ -105,7 +105,7 @@ struct AgentDetailView: View {
             Divider()
             EVESectionTitle("Location")
 
-            HStack(spacing: 6) {
+            HStack(spacing: EVESpacing.sm) {
                 if let sec = agent.securityStatus {
                     Circle().fill(agentSecColor(sec)).frame(width: 8, height: 8)
                 }
@@ -188,11 +188,7 @@ struct AgentDetailView: View {
 // MARK:  Shared Badges
 
 func agentSecBadge(_ status: Double) -> some View {
-    Text(String(format: "%.1f", max(0.0, status)))
-        .font(.caption.bold().monospacedDigit())
-        .foregroundStyle(agentSecColor(status))
-        .padding(.horizontal, 8).padding(.vertical, 3)
-        .background(agentSecColor(status).opacity(0.15), in: Capsule())
+    EVEChip(Text(String(format: "%.1f", max(0.0, status))), tint: agentSecColor(status), size: .regular, monospacedDigits: true)
 }
 
 @ViewBuilder
@@ -212,7 +208,7 @@ func agentAccessBadge(_ access: AgentAccessResult) -> some View {
                 .font(.caption2.bold().monospacedDigit())
         }
         .foregroundStyle(.orange)
-        .padding(.horizontal, 6).padding(.vertical, 1)
+        .padding(.horizontal, EVESpacing.sm).padding(.vertical, 1)
         .background(.orange.opacity(0.15), in: Capsule())
         .help("Needs \(String(format: "%.1f", access.requiredStanding)) effective standing for a level \(access.level) agent — you have \(String(format: "%.2f", access.effectiveStanding))")
     }
@@ -222,11 +218,11 @@ func agentJumpBadge(_ jumps: Int) -> some View {
     Group {
         if jumps == 0 {
             Text("here").font(.caption.bold()).foregroundStyle(.green)
-                .padding(.horizontal, 6).padding(.vertical, 2)
+                .padding(.horizontal, EVESpacing.sm).padding(.vertical, EVESpacing.xxs)
                 .background(.green.opacity(0.12), in: Capsule())
         } else {
             Text("\(jumps) jumps").font(.caption.monospacedDigit()).foregroundStyle(.secondary)
-                .padding(.horizontal, 6).padding(.vertical, 2)
+                .padding(.horizontal, EVESpacing.sm).padding(.vertical, EVESpacing.xxs)
                 .background(.secondary.opacity(0.1), in: Capsule())
         }
     }

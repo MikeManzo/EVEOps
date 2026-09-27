@@ -25,7 +25,7 @@ struct SimStatsPanel: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     if simState.isLoadingShip || simState.isLoadingSDE {
-                        VStack(spacing: 8) {
+                        VStack(spacing: EVESpacing.md) {
                             ProgressView()
                             if simState.isLoadingSDE {
                                 Text("Syncing EVE SDE data…")
@@ -44,7 +44,7 @@ struct SimStatsPanel: View {
                         SimDronesBlock(stats: simState.stats)
                         SimImplantsBlock()
                     } else {
-                        VStack(spacing: 8) {
+                        VStack(spacing: EVESpacing.md) {
                             Image(systemName: "exclamationmark.triangle").foregroundStyle(.orange)
                             Text("No stat data available for this ship type.")
                                 .font(.caption).foregroundStyle(.secondary)
@@ -66,7 +66,7 @@ private struct SimCalcInfoBanner: View {
     @State private var showingInfo = false
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: EVESpacing.sm) {
             Button { showingInfo = true } label: {
                 Image(systemName: "info.circle")
                     .font(.eveLabel)
@@ -77,11 +77,11 @@ private struct SimCalcInfoBanner: View {
             .buttonStyle(.plain)
             .help("How stats are calculated")
             .popover(isPresented: $showingInfo) {
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: EVESpacing.lg) {
                     Text("How Stats Are Calculated")
                         .font(.headline)
 
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: EVESpacing.md) {
                         infoRow("bolt.fill",
                                 "Toggle active modules on/off. Active 'ON' shows peak performance with all hardeners cycling — the same baseline used by pyfa and EFT. Active 'OFF' shows the passive-only view closely matching the in-game station display with hardeners idle.")
 
@@ -100,7 +100,7 @@ private struct SimCalcInfoBanner: View {
                     Text("What's Not Simulated")
                         .font(.headline)
 
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: EVESpacing.md) {
                         infoRow("person.2.fill",
                                 "Fleet command bursts — warp speed, speed, agility, and other bonuses applied by Command Destroyers or Command Battlecruisers in your fleet.")
 
@@ -139,11 +139,11 @@ private struct SimCalcInfoBanner: View {
             .controlSize(.mini)
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 6)
+        .padding(.vertical, EVESpacing.sm)
     }
 
     private func infoRow(_ icon: String, _ text: String) -> some View {
-        HStack(alignment: .top, spacing: 8) {
+        HStack(alignment: .top, spacing: EVESpacing.md) {
             Image(systemName: icon)
                 .font(.eveCaption)
                 .foregroundStyle(.blue)
@@ -197,7 +197,7 @@ private struct SimSectionHeader: View {
             }
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 6)
+        .padding(.vertical, EVESpacing.sm)
         .background(Color.primary.opacity(0.06))
     }
 }
@@ -231,7 +231,7 @@ struct SimFittingSection: View {
                     }
                 }
                 .padding(.horizontal, 10)
-                .padding(.vertical, 8)
+                .padding(.vertical, EVESpacing.md)
             }
         }
     }
@@ -250,7 +250,7 @@ private struct SimResourceBar: View {
     private var barColor: Color { isOver ? .red : fraction > 0.85 ? .yellow : color }
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: EVESpacing.sm) {
             Text(label)
                 .font(.eveLabelMedium)
                 .foregroundStyle(.secondary)
@@ -323,7 +323,7 @@ struct SimCapBlock: View {
             if isExpanded {
                 VStack(alignment: .leading, spacing: 3) {
                     if stats.capacitorCapacity > 0 {
-                        HStack(spacing: 6) {
+                        HStack(spacing: EVESpacing.sm) {
                             Text(String(format: "%.1f GJ", stats.capacitorCapacity))
                                 .font(.eveCaption.monospacedDigit())
                                 .help("Capacitor capacity — total energy the capacitor can hold")
@@ -350,7 +350,7 @@ struct SimCapBlock: View {
                     }
                 }
                 .padding(.horizontal, 10)
-                .padding(.vertical, 6)
+                .padding(.vertical, EVESpacing.sm)
             }
         }
     }
@@ -376,7 +376,7 @@ struct SimOffenseBlock: View {
                 Text("DPS calculation requires ammo selection")
                     .font(.caption2).foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 10).padding(.vertical, 6)
+                    .padding(.horizontal, 10).padding(.vertical, EVESpacing.sm)
             }
         }
     }
@@ -400,7 +400,7 @@ struct SimDefenseBlock: View {
                              summaryTip: "Worst-case EHP — minimum across EM / Thermal / Kinetic / Explosive",
                              isExpanded: $isExpanded)
             if isExpanded {
-                VStack(spacing: 2) {
+                VStack(spacing: EVESpacing.xxs) {
                     if peakShieldRegen > 0 {
                         SimShieldRechargeRow(peakHPS: peakShieldRegen)
                     }
@@ -418,7 +418,7 @@ struct SimDefenseBlock: View {
                         SimEHPRow(ehp: stats.ehp)
                     }
                 }
-                .padding(.vertical, 4)
+                .padding(.vertical, EVESpacing.xs)
             }
         }
     }
@@ -439,7 +439,7 @@ private struct SimShieldRechargeRow: View {
     private static let explosiveColor = Color(red: 1.00, green: 0.82, blue: 0.15)
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: EVESpacing.sm) {
             Image(systemName: "arrow.clockwise")
                 .font(.eveLabel)
                 .foregroundStyle(.cyan)
@@ -483,7 +483,7 @@ private struct SimHPLayerRow: View {
     private static let explosiveColor = Color(red: 1.00, green: 0.82, blue: 0.15)
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: EVESpacing.sm) {
             Image(systemName: icon)
                 .font(.eveLabel)
                 .foregroundStyle(color)
@@ -525,7 +525,7 @@ private struct SimEHPRow: View {
     private static let explosiveColor = Color(red: 1.00, green: 0.82, blue: 0.15)
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: EVESpacing.sm) {
             Image(systemName: "chart.bar.fill")
                 .font(.eveLabel)
                 .foregroundStyle(.secondary)
@@ -558,7 +558,7 @@ private struct SimEHPBadge: View {
             .font(.eveMicroSemibold.monospacedDigit())
             .foregroundStyle(color)
             .frame(width: 36)
-            .padding(.vertical, 2)
+            .padding(.vertical, EVESpacing.xxs)
             .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 3))
             .help(tip)
     }
@@ -591,7 +591,7 @@ private struct SimResistBadge: View {
                 .frame(maxWidth: .infinity)
         }
         .frame(width: blockWidth)
-        .padding(.vertical, 2)
+        .padding(.vertical, EVESpacing.xxs)
         .help(tip)
     }
 }
@@ -624,7 +624,7 @@ struct SimTargetingBlock: View {
                         rightTip: "Maximum number of simultaneously locked targets"
                     )
                 }
-                .padding(.horizontal, 10).padding(.vertical, 6)
+                .padding(.horizontal, 10).padding(.vertical, EVESpacing.sm)
             }
         }
     }
@@ -664,7 +664,7 @@ struct SimNavBlock: View {
                         rightTip: "Time to align and enter warp"
                     )
                 }
-                .padding(.horizontal, 10).padding(.vertical, 6)
+                .padding(.horizontal, 10).padding(.vertical, EVESpacing.sm)
             }
         }
     }
@@ -695,7 +695,7 @@ struct SimDronesBlock: View {
                         simTwoColRow(left: "—", right: "—")
                     }
                 }
-                .padding(.horizontal, 10).padding(.vertical, 6)
+                .padding(.horizontal, 10).padding(.vertical, EVESpacing.sm)
             }
         }
     }
@@ -720,7 +720,7 @@ private struct SimImplantsBlock: View {
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
                             .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
+                            .padding(.vertical, EVESpacing.sm)
                     }
                 }
             }
@@ -755,15 +755,15 @@ private struct SimImplantsBlock: View {
             .buttonStyle(.plain)
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 6)
+        .padding(.vertical, EVESpacing.sm)
         .background(Color.primary.opacity(0.06))
     }
 
     @ViewBuilder
     private var implantContent: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: EVESpacing.xs) {
             ForEach(simState.implantTypeIds.sorted(), id: \.self) { typeId in
-                HStack(spacing: 8) {
+                HStack(spacing: EVESpacing.md) {
                     CachedAsyncImage(url: EVEImageURL.typeIcon(typeId, size: 64)) { img in
                         img.resizable().aspectRatio(contentMode: .fit)
                     } placeholder: {
@@ -787,7 +787,7 @@ private struct SimImplantsBlock: View {
             }
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 6)
+        .padding(.vertical, EVESpacing.sm)
     }
 
     // Returns a human-readable description of the implant's primary bonus attribute.

@@ -21,7 +21,7 @@ struct ImplantDetailView: View {
             VStack(spacing: 0) {
                 headerSection
 
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: EVESpacing.xl) {
                     typeInfoSection
 
                     if let desc = typeInfo?.description, !desc.isEmpty {
@@ -59,7 +59,7 @@ struct ImplantDetailView: View {
                     }
                 }
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 Text(implant.name)
                     .font(.headline)
                     .foregroundStyle(.white)
@@ -70,7 +70,7 @@ struct ImplantDetailView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(12)
+            .padding(EVESpacing.lg)
             .background(.ultraThinMaterial.opacity(0.8))
         }
     }
@@ -78,7 +78,7 @@ struct ImplantDetailView: View {
     // MARK:  Type Info
 
     private var typeInfoSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
             EVESectionTitle("Type Information")
 
             if let categoryName {
@@ -100,7 +100,7 @@ struct ImplantDetailView: View {
     // MARK:  Description
 
     private func descriptionSection(_ description: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: EVESpacing.sm) {
             EVESectionTitle("Description")
 
             Text(description.strippingEVEMarkup)

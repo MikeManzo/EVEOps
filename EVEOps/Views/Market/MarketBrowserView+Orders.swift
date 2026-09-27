@@ -15,224 +15,142 @@ import FoundationModels
 extension MarketBrowserView {
     // MARK:  Orders Table
 
+    @ViewBuilder
     func ordersTable(orders: [ResolvedOrder], isBuy: Bool) -> some View {
-        let sortKey = isBuy ? buySortKey : sellSortKey
-        let ascending = isBuy ? buySortAsc : sellSortAsc
-        let sorted = sortedOrders(orders, key: sortKey, ascending: ascending)
+        let sortOrder = isBuy ? $buySortOrder : $sellSortOrder
+        let sorted = orders.sorted(using: sortOrder.wrappedValue)
 
-        return VStack(alignment: .leading, spacing: 0) {
-            // Sortable column headers
-            HStack(spacing: 0) {
-                sortableColumn("Price",    key: .price,     isBuy: isBuy, width: 120, alignment: .trailing)
-                sortableColumn("Qty",      key: .quantity,  isBuy: isBuy, width: 80,  alignment: .trailing, leadingPad: 12)
-                sortableColumn("Min",      key: .minVolume, isBuy: isBuy, width: 60,  alignment: .trailing, leadingPad: 12)
-                sortableColumn("Location", key: .location,  isBuy: isBuy, width: nil, alignment: .leading,  leadingPad: 12)
-                sortableColumn("Sec",      key: .security,  isBuy: isBuy, width: 36,  alignment: .center)
-                sortableColumn("Jumps",    key: .jumps,     isBuy: isBuy, width: 48,  alignment: .center)
-                if isBuy {
-                    sortableColumn("Range", key: .range, isBuy: isBuy, width: 80, alignment: .leading, leadingPad: 8)
+        if sorted.isEmpty {
+            EVEEmptyState(isBuy ? "No Buy Orders" : "No Sell Orders", systemImage: "cart",
+                          message: Text("There are no \(isBuy ? "buy" : "sell") orders for this item in this region."))
+                .frame(minHeight: 160)
+                .eveCard()
+        } else {
+            let priceColor: Color = isBuy ? .orange : .green
+            Table(sorted, selection: $selectedOrderIDs, sortOrder: sortOrder) {
+                TableColumn("Price", value: \.price) { row in
+                    Text(EVEFormatters.formatISK(row.price))
+                        .monospacedDigit()
+                        .fontWeight(.semibold)
+                        .foregroundStyle(priceColor)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
                 }
-            }
-            .font(.caption.bold())
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(Color(NSColor.separatorColor).opacity(0.15))
+                .width(min: 100, ideal: 130)
 
-            if sorted.isEmpty {
-                Text("No \(isBuy ? "buy" : "sell") orders in this region")
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, minHeight: 80)
-                    .multilineTextAlignment(.center)
-                    .padding()
-            } else {
-                LazyVStack(spacing: 0) {
-                    ForEach(Array(sorted.enumerated()), id: \.element.id) { index, resolved in
-                        orderRow(resolved, isBuy: isBuy, isEven: index % 2 == 0)
-                            .contextMenu {
-                                let destId = resolved.order.locationId
-                                let name = resolved.locationName
-                                Button {
-                                    Task { await setWaypoint(destinationId: destId, clear: true) }
-                                } label: {
-                                    Label("Set Destination: \(name)", systemImage: "location.fill")
-                                }
-                                Button {
-                                    Task { await setWaypoint(destinationId: destId, clear: false) }
-                                } label: {
-                                    Label("Add Waypoint: \(name)", systemImage: "plus.circle")
-                                }
-                            }
-                        Divider()
-                            .padding(.leading, 16)
-                    }
+                TableColumn("Qty", value: \.quantity) { row in
+                    quantityCell(row.order, tint: priceColor)
                 }
-            }
-        }
-        .eveCard()
-        .clipShape(RoundedRectangle(cornerRadius: EVERadius.xl))
-    }
+                .width(min: 70, ideal: 90)
 
-    func sortableColumn(_ title: String, key: OrderSortKey, isBuy: Bool,
-                                 width: CGFloat?, alignment: Alignment,
-                                 leadingPad: CGFloat = 0) -> some View {
-        let isActive = (isBuy ? buySortKey : sellSortKey) == key
-        let asc      = isBuy ? buySortAsc : sellSortAsc
-        return Button {
-            if isBuy {
-                if buySortKey == key { buySortAsc.toggle() } else { buySortKey = key; buySortAsc = true }
-            } else {
-                if sellSortKey == key { sellSortAsc.toggle() } else { sellSortKey = key; sellSortAsc = true }
-            }
-        } label: {
-            HStack(spacing: 2) {
-                Text(title)
-                if isActive {
-                    Image(systemName: asc ? "chevron.up" : "chevron.down")
-                        .font(.eveNanoBold)
-                }
-            }
-            .frame(minWidth: width, idealWidth: width, maxWidth: width ?? .infinity, alignment: alignment)
-        }
-        .buttonStyle(.plain)
-        .foregroundStyle(isActive ? .primary : .secondary)
-        .padding(.leading, leadingPad)
-    }
-
-    func sortedOrders(_ orders: [ResolvedOrder], key: OrderSortKey, ascending: Bool) -> [ResolvedOrder] {
-        orders.sorted { a, b in
-            let less: Bool
-            switch key {
-            case .price:     less = a.order.price < b.order.price
-            case .quantity:  less = a.order.volumeRemain < b.order.volumeRemain
-            case .minVolume: less = a.order.minVolume < b.order.minVolume
-            case .location:  less = a.locationName.localizedCompare(b.locationName) == .orderedAscending
-            case .security:  less = a.securityStatus < b.securityStatus
-            case .jumps:
-                switch (a.jumps, b.jumps) {
-                case (.some(let aj), .some(let bj)): less = aj < bj
-                case (.some, .none):                 less = true
-                case (.none, .some):                 less = false
-                case (.none, .none):                 less = false
-                }
-            case .range: less = rangeOrder(a.order.range) < rangeOrder(b.order.range)
-            }
-            return ascending ? less : !less
-        }
-    }
-
-    func rangeOrder(_ range: String) -> Int {
-        switch range {
-        case "station":     return 0
-        case "solarsystem": return 1
-        case "1":           return 2
-        case "2":           return 3
-        case "3":           return 4
-        case "4":           return 5
-        case "5":           return 6
-        case "10":          return 7
-        case "20":          return 8
-        case "30":          return 9
-        case "40":          return 10
-        case "region":      return 11
-        default:            return 12
-        }
-    }
-
-    func orderRow(_ resolved: ResolvedOrder, isBuy: Bool, isEven: Bool) -> some View {
-        let order = resolved.order
-        let priceColor: Color = isBuy ? .orange : .green
-        let sec = resolved.securityStatus
-        let fillRatio = CGFloat(order.volumeRemain) / CGFloat(max(1, order.volumeTotal))
-
-        return HStack(spacing: 0) {
-            // Left accent bar — green for sell, orange for buy
-            Rectangle()
-                .fill(priceColor.opacity(0.75))
-                .frame(width: 3)
-
-            HStack(spacing: 0) {
-                Text(EVEFormatters.formatISK(order.price))
-                    .font(.subheadline.monospacedDigit())
-                    .foregroundStyle(priceColor)
-                    .frame(width: 120, alignment: .trailing)
-
-                // Qty with volume fill bar
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text(formatCount(order.volumeRemain))
-                        .font(.subheadline.monospacedDigit())
-                    Text("/ \(formatCount(order.volumeTotal))")
-                        .font(.caption2.monospacedDigit())
-                        .foregroundStyle(.tertiary)
-                    ZStack(alignment: .trailing) {
-                        RoundedRectangle(cornerRadius: 1)
-                            .fill(Color.primary.opacity(0.08))
-                        RoundedRectangle(cornerRadius: 1)
-                            .fill(priceColor.opacity(0.55))
-                            .frame(width: 80 * fillRatio)
-                    }
-                    .frame(width: 80, height: 2)
-                }
-                .frame(width: 80, alignment: .trailing)
-                .padding(.leading, 12)
-
-                Text(formatCount(order.minVolume))
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
-                    .frame(width: 60, alignment: .trailing)
-                    .padding(.leading, 12)
-
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(resolved.locationName)
-                        .font(.subheadline)
-                        .lineLimit(1)
-                    Text(resolved.systemName)
-                        .font(.caption2)
+                TableColumn("Min", value: \.minVolume) { row in
+                    Text(formatCount(row.minVolume))
+                        .monospacedDigit()
                         .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.leading, 12)
+                .width(min: 40, ideal: 56)
 
-                // Security status pill badge
-                Text(String(format: "%.1f", max(0, sec)))
-                    .font(.eveMicroBold.monospacedDigit())
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(eveSecurityColor(sec), in: Capsule())
-                    .frame(width: 36, alignment: .center)
-
-                // Jumps with colored proximity dot
-                Group {
-                    if let jumps = resolved.jumps {
-                        HStack(spacing: 3) {
-                            Circle()
-                                .fill(jumps == 0 ? Color.green : jumps < 5 ? Color.yellow : Color.orange)
-                                .frame(width: 5, height: 5)
-                            Text(jumps == 0 ? "Here" : "\(jumps)")
-                                .font(.caption.monospacedDigit())
-                                .foregroundStyle(jumps == 0 ? .green : jumps < 5 ? .primary : .secondary)
-                        }
-                    } else {
-                        Text("—")
+                TableColumn("Location", value: \.locationName) { row in
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(row.locationName)
+                            .lineLimit(1)
+                            .eveTruncationHelp(row.locationName)
+                        Text(row.systemName)
                             .font(.caption)
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(.secondary)
                     }
                 }
-                .frame(width: 48, alignment: .center)
+                .width(min: 180, ideal: 300)
+
+                TableColumn("Sec", value: \.securityStatus) { row in
+                    EVESecurityBadge(status: row.securityStatus, compact: true)
+                        .frame(maxWidth: .infinity)
+                }
+                .width(48)
+
+                TableColumn("Jumps", value: \.jumpsSortKey) { row in
+                    jumpsCell(row.jumps)
+                        .frame(maxWidth: .infinity)
+                }
+                .width(60)
 
                 if isBuy {
-                    Text(formatRange(order.range))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .frame(width: 80, alignment: .leading)
-                        .padding(.leading, 8)
+                    TableColumn("Range", value: \.rangeRank) { row in
+                        Text(formatRange(row.order.range))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                    .width(min: 60, ideal: 80)
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            .tableStyle(.inset(alternatesRowBackgrounds: true))
+            // The order book lives inside the detail pane's scroll view, so the table
+            // gets a height that fits its rows (capped) instead of scrolling a page
+            // inside a page for a handful of orders.
+            .frame(height: min(CGFloat(sorted.count) * 40 + 30, 520))
+            .clipShape(RoundedRectangle(cornerRadius: EVERadius.xl))
+            .contextMenu(forSelectionType: ResolvedOrder.ID.self) { ids in
+                if let id = ids.first, let row = sorted.first(where: { $0.id == id }) {
+                    let destId = row.order.locationId
+                    Button("Set Destination: \(row.locationName)", systemImage: "location.fill") {
+                        Task { await setWaypoint(destinationId: destId, clear: true) }
+                    }
+                    Button("Add Waypoint: \(row.locationName)", systemImage: "plus.circle") {
+                        Task { await setWaypoint(destinationId: destId, clear: false) }
+                    }
+                    Divider()
+                    Button("Copy", systemImage: "doc.on.doc") {
+                        let text = sorted.filter { ids.contains($0.id) }.map(\.copyText).joined(separator: "\n")
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(text, forType: .string)
+                    }
+                }
+            } primaryAction: { ids in
+                guard ids.count == 1, let id = ids.first,
+                      let row = sorted.first(where: { $0.id == id }) else { return }
+                Task { await setWaypoint(destinationId: row.order.locationId, clear: true) }
+            }
+            .copyable(sorted.filter { selectedOrderIDs.contains($0.id) }.map(\.copyText))
         }
-        .background(isEven ? Color.primary.opacity(0.03) : Color.clear)
+    }
+
+    /// Remaining quantity over total, with a thin fill bar showing how much of the
+    /// order is left.
+    private func quantityCell(_ order: ESIRegionMarketOrder, tint: Color) -> some View {
+        let fill = CGFloat(order.volumeRemain) / CGFloat(max(1, order.volumeTotal))
+        return VStack(alignment: .trailing, spacing: EVESpacing.xxs) {
+            Text(formatCount(order.volumeRemain))
+                .monospacedDigit()
+            Capsule()
+                .fill(EVEFill.track)
+                .overlay(alignment: .trailing) {
+                    GeometryReader { geo in
+                        Capsule()
+                            .fill(tint.opacity(0.55))
+                            .frame(width: geo.size.width * fill)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                    }
+                }
+                .frame(height: 2)
+        }
+        .frame(maxWidth: .infinity, alignment: .trailing)
+        .help("\(formatCount(order.volumeRemain)) of \(formatCount(order.volumeTotal)) remaining")
+    }
+
+    @ViewBuilder
+    private func jumpsCell(_ jumps: Int?) -> some View {
+        if let jumps {
+            HStack(spacing: 3) {
+                Circle()
+                    .fill(jumps == 0 ? Color.green : jumps < 5 ? Color.yellow : Color.orange)
+                    .frame(width: 5, height: 5)
+                Text(jumps == 0 ? "Here" : "\(jumps)")
+                    .monospacedDigit()
+                    .foregroundStyle(jumps == 0 ? .green : jumps < 5 ? .primary : .secondary)
+            }
+        } else {
+            Text("—").foregroundStyle(.tertiary)
+        }
     }
 
     // MARK:  Price History
@@ -244,8 +162,8 @@ extension MarketBrowserView {
         let volumeColor = Color(red: 0.15, green: 0.55, blue: 0.4)
         let hoveredEntry = hoveredHistoryDate.flatMap { closestHistoryEntry(to: $0) }
 
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: EVESpacing.xl) {
+            HStack(spacing: EVESpacing.lg) {
                 Text("Price History")
                     .font(.headline)
 
@@ -386,7 +304,7 @@ extension MarketBrowserView {
                                            parseHistoryDate(entry.date).map { ($0, entry.average) }
                                        })
                 .frame(height: 270)
-                .padding(12)
+                .padding(EVESpacing.lg)
                 .eveCard()
 
                 // History summary stats
@@ -414,35 +332,35 @@ extension MarketBrowserView {
             Text(entry.date)
                 .font(.caption2.bold())
                 .foregroundStyle(.secondary)
-            HStack(alignment: .top, spacing: 12) {
+            HStack(alignment: .top, spacing: EVESpacing.lg) {
                 VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 4) {
+                    HStack(spacing: EVESpacing.xs) {
                         Image(systemName: "arrow.up").font(.eveMicro).foregroundStyle(.green)
                         Text(EVEFormatters.formatISKShort(entry.highest)).font(.caption2)
                     }
-                    HStack(spacing: 4) {
+                    HStack(spacing: EVESpacing.xs) {
                         Image(systemName: "arrow.down").font(.eveMicro).foregroundStyle(.red)
                         Text(EVEFormatters.formatISKShort(entry.lowest)).font(.caption2)
                     }
-                    HStack(spacing: 4) {
+                    HStack(spacing: EVESpacing.xs) {
                         Image(systemName: "minus").font(.eveMicro).foregroundStyle(eveTeal)
                         Text(EVEFormatters.formatISKShort(entry.average)).font(.caption2).foregroundStyle(eveTeal)
                     }
                 }
                 Divider()
                 VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 4) {
+                    HStack(spacing: EVESpacing.xs) {
                         Image(systemName: "shippingbox").font(.eveMicro).foregroundStyle(.secondary)
                         Text(formatCount(entry.volume)).font(.caption2)
                     }
-                    HStack(spacing: 4) {
+                    HStack(spacing: EVESpacing.xs) {
                         Image(systemName: "list.bullet").font(.eveMicro).foregroundStyle(.secondary)
                         Text("\(entry.orderCount) orders").font(.caption2)
                     }
                 }
             }
         }
-        .padding(8)
+        .padding(EVESpacing.md)
         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
         .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
     }

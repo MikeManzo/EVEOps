@@ -162,7 +162,7 @@ struct AttributePill: View {
 
     var body: some View {
         Button(action: onTap) {
-            HStack(spacing: 4) {
+            HStack(spacing: EVESpacing.xs) {
                 Image(systemName: attr.icon)
                     .font(.eveCalloutSemibold)
                     .foregroundStyle(attr.color)
@@ -174,7 +174,7 @@ struct AttributePill: View {
                     .foregroundStyle(.primary)
             }
             .padding(.horizontal, 10)
-            .padding(.vertical, 6)
+            .padding(.vertical, EVESpacing.sm)
             .frame(maxWidth: .infinity)
             .background(attr.color.opacity(fillOpacity), in: Capsule())
             .overlay(Capsule().strokeBorder(attr.color.opacity(strokeOpacity), lineWidth: isSelected ? 1 : 0.5))
@@ -279,7 +279,7 @@ struct AttributeDetailPopover: View {
 
     @ViewBuilder
     private var breakdownSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: EVESpacing.sm) {
             Text("Composition")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
@@ -294,7 +294,7 @@ struct AttributeDetailPopover: View {
                 GeometryReader { geo in
                     let total = max(effective, 1)
                     let baseW = geo.size.width * CGFloat(base) / CGFloat(total)
-                    HStack(spacing: 2) {
+                    HStack(spacing: EVESpacing.xxs) {
                         RoundedRectangle(cornerRadius: 3)
                             .fill(focus.color.opacity(0.45))
                             .frame(width: max(baseW, 2))
@@ -306,7 +306,7 @@ struct AttributeDetailPopover: View {
                 }
                 .frame(height: 10)
 
-                HStack(spacing: 12) {
+                HStack(spacing: EVESpacing.lg) {
                     legendItem(color: focus.color.opacity(0.45), label: "Base", value: base)
                     if implant > 0 {
                         legendItem(color: focus.color, label: "Implant", value: implant)
@@ -323,7 +323,7 @@ struct AttributeDetailPopover: View {
     }
 
     private func legendItem(color: Color, label: String, value: Int) -> some View {
-        HStack(spacing: 4) {
+        HStack(spacing: EVESpacing.xs) {
             Circle().fill(color).frame(width: 7, height: 7)
             Text("\(label) \(value)")
                 .font(.caption2.monospacedDigit())
@@ -334,7 +334,7 @@ struct AttributeDetailPopover: View {
     // MARK: Skill domains
 
     private var domainsSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: EVESpacing.xs) {
             Text("What it trains")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
@@ -348,7 +348,7 @@ struct AttributeDetailPopover: View {
     // MARK: Current training
 
     private var trainingSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: EVESpacing.xs) {
             Text("Current training")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)

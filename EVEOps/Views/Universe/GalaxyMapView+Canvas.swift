@@ -292,9 +292,9 @@ extension GalaxyMapView {
                 if let toast = autopilotToast {
                     Text(toast)
                         .font(.caption)
-                        .padding(.horizontal, 12).padding(.vertical, 6)
+                        .padding(.horizontal, EVESpacing.lg).padding(.vertical, EVESpacing.sm)
                         .glassEffect(.regular, in: Capsule())
-                        .padding(.top, 8)
+                        .padding(.top, EVESpacing.md)
                         .transition(.move(edge: .top).combined(with: .opacity))
                 }
             }
@@ -457,7 +457,7 @@ extension GalaxyMapView {
         .frame(width: mmW, height: mmH)
         .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
         .overlay(RoundedRectangle(cornerRadius: EVERadius.sm).stroke(Color.white.opacity(0.15), lineWidth: 0.5))
-        .padding(12)
+        .padding(EVESpacing.lg)
     }
 
     // MARK:  Location HUD
@@ -469,7 +469,7 @@ extension GalaxyMapView {
            let consId = currentConstellationId,
            let pt = points.first(where: { $0.id == consId }) {
             VStack(alignment: .leading, spacing: 5) {
-                HStack(spacing: 6) {
+                HStack(spacing: EVESpacing.sm) {
                     Image(systemName: "location.fill")
                         .font(.caption2).foregroundStyle(.blue)
                     Text(accountManager.selectedAccount?.characterName ?? "")
@@ -478,13 +478,13 @@ extension GalaxyMapView {
 
                 Divider()
 
-                HStack(spacing: 6) {
+                HStack(spacing: EVESpacing.sm) {
                     Text(sysName).font(.caption.bold())
                     EVESecurityBadge(status: sec, compact: true)
                 }
 
                 if let shipType = currentShipTypeName {
-                    HStack(spacing: 4) {
+                    HStack(spacing: EVESpacing.xs) {
                         Image(systemName: "airplane").font(.caption2).foregroundStyle(.secondary)
                         if let customName = currentShipCustomName {
                             Text("\"\(customName)\"").font(.caption2).italic()
@@ -495,7 +495,7 @@ extension GalaxyMapView {
                     }
                 }
 
-                HStack(spacing: 4) {
+                HStack(spacing: EVESpacing.xs) {
                     Image(systemName: "star.fill").font(.caption2).foregroundStyle(.secondary)
                     Text(pt.name).font(.caption2).foregroundStyle(.secondary)
                     Text("·").foregroundStyle(.tertiary).font(.caption2)
@@ -504,7 +504,7 @@ extension GalaxyMapView {
             }
             .padding(10)
             .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
-            .padding(12)
+            .padding(EVESpacing.lg)
         }
     }
 

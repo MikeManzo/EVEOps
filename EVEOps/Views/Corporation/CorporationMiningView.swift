@@ -91,17 +91,17 @@ struct MiningObserverRow: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
             HStack {
                 Image(systemName: "building.2.fill").foregroundStyle(.blue)
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                     Text(data.name.isEmpty ? "Structure #\(data.id)" : data.name)
                         .font(.subheadline.bold())
                     Text(data.type.replacingOccurrences(of: "_", with: " ").capitalized)
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
-                VStack(alignment: .trailing, spacing: 2) {
+                VStack(alignment: .trailing, spacing: EVESpacing.xxs) {
                     Text("\(data.totalQuantity.formatted()) m³")
                         .font(.caption.bold()).foregroundStyle(.blue)
                     Text(data.lastUpdated, style: .date)
@@ -113,9 +113,9 @@ struct MiningObserverRow: View {
 
             if isExpanded {
                 Divider()
-                LazyVStack(spacing: 4) {
+                LazyVStack(spacing: EVESpacing.xs) {
                     ForEach(oreTotals.prefix(20), id: \.typeId) { entry in
-                        HStack(spacing: 8) {
+                        HStack(spacing: EVESpacing.md) {
                             CachedAsyncImage(url: EVEImageURL.typeIcon(entry.typeId, size: 32)) { image in
                                 image.resizable()
                             } placeholder: {
@@ -130,6 +130,8 @@ struct MiningObserverRow: View {
                             Text("\(entry.quantity.formatted()) m³")
                                 .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
                         }
+                        .contentShape(Rectangle())
+                        .eveContextMenu(oreNames[entry.typeId].map { .item(typeID: entry.typeId, name: $0) })
                     }
                 }
                 .task(id: isExpanded) {
@@ -140,6 +142,6 @@ struct MiningObserverRow: View {
                 }
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, EVESpacing.xs)
     }
 }

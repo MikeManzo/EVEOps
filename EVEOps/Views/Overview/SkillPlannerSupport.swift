@@ -49,7 +49,7 @@ struct SkillPlanAIInsightCard: View {
 
     var body: some View {
         if aiInsightsEnabled && aiInsightSkills, case .available = model.availability {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: EVESpacing.md) {
                 HStack {
                     Label("AI Insight", systemImage: "sparkles")
                         .font(.caption.bold())
@@ -70,7 +70,7 @@ struct SkillPlanAIInsightCard: View {
                 }
 
                 if isGenerating {
-                    HStack(spacing: 6) {
+                    HStack(spacing: EVESpacing.sm) {
                         ProgressView()
                             .controlSize(.mini)
                         Text("Analyzing skills\u{2026}")
@@ -78,7 +78,7 @@ struct SkillPlanAIInsightCard: View {
                             .foregroundStyle(.secondary)
                     }
                 } else if let rec = recommendation {
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: EVESpacing.sm) {
                         if !rec.playstyleSummary.isEmpty {
                             Text(rec.playstyleSummary)
                                 .font(.caption)
@@ -88,16 +88,16 @@ struct SkillPlanAIInsightCard: View {
                         }
 
                         ScrollView {
-                            VStack(alignment: .leading, spacing: 8) {
+                            VStack(alignment: .leading, spacing: EVESpacing.md) {
                                 ForEach(Array(rec.recommendations.enumerated()), id: \.offset) { index, item in
-                                    HStack(alignment: .top, spacing: 6) {
+                                    HStack(alignment: .top, spacing: EVESpacing.sm) {
                                         Text("\(index + 1)")
                                             .font(.eveMicroBold.monospacedDigit())
                                             .foregroundStyle(.white)
                                             .frame(width: 14, height: 14)
                                             .background(.purple.opacity(0.7), in: Circle())
                                             .padding(.top, 1)
-                                        VStack(alignment: .leading, spacing: 2) {
+                                        VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                                             Text("\(cleanedSkillName(item.skillName)) → L\(item.targetLevel)")
                                                 .font(.caption.bold())
                                                 .fixedSize(horizontal: false, vertical: true)
@@ -111,8 +111,8 @@ struct SkillPlanAIInsightCard: View {
                                     }
                                 }
                             }
-                            .padding(.bottom, 2)
-                            .padding(.trailing, 12)
+                            .padding(.bottom, EVESpacing.xxs)
+                            .padding(.trailing, EVESpacing.lg)
                         }
                         .frame(maxHeight: 220)
                     }

@@ -14,11 +14,11 @@ extension GalaxyMapView {
     // MARK:  Constellation Popover
 
     func popoverView(_ pt: GalaxyPoint) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
             HStack {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                     Text(pt.name).font(.caption.bold())
-                    HStack(spacing: 4) {
+                    HStack(spacing: EVESpacing.xs) {
                         Circle().fill(regionColor(pt.regionId)).frame(width: 6, height: 6)
                         Text(pt.regionName).font(.caption2).foregroundStyle(.secondary)
                     }
@@ -98,10 +98,10 @@ extension GalaxyMapView {
             .buttonStyle(.plain)
             .foregroundStyle(Color.eveThemeAccent)
         }
-        .padding(12)
+        .padding(EVESpacing.lg)
         .frame(width: 230)
         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.lg))
-        .padding(12)
+        .padding(EVESpacing.lg)
     }
 
     // MARK:  Route Handling

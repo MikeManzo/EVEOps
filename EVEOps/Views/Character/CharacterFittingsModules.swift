@@ -51,7 +51,7 @@ struct CurrentFittingPane: View {
                     }
                 }
             }
-            .padding(12)
+            .padding(EVESpacing.lg)
         }
     }
 
@@ -118,7 +118,7 @@ struct ModuleCell: View {
 
     var body: some View {
         Button { showPopover = true } label: {
-            HStack(spacing: 8) {
+            HStack(spacing: EVESpacing.md) {
                 CachedAsyncImage(url: EVEImageURL.typeIcon(module.typeId, size: 64)) { image in
                     image.resizable()
                 } placeholder: {
@@ -144,14 +144,14 @@ struct ModuleCell: View {
                 }
                 Spacer(minLength: 0)
             }
-            .padding(8)
+            .padding(EVESpacing.md)
             .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: EVERadius.md))
             .contentShape(RoundedRectangle(cornerRadius: EVERadius.md))
         }
         .buttonStyle(.plain)
         .overlay(alignment: .topTrailing) {
             SkillStatusDot(typeId: module.typeId, characterSkills: characterSkills)
-                .padding(4)
+                .padding(EVESpacing.xs)
         }
         .popover(isPresented: $showPopover, arrowEdge: .trailing) {
             ModuleDetailPopover(typeId: module.typeId, name: name, quantity: module.quantity)
@@ -213,7 +213,7 @@ struct ModuleDetailPopover: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 12) {
+            HStack(spacing: EVESpacing.lg) {
                 CachedAsyncImage(url: EVEImageURL.typeIcon(typeId, size: 128)) { image in
                     image.resizable()
                 } placeholder: {
@@ -226,7 +226,7 @@ struct ModuleDetailPopover: View {
                         .strokeBorder(.primary.opacity(0.1), lineWidth: 0.5)
                 )
 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: EVESpacing.xs) {
                     Text(name ?? "Type #\(typeId)")
                         .font(.headline)
                         .lineLimit(2)
@@ -248,7 +248,7 @@ struct ModuleDetailPopover: View {
                 }
                 Spacer()
             }
-            .padding(16)
+            .padding(EVESpacing.xl)
 
             if let type = esiType {
                 Divider()
@@ -296,13 +296,13 @@ struct ModuleDetailPopover: View {
                     ProgressView().controlSize(.small)
                     Text("Loading details…").font(.caption).foregroundStyle(.secondary)
                 }
-                .padding(16)
+                .padding(EVESpacing.xl)
             }
         }
 
         SkillRequirementsView(typeId: typeId, typeInfo: esiType, characterSkills: characterSkills)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
+            .padding(.horizontal, EVESpacing.xl)
+            .padding(.vertical, EVESpacing.md)
 
         Divider()
 
@@ -327,7 +327,7 @@ struct ModuleDetailPopover: View {
             .buttonStyle(.borderless)
             .foregroundStyle(.blue)
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, EVESpacing.xl)
         .padding(.vertical, 10)
         .frame(width: 300)
         .task { await fetchDetails() }

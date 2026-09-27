@@ -67,7 +67,7 @@ struct AccountsTab: View {
                 if accountManager.isLoading {
                     ProgressView()
                         .controlSize(.small)
-                        .padding(.leading, 4)
+                        .padding(.leading, EVESpacing.xs)
                 }
 
                 Spacer()
@@ -79,7 +79,7 @@ struct AccountsTab: View {
                         .lineLimit(1)
                 }
             }
-            .padding(8)
+            .padding(EVESpacing.md)
         }
     }
 }
@@ -90,7 +90,7 @@ struct AccountRowView: View {
     @State private var showDeleteConfirm = false
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: EVESpacing.lg) {
             CachedAsyncImage(url: EVEImageURL.characterPortrait(account.characterID, size: 128)) { image in
                 image.resizable()
             } placeholder: {
@@ -99,7 +99,7 @@ struct AccountRowView: View {
             .frame(width: 40, height: 40)
             .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 Text(account.characterName)
                     .fontWeight(.medium)
                 Text(account.corporationName)
@@ -144,7 +144,7 @@ struct AccountRowView: View {
                 }
             }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, EVESpacing.xxs)
     }
 }
 
@@ -161,7 +161,7 @@ struct CharacterDossierCard: View {
     var body: some View {
         VStack(spacing: 10) {
             // Header: portrait + identity + online badge only
-            HStack(spacing: 12) {
+            HStack(spacing: EVESpacing.lg) {
                 CachedAsyncImage(url: EVEImageURL.characterPortrait(account.characterID, size: 128)) { image in
                     image.resizable()
                 } placeholder: {
@@ -171,7 +171,7 @@ struct CharacterDossierCard: View {
                 .clipShape(RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous))
                 .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                     Text(account.characterName)
                         .font(.system(size: 14, weight: .bold))
                         .lineLimit(1)
@@ -191,7 +191,7 @@ struct CharacterDossierCard: View {
 
                 VStack(alignment: .trailing, spacing: 5) {
                     if let online = summary?.online {
-                        HStack(spacing: 4) {
+                        HStack(spacing: EVESpacing.xs) {
                             Circle()
                                 .fill(online ? Color.green : Color.secondary.opacity(0.4))
                                 .frame(width: 6, height: 6)
@@ -283,7 +283,7 @@ struct CharacterDossierCard: View {
                     Button("Remove", role: .destructive, action: onDelete)
                 }
             }
-            .padding(.vertical, 8)
+            .padding(.vertical, EVESpacing.md)
             .background(.primary.opacity(0.03), in: RoundedRectangle(cornerRadius: EVERadius.md, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: EVERadius.md, style: .continuous).strokeBorder(.primary.opacity(0.06)))
         }
@@ -291,8 +291,8 @@ struct CharacterDossierCard: View {
         .background(.background.secondary, in: RoundedRectangle(cornerRadius: EVERadius.xl, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: EVERadius.xl, style: .continuous).strokeBorder(.primary.opacity(0.07)))
         .fixedSize(horizontal: false, vertical: true)
-        .padding(.horizontal, 8)
-        .padding(.top, 8)
+        .padding(.horizontal, EVESpacing.md)
+        .padding(.top, EVESpacing.md)
     }
 
     private func statCell(icon: String, color: Color, label: String, value: String) -> some View {
@@ -316,7 +316,7 @@ struct CharacterDossierCard: View {
         Rectangle()
             .fill(.primary.opacity(0.08))
             .frame(width: 0.5)
-            .padding(.vertical, 6)
+            .padding(.vertical, EVESpacing.sm)
     }
 
     private func formatSP(_ sp: Int) -> String {

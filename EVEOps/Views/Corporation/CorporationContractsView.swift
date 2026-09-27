@@ -82,10 +82,10 @@ struct CorpContractRow: View {
                 .font(.title3)
                 .frame(width: 24)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 Text(contract.title ?? "\(contract.type.capitalized) Contract")
                     .font(.subheadline)
-                HStack(spacing: 4) {
+                HStack(spacing: EVESpacing.xs) {
                     Text(contract.type.replacingOccurrences(of: "_", with: " ").capitalized)
                     Text("•")
                     Text(contract.status.replacingOccurrences(of: "_", with: " ").capitalized)
@@ -98,7 +98,7 @@ struct CorpContractRow: View {
 
             Spacer()
 
-            VStack(alignment: .trailing, spacing: 2) {
+            VStack(alignment: .trailing, spacing: EVESpacing.xxs) {
                 if let price = contract.price, price > 0 {
                     Text(EVEFormatters.formatISKShort(price))
                         .font(.caption.monospacedDigit())
@@ -109,7 +109,7 @@ struct CorpContractRow: View {
                     .font(.caption2).foregroundStyle(.tertiary)
             }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, EVESpacing.xxs)
         .task { issuerName = await NameResolver.shared.resolve(id: contract.issuerId) }
     }
 

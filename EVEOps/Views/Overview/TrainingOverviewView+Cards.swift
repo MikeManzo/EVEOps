@@ -43,12 +43,12 @@ extension TrainingOverviewView {
             }
         }
         .padding(.vertical, 10)
-        .padding(.horizontal, 12)
+        .padding(.horizontal, EVESpacing.lg)
         .eveCard(cornerRadius: EVERadius.lg)
     }
 
     func summaryTile(icon: String, color: Color, label: String, value: String) -> some View {
-        HStack(spacing: 6) {
+        HStack(spacing: EVESpacing.sm) {
             Image(systemName: icon)
                 .foregroundStyle(color)
                 .font(.callout)
@@ -69,32 +69,32 @@ extension TrainingOverviewView {
         VStack(alignment: .leading, spacing: 0) {
             // Character header
             characterHeader(info)
-                .padding(12)
+                .padding(EVESpacing.lg)
 
             if !info.queue.isEmpty {
-                Divider().padding(.horizontal, 12)
+                Divider().padding(.horizontal, EVESpacing.lg)
 
                 if let current = info.queue.first(where: \.isCurrentlyTraining) {
                     currentlyTrainingSection(current, info: info)
-                        .padding(12)
-                    Divider().padding(.horizontal, 12)
+                        .padding(EVESpacing.lg)
+                    Divider().padding(.horizontal, EVESpacing.lg)
                 }
 
                 if info.queue.count > 1 {
                     SkillQueueTimeline(queue: info.queue, tint: palette.knowledge)
-                        .padding(.horizontal, 12)
+                        .padding(.horizontal, EVESpacing.lg)
                         .padding(.top, 10)
                 }
 
                 let queuedOnly = info.queue.filter { !$0.isCurrentlyTraining }
                 if !queuedOnly.isEmpty {
                     queueList(queuedOnly, info: info)
-                        .padding(12)
+                        .padding(EVESpacing.lg)
                 }
             }
 
             // Known Skills section
-            Divider().padding(.horizontal, 12)
+            Divider().padding(.horizontal, EVESpacing.lg)
             knownSkillsSection(info)
         }
         // #7: The character's training detail is this screen's primary content —
@@ -103,7 +103,7 @@ extension TrainingOverviewView {
     }
 
     func characterHeader(_ info: CharacterTrainingInfo) -> some View {
-        HStack(spacing: 12) {
+        HStack(spacing: EVESpacing.lg) {
             CachedAsyncImage(url: EVEImageURL.characterPortrait(info.characterID, size: 256)) { image in
                 image.resizable()
             } placeholder: {
@@ -115,7 +115,7 @@ extension TrainingOverviewView {
             VStack(alignment: .leading, spacing: 3) {
                 Text(info.characterName)
                     .font(.headline)
-                HStack(spacing: 16) {
+                HStack(spacing: EVESpacing.xl) {
                     Label("\(info.totalSP.formatted()) SP", systemImage: "brain.head.profile.fill")
                         .font(.caption.monospacedDigit())
                         .foregroundStyle(.secondary)
@@ -128,10 +128,10 @@ extension TrainingOverviewView {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                HStack(spacing: 8) {
+                HStack(spacing: EVESpacing.md) {
                     ForEach(1...5, id: \.self) { level in
                         let count = info.skillsByLevel[level] ?? 0
-                        HStack(spacing: 2) {
+                        HStack(spacing: EVESpacing.xxs) {
                             Text("L\(level)")
                                 .font(.caption2.bold())
                                 .foregroundStyle(levelColor(level))
@@ -156,11 +156,11 @@ extension TrainingOverviewView {
                 Label("Training Queue Empty!", systemImage: "exclamationmark.triangle.fill")
                     .font(.caption.bold())
                     .foregroundStyle(.orange)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
+                    .padding(.horizontal, EVESpacing.md)
+                    .padding(.vertical, EVESpacing.xs)
                     .background(.orange.opacity(0.15), in: Capsule())
             } else {
-                VStack(alignment: .trailing, spacing: 2) {
+                VStack(alignment: .trailing, spacing: EVESpacing.xxs) {
                     Text("\(info.queue.count) in queue")
                         .font(.caption.bold())
                         .foregroundStyle(.green)
@@ -180,7 +180,7 @@ extension TrainingOverviewView {
         Button {
             selectedSkill = skillSelection(for: entry, in: info)
         } label: {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
             HStack {
                 Image(systemName: "play.circle.fill")
                     .foregroundStyle(.green)
@@ -192,7 +192,7 @@ extension TrainingOverviewView {
                     .foregroundStyle(.tertiary)
             }
 
-            HStack(spacing: 12) {
+            HStack(spacing: EVESpacing.lg) {
                 CachedAsyncImage(url: EVEImageURL.typeIcon(entry.skillId, size: 256)) { phase in
                     if let image = phase.image {
                         image.resizable()
@@ -205,7 +205,7 @@ extension TrainingOverviewView {
                     }
                 }
 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: EVESpacing.xs) {
                     HStack {
                         Text(entry.skillName)
                             .font(.body.bold())
@@ -222,7 +222,7 @@ extension TrainingOverviewView {
                         let currentSP = estimateCurrentSP(entry)
                         let progress = endSP > startSP ? Double(currentSP - startSP) / Double(endSP - startSP) : 0
 
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                             ProgressView(value: min(max(progress, 0), 1))
                                 .tint(.green)
                             HStack {
@@ -237,7 +237,7 @@ extension TrainingOverviewView {
                         }
                     }
 
-                    HStack(spacing: 16) {
+                    HStack(spacing: EVESpacing.xl) {
                         if let start = entry.startDate {
                             VStack(alignment: .leading, spacing: 1) {
                                 Text("Started")
@@ -269,7 +269,7 @@ extension TrainingOverviewView {
     // MARK:  Queue List
 
     func queueList(_ queue: [TrainingQueueEntry], info: CharacterTrainingInfo) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: EVESpacing.sm) {
             Text("Skill Queue (\(queue.count))")
                 .font(.subheadline.bold())
                 .foregroundStyle(.secondary)
@@ -278,7 +278,7 @@ extension TrainingOverviewView {
                 Button {
                     selectedSkill = skillSelection(for: entry, in: info)
                 } label: {
-                HStack(spacing: 8) {
+                HStack(spacing: EVESpacing.md) {
                     Text("\(entry.position + 1)")
                         .font(.caption2.monospacedDigit())
                         .foregroundStyle(.tertiary)

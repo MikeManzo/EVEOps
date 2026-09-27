@@ -27,15 +27,15 @@ struct IncursionsView: View {
                         IncursionRow(incursion: incursion)
                     }
                     .buttonStyle(.plain)
+                    .eveContextMenu(.system(id: incursion.incursion.stagingSolarSystemId,
+                                            name: incursion.stagingSystemName))
                     .listRowBackground(selected?.id == incursion.id ? palette.accent.opacity(0.12) : Color.clear)
                 }
-                if let selected {
-                    Divider()
-                    IncursionDetailPane(incursion: selected, onClose: { self.selected = nil })
-                        .frame(width: 340)
-                        .id(selected.id)
-                }
             }
+        }
+        .eveInspector(item: $selected, width: 340) { selected in
+            IncursionDetailPane(incursion: selected, onClose: { self.selected = nil })
+                .id(selected.id)
         }
         .eveScreenHeader("Incursions", subtitle: incursions.isEmpty ? nil : Text("\(incursions.count) active"), section: .incursions)
         .task { await load() }
@@ -107,7 +107,7 @@ private struct IncursionRow: View {
     private var inc: ESIIncursion { incursion.incursion }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: EVESpacing.lg) {
             CachedAsyncImage(url: EVEImageURL.corporationLogo(inc.factionId, size: 64)) { image in
                 image.resizable().scaledToFit()
             } placeholder: {
@@ -116,8 +116,8 @@ private struct IncursionRow: View {
             .frame(width: 44, height: 44)
             .clipShape(RoundedRectangle(cornerRadius: EVERadius.md))
 
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: EVESpacing.xs) {
+                HStack(spacing: EVESpacing.md) {
                     Text(incursion.constellationName)
                         .font(.subheadline.bold())
                     stateBadge
@@ -142,7 +142,7 @@ private struct IncursionRow: View {
 
             Spacer(minLength: 0)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, EVESpacing.xs)
     }
 
     private var stateBadge: some View {
@@ -152,16 +152,11 @@ private struct IncursionRow: View {
         case "withdrawing": ("Withdrawing", .green)
         default: (inc.state.capitalized, .secondary)
         }
-        return Text(label)
-            .font(.caption2.bold())
-            .foregroundStyle(color)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(color.opacity(0.15), in: Capsule())
+        return EVEChip(Text(label), tint: color, size: .small)
     }
 
     private var influenceBar: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: EVESpacing.sm) {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule().fill(Color.secondary.opacity(0.15))
@@ -177,7 +172,7 @@ private struct IncursionRow: View {
                 .frame(width: 36, alignment: .trailing)
         }
         .frame(maxWidth: 220)
-        .padding(.top, 2)
+        .padding(.top, EVESpacing.xxs)
     }
 }
 
@@ -206,7 +201,7 @@ private struct IncursionDetailPane: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 8) {
+            HStack(spacing: EVESpacing.md) {
                 Text(incursion.constellationName).font(.headline)
                 stateBadge
                 Spacer()
@@ -221,10 +216,10 @@ private struct IncursionDetailPane: View {
             Divider()
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: EVESpacing.xl) {
                     factionBox
 
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: EVESpacing.sm) {
                         Text("INFLUENCE").font(.caption2.bold()).foregroundStyle(.tertiary)
                         influenceBar
                         Text(inc.influence < 0.5
@@ -234,14 +229,14 @@ private struct IncursionDetailPane: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
 
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: EVESpacing.sm) {
                         metaRow("Region", incursion.regionName)
                         metaRow("Constellation", incursion.constellationName)
                         metaRow("Mothership", inc.hasBoss ? "Present" : "Not yet spawned")
                         metaRow("Infested systems", "\(inc.infestedSolarSystems.count)")
                     }
 
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: EVESpacing.sm) {
                         Text("SYSTEMS").font(.caption2.bold()).foregroundStyle(.tertiary)
                         InfestedSystemRow(systemId: inc.stagingSolarSystemId, isStaging: true,
                                           onSetDestination: { await setDestination(systemId: $0) })
@@ -251,7 +246,7 @@ private struct IncursionDetailPane: View {
                         }
                     }
 
-                    HStack(spacing: 8) {
+                    HStack(spacing: EVESpacing.md) {
                         if let url = URL(string: "https://evemaps.dotlan.net/map/\(incursion.regionName.replacingOccurrences(of: " ", with: "_"))/\(incursion.constellationName.replacingOccurrences(of: " ", with: "_"))") {
                             Link(destination: url) {
                                 Label("Dotlan", systemImage: "arrow.up.right.square").font(.caption)
@@ -265,7 +260,7 @@ private struct IncursionDetailPane: View {
                             .font(.caption).foregroundStyle(.green)
                     }
                 }
-                .padding(16)
+                .padding(EVESpacing.xl)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
@@ -280,19 +275,15 @@ private struct IncursionDetailPane: View {
         case "withdrawing": ("Withdrawing", .green)
         default: (inc.state.capitalized, .secondary)
         }
-        return Text(label)
-            .font(.caption2.bold())
-            .foregroundStyle(color)
-            .padding(.horizontal, 6).padding(.vertical, 2)
-            .background(color.opacity(0.15), in: Capsule())
+        return EVEChip(Text(label), tint: color, size: .small)
     }
 
     private var factionBox: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: EVESpacing.lg) {
             CachedAsyncImage(url: EVEImageURL.corporationLogo(inc.factionId, size: 128)) { $0.resizable().scaledToFit() }
             placeholder: { RoundedRectangle(cornerRadius: EVERadius.md).fill(.quaternary) }
             .frame(width: 48, height: 48).clipShape(RoundedRectangle(cornerRadius: EVERadius.md))
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 Text(incursion.factionName).font(.headline)
                 if inc.hasBoss {
                     Label("Mothership present", systemImage: "crown.fill")
@@ -301,13 +292,13 @@ private struct IncursionDetailPane: View {
             }
             Spacer()
         }
-        .padding(12)
+        .padding(EVESpacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: EVERadius.lg))
     }
 
     private var influenceBar: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: EVESpacing.md) {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule().fill(Color.secondary.opacity(0.15))
@@ -322,10 +313,10 @@ private struct IncursionDetailPane: View {
     }
 
     private func metaRow(_ label: String, _ value: String) -> some View {
-        HStack(spacing: 6) {
+        HStack(spacing: EVESpacing.sm) {
             Text(label).font(.caption).foregroundStyle(.secondary)
             Spacer()
-            Text(value).font(.caption.monospacedDigit())
+            Text(value).textSelection(.enabled).font(.caption.monospacedDigit())
         }
     }
 
@@ -354,17 +345,13 @@ private struct InfestedSystemRow: View {
     @State private var sec: Double?
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: EVESpacing.sm) {
             if let sec {
                 EVESecurityBadge(status: sec, compact: true)
             }
             Text(name ?? "System #\(systemId)").font(.caption)
             if isStaging {
-                Text("STAGING")
-                    .font(.eveBadge)
-                    .foregroundStyle(.blue)
-                    .padding(.horizontal, 4).padding(.vertical, 1)
-                    .background(.blue.opacity(0.15), in: Capsule())
+                EVEChip(Text("STAGING"), tint: .blue, size: .small)
             }
             Spacer()
             Button { Task { await onSetDestination(systemId) } } label: {
@@ -375,6 +362,8 @@ private struct InfestedSystemRow: View {
             .foregroundStyle(.secondary)
             .help("Set as autopilot destination")
         }
+        .contentShape(Rectangle())
+        .eveContextMenu(name.map { .system(id: systemId, name: $0) })
         .task(id: systemId) {
             guard name == nil else { return }
             if let sys = await UniverseCache.shared.solarSystem(id: systemId) {

@@ -130,43 +130,22 @@ struct CommunityFittingsView: View {
 
     private var shipSearchPanel: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 6) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
-                    .font(.subheadline)
-                TextField("Search ship type\u{2026}", text: $searchText).eveFindTarget()
-                    .textFieldStyle(.plain)
-                    .onChange(of: searchText) { _, query in
-                        searchTask?.cancel()
-                        searchTask = Task {
-                            try? await Task.sleep(for: .milliseconds(300))
-                            guard !Task.isCancelled else { return }
-                            await performSearch(query)
-                        }
+            EVESearchField("Search ship type\u{2026}", text: $searchText)
+                .onChange(of: searchText) { _, query in
+                    searchTask?.cancel()
+                    searchTask = Task {
+                        try? await Task.sleep(for: .milliseconds(300))
+                        guard !Task.isCancelled else { return }
+                        await performSearch(query)
                     }
-                if !searchText.isEmpty {
-                    Button { searchText = "" } label: {
-                        Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
-                    }
-                    .accessibilityLabel("Clear")
-                    .buttonStyle(.plain)
                 }
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
-            .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: EVERadius.md))
-            .padding(10)
+                .padding(10)
 
             Divider()
 
             if searchText.isEmpty {
                 if isLoadingRecent {
-                    VStack(spacing: 8) {
-                        ProgressView()
-                        Text("Loading recent kills\u{2026}")
-                            .font(.caption).foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    EVELoadingPane("Loading recent kills\u{2026}")
                 } else if recentlyDestroyed.isEmpty {
                     EVEEmptyState(
                         "Search for a Ship Type",
@@ -178,7 +157,7 @@ struct CommunityFittingsView: View {
                                 .font(.caption2)
                                 .foregroundStyle(.red.opacity(0.7))
                                 .multilineTextAlignment(.center)
-                                .padding(.horizontal, 12)
+                                .padding(.horizontal, EVESpacing.lg)
                         }
                     }
                 } else {
@@ -210,7 +189,7 @@ struct CommunityFittingsView: View {
                             }
                         }
                         .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
+                        .padding(.vertical, EVESpacing.sm)
                         .background(.quaternary.opacity(0.25))
 
                         // No `selection:` binding — see `eveSelectableListRow` (theme-colored selection).
@@ -220,14 +199,14 @@ struct CommunityFittingsView: View {
                                 .eveSelectableListRow(isSelected: entry.typeId == selectedTypeId, palette: themeManager.palette) {
                                     selectedTypeId = entry.typeId
                                 }
+                                .eveContextMenu(.item(typeID: entry.typeId, name: entry.name))
                         }
                         .listStyle(.inset)
                         .eveKeyboardSelection(recentlyDestroyed.map(\.typeId), selection: selectedTypeId) { selectedTypeId = $0 }
                     }
                 }
             } else if isSearching {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                LoadingSkeleton(rows: 8, showsHeader: false)
             } else if searchResults.isEmpty {
                 EVEEmptyState("No Ships Found", systemImage: "questionmark.circle")
             } else {
@@ -238,6 +217,7 @@ struct CommunityFittingsView: View {
                         .eveSelectableListRow(isSelected: type.typeId == selectedTypeId, palette: themeManager.palette) {
                             selectedTypeId = type.typeId
                         }
+                        .eveContextMenu(.item(typeID: type.typeId, name: type.name))
                 }
                 .listStyle(.inset)
                 .eveKeyboardSelection(searchResults.map(\.typeId), selection: selectedTypeId) { selectedTypeId = $0 }
@@ -252,12 +232,7 @@ struct CommunityFittingsView: View {
     private var detailPanel: some View {
         if let id = selectedTypeId {
             if isLoadingFit {
-                VStack(spacing: 12) {
-                    ProgressView()
-                    Text("Analyzing recent losses\u{2026}")
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                EVELoadingPane("Analyzing recent losses\u{2026}")
             } else if let error = fitError {
                 EVEEmptyState("Something Went Wrong", systemImage: "exclamationmark.triangle", message: Text(error), tint: .orange)
             } else if let fit = metaFit {
@@ -515,7 +490,7 @@ struct CommunityShipRow: View {
     let type: ESIType
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: EVESpacing.lg) {
             CachedAsyncImage(url: EVEImageURL.typeRender(type.typeId, size: 256)) { img in
                 img.resizable().aspectRatio(contentMode: .fill)
             } placeholder: {
@@ -530,7 +505,7 @@ struct CommunityShipRow: View {
 
             Spacer()
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, EVESpacing.sm)
     }
 }
 
@@ -540,7 +515,7 @@ struct RecentlyDestroyedRow: View {
     let entry: RecentlyDestroyedEntry
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: EVESpacing.lg) {
             CachedAsyncImage(url: EVEImageURL.typeRender(entry.typeId, size: 256)) { img in
                 img.resizable().aspectRatio(contentMode: .fill)
             } placeholder: {
@@ -550,7 +525,7 @@ struct RecentlyDestroyedRow: View {
             .clipShape(RoundedRectangle(cornerRadius: EVERadius.lg))
             .overlay(RoundedRectangle(cornerRadius: EVERadius.lg).strokeBorder(.primary.opacity(0.08), lineWidth: 0.5))
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 Text(entry.name)
                     .font(.title3)
                 Text(entry.className)
@@ -564,7 +539,7 @@ struct RecentlyDestroyedRow: View {
                 .font(.headline.monospacedDigit())
                 .foregroundStyle(.red.opacity(0.75))
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, EVESpacing.sm)
     }
 }
 
@@ -607,7 +582,7 @@ struct CommunityFitDetailPane: View {
                     Label("Based on \(fit.killCount) recent losses", systemImage: "chart.bar.fill")
                         .font(.caption2).foregroundStyle(.white.opacity(0.55))
                 }
-                .padding(12)
+                .padding(EVESpacing.lg)
             }
             .frame(height: 160)
 
@@ -625,8 +600,8 @@ struct CommunityFitDetailPane: View {
                 .buttonStyle(.link)
                 .font(.caption2)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
+            .padding(.horizontal, EVESpacing.lg)
+            .padding(.vertical, EVESpacing.sm)
             .background(.quaternary.opacity(0.3))
 
             Divider()
@@ -647,7 +622,7 @@ struct CommunityFitDetailPane: View {
 
                         if !fit.attackerShips.isEmpty {
                             GroupBox {
-                                VStack(spacing: 4) {
+                                VStack(spacing: EVESpacing.xs) {
                                     ForEach(fit.attackerShips) { attacker in
                                         AttackerShipRow(
                                             typeId: attacker.typeId,
@@ -680,7 +655,7 @@ struct CommunityFitDetailPane: View {
                         let firstSlot = slotOrder.first(where: { grouped[$0] != nil })
                         ForEach(slotOrder.filter { grouped[$0] != nil }, id: \.self) { slot in
                             GroupBox {
-                                VStack(spacing: 4) {
+                                VStack(spacing: EVESpacing.xs) {
                                     ForEach(grouped[slot]!.sorted { $0.frequency > $1.frequency }) { mod in
                                         CommunityModuleRow(module: mod, name: typeNames[mod.typeId])
                                     }
@@ -707,15 +682,15 @@ struct CommunityFitDetailPane: View {
                             }
                         }
                     }
-                    .padding(12)
-                    .padding(.trailing, 8)
+                    .padding(EVESpacing.lg)
+                    .padding(.trailing, EVESpacing.md)
                 }
             }
         }
     }
 
     private var attackerLegend: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
             Text("Attacker Frequency")
                 .font(.caption.bold())
             Text("% = this hull appeared as an attacker\nin that share of the sampled kills.")
@@ -726,24 +701,24 @@ struct CommunityFitDetailPane: View {
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(12)
+        .padding(EVESpacing.lg)
         .frame(maxWidth: 220)
     }
 
     private var frequencyLegend: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
             Text("Frequency Key")
                 .font(.caption.bold())
             VStack(alignment: .leading, spacing: 5) {
-                HStack(spacing: 6) {
+                HStack(spacing: EVESpacing.sm) {
                     Circle().fill(Color.green).frame(width: 8, height: 8)
                     Text("≥75% — Core to the role")
                 }
-                HStack(spacing: 6) {
+                HStack(spacing: EVESpacing.sm) {
                     Circle().fill(Color.yellow).frame(width: 8, height: 8)
                     Text("50–74% — Common")
                 }
-                HStack(spacing: 6) {
+                HStack(spacing: EVESpacing.sm) {
                     Circle().fill(Color.orange).frame(width: 8, height: 8)
                     Text("20–49% — Situational")
                 }
@@ -753,7 +728,7 @@ struct CommunityFitDetailPane: View {
                 .font(.caption2)
                 .foregroundStyle(.secondary)
         }
-        .padding(12)
+        .padding(EVESpacing.lg)
     }
 
     private func communitySlotSummary() -> [(category: String, names: [String])] {
@@ -802,7 +777,7 @@ struct CommunityModuleRow: View {
 
     var body: some View {
         Button { showPopover = true } label: {
-            HStack(spacing: 8) {
+            HStack(spacing: EVESpacing.md) {
                 CachedAsyncImage(url: EVEImageURL.typeIcon(module.typeId, size: 64)) { img in
                     img.resizable()
                 } placeholder: {
@@ -820,12 +795,12 @@ struct CommunityModuleRow: View {
 
                 Text((Double(module.frequency) / 100).formatted(.percent.precision(.fractionLength(0))))
                     .font(.caption2.monospacedDigit())
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
+                    .padding(.horizontal, EVESpacing.sm)
+                    .padding(.vertical, EVESpacing.xxs)
                     .background(frequencyColor(module.frequency).opacity(0.15), in: Capsule())
                     .foregroundStyle(frequencyColor(module.frequency))
             }
-            .padding(.vertical, 2)
+            .padding(.vertical, EVESpacing.xxs)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -851,7 +826,7 @@ struct AttackerShipRow: View {
 
     var body: some View {
         Button { showPopover = true } label: {
-            HStack(spacing: 8) {
+            HStack(spacing: EVESpacing.md) {
                 CachedAsyncImage(url: EVEImageURL.typeRender(typeId, size: 64)) { img in
                     img.resizable()
                 } placeholder: {
@@ -869,12 +844,12 @@ struct AttackerShipRow: View {
 
                 Text((Double(frequency) / 100).formatted(.percent.precision(.fractionLength(0))))
                     .font(.caption2.monospacedDigit())
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
+                    .padding(.horizontal, EVESpacing.sm)
+                    .padding(.vertical, EVESpacing.xxs)
                     .background(Color.red.opacity(0.15), in: Capsule())
                     .foregroundStyle(.red)
             }
-            .padding(.vertical, 2)
+            .padding(.vertical, EVESpacing.xxs)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

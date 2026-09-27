@@ -35,7 +35,7 @@ struct ServerStatusWidgetView: View {
             Button {
                 isExpanded.toggle()
             } label: {
-                HStack(spacing: 8) {
+                HStack(spacing: EVESpacing.md) {
                     Image(systemName: "server.rack")
                         .foregroundStyle(accent)
                         .font(.callout)
@@ -44,15 +44,15 @@ struct ServerStatusWidgetView: View {
                     if apiStatus.vipMode {
                         Text("VIP")
                             .font(.caption2.bold())
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
+                            .padding(.horizontal, EVESpacing.sm)
+                            .padding(.vertical, EVESpacing.xxs)
                             .background(.yellow, in: Capsule())
                             .foregroundStyle(.black)
                     }
                     if !healthy {
                         Text(apiStatus.maintenanceInProgress != nil ? "MAINTENANCE" : "DEGRADED")
                             .font(.caption2.bold())
-                            .padding(.horizontal, 6).padding(.vertical, 2)
+                            .padding(.horizontal, EVESpacing.sm).padding(.vertical, EVESpacing.xxs)
                             .background(.orange, in: Capsule())
                             .foregroundStyle(.black)
                     }
@@ -66,7 +66,7 @@ struct ServerStatusWidgetView: View {
                         .font(.caption.bold())
                         .foregroundStyle(.tertiary)
                 }
-                .padding(.horizontal, 12)
+                .padding(.horizontal, EVESpacing.lg)
                 .padding(.vertical, 10)
                 .background(accent.opacity(0.07), in: RoundedRectangle(cornerRadius: EVERadius.lg))
                 .overlay(RoundedRectangle(cornerRadius: EVERadius.lg).strokeBorder(accent.opacity(0.15), lineWidth: 1))
@@ -75,8 +75,8 @@ struct ServerStatusWidgetView: View {
             .buttonStyle(.plain)
 
             if isExpanded {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack(alignment: .top, spacing: 24) {
+                VStack(alignment: .leading, spacing: EVESpacing.lg) {
+                    HStack(alignment: .top, spacing: EVESpacing.xxl) {
                         VStack(alignment: .leading, spacing: 10) {
                             if apiStatus.isReachable {
                                 metricRow(label: "Uptime", value: uptimeText)
@@ -97,9 +97,9 @@ struct ServerStatusWidgetView: View {
 
                     serviceStatusSection
                 }
-                .padding(.horizontal, 12)
-                .padding(.top, 12)
-                .padding(.bottom, 4)
+                .padding(.horizontal, EVESpacing.lg)
+                .padding(.top, EVESpacing.lg)
+                .padding(.bottom, EVESpacing.xs)
             }
         }
         .task(id: "server-status-timer") {
@@ -111,7 +111,7 @@ struct ServerStatusWidgetView: View {
     }
 
     private func metricRow(label: String, value: String) -> some View {
-        HStack(spacing: 6) {
+        HStack(spacing: EVESpacing.sm) {
             Text(label)
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -130,9 +130,9 @@ struct ServerStatusWidgetView: View {
         if routeTotal > 0 || !apiStatus.activeIncidents.isEmpty || !apiStatus.maintenance.isEmpty || budgetLow {
             Divider()
 
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: EVESpacing.md) {
                 if !apiStatus.statusDescription.isEmpty {
-                    HStack(spacing: 6) {
+                    HStack(spacing: EVESpacing.sm) {
                         Circle()
                             .fill(indicatorColor(apiStatus.statusIndicator))
                             .frame(width: 7, height: 7)
@@ -165,9 +165,9 @@ struct ServerStatusWidgetView: View {
                     }
 
                     if !apiStatus.degradedRoutes.isEmpty {
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                             ForEach(apiStatus.degradedRoutes.prefix(6)) { route in
-                                HStack(spacing: 6) {
+                                HStack(spacing: EVESpacing.sm) {
                                     Circle()
                                         .fill(route.status == "red" ? Color.red : Color.yellow)
                                         .frame(width: 5, height: 5)
@@ -183,12 +183,12 @@ struct ServerStatusWidgetView: View {
                                     .foregroundStyle(.tertiary)
                             }
                         }
-                        .padding(.leading, 4)
+                        .padding(.leading, EVESpacing.xs)
                     }
                 }
 
                 if budgetLow {
-                    HStack(spacing: 6) {
+                    HStack(spacing: EVESpacing.sm) {
                         Image(systemName: "gauge.with.dots.needle.33percent")
                             .font(.caption2).foregroundStyle(.orange)
                         Text("ESI error budget: \(apiStatus.esiErrorBudgetRemain) left — resets \(apiStatus.esiErrorBudgetResetAt, format: .relative(presentation: .named))")
@@ -210,16 +210,12 @@ struct ServerStatusWidgetView: View {
     }
 
     private func routePill(_ text: String, _ color: Color) -> some View {
-        Text(text)
-            .font(.caption2.bold().monospacedDigit())
-            .foregroundStyle(color)
-            .padding(.horizontal, 6).padding(.vertical, 1)
-            .background(color.opacity(0.15), in: Capsule())
+        EVEChip(Text(text), tint: color, size: .small, monospacedDigits: true)
     }
 
     @ViewBuilder
     private func incidentRow(_ incident: StatuspageSummary.Incident) -> some View {
-        HStack(alignment: .top, spacing: 6) {
+        HStack(alignment: .top, spacing: EVESpacing.sm) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.caption2)
                 .foregroundStyle(incident.impact == "critical" ? .red : .orange)
@@ -241,7 +237,7 @@ struct ServerStatusWidgetView: View {
     @ViewBuilder
     private func maintenanceRow(_ m: StatuspageSummary.Maintenance) -> some View {
         let inProgress = m.status == "in_progress" || m.status == "verifying"
-        HStack(alignment: .top, spacing: 6) {
+        HStack(alignment: .top, spacing: EVESpacing.sm) {
             Image(systemName: "wrench.and.screwdriver.fill")
                 .font(.caption2)
                 .foregroundStyle(inProgress ? .orange : .secondary)

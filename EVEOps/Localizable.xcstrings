@@ -81,9 +81,6 @@
     "/" : {
 
     },
-    "/ %@" : {
-
-    },
     "/ L%lld" : {
 
     },
@@ -379,6 +376,16 @@
     },
     "%@ m³" : {
 
+    },
+    "%@ of %@ remaining" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ of %2$@ remaining"
+          }
+        }
+      }
     },
     "%@ of queue" : {
 
@@ -1440,6 +1447,9 @@
     "All EVE Online related materials are used in accordance with the EVE Online Third-Party Developer License Agreement." : {
 
     },
+    "All items available" : {
+
+    },
     "All Online" : {
 
     },
@@ -1456,6 +1466,9 @@
 
     },
     "Alliance" : {
+
+    },
+    "alliance ID" : {
 
     },
     "Alliances" : {
@@ -1587,7 +1600,7 @@
     "Attributes" : {
 
     },
-    "Authenticating with EVE SSO..." : {
+    "Authenticating with EVE SSO…" : {
 
     },
     "Auto-fires" : {
@@ -1822,6 +1835,9 @@
     "Character / Corporation / Alliance" : {
 
     },
+    "character ID" : {
+
+    },
     "Character Info" : {
 
     },
@@ -1892,6 +1908,9 @@
 
     },
     "Clear Plan" : {
+
+    },
+    "Clear Search" : {
 
     },
     "Clear, no kills reported in the last hour" : {
@@ -2104,10 +2123,16 @@
     "Copies your plan as plain text — one skill per line:" : {
 
     },
+    "Copy" : {
+
+    },
     "Copy %lld Entries" : {
 
     },
     "Copy Entry" : {
+
+    },
+    "Copy ID" : {
 
     },
     "Copy Multi-Buy" : {
@@ -2122,7 +2147,7 @@
     "Copy selected table rows" : {
 
     },
-    "Copy Type ID" : {
+    "Copy Station Name" : {
 
     },
     "Copying" : {
@@ -2186,6 +2211,9 @@
 
     },
     "Corporation History" : {
+
+    },
+    "corporation ID" : {
 
     },
     "Corps" : {
@@ -2376,6 +2404,9 @@
     "Delete Mail" : {
 
     },
+    "Delete Mail…" : {
+
+    },
     "Delete the fitting “%@”?" : {
 
     },
@@ -2416,6 +2447,9 @@
 
     },
     "Discord" : {
+
+    },
+    "Discord isn't responding" : {
 
     },
     "Discord Notifications" : {
@@ -2801,6 +2835,9 @@
     "Faction" : {
 
     },
+    "faction ID" : {
+
+    },
     "Faction Theme" : {
 
     },
@@ -3042,6 +3079,9 @@
 
     },
     "Haul value" : {
+
+    },
+    "Help" : {
 
     },
     "here" : {
@@ -3527,10 +3567,10 @@
     "Loading connections…" : {
 
     },
-    "Loading contact details..." : {
+    "Loading contact details…" : {
 
     },
-    "Loading dashboard..." : {
+    "Loading dashboard…" : {
 
     },
     "Loading details…" : {
@@ -3551,25 +3591,19 @@
     "Loading item details…" : {
 
     },
-    "Loading LP store offers…" : {
-
-    },
     "Loading LP…" : {
 
     },
-    "Loading market data..." : {
+    "Loading market data…" : {
 
     },
-    "Loading market groups..." : {
-
-    },
-    "Loading member details..." : {
+    "Loading member details…" : {
 
     },
     "Loading module database…" : {
 
     },
-    "Loading news..." : {
+    "Loading news…" : {
 
     },
     "Loading recent kills…" : {
@@ -3587,10 +3621,7 @@
     "Loading sovereignty data…" : {
 
     },
-    "Loading star map..." : {
-
-    },
-    "Loading structures…" : {
+    "Loading star map…" : {
 
     },
     "Loading textures…" : {
@@ -3704,7 +3735,7 @@
     "Maintenance in progress: %@" : {
 
     },
-    "Make sure the Discord desktop app is running on this Mac." : {
+    "Make sure the official Discord desktop app — or a client with Rich Presence built in, like Vesktop, Equibop, or Legcord — is running on this Mac." : {
 
     },
     "Manage all your characters and corporations.\nTrack assets, skills, industry, contracts, and more." : {
@@ -3777,6 +3808,9 @@
 
     },
     "Mid Slots" : {
+
+    },
+    "Min" : {
 
     },
     "minutes" : {
@@ -3923,9 +3957,6 @@
     "No %@ orders" : {
 
     },
-    "No %@ orders in this region" : {
-
-    },
     "No 3D model available" : {
 
     },
@@ -3953,6 +3984,9 @@
     "No attribute implant in this slot" : {
 
     },
+    "No Buy Orders" : {
+
+    },
     "No character data loaded" : {
 
     },
@@ -3960,6 +3994,9 @@
 
     },
     "No Characters Yet" : {
+
+    },
+    "No compatible Discord client" : {
 
     },
     "No contracts" : {
@@ -4070,6 +4107,9 @@
     "No roles assigned" : {
 
     },
+    "No running Discord client is accepting Rich Presence connections. Use the official Discord app, or a client with Rich Presence built in such as Vesktop, Equibop, or Legcord (enable arRPC in its settings). Native clients like Swiftcord don't support it." : {
+
+    },
     "No runs logged for this site yet. Log a haul after you run one to start tracking ISK per run and ISK per hour." : {
 
     },
@@ -4077,6 +4117,9 @@
 
     },
     "No Scan Yet" : {
+
+    },
+    "No Sell Orders" : {
 
     },
     "No Ship Selected" : {
@@ -4290,6 +4333,9 @@
 
     },
     "Open Industry" : {
+
+    },
+    "Open Killmail in zKillboard" : {
 
     },
     "Open Market Browser" : {
@@ -4938,7 +4984,7 @@
     "Search" : {
 
     },
-    "Search %@..." : {
+    "Search %@…" : {
 
     },
     "Search all k-space regions" : {
@@ -4995,19 +5041,19 @@
     "Search items" : {
 
     },
-    "Search items..." : {
+    "Search items…" : {
 
     },
     "Search journal" : {
 
     },
-    "Search known skills..." : {
+    "Search known skills…" : {
 
     },
     "Search Market" : {
 
     },
-    "Search members..." : {
+    "Search members…" : {
 
     },
     "Search offers…" : {
@@ -5022,7 +5068,7 @@
     "Search ship type…" : {
 
     },
-    "Search skills..." : {
+    "Search skills…" : {
 
     },
     "Search stations or systems" : {
@@ -5242,6 +5288,9 @@
     "Show only agents your current effective standing lets you talk to" : {
 
     },
+    "Show Required Skills" : {
+
+    },
     "Show skill training progress on Dock icon" : {
 
     },
@@ -5352,9 +5401,6 @@
 
     },
     "Sort by" : {
-
-    },
-    "Sort by %@" : {
 
     },
     "Sort by estimated ISK per LP or by LP cost" : {
@@ -5554,6 +5600,9 @@
     "SYSTEM EFFECT" : {
 
     },
+    "system ID" : {
+
+    },
     "systems" : {
 
     },
@@ -5604,6 +5653,9 @@
 
     },
     "Thera is a wormhole system with dozens of daily connections to K-space. Pochven is Triglavian-controlled space with its own wormhole network. Both offer shortcuts across the galaxy — but wormholes are unstable and expire." : {
+
+    },
+    "There are no %@ orders for this item in this region." : {
 
     },
     "There are no sovereignty campaigns running right now." : {
@@ -5771,7 +5823,7 @@
     "Type #%lld" : {
 
     },
-    "type ID %lld" : {
+    "type ID" : {
 
     },
     "Type Information" : {
@@ -5886,7 +5938,7 @@
     "Value" : {
 
     },
-    "Valuing assets..." : {
+    "Valuing assets…" : {
 
     },
     "valuing…" : {
@@ -5941,6 +5993,9 @@
 
     },
     "Vulnerable now — ends %@" : {
+
+    },
+    "Waiting for character data…" : {
 
     },
     "Waiting for Discord…" : {

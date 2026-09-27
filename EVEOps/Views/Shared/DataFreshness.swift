@@ -158,10 +158,10 @@ struct LoadingSkeleton: View {
                     .frame(width: 180, height: 22)
             }
             ForEach(0..<max(1, rows), id: \.self) { _ in
-                HStack(spacing: 12) {
+                HStack(spacing: EVESpacing.lg) {
                     RoundedRectangle(cornerRadius: EVERadius.sm).fill(.quaternary)
                         .frame(width: 34, height: 34)
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: EVESpacing.sm) {
                         RoundedRectangle(cornerRadius: EVERadius.xs).fill(.quaternary)
                             .frame(maxWidth: .infinity).frame(height: 12)
                         RoundedRectangle(cornerRadius: EVERadius.xs).fill(.quaternary)

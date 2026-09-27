@@ -118,7 +118,7 @@ struct NotificationsTab: View {
                 }
 
             } header: {
-                HStack(spacing: 4) {
+                HStack(spacing: EVESpacing.xs) {
                     Text("Discord")
                     Button {
                         showDiscordInfo.toggle()
@@ -149,11 +149,23 @@ struct NotificationsTab: View {
                     richPresenceStatusBadge
                 }
 
-                Text("Requires the Discord desktop app running on this Mac. Status updates on the same interval as background polling.")
+                if discordRichPresenceEnabled,
+                   DiscordRichPresenceStatus.shared.searchReason == .noRichPresenceClient {
+                    Label {
+                        Text("No running Discord client is accepting Rich Presence connections. Use the official Discord app, or a client with Rich Presence built in such as Vesktop, Equibop, or Legcord (enable arRPC in its settings). Native clients like Swiftcord don't support it.")
+                    } icon: {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                    }
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                } else {
+                    Text("Requires the Discord desktop app running on this Mac. Status updates on the same interval as background polling.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             } header: {
-                HStack(spacing: 4) {
+                HStack(spacing: EVESpacing.xs) {
                     Text("Rich Presence")
                     Button {
                         showRichPresenceInfo.toggle()
@@ -191,14 +203,14 @@ struct NotificationsTab: View {
                 .font(.callout)
                 .fixedSize(horizontal: false, vertical: true)
             Divider()
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: EVESpacing.md) {
                 discordStep(number: 1, text: "In Discord, open the channel's settings \u{2192} Integrations \u{2192} Webhooks \u{2192} New Webhook, then Copy Webhook URL.")
                 discordStep(number: 2, text: "Paste the URL into the Webhook URL field here and turn on “Send alerts to Discord.”")
                 discordStep(number: 3, text: "Click “Send Test Message” to confirm it arrives in the channel.")
             }
             .font(.caption)
             Divider()
-            HStack(spacing: 4) {
+            HStack(spacing: EVESpacing.xs) {
                 Image(systemName: "bell.badge")
                     .foregroundStyle(.secondary)
                 Text("The Categories above decide which events fire — Discord receives the same ones as your native notifications.")
@@ -206,7 +218,7 @@ struct NotificationsTab: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(16)
+        .padding(EVESpacing.xl)
         .frame(width: 320)
     }
 
@@ -217,9 +229,24 @@ struct NotificationsTab: View {
             case .off:
                 EmptyView()
             case .searching:
-                Label("Waiting for Discord…", systemImage: "circle.dotted")
-                    .foregroundStyle(.secondary)
-                    .font(.caption)
+                switch DiscordRichPresenceStatus.shared.searchReason {
+                case .noRichPresenceClient:
+                    Label("No compatible Discord client", systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                        .font(.caption)
+                case .handshakeTimedOut:
+                    Label("Discord isn't responding", systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                        .font(.caption)
+                case .awaitingCharacterData:
+                    Label("Waiting for character data…", systemImage: "circle.dotted")
+                        .foregroundStyle(.secondary)
+                        .font(.caption)
+                case nil:
+                    Label("Waiting for Discord…", systemImage: "circle.dotted")
+                        .foregroundStyle(.secondary)
+                        .font(.caption)
+                }
             case .connected:
                 Label("Connected", systemImage: "checkmark.circle.fill")
                     .foregroundStyle(.green)
@@ -236,13 +263,13 @@ struct NotificationsTab: View {
                 .font(.callout)
                 .fixedSize(horizontal: false, vertical: true)
             Divider()
-            VStack(alignment: .leading, spacing: 8) {
-                discordStep(number: 1, text: "Make sure the Discord desktop app is running on this Mac.")
+            VStack(alignment: .leading, spacing: EVESpacing.md) {
+                discordStep(number: 1, text: "Make sure the official Discord desktop app — or a client with Rich Presence built in, like Vesktop, Equibop, or Legcord — is running on this Mac.")
                 discordStep(number: 2, text: "Turn on \u{201c}Show current character in Discord status.\u{201d}")
             }
             .font(.caption)
             Divider()
-            HStack(spacing: 4) {
+            HStack(spacing: EVESpacing.xs) {
                 Image(systemName: "person.crop.circle")
                     .foregroundStyle(.secondary)
                 Text("Uses whichever character is currently selected in EVEOps.")
@@ -250,12 +277,12 @@ struct NotificationsTab: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(16)
+        .padding(EVESpacing.xl)
         .frame(width: 320)
     }
 
     private func discordStep(number: Int, text: LocalizedStringKey) -> some View {
-        HStack(alignment: .top, spacing: 6) {
+        HStack(alignment: .top, spacing: EVESpacing.sm) {
             Image(systemName: "\(number).circle.fill")
                 .foregroundStyle(.secondary)
                 .frame(width: 14)

@@ -73,11 +73,9 @@ struct CorporationHangarsView: View {
                 }
                 HStack(spacing: 0) {
                     itemPanel
-                    if let asset = selectedAsset {
-                        Divider()
-                        AssetDetailView(asset: asset)
-                            .frame(width: 320)
-                    }
+                }
+                .eveInspector(item: $selectedAsset, width: 320) { asset in
+                    AssetDetailView(asset: asset)
                 }
             }
         }
@@ -94,7 +92,7 @@ struct CorporationHangarsView: View {
 
     private var hangarHeader: some View {
         HStack {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 Text("Corporation Hangars")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -102,7 +100,7 @@ struct CorporationHangarsView: View {
                     .font(.title2.bold())
             }
             Spacer()
-            HStack(spacing: 12) {
+            HStack(spacing: EVESpacing.lg) {
                 if divisionVolume > 0 {
                     VStack(alignment: .trailing, spacing: 1) {
                         Text(formatVolume(divisionVolume))
@@ -131,8 +129,8 @@ struct CorporationHangarsView: View {
                 }
                 Text("\(allHangarAssets.count) total")
                     .font(.caption.monospacedDigit())
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
+                    .padding(.horizontal, EVESpacing.md)
+                    .padding(.vertical, EVESpacing.xs)
                     .background(.quaternary, in: Capsule())
 
                 Divider().frame(height: 20)
@@ -173,7 +171,7 @@ struct CorporationHangarsView: View {
     // MARK: Scope warning banners
 
     private var scopeWarningBanner: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: EVESpacing.md) {
             Image(systemName: "lock.shield")
                 .foregroundStyle(.blue)
             VStack(alignment: .leading, spacing: 1) {
@@ -195,14 +193,14 @@ struct CorporationHangarsView: View {
             .buttonStyle(.plain)
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 8)
+        .padding(.vertical, EVESpacing.md)
         .background(.blue.opacity(0.08))
         .overlay(alignment: .bottom) { Divider() }
         .transition(.move(edge: .top).combined(with: .opacity))
     }
 
     private var structureScopeWarningBanner: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: EVESpacing.md) {
             Image(systemName: "building.2.crop.circle.badge.xmark")
                 .foregroundStyle(.orange)
             VStack(alignment: .leading, spacing: 1) {
@@ -224,7 +222,7 @@ struct CorporationHangarsView: View {
             .buttonStyle(.plain)
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 8)
+        .padding(.vertical, EVESpacing.md)
         .background(.orange.opacity(0.08))
         .overlay(alignment: .bottom) { Divider() }
         .transition(.move(edge: .top).combined(with: .opacity))
@@ -234,14 +232,14 @@ struct CorporationHangarsView: View {
 
     private var locationBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
+            HStack(spacing: EVESpacing.md) {
                 locationPill(id: nil, name: "All Locations")
                 ForEach(locations) { loc in
                     locationPill(id: loc.id, name: loc.name)
                 }
             }
             .padding(.horizontal)
-            .padding(.vertical, 8)
+            .padding(.vertical, EVESpacing.md)
         }
         .eveEdgeFade()
         .background(EVESurface.bar)
@@ -255,7 +253,7 @@ struct CorporationHangarsView: View {
             selectedLocationID = id
             selectedAsset = nil
         } label: {
-            VStack(spacing: 2) {
+            VStack(spacing: EVESpacing.xxs) {
                 Text(name)
                     .font(.caption)
                     .lineLimit(1)
@@ -263,8 +261,8 @@ struct CorporationHangarsView: View {
                     .font(.caption2.monospacedDigit())
                     .foregroundStyle(isSelected ? palette.accent : .secondary)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
+            .padding(.horizontal, EVESpacing.lg)
+            .padding(.vertical, EVESpacing.sm)
             .background(
                 isSelected ? palette.accent.opacity(0.2) : Color.clear,
                 in: RoundedRectangle(cornerRadius: EVERadius.md)
@@ -277,13 +275,13 @@ struct CorporationHangarsView: View {
 
     private var divisionBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
+            HStack(spacing: EVESpacing.md) {
                 ForEach(divisions) { div in
                     divisionPill(div)
                 }
             }
             .padding(.horizontal)
-            .padding(.vertical, 8)
+            .padding(.vertical, EVESpacing.md)
         }
         .eveEdgeFade()
         .background(EVESurface.bar)
@@ -300,7 +298,7 @@ struct CorporationHangarsView: View {
             selectedFlag = div.flag
             selectedAsset = nil
         } label: {
-            VStack(spacing: 2) {
+            VStack(spacing: EVESpacing.xxs) {
                 Text(div.name)
                     .font(.caption)
                     .lineLimit(1)
@@ -308,8 +306,8 @@ struct CorporationHangarsView: View {
                     .font(.caption2.monospacedDigit())
                     .foregroundStyle(isSelected ? palette.accent : .secondary)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
+            .padding(.horizontal, EVESpacing.lg)
+            .padding(.vertical, EVESpacing.sm)
             .background(
                 isSelected ? palette.accent.opacity(0.2) : Color.clear,
                 in: RoundedRectangle(cornerRadius: EVERadius.md)
@@ -322,14 +320,9 @@ struct CorporationHangarsView: View {
 
     private var itemPanel: some View {
         VStack(spacing: 0) {
-            HStack {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
-                TextField("Search \(divisionDisplayName(for: selectedFlag))...", text: $searchText).eveFindTarget()
-                    .textFieldStyle(.plain)
-            }
-            .padding(10)
-            .background(EVESurface.bar)
+            EVESearchField("Search \(divisionDisplayName(for: selectedFlag))…", text: $searchText)
+                .padding(10)
+                .background(EVESurface.bar)
 
             if visibleItems.isEmpty {
                 if searchText.isEmpty {
@@ -349,6 +342,7 @@ struct CorporationHangarsView: View {
                                         .eveSelectableListRow(isSelected: asset == selectedAsset, palette: palette) {
                                             selectedAsset = asset
                                         }
+                                        .eveContextMenu(.item(typeID: asset.typeId, name: asset.typeName))
                                 }
                             }
                         }
@@ -359,6 +353,7 @@ struct CorporationHangarsView: View {
                                 .eveSelectableListRow(isSelected: asset == selectedAsset, palette: palette) {
                                     selectedAsset = asset
                                 }
+                                .eveContextMenu(.item(typeID: asset.typeId, name: asset.typeName))
                         }
                     }
                 }
@@ -373,7 +368,7 @@ struct CorporationHangarsView: View {
 
     @ViewBuilder
     private func assetRow(_ asset: ResolvedAsset) -> some View {
-        HStack(spacing: 8) {
+        HStack(spacing: EVESpacing.md) {
             CachedAsyncImage(url: EVEImageURL.typeIcon(asset.typeId, size: 256)) { phase in
                 if let image = phase.image {
                     image.resizable()
@@ -385,13 +380,13 @@ struct CorporationHangarsView: View {
                         .frame(width: 28, height: 28)
                 }
             }
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 4) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
+                HStack(spacing: EVESpacing.xs) {
                     Text(asset.typeName)
                     if asset.isBlueprintCopy {
                         Text("BPC")
                             .font(.caption2)
-                            .padding(.horizontal, 4)
+                            .padding(.horizontal, EVESpacing.xs)
                             .padding(.vertical, 1)
                             .background(.orange.opacity(0.2), in: Capsule())
                             .foregroundStyle(.orange)
@@ -409,7 +404,7 @@ struct CorporationHangarsView: View {
                 }
             }
             Spacer()
-            VStack(alignment: .trailing, spacing: 2) {
+            VStack(alignment: .trailing, spacing: EVESpacing.xxs) {
                 Text("×\(asset.quantity)")
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)

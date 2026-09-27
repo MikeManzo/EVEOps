@@ -36,8 +36,8 @@ struct AssetBrowser: View {
 
         var searchPrompt: String {
             switch self {
-            case .character:   return "Search assets..."
-            case .corporation: return "Search corporation assets..."
+            case .character:   return "Search assets…"
+            case .corporation: return "Search corporation assets…"
             }
         }
 
@@ -173,10 +173,7 @@ struct AssetBrowser: View {
 
     private var toolbar: some View {
         HStack {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
-            TextField(kind.searchPrompt, text: $searchText)
-                .textFieldStyle(.plain)
+            EVESearchField(prompt: Text(kind.searchPrompt), text: $searchText)
             Spacer()
             Button(collapsedSections.isEmpty ? "Collapse All" : "Expand All") {
                 if collapsedSections.isEmpty {
@@ -248,7 +245,7 @@ struct AssetBrowser: View {
                 collapsedSections.insert(section.key)
             }
         } label: {
-            HStack(spacing: 6) {
+            HStack(spacing: EVESpacing.sm) {
                 Image(systemName: collapsed ? "chevron.right" : "chevron.down")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
@@ -266,7 +263,7 @@ struct AssetBrowser: View {
     }
 
     private func assetRow(_ asset: ResolvedAsset) -> some View {
-        HStack(spacing: 8) {
+        HStack(spacing: EVESpacing.md) {
             CachedAsyncImage(url: EVEImageURL.typeIcon(asset.typeId, size: 64)) { phase in
                 if let image = phase.image {
                     image.resizable()
@@ -281,7 +278,7 @@ struct AssetBrowser: View {
             VStack(alignment: .leading) {
                 switch groupMode {
                 case .station:
-                    HStack(spacing: 4) {
+                    HStack(spacing: EVESpacing.xs) {
                         Text(asset.typeName)
                         if asset.isBlueprintCopy {
                             Text("(BPC)")

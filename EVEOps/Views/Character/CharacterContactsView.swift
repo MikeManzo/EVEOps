@@ -75,8 +75,8 @@ struct CharacterContactsView: View {
                 }
                 .buttonStyle(.borderless)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
+            .padding(.horizontal, EVESpacing.lg)
+            .padding(.vertical, EVESpacing.sm)
             .background(EVESurface.bar)
             Divider()
             LoadingStateView(isLoading: isLoading, error: error, isEmpty: contacts.isEmpty, emptyMessage: "No Contacts", emptySystemImage: "person.crop.circle") {
@@ -196,12 +196,7 @@ struct CharacterContactsView: View {
     @ViewBuilder
     private var detailPane: some View {
         if isLoadingDetail {
-            VStack(spacing: 12) {
-                ProgressView()
-                Text("Loading contact details...")
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            EVELoadingPane("Loading contact details…")
         } else if let detail = selectedDetail {
             ScrollView {
                 VStack(spacing: 20) {
@@ -222,7 +217,7 @@ struct CharacterContactsView: View {
     }
 
     private func contactHeader(_ detail: ContactDetail) -> some View {
-        HStack(spacing: 16) {
+        HStack(spacing: EVESpacing.xl) {
             let imageURL: URL? = {
                 switch detail.contact.contactType {
                 case "character":   return EVEImageURL.characterPortrait(detail.contact.contactId, size: 512)
@@ -250,7 +245,7 @@ struct CharacterContactsView: View {
             }
             .shadow(color: .black.opacity(0.35), radius: 8, y: 3)
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: EVESpacing.sm) {
                 Text(detail.name)
                     .font(.title2.bold())
 
@@ -282,10 +277,10 @@ struct CharacterContactsView: View {
     }
 
     private func standingCard(_ detail: ContactDetail) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: EVESpacing.lg) {
             EVESectionTitle("Standing")
 
-            HStack(spacing: 12) {
+            HStack(spacing: EVESpacing.lg) {
                 EVEStandingBar(standing: detail.contact.standing, width: 200, height: 8)
 
                 Text(detail.contact.standing, format: .number.precision(.fractionLength(1)).sign(strategy: .always(includingZero: false)))
@@ -294,7 +289,7 @@ struct CharacterContactsView: View {
                     .frame(width: 50, alignment: .trailing)
             }
 
-            HStack(spacing: 16) {
+            HStack(spacing: EVESpacing.xl) {
                 if detail.contact.isWatched == true {
                     Label("Watched", systemImage: "eye.fill")
                         .font(.caption)
@@ -348,7 +343,7 @@ struct CharacterContactsView: View {
     }
 
     private func historySection(_ history: [ResolvedCorpHistory]) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
             EVESectionTitle("Corporation History")
             ForEach(history, id: \.recordId) { entry in
                 HStack(spacing: 10) {
@@ -360,7 +355,7 @@ struct CharacterContactsView: View {
                     .frame(width: 28, height: 28)
                     .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
 
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                         Text(entry.corporationName)
                             .font(.subheadline)
                         Text("Joined \(EVEDates.short(entry.startDate))")
@@ -393,7 +388,7 @@ struct CharacterContactsView: View {
     }
 
     private var filterBar: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: EVESpacing.sm) {
             Picker("Type", selection: $typeFilter) {
                 Text("All").tag("all")
                 Text("Players").tag("player")
@@ -402,8 +397,7 @@ struct CharacterContactsView: View {
                 Text("Alliances").tag("alliance")
             }
             .eveSegmentedPicker()
-            TextField("Filter contacts", text: $searchFilter).eveFindTarget()
-                .textFieldStyle(.roundedBorder)
+            EVESearchField("Filter contacts", text: $searchFilter)
         }
         .padding(10)
         .background(EVESurface.bar)
@@ -616,7 +610,7 @@ struct ContactRow: View {
     var presence: PresenceScore?
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: EVESpacing.lg) {
             // Portrait with optional presence badge overlay
             ZStack(alignment: .bottomTrailing) {
                 CachedAsyncImage(url: contact.imageURL) { image in
@@ -639,7 +633,7 @@ struct ContactRow: View {
                 }
             }
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 Text(name ?? "ID #\(contact.contactId)")
                     .font(.subheadline)
                 Text(contact.displayTypeLabel)
@@ -650,7 +644,7 @@ struct ContactRow: View {
             Spacer()
 
             // Standing bar + value
-            HStack(spacing: 8) {
+            HStack(spacing: EVESpacing.md) {
                 EVEStandingBar(standing: contact.standing, width: 80)
 
                 EVEStandingBadge(standing: contact.standing)
@@ -711,7 +705,7 @@ struct AddContactSheet: View {
 
             VStack(alignment: .leading, spacing: 20) {
                 // Search
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: EVESpacing.md) {
                     Text("Character / Corporation / Alliance").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                     HStack {
                         TextField("Exact name…", text: $nameInput)
@@ -721,7 +715,7 @@ struct AddContactSheet: View {
                             .disabled(nameInput.trimmingCharacters(in: .whitespaces).isEmpty || isSearching)
                     }
                     if isSearching {
-                        HStack(spacing: 6) {
+                        HStack(spacing: EVESpacing.sm) {
                             ProgressView().controlSize(.small)
                             Text("Searching…").font(.caption).foregroundStyle(.secondary)
                         }
@@ -748,7 +742,7 @@ struct AddContactSheet: View {
                 // Standing picker
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Standing").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-                    HStack(spacing: 8) {
+                    HStack(spacing: EVESpacing.md) {
                         ForEach(standingOptions, id: \.0) { value, label, color in
                             StandingOptionButton(
                                 value: value, label: label, color: color,
@@ -848,7 +842,7 @@ struct EditStandingSheet: View {
 
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Standing").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-                    HStack(spacing: 8) {
+                    HStack(spacing: EVESpacing.md) {
                         ForEach(standingOptions, id: \.0) { value, label, color in
                             StandingOptionButton(
                                 value: value, label: label, color: color,
@@ -875,7 +869,7 @@ struct EditStandingSheet: View {
                 .buttonStyle(.borderedProminent)
                 .disabled(standing == currentStanding || isUpdating)
                 .overlay(alignment: .leading) {
-                    if isUpdating { ProgressView().controlSize(.small).padding(.leading, 8) }
+                    if isUpdating { ProgressView().controlSize(.small).padding(.leading, EVESpacing.md) }
                 }
             }
             .padding()
@@ -904,7 +898,7 @@ struct StandingOptionButton: View {
                     .foregroundStyle(isSelected ? color : Color.secondary.opacity(0.6))
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
+            .padding(.vertical, EVESpacing.md)
             .background(isSelected ? color.opacity(0.15) : Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: EVERadius.md))
             .overlay(
                 RoundedRectangle(cornerRadius: EVERadius.md)

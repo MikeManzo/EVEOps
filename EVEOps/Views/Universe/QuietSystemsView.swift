@@ -142,7 +142,7 @@ struct QuietSystemsView: View {
                 if let toast {
                     Text(toast)
                         .font(.caption)
-                        .padding(.horizontal, 12).padding(.vertical, 6)
+                        .padding(.horizontal, EVESpacing.lg).padding(.vertical, EVESpacing.sm)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(.quaternary)
                         .transition(.opacity)
@@ -238,8 +238,8 @@ struct QuietSystemsView: View {
                 Task { await load(force: true) }
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
+        .padding(.horizontal, EVESpacing.xl)
+        .padding(.vertical, EVESpacing.md)
     }
 
     private func bandBinding(_ band: SecBand) -> Binding<Bool> {
@@ -270,7 +270,7 @@ struct QuietSystemsView: View {
                 .font(.caption.bold().monospacedDigit())
                 .foregroundStyle(eveSecurityColor(row.security))
                 .frame(width: 30, alignment: .center)
-                .padding(.vertical, 2)
+                .padding(.vertical, EVESpacing.xxs)
                 .background(eveSecurityColor(row.security).opacity(0.15), in: RoundedRectangle(cornerRadius: EVERadius.sm))
 
             VStack(alignment: .leading, spacing: 1) {
@@ -284,7 +284,7 @@ struct QuietSystemsView: View {
                 Text("\(row.traffic) traffic/h")
                     .font(.caption2.monospacedDigit())
                     .foregroundStyle(row.traffic == 0 ? Color.green : .secondary)
-                HStack(spacing: 6) {
+                HStack(spacing: EVESpacing.sm) {
                     if row.kills > 0 {
                         Text("\(row.kills) kill\(row.kills == 1 ? "" : "s")/h")
                             .foregroundStyle(.orange)
@@ -300,7 +300,7 @@ struct QuietSystemsView: View {
     }
 
     private var loadingRow: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: EVESpacing.md) {
             ProgressView().controlSize(.small)
             Text("Loading galaxy activity…").font(.caption).foregroundStyle(.secondary)
         }
@@ -308,15 +308,11 @@ struct QuietSystemsView: View {
     }
 
     private func errorRow(_ message: String) -> some View {
-        ContentUnavailableView("Couldn't load", systemImage: "exclamationmark.triangle", description: Text(message))
+        EVEEmptyState("Couldn't load", systemImage: "exclamationmark.triangle", message: Text(message), tint: .orange)
     }
 
     private var emptyRow: some View {
-        ContentUnavailableView(
-            "No systems match",
-            systemImage: "sparkle.magnifyingglass",
-            description: Text("Loosen the filters — raise the kill limit, widen the jump radius, or add a security band.")
-        )
+        EVEEmptyState("No systems match", systemImage: "sparkle.magnifyingglass", message: Text("Loosen the filters — raise the kill limit, widen the jump radius, or add a security band."))
     }
 
     // MARK:  Grouping
@@ -375,7 +371,7 @@ struct QuietSystemsView: View {
         return Button {
             withAnimation(.easeInOut(duration: 0.2)) { toggleCollapsed(section.id) }
         } label: {
-            HStack(spacing: 8) {
+            HStack(spacing: EVESpacing.md) {
                 Image(systemName: collapsed ? "chevron.right" : "chevron.down")
                     .font(.caption2).foregroundStyle(.secondary).frame(width: 12)
                 Text(section.title).font(.caption.bold()).foregroundStyle(.primary)
@@ -388,7 +384,7 @@ struct QuietSystemsView: View {
                     Text("· \(nearest)j").font(.caption2.monospacedDigit()).foregroundStyle(.tertiary)
                 }
             }
-            .padding(.vertical, 4)
+            .padding(.vertical, EVESpacing.xs)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -587,7 +583,7 @@ struct QuietSystemsView: View {
         let level = DangerLevel(combatKills: activity.combatKills)
 
         VStack(spacing: 0) {
-            HStack(spacing: 8) {
+            HStack(spacing: EVESpacing.md) {
                 Text(row.name).font(.headline)
                 Spacer()
                 Button { selectedId = nil } label: {
@@ -601,11 +597,11 @@ struct QuietSystemsView: View {
             Divider()
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: EVESpacing.xl) {
                     // Location
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: EVESpacing.sm) {
                         detailRow("Security") {
-                            HStack(spacing: 6) {
+                            HStack(spacing: EVESpacing.sm) {
                                 Text(String(format: "%.2f", row.security))
                                     .foregroundStyle(eveSecurityColor(row.security))
                                     .monospacedDigit()
@@ -625,12 +621,12 @@ struct QuietSystemsView: View {
                             }
                         }
                     }
-                    .padding(12)
+                    .padding(EVESpacing.lg)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: EVERadius.lg))
 
                     // Activity (last hour)
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: EVESpacing.sm) {
                         HStack {
                             Text("ACTIVITY").font(.caption2.bold()).foregroundStyle(.tertiary)
                             Spacer()
@@ -662,12 +658,12 @@ struct QuietSystemsView: View {
                                 .foregroundStyle(activity.combatKills == 0 ? Color.green : dangerColor(level))
                         }
                     }
-                    .padding(12)
+                    .padding(EVESpacing.lg)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: EVERadius.lg))
 
                     // Actions
-                    VStack(spacing: 8) {
+                    VStack(spacing: EVESpacing.md) {
                         if accountManager.selectedAccount != nil {
                             Button {
                                 Task { await setDestination(row) }
@@ -698,7 +694,7 @@ struct QuietSystemsView: View {
                         .font(.caption2).foregroundStyle(.tertiary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                .padding(16)
+                .padding(EVESpacing.xl)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         }

@@ -34,12 +34,12 @@ struct ConstellationMapView: View {
     @State private var starfieldSeeds: [(CGFloat, CGFloat, CGFloat)] = []
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
             mapHeader
 
             if isLoading {
-                ProgressView("Loading star map...")
-                    .frame(maxWidth: .infinity, minHeight: 350)
+                EVELoadingPane("Loading star map…")
+                    .frame(minHeight: 350)
             } else {
                 ZStack {
                     mapCanvas
@@ -91,7 +91,7 @@ struct ConstellationMapView: View {
             .toggleStyle(.switch)
             .controlSize(.mini)
 
-            HStack(spacing: 4) {
+            HStack(spacing: EVESpacing.xs) {
                 Button { withAnimation { scale = max(0.5, scale - 0.25) } } label: {
                     Image(systemName: "minus.magnifyingglass").font(.caption)
                 }
@@ -360,7 +360,7 @@ struct ConstellationMapView: View {
     // MARK:  System Popover
 
     private func systemPopover(_ sys: MapSystem) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: EVESpacing.sm) {
             HStack {
                 Text(sys.name).font(.caption.bold())
                 securityBadge(sys.securityStatus)
@@ -411,7 +411,7 @@ struct ConstellationMapView: View {
             // Activity data
             if let kills = killsData[sys.systemId] {
                 Divider()
-                HStack(spacing: 12) {
+                HStack(spacing: EVESpacing.lg) {
                     if kills.shipKills > 0 {
                         Label("\(kills.shipKills) ship kills", systemImage: "flame.fill")
                             .font(.caption2).foregroundStyle(.red)
@@ -435,7 +435,7 @@ struct ConstellationMapView: View {
         .frame(width: 260)
         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-        .padding(8)
+        .padding(EVESpacing.md)
     }
 
     // MARK:  Legend
@@ -450,23 +450,23 @@ struct ConstellationMapView: View {
 
             Divider().frame(height: 12)
 
-            HStack(spacing: 4) {
+            HStack(spacing: EVESpacing.xs) {
                 Circle().fill(.blue).frame(width: 8, height: 8)
                     .overlay(Circle().strokeBorder(.white, lineWidth: 1.5))
                 Text("Current").font(.caption2).foregroundStyle(.secondary)
             }
-            HStack(spacing: 4) {
+            HStack(spacing: EVESpacing.xs) {
                 RoundedRectangle(cornerRadius: 1).fill(.teal).frame(width: 6, height: 6)
                 Text("Station").font(.caption2).foregroundStyle(.secondary)
             }
 
             if showActivity {
                 Divider().frame(height: 12)
-                HStack(spacing: 4) {
+                HStack(spacing: EVESpacing.xs) {
                     Circle().strokeBorder(.blue.opacity(0.5), lineWidth: 1.5).frame(width: 8, height: 8)
                     Text("Jumps").font(.caption2).foregroundStyle(.secondary)
                 }
-                HStack(spacing: 4) {
+                HStack(spacing: EVESpacing.xs) {
                     Circle().fill(.red.opacity(0.4)).frame(width: 8, height: 8)
                     Text("PvP").font(.caption2).foregroundStyle(.secondary)
                 }
@@ -522,12 +522,7 @@ struct ConstellationMapView: View {
         let isWH = value < -0.5
         let label = isWH ? "WH" : String(format: "%.1f", value)
         let color: Color = isWH ? .purple : eveSecurityColor(value)
-        return Text(label)
-            .font(.caption2.bold().monospacedDigit())
-            .foregroundStyle(color)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 1)
-            .background(color.opacity(0.15), in: Capsule())
+        return EVEChip(Text(label), tint: color, size: .small, monospacedDigits: true)
     }
 
     private func legendItem(color: Color, label: String) -> some View {
@@ -637,7 +632,7 @@ struct ConstellationMapView: View {
                     extConns.append(ExternalConnection(
                         fromSystemId: gate.systemId,
                         toSystemId: destSystem,
-                        destinationName: "...",
+                        destinationName: "…",
                         angle: 0
                     ))
                 }

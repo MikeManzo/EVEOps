@@ -52,11 +52,9 @@ struct CharacterCommunicationsView: View {
                 }
                 .frame(maxWidth: .infinity)
 
-                if let selected = selectedNotification {
-                    Divider()
-                    NotificationDetailView(notification: selected)
-                        .frame(width: 320)
-                }
+            }
+            .eveInspector(item: $selectedNotification, width: 320) { selected in
+                NotificationDetailView(notification: selected)
             }
         }
         .eveScreenHeader("Communications", section: .communications) {
@@ -71,12 +69,12 @@ struct CharacterCommunicationsView: View {
     }
 
     private func notificationRow(_ notification: ESINotification) -> some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: EVESpacing.lg) {
             Image(systemName: notificationIcon(notification.type))
                 .foregroundStyle(notificationColor(notification.type))
                 .frame(width: 20)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: EVESpacing.xs) {
                 HStack {
                     Text(formatNotificationType(notification.type))
                         .font(.subheadline.bold())
@@ -97,7 +95,7 @@ struct CharacterCommunicationsView: View {
                     .foregroundStyle(.tertiary)
             }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, EVESpacing.xxs)
     }
 
     private var filteredNotifications: [ESINotification] {
@@ -135,12 +133,12 @@ struct NotificationDetailView: View {
         ScrollView {
             VStack(spacing: 0) {
                 // Header
-                HStack(spacing: 12) {
+                HStack(spacing: EVESpacing.lg) {
                     Image(systemName: notificationIcon(notification.type))
                         .font(.title2)
                         .foregroundStyle(notificationColor(notification.type))
                         .frame(width: 32)
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                         Text(formatNotificationType(notification.type))
                             .font(.headline)
                         if notification.isRead != true {
@@ -155,9 +153,9 @@ struct NotificationDetailView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(EVESurface.bar)
 
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: EVESpacing.xl) {
                     // Details
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: EVESpacing.md) {
                         Text("Details")
                             .font(.subheadline.bold())
                             .foregroundStyle(.secondary)
@@ -173,7 +171,7 @@ struct NotificationDetailView: View {
                     // Raw text payload
                     if let text = notification.text, !text.isEmpty {
                         Divider()
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: EVESpacing.sm) {
                             Text("Notification Data")
                                 .font(.subheadline.bold())
                                 .foregroundStyle(.secondary)
@@ -183,7 +181,7 @@ struct NotificationDetailView: View {
                                 .foregroundStyle(.primary)
                                 .textSelection(.enabled)
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(8)
+                                .padding(EVESpacing.md)
                                 .background(.quaternary.opacity(0.4))
                                 .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
                         }

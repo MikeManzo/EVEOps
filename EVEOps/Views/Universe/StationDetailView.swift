@@ -107,7 +107,7 @@ struct StationDetailView: View {
                     .accessibilityHidden(true)
                 }
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                     Text(parts.facility)
                         .font(.headline)
                         .foregroundStyle(.white)
@@ -281,7 +281,7 @@ struct StationDetailView: View {
             LazyVGrid(columns: [GridItem(.flexible(), spacing: EVESpacing.sm), GridItem(.flexible())],
                       spacing: EVESpacing.sm) {
                 ForEach(facilityStats) { stat in
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                         Label(stat.label, systemImage: stat.symbol)
                             .font(.eveLabel)
                             .foregroundStyle(.secondary)

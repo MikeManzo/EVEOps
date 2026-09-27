@@ -44,27 +44,10 @@ extension MarketBrowserView {
     // MARK:  Search Bar
 
     var searchBar: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
-                .font(.subheadline)
-            TextField("Search items...", text: $searchText).eveFindTarget()
-                .textFieldStyle(.plain)
-                .font(.subheadline)
-            if !searchText.isEmpty {
-                Button {
-                    searchText = ""
-                    searchResults = []
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                }
-                .accessibilityLabel("Clear")
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(6)
-        .eveCard(cornerRadius: EVERadius.md)
+        EVESearchField("Search items…", text: $searchText, onClear: {
+            searchText = ""
+            searchResults = []
+        })
         .onChange(of: searchText) { _, newValue in
             searchTask?.cancel()
             // Clear any previously selected item so the detail pane doesn't show stale data
@@ -112,8 +95,7 @@ extension MarketBrowserView {
     @ViewBuilder
     var searchResultsList: some View {
         if isSearching {
-            ProgressView()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            LoadingSkeleton(rows: 10, showsHeader: false)
         } else if searchResults.isEmpty {
             ContentUnavailableView.search(text: searchText)
         } else {
@@ -140,13 +122,7 @@ extension MarketBrowserView {
     @ViewBuilder
     var groupTree: some View {
         if isLoadingGroups {
-            VStack(spacing: 8) {
-                ProgressView()
-                Text("Loading market groups...")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            LoadingSkeleton(rows: 12, showsHeader: false)
         } else {
             // No `selection:` binding — see `eveSelectableListRow` (theme-colored selection).
             List(rootNodes, children: \.children) { node in
@@ -191,7 +167,7 @@ extension MarketBrowserView {
     // MARK:  Type Row (shared)
 
     func typeRow(typeId: Int, name: String) -> some View {
-        HStack(spacing: 8) {
+        HStack(spacing: EVESpacing.md) {
             MarketTypeImage(typeId: typeId, size: 22, cornerRadius: 3)
             Text(name)
                 .font(.headline)
@@ -263,7 +239,7 @@ extension MarketBrowserView {
                     )
                 }
 
-                HStack(spacing: 12) {
+                HStack(spacing: EVESpacing.lg) {
                     Picker("View", selection: $selectedOrderTab) {
                         Text("Sell Orders (\(sellOrders.count))").tag(0)
                         Text("Buy Orders (\(buyOrders.count))").tag(1)
@@ -287,8 +263,8 @@ extension MarketBrowserView {
                 }
 
                 if isLoadingOrders {
-                    ProgressView("Loading market data...")
-                        .frame(maxWidth: .infinity, minHeight: 200)
+                    EVELoadingPane("Loading market data…")
+                        .frame(minHeight: 200)
                 } else if let error = ordersError {
                     Text("Error: \(error)")
                         .foregroundStyle(.red)
@@ -309,7 +285,7 @@ extension MarketBrowserView {
     // MARK:  Item Header
 
     func itemHeader(typeId: Int) -> some View {
-        HStack(spacing: 16) {
+        HStack(spacing: EVESpacing.xl) {
             CachedAsyncImage(url: EVEImageURL.typeRender(typeId, size: 256)) { image in
                 image.resizable()
             } placeholder: {
@@ -322,11 +298,11 @@ extension MarketBrowserView {
             .frame(width: 96, height: 96)
             .clipShape(RoundedRectangle(cornerRadius: EVERadius.lg))
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: EVESpacing.xs) {
                 Text(selectedTypeName)
                     .font(.title2.bold())
                 if let info = selectedTypeInfo {
-                    HStack(spacing: 12) {
+                    HStack(spacing: EVESpacing.lg) {
                         if let vol = info.volume {
                             Label(String(format: "%.2f m³", vol), systemImage: "cube")
                                 .font(.caption)
@@ -348,7 +324,7 @@ extension MarketBrowserView {
                 // Own row, not squeezed against the buttons via a Spacer — the skill
                 // pills need real width to show name+level, not just their icon.
                 SkillRequirementsView(typeId: typeId, typeInfo: selectedTypeInfo, characterSkills: characterSkillMap)
-                HStack(spacing: 8) {
+                HStack(spacing: EVESpacing.md) {
                     if let info = selectedTypeInfo, CharacterFittingsView.eveShipGroupIds.contains(info.groupId) {
                         Button { showModelViewer = true } label: {
                             Label("View 3D", systemImage: "cube.transparent")
@@ -358,7 +334,7 @@ extension MarketBrowserView {
 
                     if let account = accountManager.selectedAccount, !account.isTokenExpired {
                         let token = account.accessToken
-                        VStack(alignment: .leading, spacing: 4) {
+                        VStack(alignment: .leading, spacing: EVESpacing.xs) {
                             Button {
                                 Task { await openInEVE(typeId: typeId, token: token) }
                             } label: {
@@ -436,7 +412,7 @@ extension MarketBrowserView {
             Rectangle()
                 .fill(color)
                 .frame(height: 3)
-            VStack(spacing: 4) {
+            VStack(spacing: EVESpacing.xs) {
                 Text(title)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -446,7 +422,7 @@ extension MarketBrowserView {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 10)
-            .padding(.horizontal, 8)
+            .padding(.horizontal, EVESpacing.md)
         }
         .frame(maxWidth: .infinity)
     }

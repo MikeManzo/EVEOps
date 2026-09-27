@@ -35,7 +35,7 @@ struct AssetDetailView: View {
                 // Header: render + icon + name
                 headerSection
 
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: EVESpacing.xl) {
                     // Asset-specific info
                     assetInfoSection
 
@@ -110,7 +110,7 @@ struct AssetDetailView: View {
             }
 
             // Name overlay at bottom
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 Text(asset.typeName)
                     .font(.headline)
                     .foregroundStyle(.white)
@@ -121,7 +121,7 @@ struct AssetDetailView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(12)
+            .padding(EVESpacing.lg)
             .background(.ultraThinMaterial.opacity(0.8))
         }
     }
@@ -129,7 +129,7 @@ struct AssetDetailView: View {
     // MARK:  Asset Info
 
     private var assetInfoSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
             EVESectionTitle("Asset Details")
 
             if let name = asset.customName {
@@ -154,7 +154,7 @@ struct AssetDetailView: View {
     // MARK:  Market Value
 
     private var marketValueSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
             HStack {
                 EVESectionTitle("Market Value (Jita)")
                 Spacer()
@@ -197,7 +197,7 @@ struct AssetDetailView: View {
     // MARK:  Type Attributes
 
     private func typeAttributesSection(_ type: ESIType) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
             EVESectionTitle("Type Information")
 
             if let categoryName {
@@ -239,7 +239,7 @@ struct AssetDetailView: View {
     // MARK:  Description
 
     private func descriptionSection(_ description: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: EVESpacing.sm) {
             EVESectionTitle("Description")
 
             Text(description.strippingEVEMarkup)
@@ -325,11 +325,11 @@ struct AssetDetailView: View {
     // MARK:  Market Appraisal
 
     private var janiceSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
             EVESectionTitle("Appraisal (Jita)")
 
             if isAppraising {
-                HStack(spacing: 6) {
+                HStack(spacing: EVESpacing.sm) {
                     ProgressView().controlSize(.small)
                     Text("Fetching appraisal…")
                         .font(.caption).foregroundStyle(.secondary)
@@ -372,7 +372,7 @@ struct AssetDetailView: View {
             VStack(alignment: .leading, spacing: 0) {
                 // Header
                 HStack {
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                         Text(typeName)
                             .font(.headline)
                         Text("Jita / The Forge — Market Orders")
@@ -387,10 +387,10 @@ struct AssetDetailView: View {
                 Divider()
 
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: EVESpacing.xl) {
                         // ESI reference prices
                         if adjustedPrice != nil || averagePrice != nil {
-                            VStack(alignment: .leading, spacing: 6) {
+                            VStack(alignment: .leading, spacing: EVESpacing.sm) {
                                 EVESectionTitle("Reference Prices")
                                 if let avg = averagePrice {
                                     priceRow(label: "ESI Average", value: avg, quantity: quantity, color: .primary)
@@ -405,7 +405,7 @@ struct AssetDetailView: View {
 
                         // Sell orders
                         if !sellOrders.isEmpty {
-                            VStack(alignment: .leading, spacing: 4) {
+                            VStack(alignment: .leading, spacing: EVESpacing.xs) {
                                 Text("Sell Orders (cheapest first)")
                                     .font(.caption.bold())
                                     .foregroundStyle(.secondary)
@@ -419,7 +419,7 @@ struct AssetDetailView: View {
 
                         // Buy orders
                         if !buyOrders.isEmpty {
-                            VStack(alignment: .leading, spacing: 4) {
+                            VStack(alignment: .leading, spacing: EVESpacing.xs) {
                                 Text("Buy Orders (highest first)")
                                     .font(.caption.bold())
                                     .foregroundStyle(.secondary)
@@ -430,9 +430,7 @@ struct AssetDetailView: View {
                         }
 
                         if sellOrders.isEmpty && buyOrders.isEmpty {
-                            ContentUnavailableView("No Market Orders",
-                                systemImage: "cart.badge.minus",
-                                description: Text("No active orders in Jita"))
+                            EVEEmptyState("No Market Orders", systemImage: "cart.badge.minus", message: Text("No active orders in Jita"))
                         }
                     }
                     .padding()
@@ -462,7 +460,7 @@ struct AssetDetailView: View {
         }
 
         private func orderRow(order: ESIRegionMarketOrder, isSell: Bool) -> some View {
-            HStack(spacing: 8) {
+            HStack(spacing: EVESpacing.md) {
                 Circle()
                     .fill(isSell ? Color.red.opacity(0.7) : Color.green.opacity(0.7))
                     .frame(width: 6, height: 6)
@@ -483,7 +481,7 @@ struct AssetDetailView: View {
                     .font(.caption.monospacedDigit().bold())
                     .foregroundStyle(isSell ? .red : .green)
             }
-            .padding(.vertical, 2)
+            .padding(.vertical, EVESpacing.xxs)
         }
     }
 

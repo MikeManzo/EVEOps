@@ -74,7 +74,7 @@ struct FinancesView: View {
                     }
                     if let finance = selectedFinance {
                         if let warning = finance.partialLoadWarning {
-                            HStack(spacing: 6) {
+                            HStack(spacing: EVESpacing.sm) {
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .foregroundStyle(.yellow)
                                     .font(.caption)
@@ -83,8 +83,8 @@ struct FinancesView: View {
                                     .foregroundStyle(.secondary)
                                 Spacer()
                             }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
+                            .padding(.horizontal, EVESpacing.lg)
+                            .padding(.vertical, EVESpacing.md)
                             .background(.yellow.opacity(0.08), in: RoundedRectangle(cornerRadius: EVERadius.md))
                             .overlay(RoundedRectangle(cornerRadius: EVERadius.md).strokeBorder(.yellow.opacity(0.2), lineWidth: 1))
                         }

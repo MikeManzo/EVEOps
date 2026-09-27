@@ -90,7 +90,7 @@ struct CharacterHeroView: View {
                 Rectangle()
                     .fill(.separator)
                     .frame(width: 1)
-                    .padding(.vertical, 16)
+                    .padding(.vertical, EVESpacing.xl)
 
                 characterMetricsPanel
                     .frame(width: 284)
@@ -267,7 +267,7 @@ struct CharacterHeroView: View {
                     .accessibilityHidden(true)
 
                     VStack(alignment: .leading, spacing: 3) {
-                        HStack(spacing: 6) {
+                        HStack(spacing: EVESpacing.sm) {
                             if let birthday = liveBirthday {
                                 let years = Calendar.current.dateComponents([.year], from: birthday, to: Date()).year ?? 0
                                 Text("\(account.characterName), \(years) years old")
@@ -283,16 +283,16 @@ struct CharacterHeroView: View {
                             Spacer()
                             onlineIndicator
                         }
-                        .padding(.bottom, 8)
-                        HStack(spacing: 6) {
+                        .padding(.bottom, EVESpacing.md)
+                        HStack(spacing: EVESpacing.sm) {
                             Text(effectiveCorpName)
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                             if let title = liveTitle {
                                 Text(title)
                                     .font(.eveMicroSemibold)
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
+                                    .padding(.horizontal, EVESpacing.sm)
+                                    .padding(.vertical, EVESpacing.xxs)
                                     .background(palette.accent.opacity(0.15), in: Capsule())
                                     .foregroundStyle(palette.accent)
                                     .lineLimit(1)
@@ -304,14 +304,14 @@ struct CharacterHeroView: View {
                                 .foregroundStyle(.secondary.opacity(0.6))
                         }
 
-                        Divider().padding(.vertical, 2)
+                        Divider().padding(.vertical, EVESpacing.xxs)
 
                         HStack(spacing: 10) {
-                            HStack(spacing: 6) {
+                            HStack(spacing: EVESpacing.sm) {
                                 Image(systemName: "mappin.circle.fill")
                                     .foregroundStyle(palette.location)
                                     .font(.callout)
-                                VStack(alignment: .leading, spacing: 2) {
+                                VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                                     HStack(spacing: 5) {
                                         Text(summary?.systemName ?? "---")
                                             .eveContextMenu(summary.flatMap { s in
@@ -337,8 +337,8 @@ struct CharacterHeroView: View {
                                 }
                             }
                             Spacer()
-                            HStack(spacing: 8) {
-                                VStack(alignment: .trailing, spacing: 2) {
+                            HStack(spacing: EVESpacing.md) {
+                                VStack(alignment: .trailing, spacing: EVESpacing.xxs) {
                                     Text(summary?.ship?.shipName ?? "---")
                                         .font(.callout.weight(.medium))
                                         .lineLimit(1)
@@ -365,7 +365,7 @@ struct CharacterHeroView: View {
 
                         HStack(spacing: 0) {
                             if let sec = liveSecurityStatus {
-                                HStack(spacing: 4) {
+                                HStack(spacing: EVESpacing.xs) {
                                     Image(systemName: "shield.fill")
                                         .font(.caption2)
                                         .foregroundStyle(sec >= 0 ? .green : .red)
@@ -378,7 +378,7 @@ struct CharacterHeroView: View {
                                 }
                             }
                             Spacer()
-                            HStack(spacing: 4) {
+                            HStack(spacing: EVESpacing.xs) {
                                 Image(systemName: "brain.head.profile.fill")
                                     .font(.caption2)
                                     .foregroundStyle(palette.knowledge)
@@ -414,7 +414,7 @@ struct CharacterHeroView: View {
                 }
 
                 if let err = summary?.loadError {
-                    HStack(spacing: 6) {
+                    HStack(spacing: EVESpacing.sm) {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .font(.caption2)
                             .foregroundStyle(palette.critical)
@@ -423,14 +423,14 @@ struct CharacterHeroView: View {
                             .foregroundStyle(palette.critical.opacity(0.85))
                             .lineLimit(2)
                     }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 6)
+                    .padding(.horizontal, EVESpacing.md)
+                    .padding(.vertical, EVESpacing.sm)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(palette.critical.opacity(0.08), in: RoundedRectangle(cornerRadius: EVERadius.sm))
                     .overlay(RoundedRectangle(cornerRadius: EVERadius.sm).strokeBorder(palette.critical.opacity(0.2), lineWidth: 1))
                 }
             }
-            .padding(12)
+            .padding(EVESpacing.lg)
             .padding(.top, -38)
         }
     }
@@ -438,7 +438,7 @@ struct CharacterHeroView: View {
     @ViewBuilder
     private var trainingProgressBlock: some View {
         if queueIsEmpty {
-            HStack(spacing: 6) {
+            HStack(spacing: EVESpacing.sm) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundStyle(palette.warning)
                     .font(.caption)
@@ -447,13 +447,13 @@ struct CharacterHeroView: View {
                     .foregroundStyle(palette.warning)
             }
         } else {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
+            VStack(alignment: .leading, spacing: EVESpacing.xs) {
+                HStack(spacing: EVESpacing.sm) {
                     Image(systemName: "graduationcap.fill")
                         .foregroundStyle(palette.knowledge)
                         .font(.caption)
                     HStack(spacing: 3) {
-                        Text(queueSkillName ?? "Training...")
+                        Text(queueSkillName ?? "Training…")
                             .font(.caption)
                             .lineLimit(1)
                         if let level = queueSkillLevel {
@@ -472,7 +472,7 @@ struct CharacterHeroView: View {
                 if liveLevelStartSP != nil || queueSkillStart != nil {
                     EVEProgressBar(value: trainingProgress, tint: palette.knowledge)
                 }
-                HStack(spacing: 4) {
+                HStack(spacing: EVESpacing.xs) {
                     Text("\(queueCount) skill\(queueCount == 1 ? "" : "s") queued")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
@@ -489,7 +489,7 @@ struct CharacterHeroView: View {
 
     @ViewBuilder
     private func allianceFlourishRow(id: Int, name: String) -> some View {
-        HStack(spacing: 8) {
+        HStack(spacing: EVESpacing.md) {
             CachedAsyncImage(url: EVEImageURL.allianceLogo(id, size: 128)) { phase in
                 if let image = phase.image {
                     image.resizable()
@@ -512,7 +512,7 @@ struct CharacterHeroView: View {
     @ViewBuilder
     private var attributePillsRow: some View {
         if let attrs = liveAttributes {
-            VStack(spacing: 8) {
+            VStack(spacing: EVESpacing.md) {
                 HStack(spacing: 5) {
                     ForEach(SkillTrainingAttribute.allCases) { attr in
                         AttributePill(
@@ -551,13 +551,13 @@ struct CharacterHeroView: View {
             HStack(spacing: 5) {
                 let placeholders: [(String, LocalizedStringKey, Color)] = [("brain", "INT", Color.blue), ("memorychip", "MEM", Color.green), ("eye.fill", "PER", Color.orange), ("bolt.fill", "WIL", Color.purple), ("person.wave.2.fill", "CHA", Color.pink)]
                 ForEach(placeholders, id: \.0) { icon, label, color in
-                    HStack(spacing: 4) {
+                    HStack(spacing: EVESpacing.xs) {
                         Image(systemName: icon)
                         Text(label)
                     }
                     .font(.eveCalloutSemibold)
                     .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
+                    .padding(.vertical, EVESpacing.sm)
                     .background(.quaternary, in: Capsule())
                     .foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity)
@@ -569,7 +569,7 @@ struct CharacterHeroView: View {
     @ViewBuilder
     private func cloneJumpRow(readyAt: Date) -> some View {
         let isReady = readyAt <= now
-        HStack(spacing: 6) {
+        HStack(spacing: EVESpacing.sm) {
             Image(systemName: isReady ? "figure.walk.arrival" : "clock")
                 .foregroundStyle(isReady ? .green : .orange)
                 .font(.caption)
@@ -718,7 +718,7 @@ struct CharacterHeroView: View {
     @ViewBuilder
     private var onlineIndicator: some View {
         let isOnline = summary?.online == true
-        HStack(spacing: 4) {
+        HStack(spacing: EVESpacing.xs) {
             ZStack {
                 if isOnline {
                     Circle()
@@ -824,7 +824,7 @@ struct CharacterHeroView: View {
             }
 
             if !apiStatus.isReachable {
-                VStack(spacing: 6) {
+                VStack(spacing: EVESpacing.sm) {
                     Image(systemName: "wifi.exclamationmark")
                         .font(.title2)
                         .foregroundStyle(palette.warning)
@@ -832,7 +832,7 @@ struct CharacterHeroView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal, 16)
+                        .padding(.horizontal, EVESpacing.xl)
                 }
             } else if summary == nil {
                 ProgressView().controlSize(.small)

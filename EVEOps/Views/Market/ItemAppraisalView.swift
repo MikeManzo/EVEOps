@@ -24,8 +24,8 @@ struct ItemAppraisalView: View {
     var body: some View {
         HStack(spacing: 0) {
             // Left: Input panel
-            VStack(alignment: .leading, spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: EVESpacing.lg) {
+                VStack(alignment: .leading, spacing: EVESpacing.xs) {
                     Text("Paste Items")
                         .font(.headline)
                     Text("Paste from EVE's show info, cargo scan, or any list.\nFormat: Item Name (tab) Quantity per line.")
@@ -33,7 +33,7 @@ struct ItemAppraisalView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                HStack(spacing: 6) {
+                HStack(spacing: EVESpacing.sm) {
                     Text("Market")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -77,19 +77,14 @@ struct ItemAppraisalView: View {
             // Right: Results
             VStack(spacing: 0) {
                 if let errorMsg = error {
-                    ContentUnavailableView("Error", systemImage: "exclamationmark.triangle",
-                                          description: Text(errorMsg))
+                    EVEEmptyState("Error", systemImage: "exclamationmark.triangle", message: Text(errorMsg), tint: .orange)
                 } else if results.isEmpty && !isLoading {
-                    ContentUnavailableView(
-                        "No Results",
-                        systemImage: "magnifyingglass.circle",
-                        description: Text("Paste items on the left and tap Appraise")
-                    )
+                    EVEEmptyState("No Results", systemImage: "magnifyingglass.circle", message: Text("Paste items on the left and tap Appraise"))
                 } else {
                     if !results.isEmpty {
                         // Summary header
                         HStack(spacing: 20) {
-                            VStack(alignment: .leading, spacing: 2) {
+                            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                                 Text("Sell Value")
                                     .font(.caption).foregroundStyle(.secondary)
                                 Text(EVEFormatters.formatISK(totalSell))
@@ -97,7 +92,7 @@ struct ItemAppraisalView: View {
                                     .foregroundStyle(.green)
                                     .eveNumeric(totalSell)
                             }
-                            VStack(alignment: .leading, spacing: 2) {
+                            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                                 Text("Buy Value")
                                     .font(.caption).foregroundStyle(.secondary)
                                 Text(EVEFormatters.formatISK(totalBuy))
@@ -106,7 +101,7 @@ struct ItemAppraisalView: View {
                                     .eveNumeric(totalBuy)
                             }
                             Spacer()
-                            VStack(alignment: .trailing, spacing: 2) {
+                            VStack(alignment: .trailing, spacing: EVESpacing.xxs) {
                                 Text("\(results.count) items")
                                     .font(.caption).foregroundStyle(.secondary)
                                 if !unknownNames.isEmpty {
@@ -118,7 +113,7 @@ struct ItemAppraisalView: View {
                         .padding()
                         .background(EVESurface.bar)
 
-                        HStack(spacing: 4) {
+                        HStack(spacing: EVESpacing.xs) {
                             Image(systemName: "checkmark.seal.fill")
                                 .font(.caption2)
                                 .foregroundStyle(.teal)
@@ -127,7 +122,7 @@ struct ItemAppraisalView: View {
                                 .foregroundStyle(.tertiary)
                         }
                         .padding(.horizontal)
-                        .padding(.bottom, 4)
+                        .padding(.bottom, EVESpacing.xs)
 
                         Divider()
                     }
@@ -135,6 +130,8 @@ struct ItemAppraisalView: View {
                     List {
                         ForEach(results) { row in
                             appraisalRow(row)
+                                .contentShape(Rectangle())
+                                .eveContextMenu(.item(typeID: row.typeID, name: row.name))
                         }
                         if !unknownNames.isEmpty {
                             Section("Unresolved (\(unknownNames.count))") {
@@ -166,7 +163,7 @@ struct ItemAppraisalView: View {
             .frame(width: 32, height: 32)
             .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 Text(row.name).font(.subheadline)
                 Text("Qty: \(row.quantity.formatted())")
                     .font(.caption).foregroundStyle(.secondary)
@@ -174,7 +171,7 @@ struct ItemAppraisalView: View {
 
             Spacer()
 
-            VStack(alignment: .trailing, spacing: 2) {
+            VStack(alignment: .trailing, spacing: EVESpacing.xxs) {
                 Text(EVEFormatters.formatISKShort(row.sellTotal))
                     .font(.subheadline.bold().monospacedDigit())
                     .foregroundStyle(row.sellTotal > 0 ? .green : .secondary)
@@ -183,7 +180,7 @@ struct ItemAppraisalView: View {
                     .foregroundStyle(.orange.opacity(0.8))
             }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, EVESpacing.xxs)
     }
 
     // MARK: Appraise

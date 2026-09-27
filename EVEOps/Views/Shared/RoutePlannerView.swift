@@ -93,7 +93,7 @@ struct RoutePlannerView: View {
         GroupBox {
             VStack(spacing: 14) {
                 // Origin / Destination row
-                HStack(alignment: .bottom, spacing: 8) {
+                HStack(alignment: .bottom, spacing: EVESpacing.md) {
                     SystemSearchField(
                         label: "Origin",
                         icon: "location.fill",
@@ -131,7 +131,7 @@ struct RoutePlannerView: View {
                     Button {
                         Task { await useCurrentLocation() }
                     } label: {
-                        HStack(spacing: 4) {
+                        HStack(spacing: EVESpacing.xs) {
                             if isLocating {
                                 ProgressView().controlSize(.small)
                             } else {
@@ -150,7 +150,7 @@ struct RoutePlannerView: View {
                 Divider()
 
                 HStack {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: EVESpacing.xs) {
                         Text("Route Type").font(.caption).foregroundStyle(.secondary).fixedSize()
                         Picker("Route Type", selection: $routeFlag) {
                             Text("Shortest").tag("shortest")
@@ -175,7 +175,7 @@ struct RoutePlannerView: View {
 
                 Divider()
 
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: EVESpacing.md) {
                     SystemSearchField(
                         label: "Avoid Systems",
                         icon: "xmark.octagon.fill",
@@ -196,7 +196,7 @@ struct RoutePlannerView: View {
                     if !avoidSystems.isEmpty {
                         FlowLayout(spacing: 6) {
                             ForEach(avoidSystems, id: \.id) { system in
-                                HStack(spacing: 4) {
+                                HStack(spacing: EVESpacing.xs) {
                                     Text(system.name)
                                         .font(.caption)
                                     Button {
@@ -208,8 +208,8 @@ struct RoutePlannerView: View {
                                     .accessibilityLabel("Clear")
                                     .buttonStyle(.plain)
                                 }
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
+                                .padding(.horizontal, EVESpacing.md)
+                                .padding(.vertical, EVESpacing.xs)
                                 .background(.red.opacity(0.12), in: Capsule())
                                 .foregroundStyle(.red)
                             }
@@ -222,13 +222,13 @@ struct RoutePlannerView: View {
                 dangerAvoidanceControls
 
                 if let errorMessage {
-                    HStack(spacing: 6) {
+                    HStack(spacing: EVESpacing.sm) {
                         Image(systemName: "exclamationmark.triangle.fill")
                         Text(errorMessage)
                     }
                     .foregroundStyle(.red)
                     .font(.caption)
-                    .padding(8)
+                    .padding(EVESpacing.md)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(.red.opacity(0.08), in: RoundedRectangle(cornerRadius: EVERadius.md))
                 }
@@ -241,7 +241,7 @@ struct RoutePlannerView: View {
     // MARK:  Danger Avoidance
 
     private var dangerAvoidanceControls: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
             Toggle(isOn: $avoidDanger) {
                 Label("Route around recent kills", systemImage: "flame.fill")
                     .font(.caption.weight(.medium))
@@ -249,7 +249,7 @@ struct RoutePlannerView: View {
             .toggleStyle(.checkbox)
 
             if avoidDanger {
-                HStack(spacing: 6) {
+                HStack(spacing: EVESpacing.sm) {
                     Text("Avoid systems with more than")
                         .font(.caption).foregroundStyle(.secondary)
                     Stepper(value: $dangerThreshold, in: 0...50) {
@@ -287,10 +287,10 @@ struct RoutePlannerView: View {
             VStack(alignment: .leading, spacing: 0) {
                 // Header
                 HStack(alignment: .center) {
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                         Text("\(originSystem?.name ?? "") → \(destinationSystem?.name ?? "")")
                             .font(.headline)
-                        HStack(spacing: 6) {
+                        HStack(spacing: EVESpacing.sm) {
                             Text("\(route.count - 1) jump\(route.count == 2 ? "" : "s")")
                             if autoAvoidedCount > 0 {
                                 Text("· routed around \(autoAvoidedCount) hot system\(autoAvoidedCount == 1 ? "" : "s")")
@@ -317,22 +317,22 @@ struct RoutePlannerView: View {
                         .buttonStyle(.bordered)
                         .controlSize(.small)
                         .disabled(isSettingAutopilot)
-                        .padding(.leading, 8)
+                        .padding(.leading, EVESpacing.md)
                     }
                 }
-                .padding(.bottom, 8)
+                .padding(.bottom, EVESpacing.md)
 
                 RouteSecurityStrip(route: route)
                     .padding(.bottom, 10)
 
                 if let autopilotMessage {
-                    HStack(spacing: 6) {
+                    HStack(spacing: EVESpacing.sm) {
                         Image(systemName: autopilotMessage.hasPrefix("Route set") ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                             .foregroundStyle(autopilotMessage.hasPrefix("Route set") ? .green : .orange)
                         Text(autopilotMessage)
                     }
                     .font(.caption)
-                    .padding(.bottom, 8)
+                    .padding(.bottom, EVESpacing.md)
                 }
 
                 Divider()
@@ -357,7 +357,7 @@ struct RoutePlannerView: View {
     }
 
     private var securitySummary: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: EVESpacing.sm) {
             let highSec = route.filter { $0.securityStatus >= 0.5 }.count
             let lowSec = route.filter { $0.securityStatus > 0.0 && $0.securityStatus < 0.5 }.count
             let nullSec = route.filter { $0.securityStatus <= 0.0 }.count
@@ -368,12 +368,7 @@ struct RoutePlannerView: View {
     }
 
     private func secPill(_ label: String, color: Color) -> some View {
-        Text(label)
-            .font(.caption2.bold().monospacedDigit())
-            .foregroundStyle(color)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .background(color.opacity(0.15), in: Capsule())
+        EVEChip(Text(label), tint: color, size: .small, monospacedDigits: true)
     }
 
     // MARK:  Route Risk
@@ -393,7 +388,7 @@ struct RoutePlannerView: View {
                 .font(.caption2.bold().monospacedDigit())
         }
         .foregroundStyle(totalKills == 0 ? Color.green : color)
-        .padding(.horizontal, 8)
+        .padding(.horizontal, EVESpacing.md)
         .padding(.vertical, 3)
         .background((totalKills == 0 ? Color.green : color).opacity(0.15), in: Capsule())
         .help(riskTooltip(totalKills: totalKills, peak: peak))
@@ -468,15 +463,15 @@ struct RoutePlannerView: View {
         let routeIds = Set(route.map(\.id))
         return GroupBox {
             if theraExpanded {
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: EVESpacing.sm) {
                     if isLoadingThera {
-                        HStack(spacing: 8) {
+                        HStack(spacing: EVESpacing.md) {
                             ProgressView().controlSize(.small)
                             Text("Loading connections…")
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                     } else if let err = theraError {
-                        HStack(spacing: 6) {
+                        HStack(spacing: EVESpacing.sm) {
                             Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
                             Text(err).font(.caption).foregroundStyle(.secondary)
                         }
@@ -490,7 +485,7 @@ struct RoutePlannerView: View {
                             if aOnRoute != bOnRoute { return aOnRoute }
                             return a.destinationSecurity < b.destinationSecurity
                         }
-                        LazyVStack(spacing: 2) {
+                        LazyVStack(spacing: EVESpacing.xxs) {
                             ForEach(sorted) { conn in
                                 TheraConnectionRow(
                                     connection: conn,
@@ -534,7 +529,7 @@ struct RoutePlannerView: View {
                             .font(.callout)
                             .fixedSize(horizontal: false, vertical: true)
                         Divider()
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: EVESpacing.sm) {
                             infoRow(icon: "circle.fill", color: eveSecurityColor(0.9), text: "Highsec destination")
                             infoRow(icon: "circle.fill", color: eveSecurityColor(0.3), text: "Lowsec destination")
                             infoRow(icon: "circle.fill", color: eveSecurityColor(-0.1), text: "Nullsec destination")
@@ -544,7 +539,7 @@ struct RoutePlannerView: View {
                         }
                         .font(.caption)
                         Divider()
-                        HStack(spacing: 4) {
+                        HStack(spacing: EVESpacing.xs) {
                             Image(systemName: "antenna.radiowaves.left.and.right")
                                 .foregroundStyle(.secondary)
                             Text("Connection data provided by [EVE Scout](https://www.eve-scout.com)")
@@ -552,7 +547,7 @@ struct RoutePlannerView: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
-                    .padding(16)
+                    .padding(EVESpacing.xl)
                     .frame(width: 320)
                 }
                 Spacer()
@@ -595,7 +590,7 @@ struct RoutePlannerView: View {
     }
 
     private func infoRow(icon: String, color: Color, text: String) -> some View {
-        HStack(spacing: 6) {
+        HStack(spacing: EVESpacing.sm) {
             Image(systemName: icon)
                 .foregroundStyle(color)
                 .frame(width: 14)

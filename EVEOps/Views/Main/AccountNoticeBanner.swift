@@ -19,7 +19,7 @@ struct AccountNoticeBanner: View {
     private var tint: Color { notice.isWarning ? .orange : .green }
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: EVESpacing.md) {
             Image(systemName: notice.isWarning ? "exclamationmark.triangle.fill" : "arrow.counterclockwise.circle.fill")
                 .foregroundStyle(tint)
             Text(notice.message)
@@ -30,7 +30,7 @@ struct AccountNoticeBanner: View {
                 .buttonStyle(.plain)
                 .foregroundStyle(tint)
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, EVESpacing.xl)
         .padding(.vertical, 10)
         .background(tint.opacity(0.10))
         .transition(.move(edge: .top).combined(with: .opacity))

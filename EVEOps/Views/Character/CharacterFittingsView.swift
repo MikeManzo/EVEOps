@@ -125,7 +125,7 @@ struct CharacterFittingsView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(alignment: .center, spacing: 0) {
-                HStack(spacing: 2) {
+                HStack(spacing: EVESpacing.xxs) {
                     fittingsTabButton("My Ships", icon: "ferry.fill", tab: .ships)
                     fittingsTabButton("Saved Ships", icon: "bookmark.fill", tab: .savedFittings)
                     fittingsTabButton("Community Ships", icon: "globe", tab: .community)
@@ -140,7 +140,7 @@ struct CharacterFittingsView: View {
                         preview: SharePreview(transferable.filename, image: Image(systemName: "doc.text"))
                     ) {
                         Label("Share Fitting", systemImage: "square.and.arrow.up")
-                            .padding(6)
+                            .padding(EVESpacing.sm)
                     }
                     .buttonStyle(.borderless)
                 }
@@ -160,8 +160,8 @@ struct CharacterFittingsView: View {
                 }
                 .buttonStyle(.borderless)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
+            .padding(.horizontal, EVESpacing.xl)
+            .padding(.vertical, EVESpacing.md)
             .zIndex(1)
 
             Divider()
@@ -248,7 +248,7 @@ struct CharacterFittingsView: View {
                                 }
                         }
                     } header: {
-                        HStack(spacing: 8) {
+                        HStack(spacing: EVESpacing.md) {
                             Image(systemName: Self.shipClassIcon(section.className)).font(.body)
                             Text(section.className).font(.title2.bold())
                             Spacer()
@@ -263,18 +263,16 @@ struct CharacterFittingsView: View {
             .eveKeyboardSelection(visibleShips, selection: selectedShip) { selectedShip = $0 }
             .frame(maxWidth: .infinity)
 
-            if let ship = selectedShip {
-                Divider()
-                ShipDetailPane(
-                    ship: ship,
-                    modules: modulesByShip[ship.itemId] ?? [],
-                    typeNames: moduleTypeNames,
-                    onFittingSaved: {
-                        Task { await loadSavedFittings() }
-                    }
-                )
-                .frame(minWidth: 340, idealWidth: 380, maxWidth: 420)
-            }
+        }
+        .eveInspector(item: $selectedShip, minWidth: 340, idealWidth: 380, maxWidth: 420) { ship in
+            ShipDetailPane(
+                ship: ship,
+                modules: modulesByShip[ship.itemId] ?? [],
+                typeNames: moduleTypeNames,
+                onFittingSaved: {
+                    Task { await loadSavedFittings() }
+                }
+            )
         }
     }
 
@@ -301,7 +299,7 @@ struct CharacterFittingsView: View {
                             }
                         }
                     } header: {
-                        HStack(spacing: 8) {
+                        HStack(spacing: EVESpacing.md) {
                             Image(systemName: Self.shipClassIcon(section.className)).font(.body)
                             Text(section.className).font(.title2.bold())
                             Spacer()
@@ -325,11 +323,9 @@ struct CharacterFittingsView: View {
             }
             .frame(maxWidth: .infinity)
 
-            if let fitting = selectedFitting {
-                Divider()
-                SavedFittingDetailPane(fitting: fitting, typeNames: fittingTypeNames)
-                    .frame(minWidth: 340, idealWidth: 380, maxWidth: 420)
-            }
+        }
+        .eveInspector(item: $selectedFitting, minWidth: 340, idealWidth: 380, maxWidth: 420) { fitting in
+            SavedFittingDetailPane(fitting: fitting, typeNames: fittingTypeNames)
         }
     }
 
@@ -597,7 +593,7 @@ struct CharacterFittingsView: View {
             .font(.subheadline)
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 10)
-            .padding(.vertical, 6)
+            .padding(.vertical, EVESpacing.sm)
             .background(activeTab == tab ? palette.accent : Color.clear,
                         in: RoundedRectangle(cornerRadius: EVERadius.sm))
             .foregroundStyle(activeTab == tab ? .white : .primary)

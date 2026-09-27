@@ -87,7 +87,7 @@ private struct EVEScreenHeaderModifier<Trailing: View>: ViewModifier {
             content
                 .safeAreaInset(edge: .top, spacing: 0) {
                     HStack(alignment: .firstTextBaseline, spacing: EVESpacing.md) {
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                             title.font(.largeTitle.bold())
                             if let subtitle {
                                 subtitle.font(.subheadline).foregroundStyle(.secondary)
@@ -162,6 +162,73 @@ private struct ButtonStyleOutsideToolbar<S: PrimitiveButtonStyle>: ViewModifier 
         } else {
             content.buttonStyle(style)
         }
+    }
+}
+
+// MARK: - Search field
+
+/// The app's one search/filter field: magnifier, plain text field, clear button (or a
+/// spinner while `isBusy`), on a rounded, appearance-adaptive fill. Edit › Find (⌘F)
+/// focuses it. Screens had grown four different looks for this — plain, card, rounded
+/// border, bare — so every filter in the app now reads as the same control.
+///
+/// Attach `.onChange(of:)` / `.onSubmit` to the field itself as you would a `TextField`.
+struct EVESearchField: View {
+    let prompt: Text
+    @Binding var text: String
+    var isBusy = false
+    var controlSize: ControlSize = .regular
+    /// Runs instead of the default "clear the text" when the clear button is pressed —
+    /// for fields where clearing also resets a selection.
+    var onClear: (() -> Void)?
+
+    init(_ prompt: LocalizedStringKey, text: Binding<String>, isBusy: Bool = false,
+         controlSize: ControlSize = .regular, onClear: (() -> Void)? = nil) {
+        self.init(prompt: Text(prompt), text: text, isBusy: isBusy, controlSize: controlSize, onClear: onClear)
+    }
+
+    init(prompt: Text, text: Binding<String>, isBusy: Bool = false,
+         controlSize: ControlSize = .regular, onClear: (() -> Void)? = nil) {
+        self.prompt = prompt
+        self._text = text
+        self.isBusy = isBusy
+        self.controlSize = controlSize
+        self.onClear = onClear
+    }
+
+    private var isSmall: Bool { controlSize == .small || controlSize == .mini }
+
+    var body: some View {
+        HStack(spacing: EVESpacing.sm) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+                .imageScale(.small)
+                .accessibilityHidden(true)
+            TextField(text: $text) { prompt }
+                .textFieldStyle(.plain)
+                .eveFindTarget()
+            if isBusy {
+                ProgressView().controlSize(.mini)
+            } else if !text.isEmpty {
+                Button {
+                    if let onClear { onClear() } else { text = "" }
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.tertiary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Clear Search")
+                .help("Clear")
+            }
+        }
+        .font(isSmall ? .caption : .body)
+        .padding(.horizontal, EVESpacing.md)
+        .padding(.vertical, isSmall ? 3 : 5)
+        .background(EVEFill.track.opacity(0.6), in: RoundedRectangle(cornerRadius: EVERadius.md))
+        .overlay(
+            RoundedRectangle(cornerRadius: EVERadius.md)
+                .strokeBorder(EVEFill.trackBorder, lineWidth: 0.5)
+        )
     }
 }
 

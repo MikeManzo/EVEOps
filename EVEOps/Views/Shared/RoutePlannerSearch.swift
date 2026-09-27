@@ -45,7 +45,7 @@ struct SystemSearchField: View {
     @State private var searchTask: Task<Void, Never>?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: EVESpacing.xs) {
             Label(label, systemImage: icon)
                 .font(.caption.weight(.medium))
                 .foregroundStyle(iconColor)
@@ -99,24 +99,24 @@ struct SystemSearchField: View {
     private var searchResultsPopover: some View {
         VStack(spacing: 0) {
             if isSearching {
-                HStack(spacing: 8) {
+                HStack(spacing: EVESpacing.md) {
                     ProgressView().controlSize(.small)
                     Text("Searching…").font(.caption).foregroundStyle(.secondary)
                 }
-                .padding(12)
+                .padding(EVESpacing.lg)
                 .frame(minWidth: 260)
             } else if let err = searchError {
-                HStack(alignment: .top, spacing: 6) {
+                HStack(alignment: .top, spacing: EVESpacing.sm) {
                     Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
                     Text(err).font(.caption)
                 }
-                .padding(12)
+                .padding(EVESpacing.lg)
                 .frame(minWidth: 260)
             } else if results.isEmpty {
                 Text("No systems found")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .padding(12)
+                    .padding(EVESpacing.lg)
                     .frame(minWidth: 260)
             } else {
                 ScrollViewReader { proxy in
@@ -252,7 +252,7 @@ struct SystemResultRow: View {
                 .font(.caption.bold().monospacedDigit())
                 .foregroundStyle(result.securityColor)
                 .frame(width: 28, alignment: .center)
-                .padding(.vertical, 2)
+                .padding(.vertical, EVESpacing.xxs)
                 .background(result.securityColor.opacity(0.15), in: RoundedRectangle(cornerRadius: EVERadius.sm))
 
             Text(result.name)
@@ -262,8 +262,8 @@ struct SystemResultRow: View {
 
             Spacer()
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, EVESpacing.lg)
+        .padding(.vertical, EVESpacing.md)
         .background(isHighlighted ? accentColor.opacity(0.12) : Color.clear)
         .frame(maxWidth: .infinity)
         .contentShape(Rectangle())

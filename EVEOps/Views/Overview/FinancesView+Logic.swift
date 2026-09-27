@@ -15,7 +15,7 @@ extension FinancesView {
     // MARK:  Loyalty Points
 
     func loyaltyPointsSection(_ lp: [ResolvedLoyaltyPoints]) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
             if lp.isEmpty {
                 Text("No loyalty points")
                     .foregroundStyle(.secondary)
@@ -54,8 +54,8 @@ extension FinancesView {
                                 .font(.subheadline.bold().monospacedDigit())
                                 .foregroundStyle(.purple)
                         }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
+                        .padding(.horizontal, EVESpacing.lg)
+                        .padding(.vertical, EVESpacing.md)
                     }
                 }
                 .eveCard()

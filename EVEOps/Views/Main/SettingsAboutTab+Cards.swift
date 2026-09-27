@@ -62,7 +62,7 @@ extension AboutTab {
     var versionPill: some View {
         if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
            let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String {
-            HStack(spacing: 6) {
+            HStack(spacing: EVESpacing.sm) {
                 Circle()
                     .fill(.green)
                     .frame(width: 5, height: 5)
@@ -70,8 +70,8 @@ extension AboutTab {
                     .font(.eveCaptionMedium)
                     .foregroundStyle(.secondary)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
+            .padding(.horizontal, EVESpacing.lg)
+            .padding(.vertical, EVESpacing.sm)
             .background(.primary.opacity(0.05), in: Capsule())
             .overlay(Capsule().strokeBorder(.primary.opacity(0.1)))
         }
@@ -91,7 +91,7 @@ extension AboutTab {
                     .foregroundStyle(Color(hue: 0.12, saturation: 0.9, brightness: 1.0))
             }
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 Text("EVE Buddy")
                     .font(.eveRowTitle)
                 Text("ACKNOWLEDGED INSPIRATION")
@@ -112,8 +112,8 @@ extension AboutTab {
                     .foregroundStyle(.tertiary)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.horizontal, EVESpacing.xl)
+        .padding(.vertical, EVESpacing.lg)
         .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous)
@@ -144,7 +144,7 @@ extension AboutTab {
                     .foregroundStyle(.red)
             }
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 Text("zKillboard")
                     .font(.eveRowTitle)
                 Text("COMMUNITY FIT DATA SOURCE")
@@ -163,8 +163,8 @@ extension AboutTab {
             .buttonStyle(.link)
             .font(.eveCaptionMedium)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.horizontal, EVESpacing.xl)
+        .padding(.vertical, EVESpacing.lg)
         .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous)
@@ -195,7 +195,7 @@ extension AboutTab {
                     .foregroundStyle(.green)
             }
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 Text("Live EVE item Apprasial")
                     .font(.eveRowTitle)
                 Text("LIVE APPRAISAL DATA SOURCE")
@@ -214,8 +214,8 @@ extension AboutTab {
             .buttonStyle(.link)
             .font(.eveCaptionMedium)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.horizontal, EVESpacing.xl)
+        .padding(.vertical, EVESpacing.lg)
         .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous)
@@ -246,7 +246,7 @@ extension AboutTab {
                     .foregroundStyle(.white)
             }
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 Text("Sparkle")
                     .font(.eveRowTitle)
                 Text("SOFTWARE UPDATE FRAMEWORK")
@@ -265,8 +265,8 @@ extension AboutTab {
             .buttonStyle(.link)
             .font(.eveCaptionMedium)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.horizontal, EVESpacing.xl)
+        .padding(.vertical, EVESpacing.lg)
         .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous)
@@ -297,7 +297,7 @@ extension AboutTab {
                     .foregroundStyle(.cyan)
             }
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 Text("Anoik.is")
                     .font(.eveRowTitle)
                 Text("WORMHOLE SYSTEM DATABASE")
@@ -316,8 +316,8 @@ extension AboutTab {
             .buttonStyle(.link)
             .font(.eveCaptionMedium)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.horizontal, EVESpacing.xl)
+        .padding(.vertical, EVESpacing.lg)
         .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous)
@@ -348,7 +348,7 @@ extension AboutTab {
                     .foregroundStyle(.white)
             }
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 Text("Scout")
                     .font(.eveRowTitle)
                 Text("WORMHOLE CONNECTIONS")
@@ -367,8 +367,8 @@ extension AboutTab {
             .buttonStyle(.link)
             .font(.eveCaptionMedium)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.horizontal, EVESpacing.xl)
+        .padding(.vertical, EVESpacing.lg)
         .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous)
@@ -401,7 +401,7 @@ extension AboutTab {
                     .foregroundStyle(.orange)
             }
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 Text("EVEShip.fit's Dogma Engine")
                     .font(.eveRowTitle)
                 Text("SHIP FIT SIM ENGINE")
@@ -420,8 +420,8 @@ extension AboutTab {
             .buttonStyle(.link)
             .font(.eveCaptionMedium)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.horizontal, EVESpacing.xl)
+        .padding(.vertical, EVESpacing.lg)
         .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous)
@@ -452,7 +452,7 @@ extension AboutTab {
                     .foregroundStyle(.green)
             }
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 Text("Fuzzwork Enterprises")
                     .font(.eveRowTitle)
                 Text("MARKET PRICE DATA SOURCE")
@@ -471,8 +471,8 @@ extension AboutTab {
             .buttonStyle(.link)
             .font(.eveCaptionMedium)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.horizontal, EVESpacing.xl)
+        .padding(.vertical, EVESpacing.lg)
         .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous)
@@ -503,7 +503,7 @@ extension AboutTab {
                     .foregroundStyle(.purple)
             }
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 Text("Claude Code")
                     .font(.eveRowTitle)
                 Text("AI DEVELOPMENT ASSISTANT")
@@ -522,8 +522,8 @@ extension AboutTab {
             .buttonStyle(.link)
             .font(.eveCaptionMedium)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.horizontal, EVESpacing.xl)
+        .padding(.vertical, EVESpacing.lg)
         .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous)
@@ -554,7 +554,7 @@ extension AboutTab {
                     .foregroundStyle(.teal)
             }
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 Text("EVERef")
                     .font(.eveRowTitle)
                 Text("ITEM & BLUEPRINT REFERENCE")
@@ -573,8 +573,8 @@ extension AboutTab {
             .buttonStyle(.link)
             .font(.eveCaptionMedium)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.horizontal, EVESpacing.xl)
+        .padding(.vertical, EVESpacing.lg)
         .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous)
@@ -605,7 +605,7 @@ extension AboutTab {
                     .foregroundStyle(.indigo)
             }
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 Text("GetEveModels")
                     .font(.eveRowTitle)
                 Text("3D SHIP MODEL DATA SOURCE")
@@ -624,8 +624,8 @@ extension AboutTab {
             .buttonStyle(.link)
             .font(.eveCaptionMedium)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.horizontal, EVESpacing.xl)
+        .padding(.vertical, EVESpacing.lg)
         .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous)
@@ -656,7 +656,7 @@ extension AboutTab {
                     .foregroundStyle(.cyan)
             }
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 Text("Kerreah")
                     .font(.eveRowTitle)
                 Text("EVE CAPSULEER")
@@ -675,8 +675,8 @@ extension AboutTab {
             .buttonStyle(.link)
             .font(.eveCaptionMedium)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.horizontal, EVESpacing.xl)
+        .padding(.vertical, EVESpacing.lg)
         .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous)
@@ -707,7 +707,7 @@ extension AboutTab {
                     .foregroundStyle(.orange)
             }
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 Text("Idle Boy")
                     .font(.eveRowTitle)
                 Text("EVE CAPSULEER")
@@ -726,8 +726,8 @@ extension AboutTab {
             .buttonStyle(.link)
             .font(.eveCaptionMedium)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.horizontal, EVESpacing.xl)
+        .padding(.vertical, EVESpacing.lg)
         .background(.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: EVERadius.lg, style: .continuous)
@@ -757,7 +757,7 @@ extension AboutTab {
                 .foregroundStyle(.secondary)
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 6)
+        .padding(.vertical, EVESpacing.sm)
         .background(.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: EVERadius.md, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: EVERadius.md, style: .continuous).strokeBorder(.primary.opacity(0.08)))
     }
@@ -772,7 +772,7 @@ extension AboutTab {
             }
             .foregroundStyle(.blue)
             .padding(.horizontal, 14)
-            .padding(.vertical, 8)
+            .padding(.vertical, EVESpacing.md)
             .background(.blue.opacity(0.08), in: RoundedRectangle(cornerRadius: EVERadius.md, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: EVERadius.md, style: .continuous).strokeBorder(.blue.opacity(0.18)))
         }

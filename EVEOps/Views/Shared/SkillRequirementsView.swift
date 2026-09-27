@@ -84,7 +84,7 @@ struct SkillRequirementsView: View {
                 .lineLimit(1)
         }
         .foregroundStyle(.white)
-        .padding(.horizontal, 6)
+        .padding(.horizontal, EVESpacing.sm)
         .padding(.vertical, 3)
         .background(color.opacity(characterSkills == nil ? 0.45 : 0.85), in: Capsule())
         .help(helpText(for: req, have: have))

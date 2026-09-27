@@ -53,7 +53,7 @@ struct CommandPaletteView: View {
                         .accessibilityLabel("Looking up names")
                 }
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, EVESpacing.xl)
             .padding(.vertical, 14)
 
             Divider()
@@ -72,7 +72,7 @@ struct CommandPaletteView: View {
                                 .accessibilityAddTraits(index == highlighted ? .isSelected : [])
                         }
                     }
-                    .padding(6)
+                    .padding(EVESpacing.sm)
                 }
                 .frame(maxHeight: 360)
                 .onChange(of: highlighted) { _, new in
@@ -85,7 +85,7 @@ struct CommandPaletteView: View {
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 24)
+                    .padding(.vertical, EVESpacing.xxl)
             }
 
             Divider()
@@ -97,8 +97,8 @@ struct CommandPaletteView: View {
             }
             .font(.caption2)
             .foregroundStyle(.tertiary)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
+            .padding(.horizontal, EVESpacing.xl)
+            .padding(.vertical, EVESpacing.md)
             .accessibilityHidden(true)
         }
         .frame(width: 620)
@@ -183,7 +183,7 @@ struct CommandPaletteView: View {
     }
 
     private func hint(_ key: String, _ label: String) -> some View {
-        HStack(spacing: 4) {
+        HStack(spacing: EVESpacing.xs) {
             Text(key).monospaced()
             Text(label)
         }
@@ -256,7 +256,7 @@ private struct PaletteRowView: View {
     private var palette: EVEPalette { themeManager.palette }
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: EVESpacing.lg) {
             Image(systemName: icon)
                 .frame(width: 22)
                 .foregroundStyle(isHighlighted ? Color.white : .secondary)
@@ -272,7 +272,7 @@ private struct PaletteRowView: View {
             Spacer()
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 8)
+        .padding(.vertical, EVESpacing.md)
         .background(isHighlighted ? palette.accent : Color.clear, in: RoundedRectangle(cornerRadius: EVERadius.md))
     }
 

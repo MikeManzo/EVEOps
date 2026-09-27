@@ -115,7 +115,7 @@ struct DashboardView: View {
                     tint: .orange
                 )
             } else if isLoading && summaries.isEmpty {
-                ProgressView("Loading dashboard...")
+                EVELoadingPane("Loading dashboard…")
             }
         }
         .task {
@@ -150,7 +150,7 @@ struct DashboardView: View {
             Button {
                 isExpanded.wrappedValue.toggle()
             } label: {
-                HStack(spacing: 8) {
+                HStack(spacing: EVESpacing.md) {
                     Image(systemName: icon)
                         .foregroundStyle(color)
                         .font(.callout)
@@ -164,7 +164,7 @@ struct DashboardView: View {
                         .font(.caption.bold())
                         .foregroundStyle(.tertiary)
                 }
-                .padding(.horizontal, 12)
+                .padding(.horizontal, EVESpacing.lg)
                 .padding(.vertical, 10)
                 .background(color.opacity(0.07), in: RoundedRectangle(cornerRadius: EVERadius.lg))
                 .overlay(RoundedRectangle(cornerRadius: EVERadius.lg).strokeBorder(color.opacity(0.15), lineWidth: 1))
@@ -179,7 +179,7 @@ struct DashboardView: View {
                             .eveContextMenu(contact.entity)
                     }
                 }
-                .padding(.top, 12)
+                .padding(.top, EVESpacing.lg)
             }
         }
         .padding(.horizontal)

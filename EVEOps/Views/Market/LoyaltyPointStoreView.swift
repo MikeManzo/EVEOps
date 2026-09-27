@@ -100,7 +100,7 @@ struct LoyaltyPointStoreView: View {
     private var corpList: some View {
         VStack(spacing: 0) {
             HStack {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                     Text("Holdings")
                         .font(.subheadline.bold())
                     if !lpData.isEmpty {
@@ -116,21 +116,15 @@ struct LoyaltyPointStoreView: View {
                 }
                 Spacer()
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, EVESpacing.lg)
             .padding(.top, 10)
-            .padding(.bottom, 8)
+            .padding(.bottom, EVESpacing.md)
             .background(EVESurface.bar)
 
             Divider()
 
             if isLoadingLP {
-                VStack(spacing: 10) {
-                    ProgressView()
-                    Text("Loading LP…")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                EVELoadingPane("Loading LP…")
             } else if lpData.isEmpty {
                 EVEEmptyState("No Loyalty Points", systemImage: "medal", message: "Earn LP by running missions for NPC corporations.")
             } else {
@@ -160,13 +154,7 @@ struct LoyaltyPointStoreView: View {
         if selectedCorpId == nil {
             EVEEmptyState("Select a Corporation", systemImage: "storefront.fill", message: "Choose a corporation on the left to browse their LP store offers.")
         } else if isLoadingOffers {
-            VStack(spacing: 14) {
-                ProgressView()
-                Text("Loading LP store offers…")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            LoadingSkeleton(rows: 10)
         } else if let err = offersError {
             VStack(spacing: 14) {
                 Image(systemName: "exclamationmark.triangle")
@@ -216,6 +204,7 @@ struct LoyaltyPointStoreView: View {
                                     Task { await setWaypoint(locationId: locationId) }
                                 }
                             )
+                            .eveContextMenu(.item(typeID: offer.offer.typeId, name: offer.typeName))
                             Divider()
                                 .padding(.leading, 64)
                                 .opacity(0.5)
@@ -230,22 +219,7 @@ struct LoyaltyPointStoreView: View {
     private var offerToolbar: some View {
         HStack(spacing: 10) {
             // Search field
-            HStack(spacing: 6) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
-                    .font(.subheadline)
-                TextField("Search offers…", text: $searchText).eveFindTarget()
-                    .textFieldStyle(.plain)
-                if !searchText.isEmpty {
-                    Button { searchText = "" } label: {
-                        Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
-                    }
-                    .accessibilityLabel("Clear")
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(8)
-            .eveCard(cornerRadius: EVERadius.md)
+            EVESearchField("Search offers…", text: $searchText)
             .frame(maxWidth: 260)
 
             // Result count
@@ -260,7 +234,7 @@ struct LoyaltyPointStoreView: View {
 
             // Waypoint feedback toast
             if let msg = waypointMessage {
-                HStack(spacing: 4) {
+                HStack(spacing: EVESpacing.xs) {
                     Image(systemName: waypointIsSuccess
                           ? "checkmark.circle.fill"
                           : "exclamationmark.triangle.fill")
@@ -275,7 +249,7 @@ struct LoyaltyPointStoreView: View {
 
             // LP / EverMarks balance badge for selected corp
             if let corp = selectedCorp {
-                HStack(spacing: 4) {
+                HStack(spacing: EVESpacing.xs) {
                     Image(systemName: lpCurrencyIcon(isEverMarks: isEverMarks))
                         .foregroundStyle(lpCurrencyColor(isEverMarks: isEverMarks))
                         .font(.caption)
@@ -284,7 +258,7 @@ struct LoyaltyPointStoreView: View {
                         .foregroundStyle(.primary)
                 }
                 .padding(.horizontal, 10)
-                .padding(.vertical, 6)
+                .padding(.vertical, EVESpacing.sm)
                 .background(lpCurrencyColor(isEverMarks: isEverMarks).opacity(0.12), in: Capsule())
                 .overlay(Capsule().strokeBorder(lpCurrencyColor(isEverMarks: isEverMarks).opacity(0.3), lineWidth: 1))
             }
@@ -349,12 +323,12 @@ struct LoyaltyPointStoreView: View {
                     }
                 }
                 .frame(width: 110, alignment: .trailing)
-                .padding(.trailing, 16)
+                .padding(.trailing, EVESpacing.xl)
             }
         }
         .font(.caption.bold())
         .foregroundStyle(.secondary)
-        .padding(.vertical, 6)
+        .padding(.vertical, EVESpacing.sm)
         .background(Color(NSColor.separatorColor).opacity(0.12))
     }
 

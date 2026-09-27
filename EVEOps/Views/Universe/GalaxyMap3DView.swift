@@ -88,34 +88,34 @@ struct GalaxyMap3DView: View {
         if let s = model.selectedSystem {
             selectionPanel(s)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                .padding(12)
+                .padding(EVESpacing.lg)
         }
 
         // Camera controls.
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: EVESpacing.sm) {
             controlBar
             Text("Drag to orbit · scroll to zoom · ⌥-drag to pan · click a constellation to dive in")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
-                .padding(.leading, 4)
+                .padding(.leading, EVESpacing.xs)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .padding(12)
+        .padding(EVESpacing.lg)
 
         // Current-location HUD.
         if let name = model.currentSystem?.name {
             locationHUD(name: name, security: model.currentSystem?.security ?? 0)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
-                .padding(12)
+                .padding(EVESpacing.lg)
         }
 
         legend
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-            .padding(12)
+            .padding(EVESpacing.lg)
     }
 
     private var controlBar: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: EVESpacing.sm) {
             Button {
                 model.frameGalaxy()
             } label: {
@@ -164,7 +164,7 @@ struct GalaxyMap3DView: View {
             .controlSize(.small)
             .onChange(of: showGates) { _, on in model.setGatesVisible(on) }
         }
-        .padding(6)
+        .padding(EVESpacing.sm)
         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
     }
 
@@ -175,17 +175,17 @@ struct GalaxyMap3DView: View {
                 .font(.caption2.monospacedDigit())
                 .foregroundStyle(Color(nsColor: GalaxyPalette.security(h.security)))
         }
-        .padding(.horizontal, 6).padding(.vertical, 3)
+        .padding(.horizontal, EVESpacing.sm).padding(.vertical, 3)
         .glassEffect(.regular, in: Capsule())
         .overlay(Capsule().stroke(.white.opacity(0.15), lineWidth: 0.5))
     }
 
     private func selectionPanel(_ s: TopoSystem) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
             HStack {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                     Text(s.name).font(.caption.bold())
-                    HStack(spacing: 4) {
+                    HStack(spacing: EVESpacing.xs) {
                         Circle().fill(Color(nsColor: model.regionColor(s.regionID)))
                             .frame(width: 6, height: 6)
                         Text(selDetail?.region ?? "…").font(.caption2).foregroundStyle(.secondary)
@@ -204,13 +204,9 @@ struct GalaxyMap3DView: View {
                     .font(.caption2).foregroundStyle(.blue)
             }
 
-            HStack(spacing: 6) {
+            HStack(spacing: EVESpacing.sm) {
                 Text("Security").font(.caption2).foregroundStyle(.secondary)
-                Text(securityText(s.security))
-                    .font(.caption2.bold().monospacedDigit())
-                    .foregroundStyle(Color(nsColor: GalaxyPalette.security(s.security)))
-                    .padding(.horizontal, 4).padding(.vertical, 1)
-                    .background(Color(nsColor: GalaxyPalette.security(s.security)).opacity(0.15), in: Capsule())
+                EVEChip(Text(securityText(s.security)), tint: Color(nsColor: GalaxyPalette.security(s.security)), size: .small, monospacedDigits: true)
             }
 
             Label(selDetail?.constellation ?? "…", systemImage: "point.3.filled.connected.trianglepath.dotted")
@@ -247,20 +243,20 @@ struct GalaxyMap3DView: View {
             }
             .buttonStyle(.plain).foregroundStyle(.orange)
         }
-        .padding(12)
+        .padding(EVESpacing.lg)
         .frame(width: 232)
         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.lg))
     }
 
     private func locationHUD(name: String, security: Double) -> some View {
-        HStack(spacing: 6) {
+        HStack(spacing: EVESpacing.sm) {
             Image(systemName: "location.fill").font(.caption2).foregroundStyle(.blue)
             Text(name).font(.caption.bold())
             Text(securityText(security))
                 .font(.caption2.bold().monospacedDigit())
                 .foregroundStyle(Color(nsColor: GalaxyPalette.security(security)))
         }
-        .padding(8)
+        .padding(EVESpacing.md)
         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
     }
 
@@ -283,7 +279,7 @@ struct GalaxyMap3DView: View {
         }
         return Group {
             if !items.isEmpty {
-                HStack(spacing: 8) {
+                HStack(spacing: EVESpacing.md) {
                     ForEach(items, id: \.0) { label, color in
                         HStack(spacing: 3) {
                             Circle().fill(Color(nsColor: color)).frame(width: 6, height: 6)
@@ -291,14 +287,14 @@ struct GalaxyMap3DView: View {
                         }
                     }
                 }
-                .padding(.horizontal, 8).padding(.vertical, 6)
+                .padding(.horizontal, EVESpacing.md).padding(.vertical, EVESpacing.sm)
                 .glassEffect(.regular, in: Capsule())
             }
         }
     }
 
     private var loadingOverlay: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: EVESpacing.lg) {
             ProgressView()
             Text("Downloading star-map data…").font(.subheadline)
             Text("First run only — cached on disk afterwards.")
@@ -307,7 +303,7 @@ struct GalaxyMap3DView: View {
     }
 
     private var failedOverlay: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: EVESpacing.lg) {
             Image(systemName: "exclamationmark.triangle").font(.title2).foregroundStyle(.orange)
             Text("Couldn't load the star-map data.").font(.subheadline)
             Text("Check your connection and try again.")

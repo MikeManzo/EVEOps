@@ -28,6 +28,15 @@ struct CharacterClonesView: View {
     @AppStorage("aiInsightsEnabled") private var aiInsightsEnabled = false
     @AppStorage("aiInsightClones") private var aiInsightClones = true
 
+    /// The inspector's implant: a strip pick wins over the list selection; closing the
+    /// inspector clears both.
+    private var shownImplant: Binding<ResolvedImplant?> {
+        Binding(
+            get: { stripImplant ?? selectedImplant },
+            set: { if $0 == nil { stripImplant = nil; selectedImplant = nil } }
+        )
+    }
+
     var body: some View {
         LoadingStateView(isLoading: isLoading, error: error, isEmpty: clonesResponse == nil, emptyMessage: "No Clone Data", emptySystemImage: "person.2.crop.square.stack") {
             HStack(spacing: 0) {
@@ -53,13 +62,10 @@ struct CharacterClonesView: View {
                 }
                 .eveKeyboardSelection(activeImplants, selection: selectedImplant) { selectedImplant = $0 }
                 .frame(maxWidth: .infinity)
-
-                if let implant = stripImplant ?? selectedImplant {
-                    Divider()
-                    ImplantDetailView(implant: implant)
-                        .frame(width: 320)
-                }
             }
+        }
+        .eveInspector(item: shownImplant, width: 320) { implant in
+            ImplantDetailView(implant: implant)
         }
         .onChange(of: selectedImplant) { _, newValue in
             // A row click in the List takes over the detail pane from the strip.
@@ -170,7 +176,7 @@ struct CharacterClonesView: View {
                 }
             }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, EVESpacing.xxs)
     }
 
     /// Hi-res render of the station/structure the clone is parked in.
@@ -190,7 +196,7 @@ struct CharacterClonesView: View {
             }
         }
         .frame(width: 44, height: 44)
-        .background(Color(white: 0.12))
+        .background(EVEFill.iconWell)
         .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
         .overlay(RoundedRectangle(cornerRadius: EVERadius.sm).strokeBorder(.separator, lineWidth: 0.5))
     }
@@ -215,7 +221,7 @@ struct CharacterClonesView: View {
                         }
                     }
                     .frame(width: 20, height: 20)
-                    .background(Color(white: 0.12))
+                    .background(EVEFill.iconWell)
                     .clipShape(RoundedRectangle(cornerRadius: 3))
                 }
                 .buttonStyle(.plain)
@@ -375,7 +381,7 @@ struct CloneAIInsightCard: View {
                 headerRow
 
                 if isGenerating {
-                    HStack(spacing: 6) {
+                    HStack(spacing: EVESpacing.sm) {
                         ProgressView().controlSize(.mini)
                         Text("Analyzing implants\u{2026}")
                             .font(.caption2)
@@ -395,7 +401,7 @@ struct CloneAIInsightCard: View {
                     .controlSize(.mini)
                 }
             }
-            .padding(12)
+            .padding(EVESpacing.lg)
             .frame(maxWidth: .infinity, alignment: .leading)
             .eveCard(cornerRadius: EVERadius.lg)
             .overlay(RoundedRectangle(cornerRadius: EVERadius.lg).strokeBorder(.purple.opacity(0.25)))
@@ -438,7 +444,7 @@ struct CloneAIInsightCard: View {
         Divider()
 
         // Recommendation
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: EVESpacing.xs) {
             Label("Recommendation", systemImage: "arrow.up.circle.fill")
                 .font(.caption2.bold())
                 .foregroundStyle(.blue)
@@ -451,7 +457,7 @@ struct CloneAIInsightCard: View {
         let skillsText = ins.skillsNeeded.trimmingCharacters(in: .whitespaces)
         if !skillsText.isEmpty, !skillsText.localizedCaseInsensitiveContains("none") {
             Divider()
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: EVESpacing.xs) {
                 Label("Training Required", systemImage: "book.fill")
                     .font(.caption2.bold())
                     .foregroundStyle(.orange)

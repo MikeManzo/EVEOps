@@ -22,8 +22,8 @@ struct SourceFilterPill: View {
             Label(source.title, systemImage: source.icon)
                 .font(.eveCaptionMedium)
                 .foregroundStyle(isOn ? source.color : .secondary)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
+                .padding(.horizontal, EVESpacing.md)
+                .padding(.vertical, EVESpacing.xs)
                 .background(isOn ? source.color.opacity(0.15) : Color.clear, in: Capsule())
                 .overlay(Capsule().stroke(
                     isOn ? source.color.opacity(0.4) : Color.secondary.opacity(0.25),
@@ -69,7 +69,7 @@ struct CalendarGridView: View {
 
             Spacer()
 
-            VStack(spacing: 2) {
+            VStack(spacing: EVESpacing.xxs) {
                 Text(displayedMonth, format: .dateTime.month(.wide).year())
                     .font(.eveSubsectionTitle).monospacedDigit()
                 if !isCurrentMonth {
@@ -89,7 +89,7 @@ struct CalendarGridView: View {
             }
             .buttonStyle(.plain).foregroundStyle(.secondary)
         }
-        .padding(.horizontal, 8).padding(.top, 10).padding(.bottom, 6)
+        .padding(.horizontal, EVESpacing.md).padding(.top, 10).padding(.bottom, EVESpacing.sm)
     }
 
     private var weekdayHeader: some View {
@@ -99,10 +99,10 @@ struct CalendarGridView: View {
                     .font(.eveCaptionMedium)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 6)
+                    .padding(.vertical, EVESpacing.sm)
             }
         }
-        .padding(.horizontal, 8)
+        .padding(.horizontal, EVESpacing.md)
     }
 
     private var dayGrid: some View {
@@ -118,7 +118,7 @@ struct CalendarGridView: View {
                 .onTapGesture { handleDayTap(date) }
             }
         }
-        .padding(.horizontal, 8).padding(.bottom, 10).padding(.top, 4)
+        .padding(.horizontal, EVESpacing.md).padding(.bottom, 10).padding(.top, EVESpacing.xs)
         .id(displayedMonth)
         .transition(.opacity)
         .animation(.easeInOut(duration: 0.15), value: displayedMonth)
@@ -237,7 +237,7 @@ struct CalendarItemRow: View {
                 .font(.body)
                 .frame(width: 20)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 HStack(spacing: 5) {
                     Text(item.title)
                         .font(.subheadline)

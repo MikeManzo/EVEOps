@@ -14,8 +14,8 @@ extension LocationOverviewView {
     // MARK:  Cargo Value
 
     func cargoValueColumn(characterID: Int) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
+            HStack(spacing: EVESpacing.sm) {
                 Image(systemName: "shippingbox.fill")
                     .foregroundStyle(.yellow)
                 Text("Cargo Value")
@@ -55,7 +55,7 @@ extension LocationOverviewView {
 
     var cargoValueInfoPopover: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
+            HStack(spacing: EVESpacing.md) {
                 Image(systemName: "shippingbox.fill")
                     .font(.title3)
                     .foregroundStyle(.yellow)
@@ -65,7 +65,7 @@ extension LocationOverviewView {
 
             Divider()
 
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: EVESpacing.md) {
                 cargoInfoBullet("Scope", "Only items in the current ship's Cargo Hold — fitted modules, drone bay, ore hold, and other bays aren't included.")
                 cargoInfoBullet("Pricing source", "Jita (The Forge) market aggregates via Fuzzwork, cached for 10 minutes.")
                 cargoInfoBullet("Sell Value", "Lowest active sell order × quantity, summed across items — roughly what it'd cost to replace the cargo.")
@@ -86,7 +86,7 @@ extension LocationOverviewView {
     }
 
     func cargoInfoBullet(_ title: String, _ body: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: EVESpacing.xxs) {
             Text(title)
                 .font(.caption.bold())
             Text(body)
@@ -99,7 +99,7 @@ extension LocationOverviewView {
     @ViewBuilder
     func cargoValueColumnContent(characterID: Int) -> some View {
         if cargoLoading.contains(characterID) && cargoValues[characterID] == nil {
-            HStack(spacing: 6) {
+            HStack(spacing: EVESpacing.sm) {
                 ProgressView().controlSize(.small)
                 Text("Pricing…")
                     .font(.caption)
@@ -112,7 +112,7 @@ extension LocationOverviewView {
                 .lineLimit(3)
         } else if let summary = cargoValues[characterID] {
             if summary.dataUnavailable {
-                HStack(alignment: .top, spacing: 4) {
+                HStack(alignment: .top, spacing: EVESpacing.xs) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .font(.caption2)
                         .foregroundStyle(.orange)
@@ -126,10 +126,10 @@ extension LocationOverviewView {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: EVESpacing.sm) {
                     cargoStat(label: "Sell Value", value: EVEFormatters.formatISKShort(summary.totalSellValue), color: .green)
                     cargoStat(label: "Buy Value", value: EVEFormatters.formatISKShort(summary.totalBuyValue), color: .orange)
-                    HStack(spacing: 4) {
+                    HStack(spacing: EVESpacing.xs) {
                         Text("\(summary.items.count) item\(summary.items.count == 1 ? "" : "s")")
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
@@ -149,7 +149,7 @@ extension LocationOverviewView {
     }
 
     func cargoStat(label: String, value: String, color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: EVESpacing.xxs) {
             Text(label)
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
@@ -173,7 +173,7 @@ extension LocationOverviewView {
     }
 
     func starStat(label: String, value: String) -> some View {
-        VStack(alignment: .center, spacing: 2) {
+        VStack(alignment: .center, spacing: EVESpacing.xxs) {
             Text(label)
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
@@ -236,8 +236,8 @@ extension LocationOverviewView {
 
     @ViewBuilder
     func starColumn(_ info: CharacterLocationInfo) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
+            HStack(spacing: EVESpacing.sm) {
                 Image(systemName: "sun.max.fill")
                     .foregroundStyle(starColor(info.starSpectralClass))
                 Text("Star")
@@ -245,7 +245,7 @@ extension LocationOverviewView {
             }
 
             if info.starName != nil {
-                HStack(spacing: 12) {
+                HStack(spacing: EVESpacing.lg) {
                     ZStack {
                         Circle()
                             .fill(starColor(info.starSpectralClass).opacity(0.2))
@@ -255,19 +255,14 @@ extension LocationOverviewView {
                             .frame(width: 24, height: 24)
                     }
 
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: EVESpacing.xs) {
                         if let name = info.starName {
                             Text(name)
                                 .font(.body.bold())
                         }
                         if let spectral = info.starSpectralClass {
-                            HStack(spacing: 6) {
-                                Text("Class \(spectral)")
-                                    .font(.caption.bold())
-                                    .foregroundStyle(starColor(spectral))
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
-                                    .background(starColor(spectral).opacity(0.15), in: Capsule())
+                            HStack(spacing: EVESpacing.sm) {
+                                EVEChip(Text("Class \(spectral)"), tint: starColor(spectral), size: .regular)
                                 Text(spectralDescription(spectral))
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
@@ -308,7 +303,7 @@ extension LocationOverviewView {
 
     @ViewBuilder
     func systemCompositionView(_ info: CharacterLocationInfo) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: EVESpacing.sm) {
             HStack(spacing: 14) {
                 starStat(label: "Planets", value: "\(info.planetCount)")
                 if info.moonCount > 0 {
@@ -333,7 +328,7 @@ extension LocationOverviewView {
                                 .font(.caption2)
                                 .foregroundStyle(.tertiary)
                         }
-                        .padding(.horizontal, 6)
+                        .padding(.horizontal, EVESpacing.sm)
                         .padding(.vertical, 1)
                         .background(.secondary.opacity(0.10), in: Capsule())
                     }
@@ -349,7 +344,7 @@ extension LocationOverviewView {
         let fw = fwSystems[info.systemId]
         let incursion = incursions.first { $0.infestedSolarSystems.contains(info.systemId) }
         if fw != nil || incursion != nil {
-            HStack(spacing: 8) {
+            HStack(spacing: EVESpacing.md) {
                 if let fw {
                     situationalPill(
                         icon: "shield.lefthalf.filled",
@@ -404,7 +399,7 @@ extension LocationOverviewView {
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
         }
-        .padding(.horizontal, 8)
+        .padding(.horizontal, EVESpacing.md)
         .padding(.vertical, 3)
         .background(color.opacity(0.12), in: Capsule())
     }
@@ -412,8 +407,8 @@ extension LocationOverviewView {
     // MARK:  Connected Systems Table
 
     func connectedSystemsTable(_ info: CharacterLocationInfo) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
+        VStack(alignment: .leading, spacing: EVESpacing.sm) {
+            HStack(spacing: EVESpacing.sm) {
                 Image(systemName: "arrow.triangle.branch")
                     .foregroundStyle(.purple)
                 Text("Connected Systems")
@@ -456,7 +451,7 @@ extension LocationOverviewView {
         let act = systemActivity[sys.systemId]
         let playerKills = (act?.shipKills ?? 0) + (act?.podKills ?? 0)
         GridRow {
-            HStack(spacing: 6) {
+            HStack(spacing: EVESpacing.sm) {
                 Circle()
                     .fill(eveSecurityColor(sys.securityStatus))
                     .frame(width: 9, height: 9)

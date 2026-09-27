@@ -32,7 +32,7 @@ struct SummaryGridView: View {
     private var nextJobFinish: Date?   { summaries.compactMap(\.nextJobFinish).min() }
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: EVESpacing.md) {
             MetricTileView(
                 icon: "creditcard.fill", color: .green,
                 value: EVEFormatters.formatISKShort(totalWealth),
@@ -168,7 +168,7 @@ struct MetricTileView: View {
                     .font(.eveSubsectionTitle)
                     .foregroundStyle(color)
             }
-            .padding(.top, 12)
+            .padding(.top, EVESpacing.lg)
 
             Spacer(minLength: 6)
 
@@ -178,7 +178,7 @@ struct MetricTileView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.65)
                 .frame(maxWidth: .infinity)
-                .padding(.horizontal, 6)
+                .padding(.horizontal, EVESpacing.sm)
                 .eveNumeric(value)
 
             Spacer(minLength: 2)
@@ -188,7 +188,7 @@ struct MetricTileView: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity)
-                .padding(.horizontal, 4)
+                .padding(.horizontal, EVESpacing.xs)
 
             if let sub = subLabel {
                 Text(sub)
@@ -196,8 +196,8 @@ struct MetricTileView: View {
                     .foregroundStyle(.secondary.opacity(0.65))
                     .lineLimit(1)
                     .frame(maxWidth: .infinity)
-                    .padding(.horizontal, 4)
-                    .padding(.bottom, 2)
+                    .padding(.horizontal, EVESpacing.xs)
+                    .padding(.bottom, EVESpacing.xxs)
             }
 
             Spacer(minLength: 8)

@@ -100,11 +100,11 @@ struct GeneralTab: View {
 
             Section("Software Update") {
                 if !appUpdater.notificationsAuthorized {
-                    HStack(spacing: 12) {
+                    HStack(spacing: EVESpacing.lg) {
                         Image(systemName: "bell.slash.fill")
                             .font(.title3)
                             .foregroundStyle(.orange)
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                             Text("Notifications Disabled")
                                 .font(.subheadline.weight(.semibold))
                             Text("EVEOps can't alert you when an automatic background check finds an update — only manual checks will show one.")
@@ -119,15 +119,15 @@ struct GeneralTab: View {
                         }
                         .buttonStyle(.link)
                     }
-                    .padding(.vertical, 4)
+                    .padding(.vertical, EVESpacing.xs)
                 }
 
                 if appUpdater.updateAvailable {
-                    HStack(spacing: 12) {
+                    HStack(spacing: EVESpacing.lg) {
                         Image(systemName: "arrow.down.circle.fill")
                             .font(.title3)
                             .foregroundStyle(.green)
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                             Text("Update Available")
                                 .font(.subheadline.weight(.semibold))
                             Text("A new version of EVEOps is ready to install.")
@@ -141,7 +141,7 @@ struct GeneralTab: View {
                         .buttonStyle(.borderedProminent)
                         .tint(.green)
                     }
-                    .padding(.vertical, 4)
+                    .padding(.vertical, EVESpacing.xs)
                 }
 
                 Button {
@@ -234,13 +234,13 @@ struct AppearanceTab: View {
     }
 
     private var factionSwatchPicker: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: EVESpacing.xl) {
             ForEach(FactionTheme.allCases) { faction in
                 let isSelected = themeManager.faction == faction
                 Button {
                     themeManager.faction = faction
                 } label: {
-                    VStack(spacing: 6) {
+                    VStack(spacing: EVESpacing.sm) {
                         FactionCrestSwatch(faction: faction, size: Self.crestSwatchSize)
                             .overlay(Circle().strokeBorder(faction.palette.accent, lineWidth: 2))
                             .overlay {
@@ -268,7 +268,7 @@ struct AppearanceTab: View {
             }
             Spacer()
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, EVESpacing.xxs)
     }
 
     private static let crestSwatchSize: CGFloat = 30 * 1.25

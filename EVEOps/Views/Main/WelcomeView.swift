@@ -97,7 +97,7 @@ struct WelcomeView: View {
             }
             .shadow(color: .black.opacity(0.5), radius: 10)
 
-            VStack(spacing: 8) {
+            VStack(spacing: EVESpacing.md) {
                 Text("EVEOps")
                     .font(.system(size: 42, weight: .bold, design: .default))
                     .foregroundStyle(.white)
@@ -113,11 +113,11 @@ struct WelcomeView: View {
                 .multilineTextAlignment(.center)
                 .lineSpacing(4)
 
-            VStack(spacing: 12) {
+            VStack(spacing: EVESpacing.lg) {
                 Button {
                     Task { await accountManager.addAccount() }
                 } label: {
-                    HStack(spacing: 8) {
+                    HStack(spacing: EVESpacing.md) {
                         Image(systemName: "person.badge.plus")
                         Text("Log In with EVE Online")
                     }
@@ -131,7 +131,7 @@ struct WelcomeView: View {
                 .disabled(accountManager.isLoading)
 
                 if accountManager.isLoading {
-                    ProgressView("Authenticating with EVE SSO...")
+                    ProgressView("Authenticating with EVE SSO…")
                         .foregroundStyle(.white.opacity(0.7))
                 }
 
@@ -144,20 +144,20 @@ struct WelcomeView: View {
             }
 
             // Faction logos row
-            HStack(spacing: 24) {
+            HStack(spacing: EVESpacing.xxl) {
                 factionLogo(corporationId: 1000125, name: "CONCORD")
                 factionLogo(corporationId: 1000066, name: "Caldari")
                 factionLogo(corporationId: 1000126, name: "Gallente")
                 factionLogo(corporationId: 1000084, name: "Amarr")
                 factionLogo(corporationId: 1000127, name: "Minmatar")
             }
-            .padding(.top, 8)
+            .padding(.top, EVESpacing.md)
         }
         .padding(40)
     }
 
     private func factionLogo(corporationId: Int, name: String) -> some View {
-        VStack(spacing: 4) {
+        VStack(spacing: EVESpacing.xs) {
             CachedAsyncImage(url: URL(string: "https://images.evetech.net/corporations/\(corporationId)/logo?size=64")) { phase in
                 switch phase {
                 case .success(let image):

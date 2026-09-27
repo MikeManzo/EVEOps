@@ -100,7 +100,7 @@ struct CharacterCardView: View {
             // #1: Content pulled up to overlap the banner bottom
             VStack(alignment: .leading, spacing: 10) {
                 // Identity row — portrait floats above the banner boundary
-                HStack(spacing: 12) {
+                HStack(spacing: EVESpacing.lg) {
                     CachedAsyncImage(url: EVEImageURL.characterPortrait(account.characterID, size: 512)) { image in
                         image.resizable()
                     } placeholder: {
@@ -126,7 +126,7 @@ struct CharacterCardView: View {
                     .shadow(color: .black.opacity(0.55), radius: 7, y: 3)
 
                     VStack(alignment: .leading, spacing: 3) {
-                        HStack(spacing: 6) {
+                        HStack(spacing: EVESpacing.sm) {
                             Text(account.characterName)
                                 .font(.headline)
                             Spacer()
@@ -146,8 +146,8 @@ struct CharacterCardView: View {
                 Divider()
 
                 // Location and ship
-                HStack(spacing: 16) {
-                    HStack(spacing: 6) {
+                HStack(spacing: EVESpacing.xl) {
+                    HStack(spacing: EVESpacing.sm) {
                         Image(systemName: "mappin.circle.fill")
                             .foregroundStyle(palette.location)
                         VStack(alignment: .leading, spacing: 1) {
@@ -167,7 +167,7 @@ struct CharacterCardView: View {
 
                     Spacer()
 
-                    HStack(spacing: 6) {
+                    HStack(spacing: EVESpacing.sm) {
                         if let ship = summary?.ship {
                             CachedAsyncImage(url: EVEImageURL.typeIcon(ship.shipTypeId, size: 256)) { phase in
                                 if let image = phase.image {
@@ -344,7 +344,7 @@ struct CharacterCardView: View {
 
                 // Load error banner — shown when the ESI fetch failed for this character
                 if let err = summary?.loadError {
-                    HStack(spacing: 6) {
+                    HStack(spacing: EVESpacing.sm) {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .font(.caption2)
                             .foregroundStyle(palette.critical)
@@ -353,14 +353,14 @@ struct CharacterCardView: View {
                             .foregroundStyle(palette.critical.opacity(0.85))
                             .lineLimit(2)
                     }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 6)
+                    .padding(.horizontal, EVESpacing.md)
+                    .padding(.vertical, EVESpacing.sm)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(palette.critical.opacity(0.08), in: RoundedRectangle(cornerRadius: EVERadius.sm))
                     .overlay(RoundedRectangle(cornerRadius: EVERadius.sm).strokeBorder(palette.critical.opacity(0.2), lineWidth: 1))
                 }
             }
-            .padding(12)
+            .padding(EVESpacing.lg)
             .padding(.top, -38)  // #1: portrait overlaps banner by ~28pt
         }
         .eveCard()
@@ -430,7 +430,7 @@ struct CharacterCardView: View {
     @ViewBuilder
     private var serverPilotsIndicator: some View {
         if let players = apiStatus.playersOnline {
-            HStack(spacing: 4) {
+            HStack(spacing: EVESpacing.xs) {
                 Circle()
                     .fill(apiStatus.vipMode ? Color.yellow : Color.green)
                     .frame(width: 8, height: 8)
@@ -494,8 +494,8 @@ struct CharacterCardView: View {
         } else {
             Label {
                 VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 4) {
-                        Text(queueSkillName ?? "Training...")
+                    HStack(spacing: EVESpacing.xs) {
+                        Text(queueSkillName ?? "Training…")
                             .font(.caption)
                             .lineLimit(1)
                         if let finish = queueSkillFinish {
@@ -508,7 +508,7 @@ struct CharacterCardView: View {
 
                     EVEProgressBar(value: trainingProgress, tint: palette.knowledge)
 
-                    HStack(spacing: 4) {
+                    HStack(spacing: EVESpacing.xs) {
                         Text("\(queueCount) skill\(queueCount == 1 ? "" : "s") in queue")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
@@ -556,7 +556,7 @@ struct CharacterCardView: View {
             }
 
             if !apiStatus.isReachable {
-                VStack(spacing: 6) {
+                VStack(spacing: EVESpacing.sm) {
                     Image(systemName: "wifi.exclamationmark")
                         .font(.title2)
                         .foregroundStyle(.orange)
@@ -564,7 +564,7 @@ struct CharacterCardView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal, 16)
+                        .padding(.horizontal, EVESpacing.xl)
                 }
             } else if summary == nil {
                 ProgressView().controlSize(.small)

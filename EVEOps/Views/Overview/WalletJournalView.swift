@@ -156,7 +156,7 @@ struct WalletJournalView: View {
         return HStack(spacing: EVESpacing.lg) {
             ForEach(Array(top), id: \.key) { refType, entries in
                 let total = entries.compactMap(\.amount).reduce(0, +)
-                VStack(spacing: 2) {
+                VStack(spacing: EVESpacing.xxs) {
                     Label(JournalEntryPresentation.title(refType), systemImage: JournalEntryPresentation.symbol(refType))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
@@ -179,21 +179,7 @@ struct WalletJournalView: View {
 
     private var filterBar: some View {
         HStack(spacing: EVESpacing.md) {
-            HStack(spacing: EVESpacing.sm) {
-                Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                TextField("Search journal", text: $searchText).eveFindTarget()
-                    .textFieldStyle(.plain)
-                if !searchText.isEmpty {
-                    Button { searchText = "" } label: {
-                        Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Clear")
-                }
-            }
-            .padding(.horizontal, EVESpacing.md)
-            .padding(.vertical, 5)
-            .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: EVERadius.sm))
+            EVESearchField("Search journal", text: $searchText)
             .frame(maxWidth: 280)
 
             EVEMenuPicker("Category", selection: $categoryFilter, options:
@@ -271,7 +257,7 @@ struct WalletJournalView: View {
                 .background(category.color.opacity(0.14), in: RoundedRectangle(cornerRadius: EVERadius.md))
                 .accessibilityHidden(true)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 Text(JournalEntryPresentation.title(entry.refType))
                     .font(.subheadline.weight(.medium))
                 if !description.isEmpty {
@@ -294,7 +280,7 @@ struct WalletJournalView: View {
 
             Spacer(minLength: EVESpacing.md)
 
-            VStack(alignment: .trailing, spacing: 2) {
+            VStack(alignment: .trailing, spacing: EVESpacing.xxs) {
                 Text((amount > 0 && !EVEFormatters.isZeroISK(amount) ? "+" : "") + EVEFormatters.formatISKShort(amount))
                     .font(.subheadline.weight(.semibold).monospacedDigit())
                     .foregroundStyle(eveAmountStyle(amount, amount >= 0 ? .green : .red))
@@ -307,7 +293,7 @@ struct WalletJournalView: View {
         }
         .padding(.horizontal, EVESpacing.lg)
         .eveRowPadding()
-        .padding(.vertical, 2)
+        .padding(.vertical, EVESpacing.xxs)
         .contentShape(Rectangle())
         .contextMenu {
             Button("Copy Entry", systemImage: "doc.on.doc") {

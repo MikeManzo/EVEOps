@@ -67,10 +67,7 @@ struct CorporationMembersView: View {
         VStack(spacing: 0) {
             // Search and count
             HStack {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
-                TextField("Search members...", text: $searchText).eveFindTarget()
-                    .textFieldStyle(.plain)
+                EVESearchField("Search members…", text: $searchText)
                 Spacer()
                 Text("\(members.count)")
                     .font(.caption.bold())
@@ -87,7 +84,7 @@ struct CorporationMembersView: View {
             }
             .eveSegmentedPicker()
             .padding(.horizontal, 10)
-            .padding(.vertical, 6)
+            .padding(.vertical, EVESpacing.sm)
 
             // No `selection:` binding — see `eveSelectableListRow` (theme-colored selection).
             List(sortedFilteredMembers, id: \.characterId) { member in
@@ -180,12 +177,7 @@ struct CorporationMembersView: View {
     @ViewBuilder
     private var detailPane: some View {
         if isLoadingDetail {
-            VStack(spacing: 12) {
-                ProgressView()
-                Text("Loading member details...")
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            EVELoadingPane("Loading member details…")
         } else if let detail = selectedDetail {
             ScrollView {
                 VStack(spacing: 20) {
@@ -207,7 +199,7 @@ struct CorporationMembersView: View {
     }
 
     private func memberHeader(_ detail: MemberDetail) -> some View {
-        HStack(spacing: 16) {
+        HStack(spacing: EVESpacing.xl) {
             CachedAsyncImage(url: EVEImageURL.characterPortrait(detail.characterId, size: 512)) { image in
                 image.resizable()
             } placeholder: {
@@ -218,7 +210,7 @@ struct CorporationMembersView: View {
             .evePortraitRing(cornerRadius: EVERadius.xl, accent: palette.accent)
             .shadow(color: .black.opacity(0.35), radius: 8, y: 3)
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: EVESpacing.sm) {
                 Text(detail.name)
                     .font(.title2.bold())
 
@@ -228,7 +220,7 @@ struct CorporationMembersView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                HStack(spacing: 12) {
+                HStack(spacing: EVESpacing.lg) {
                     if let info = detail.charInfo {
                         Label(info.gender.capitalized, systemImage: "person.fill")
                             .font(.caption)
@@ -257,7 +249,7 @@ struct CorporationMembersView: View {
 
             // Ship render if available
             if let track = detail.tracking, let shipType = track.shipTypeId {
-                VStack(spacing: 4) {
+                VStack(spacing: EVESpacing.xs) {
                     CachedAsyncImage(url: EVEImageURL.typeRender(shipType, size: 256)) { phase in
                         if case .success(let image) = phase {
                             image.resizable().aspectRatio(contentMode: .fit)
@@ -286,7 +278,7 @@ struct CorporationMembersView: View {
     }
 
     private func memberInfoCards(_ detail: MemberDetail) -> some View {
-        HStack(spacing: 16) {
+        HStack(spacing: EVESpacing.xl) {
             // Character info
             VStack(alignment: .leading, spacing: 10) {
                 EVESectionTitle("Character Info")
@@ -346,7 +338,7 @@ struct CorporationMembersView: View {
     }
 
     private func rolesSection(_ detail: MemberDetail) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
             Text("Roles").font(.headline)
             if detail.roles.isEmpty {
                 Text("No roles assigned")
@@ -357,8 +349,8 @@ struct CorporationMembersView: View {
                     ForEach(detail.roles, id: \.self) { role in
                         Text(formatRole(role))
                             .font(.caption)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
+                            .padding(.horizontal, EVESpacing.md)
+                            .padding(.vertical, EVESpacing.xs)
                             .background(palette.accent.opacity(0.15), in: Capsule())
                     }
                 }
@@ -370,14 +362,14 @@ struct CorporationMembersView: View {
     }
 
     private func titlesSection(_ titles: [String]) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
             EVESectionTitle("Titles")
             FlowLayout(spacing: 6) {
                 ForEach(titles, id: \.self) { title in
                     Text(title)
                         .font(.caption)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
+                        .padding(.horizontal, EVESpacing.md)
+                        .padding(.vertical, EVESpacing.xs)
                         .background(.purple.opacity(0.15), in: Capsule())
                 }
             }
@@ -388,7 +380,7 @@ struct CorporationMembersView: View {
     }
 
     private func historySection(_ history: [ResolvedCorpHistory]) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
             EVESectionTitle("Corporation History")
             ForEach(history, id: \.recordId) { entry in
                 HStack(spacing: 10) {
@@ -400,7 +392,7 @@ struct CorporationMembersView: View {
                     .frame(width: 28, height: 28)
                     .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
 
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                         Text(entry.corporationName)
                             .font(.subheadline)
                         Text("Joined \(EVEDates.short(entry.startDate))")

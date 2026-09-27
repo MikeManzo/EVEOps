@@ -17,7 +17,7 @@ struct LocalIntelPilotDetailView: View {
     @Environment(ThemeManager.self) private var themeManager
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: EVESpacing.xl) {
             CachedAsyncImage(url: EVEImageURL.characterPortrait(pilot.characterId, size: 256)) { phase in
                 if case .success(let image) = phase {
                     image.resizable().scaledToFit()
@@ -86,7 +86,7 @@ struct LocalIntelPilotDetailView: View {
                     .keyboardShortcut(.cancelAction)
             }
         }
-        .padding(24)
+        .padding(EVESpacing.xxl)
         .frame(width: 360)
     }
 
@@ -129,7 +129,7 @@ struct LocalIntelPilotDetailView: View {
             Text(label)
                 .foregroundStyle(.secondary)
             Spacer()
-            Text(value)
+            Text(value).textSelection(.enabled)
                 .foregroundStyle(valueColor ?? .primary)
         }
         .font(.callout)

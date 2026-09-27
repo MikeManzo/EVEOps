@@ -44,7 +44,7 @@ struct AIInsightCard<Insight, Content: View>: View {
             header
 
             if isGenerating {
-                HStack(spacing: 8) {
+                HStack(spacing: EVESpacing.md) {
                     ProgressView()
                         .controlSize(.small)
                     Text(loadingMessage)
@@ -65,7 +65,7 @@ struct AIInsightCard<Insight, Content: View>: View {
                 .controlSize(.small)
             }
         }
-        .padding(12)
+        .padding(EVESpacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
         .eveCard()
         .overlay(RoundedRectangle(cornerRadius: EVERadius.xl).strokeBorder(.purple.opacity(0.2)))
@@ -126,11 +126,11 @@ struct StandardInsightBody: View {
     let suggestion: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
             Text(summary)
                 .font(.subheadline)
                 .fixedSize(horizontal: false, vertical: true)
-            HStack(alignment: .top, spacing: 6) {
+            HStack(alignment: .top, spacing: EVESpacing.sm) {
                 Image(systemName: "lightbulb.fill")
                     .font(.caption)
                     .foregroundStyle(.yellow)

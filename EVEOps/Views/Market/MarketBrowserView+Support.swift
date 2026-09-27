@@ -31,10 +31,37 @@ struct ResolvedOrder: Identifiable {
     var securityStatus: Double
     var jumps: Int?
     var id: Int { order.orderId }
-}
 
-enum OrderSortKey: Equatable {
-    case price, quantity, minVolume, location, security, jumps, range
+    // Sort keys for the order-book `Table` column comparators.
+    var price: Double { order.price }
+    var quantity: Int { order.volumeRemain }
+    var minVolume: Int { order.minVolume }
+    /// Unknown jump counts sort after every known one.
+    var jumpsSortKey: Int { jumps ?? .max }
+    /// Buy-order range from narrowest (station) to widest (region).
+    var rangeRank: Int {
+        switch order.range {
+        case "station":     return 0
+        case "solarsystem": return 1
+        case "1":           return 2
+        case "2":           return 3
+        case "3":           return 4
+        case "4":           return 5
+        case "5":           return 6
+        case "10":          return 7
+        case "20":          return 8
+        case "30":          return 9
+        case "40":          return 10
+        case "region":      return 11
+        default:            return 12
+        }
+    }
+
+    /// Tab-separated line for ⌘C on selected rows.
+    var copyText: String {
+        [EVEFormatters.formatISK(price), String(quantity), locationName, systemName]
+            .joined(separator: "\t")
+    }
 }
 
 // MARK:  SplitDivider (NSView-backed for jitter-free dragging)

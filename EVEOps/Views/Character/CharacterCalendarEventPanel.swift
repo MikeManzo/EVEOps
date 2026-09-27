@@ -31,7 +31,7 @@ struct CalendarEventDetailPanel: View {
             detailHeader
             Divider()
             if isLoading {
-                ProgressView("Loading…").frame(maxWidth: .infinity, maxHeight: .infinity)
+                EVELoadingPane("Loading…")
             } else if let detail {
                 detailBody(detail)
             } else {
@@ -56,9 +56,9 @@ struct CalendarEventDetailPanel: View {
     }
 
     private var detailHeader: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: EVESpacing.lg) {
             VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
+                HStack(spacing: EVESpacing.sm) {
                     Text(event.title ?? "Untitled Event").font(.headline)
                     if (event.importance ?? 0) > 0 {
                         Image(systemName: "exclamationmark.circle.fill")
@@ -74,10 +74,10 @@ struct CalendarEventDetailPanel: View {
             Label(responseLabel(currentResponse), systemImage: responseIcon(currentResponse))
                 .font(.caption.weight(.medium))
                 .foregroundStyle(responseColor(currentResponse))
-                .padding(.horizontal, 8).padding(.vertical, 4)
+                .padding(.horizontal, EVESpacing.md).padding(.vertical, EVESpacing.xs)
                 .background(responseColor(currentResponse).opacity(0.12), in: Capsule())
         }
-        .padding(16)
+        .padding(EVESpacing.xl)
         .background(EVESurface.bar)
     }
 
@@ -119,8 +119,8 @@ struct CalendarEventDetailPanel: View {
                 }
 
                 GroupBox {
-                    VStack(spacing: 8) {
-                        HStack(spacing: 8) {
+                    VStack(spacing: EVESpacing.md) {
+                        HStack(spacing: EVESpacing.md) {
                             RSVPButton(label: "Accept",    icon: "checkmark.circle.fill",   color: .green,
                                        isSelected: currentResponse == "accepted",  isLoading: isResponding)
                             { await respond("accepted") }
@@ -141,7 +141,7 @@ struct CalendarEventDetailPanel: View {
                         .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                 }
             }
-            .padding(16)
+            .padding(EVESpacing.xl)
         }
     }
 
@@ -198,7 +198,7 @@ struct RSVPButton: View {
                 .font(.subheadline.weight(isSelected ? .bold : .regular))
                 .foregroundStyle(isSelected ? color : .secondary)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
+                .padding(.vertical, EVESpacing.md)
                 .background(isSelected ? color.opacity(0.15) : Color.clear, in: RoundedRectangle(cornerRadius: EVERadius.md))
                 .overlay(RoundedRectangle(cornerRadius: EVERadius.md)
                     .stroke(isSelected ? color.opacity(0.4) : Color.secondary.opacity(0.2), lineWidth: 1))

@@ -14,22 +14,14 @@ extension GalaxyMarketSearchView {
     // MARK:  Header Panel
 
     var headerPanel: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Label("Galaxy Market Search", systemImage: "globe.europe.africa.fill")
-                    .font(.title3.bold())
-                Spacer()
-                Button("Done") { dismiss() }
-                    .keyboardShortcut(.escape)
-            }
-
+        VStack(alignment: .leading, spacing: EVESpacing.lg) {
             // Item search + order type + search button
             HStack(spacing: 10) {
                 if let typeId = selectedTypeId {
                     TypeImage(typeId: typeId, size: 28, cornerRadius: EVERadius.xs)
                 }
 
-                HStack(spacing: 6) {
+                HStack(spacing: EVESpacing.sm) {
                     if selectedTypeId == nil {
                         Image(systemName: "magnifyingglass")
                             .foregroundStyle(.secondary)
@@ -48,7 +40,7 @@ extension GalaxyMarketSearchView {
                         .buttonStyle(.plain)
                     }
                 }
-                .padding(8)
+                .padding(EVESpacing.md)
                 .eveCard(cornerRadius: EVERadius.md)
                 .frame(maxWidth: 320)
 
@@ -86,7 +78,7 @@ extension GalaxyMarketSearchView {
                 if hasLocation {
                     Divider().frame(height: 16)
 
-                    HStack(spacing: 6) {
+                    HStack(spacing: EVESpacing.sm) {
                         Text("Max jumps:")
                             .foregroundStyle(.secondary)
                         Stepper(value: $maxJumps, in: 0...100, step: 5) {
@@ -123,7 +115,7 @@ extension GalaxyMarketSearchView {
                     .foregroundStyle(.secondary)
                     .transition(.opacity)
                 } else if isComputingJumps {
-                    HStack(spacing: 6) {
+                    HStack(spacing: EVESpacing.sm) {
                         ProgressView().controlSize(.mini)
                         Text("Computing jump distances…")
                             .font(.caption)
@@ -135,20 +127,20 @@ extension GalaxyMarketSearchView {
             }
             .font(.subheadline)
         }
-        .padding(16)
+        .padding(EVESpacing.xl)
         .fixedSize(horizontal: false, vertical: true)
     }
 
     var orderCountSummary: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: EVESpacing.md) {
             if sellCount > 0 {
-                HStack(spacing: 4) {
+                HStack(spacing: EVESpacing.xs) {
                     Circle().fill(Color.green).frame(width: 6, height: 6)
                     Text("\(sellCount) sell")
                 }
             }
             if buyCount > 0 {
-                HStack(spacing: 4) {
+                HStack(spacing: EVESpacing.xs) {
                     Circle().fill(Color.orange).frame(width: 6, height: 6)
                     Text("\(buyCount) buy")
                 }
@@ -192,9 +184,10 @@ extension GalaxyMarketSearchView {
                     Text(result.name).font(.title3)
                     Spacer()
                 }
-                .padding(.vertical, 4)
+                .padding(.vertical, EVESpacing.xs)
             }
             .buttonStyle(.plain)
+            .eveContextMenu(.item(typeID: result.typeId, name: result.name))
         }
         .listStyle(.plain)
     }
@@ -202,7 +195,7 @@ extension GalaxyMarketSearchView {
     // MARK:  Searching Progress
 
     var searchingView: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: EVESpacing.xl) {
             if totalRegions > 0 {
                 ProgressView(value: Double(min(regionsSearched, totalRegions)), total: Double(totalRegions))
                     .progressViewStyle(.linear)
@@ -231,159 +224,93 @@ extension GalaxyMarketSearchView {
     // MARK:  Results Table
 
     var resultsTable: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 0) {
-                // Type indicator column — only shown when displaying both order types
-                if orderTypeFilter == .all {
-                    Text("Type")
-                        .frame(width: 40, alignment: .center)
+        Table(sortedOrders, selection: $selectedOrderIDs, sortOrder: $sortOrder) {
+            // Side — only when showing both order types.
+            if orderTypeFilter == .all {
+                TableColumn("Type", value: \.side) { row in
+                    EVEChip(Text(row.side), tint: row.isBuyOrder ? .orange : .green)
                 }
-                columnHeader("Price", column: .price, alignment: .trailing)
-                    .frame(width: 130)
-                columnHeader("Qty", column: .qty, alignment: .trailing)
-                    .frame(width: 60)
-                    .padding(.leading, 10)
-                columnHeader("Station / System", column: .location, alignment: .leading)
-                    .frame(maxWidth: .infinity)
-                    .padding(.leading, 10)
-                columnHeader("Region", column: .region, alignment: .leading)
-                    .frame(width: 96)
-                    .padding(.leading, 8)
-                columnHeader("Sec", column: .sec, alignment: .center)
-                    .frame(width: 36)
-                if hasLocation {
-                    columnHeader("Jumps", column: .jumps, alignment: .center)
-                        .frame(width: 60)
-                        .padding(.trailing, 4)
-                }
+                .width(52)
             }
-            .font(.subheadline.bold())
-            .foregroundStyle(.secondary)
-            .padding(.leading, 19)  // 16 base + 3 to align with data rows (which have a 3pt accent bar before their 16pt inner padding)
-            .padding(.trailing, 16)
-            .padding(.vertical, 6)
-            .background(Color(NSColor.separatorColor).opacity(0.15))
 
-            Divider()
-
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    ForEach(Array(sortedOrders.enumerated()), id: \.element.id) { index, order in
-                        orderRow(order, isEven: index % 2 == 0)
-                            .contextMenu {
-                                let destId = order.order.locationId
-                                let name = order.locationName
-                                Button {
-                                    Task { await setWaypoint(destinationId: destId, clear: true) }
-                                } label: {
-                                    Label("Set Destination: \(name)", systemImage: "location.fill")
-                                }
-                                Button {
-                                    Task { await setWaypoint(destinationId: destId, clear: false) }
-                                } label: {
-                                    Label("Add Waypoint: \(name)", systemImage: "plus.circle")
-                                }
-                            }
-                        Divider().padding(.leading, 16)
-                    }
-                }
+            TableColumn("Price", value: \.price) { row in
+                Text(EVEFormatters.formatISK(row.price))
+                    .font(.body.monospacedDigit().bold())
+                    .foregroundStyle(row.isBuyOrder ? .orange : .green)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
             }
-        }
-    }
+            .width(min: 110, ideal: 140)
 
-    func columnHeader(_ title: String, column: SortColumn, alignment: Alignment) -> some View {
-        Button { toggleSort(column) } label: {
-            HStack(spacing: 3) {
-                if alignment == .trailing { Spacer() }
-                Text(title)
-                    .lineLimit(1)
-                    .foregroundStyle(sortColumn == column ? .primary : .secondary)
-                if sortColumn == column {
-                    Image(systemName: sortAscending ? "chevron.up" : "chevron.down")
-                        .font(.eveBadge)
-                        .foregroundStyle(.secondary)
-                }
-                if alignment == .leading || alignment == .center { Spacer() }
+            TableColumn("Qty", value: \.quantity) { row in
+                Text(formatCount(row.quantity))
+                    .monospacedDigit()
+                    .frame(maxWidth: .infinity, alignment: .trailing)
             }
-        }
-        .buttonStyle(.plain)
-        .help("Sort by \(title)")
-    }
+            .width(min: 50, ideal: 70)
 
-    func orderRow(_ resolved: GalaxyOrder, isEven: Bool) -> some View {
-        let order = resolved.order
-        let sec = resolved.securityStatus
-        let accentColor: Color = resolved.isBuyOrder ? .orange : .green
-
-        return HStack(spacing: 0) {
-            Rectangle()
-                .fill(accentColor.opacity(0.75))
-                .frame(width: 3)
-
-            HStack(spacing: 0) {
-                // Type badge — only when showing both
-                if orderTypeFilter == .all {
-                    Text(resolved.isBuyOrder ? "Buy" : "Sell")
-                        .font(.eveMicroBold)
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(accentColor, in: Capsule())
-                        .frame(width: 40, alignment: .center)
-                }
-
-                Text(EVEFormatters.formatISK(order.price))
-                    .font(.subheadline.monospacedDigit().bold())
-                    .foregroundStyle(accentColor)
-                    .frame(width: 130, alignment: .trailing)
-
-                Text(formatCount(order.volumeRemain))
-                    .font(.callout.monospacedDigit())
-                    .frame(width: 60, alignment: .trailing)
-                    .padding(.leading, 10)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(resolved.locationName)
-                        .font(.callout)
+            TableColumn("Station / System", value: \.locationName) { row in
+                VStack(alignment: .leading, spacing: EVESpacing.xxs) {
+                    Text(row.locationName)
                         .lineLimit(1)
-                    HStack(spacing: 4) {
-                        Text(resolved.systemName)
-                        if resolved.isBuyOrder {
+                        .eveTruncationHelp(row.locationName)
+                    HStack(spacing: EVESpacing.xs) {
+                        Text(row.systemName)
+                        if row.isBuyOrder {
                             Text("·")
-                            Text(formatRange(order.range))
+                            Text(formatRange(row.order.range))
                         }
                     }
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.leading, 10)
-
-                Text(resolved.regionName)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .frame(width: 96, alignment: .leading)
-                    .padding(.leading, 8)
-
-                Text(String(format: "%.1f", max(0, sec)))
-                    .font(.eveMicroBold.monospacedDigit())
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(eveSecurityColor(sec), in: Capsule())
-                    .frame(width: 36, alignment: .center)
-
-                if hasLocation {
-                    jumpBadge(jumps: resolved.jumps)
-                        .frame(width: 52, alignment: .center)
-                        .padding(.trailing, 4)
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
+            .width(min: 220, ideal: 360)
+
+            TableColumn("Region", value: \.regionName) { row in
+                Text(row.regionName)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            .width(min: 80, ideal: 110)
+
+            TableColumn("Sec", value: \.securityStatus) { row in
+                EVESecurityBadge(status: row.securityStatus, compact: true)
+                    .frame(maxWidth: .infinity)
+            }
+            .width(48)
+
+            if hasLocation {
+                TableColumn("Jumps", value: \.jumpsSortKey) { row in
+                    jumpBadge(jumps: row.jumps)
+                        .frame(maxWidth: .infinity)
+                }
+                .width(64)
+            }
         }
-        .background(isEven ? Color.primary.opacity(0.03) : Color.clear)
+        .tableStyle(.inset(alternatesRowBackgrounds: true))
+        .contextMenu(forSelectionType: GalaxyOrder.ID.self) { ids in
+            if let id = ids.first, let row = sortedOrders.first(where: { $0.id == id }) {
+                let destId = row.order.locationId
+                Button("Set Destination: \(row.locationName)", systemImage: "location.fill") {
+                    Task { await setWaypoint(destinationId: destId, clear: true) }
+                }
+                Button("Add Waypoint: \(row.locationName)", systemImage: "plus.circle") {
+                    Task { await setWaypoint(destinationId: destId, clear: false) }
+                }
+                Divider()
+                Button("Copy", systemImage: "doc.on.doc") {
+                    let text = sortedOrders.filter { ids.contains($0.id) }.map(\.copyText).joined(separator: "\n")
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(text, forType: .string)
+                }
+            }
+        } primaryAction: { ids in
+            // Double-click a row: set it as the autopilot destination.
+            guard ids.count == 1, let id = ids.first,
+                  let row = sortedOrders.first(where: { $0.id == id }) else { return }
+            Task { await setWaypoint(destinationId: row.order.locationId, clear: true) }
+        }
+        .copyable(sortedOrders.filter { selectedOrderIDs.contains($0.id) }.map(\.copyText))
     }
 
     @ViewBuilder

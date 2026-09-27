@@ -54,16 +54,12 @@ struct SimLoadFittingSheet: View {
             }
             .eveSegmentedPicker()
             .padding(.horizontal)
-            .padding(.bottom, 8)
+            .padding(.bottom, EVESpacing.md)
 
             Divider()
 
             if isLoading {
-                VStack(spacing: 8) {
-                    ProgressView()
-                    Text("Loading…").font(.caption).foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                LoadingSkeleton(rows: 6, showsHeader: false)
             } else if mode == .saved {
                 savedFittingsList
             } else if mode == .current {
@@ -118,7 +114,7 @@ struct SimLoadFittingSheet: View {
                                 }
                             }
                         } header: {
-                            HStack(spacing: 6) {
+                            HStack(spacing: EVESpacing.sm) {
                                 Image(systemName: CharacterFittingsView.shipClassIcon(section.className))
                                 Text(section.className).font(.headline)
                                 Spacer()
@@ -156,7 +152,7 @@ struct SimLoadFittingSheet: View {
                                 }
                             }
                         } header: {
-                            HStack(spacing: 6) {
+                            HStack(spacing: EVESpacing.sm) {
                                 Image(systemName: CharacterFittingsView.shipClassIcon(section.className))
                                 Text(section.className).font(.headline)
                                 Spacer()
@@ -180,7 +176,7 @@ struct SimLoadFittingSheet: View {
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            HStack(spacing: 12) {
+            HStack(spacing: EVESpacing.lg) {
                 CachedAsyncImage(url: imageURL) { img in
                     img.resizable().aspectRatio(contentMode: .fill)
                 } placeholder: {
@@ -189,7 +185,7 @@ struct SimLoadFittingSheet: View {
                 .frame(width: 44, height: 44)
                 .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                     Text(title).font(.subheadline.bold())
                     Text(subtitle).font(.caption).foregroundStyle(.secondary)
                     Text(detail).font(.caption2).foregroundStyle(.tertiary)
@@ -205,7 +201,7 @@ struct SimLoadFittingSheet: View {
     // MARK: From File
 
     private var eftImportView: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: EVESpacing.xl) {
             Spacer()
             Image(systemName: "doc.badge.arrow.up")
                 .font(.system(size: 44))
@@ -216,10 +212,10 @@ struct SimLoadFittingSheet: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, 24)
+                .padding(.horizontal, EVESpacing.xxl)
 
             if isResolvingEFT {
-                HStack(spacing: 8) {
+                HStack(spacing: EVESpacing.md) {
                     ProgressView().controlSize(.small)
                     Text("Resolving modules…").font(.caption).foregroundStyle(.secondary)
                 }
@@ -228,7 +224,7 @@ struct SimLoadFittingSheet: View {
                     .font(.caption)
                     .foregroundStyle(.red)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, EVESpacing.xxl)
             }
 
             HStack(spacing: 10) {
@@ -323,7 +319,7 @@ struct SimLoadFittingSheet: View {
     private func eftConfirmView(_ entry: SavedFittingEntry) -> some View {
         VStack(spacing: 0) {
             // Ship summary
-            HStack(spacing: 12) {
+            HStack(spacing: EVESpacing.lg) {
                 CachedAsyncImage(url: EVEImageURL.typeRender(entry.shipTypeId, size: 128)) { img in
                     img.resizable().aspectRatio(contentMode: .fill)
                 } placeholder: {
@@ -617,7 +613,7 @@ struct EFTImportSaveSheet: View {
 
             Form {
                 Section("Fitting") {
-                    HStack(spacing: 12) {
+                    HStack(spacing: EVESpacing.lg) {
                         CachedAsyncImage(url: EVEImageURL.typeRender(entry.shipTypeId, size: 128)) { img in
                             img.resizable().aspectRatio(contentMode: .fill)
                         } placeholder: {
@@ -626,12 +622,12 @@ struct EFTImportSaveSheet: View {
                         .frame(width: 44, height: 44)
                         .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
 
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                             Text(entry.shipTypeName).font(.subheadline.bold())
                             Text("\(entry.items.count) modules").font(.caption).foregroundStyle(.secondary)
                         }
                     }
-                    .padding(.vertical, 2)
+                    .padding(.vertical, EVESpacing.xxs)
                 }
 
                 Section("Name") {

@@ -15,7 +15,7 @@ extension FinancesView {
     // MARK:  Summary Cards
 
     var summaryCards: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: EVESpacing.xl) {
             summaryCard("Wallet Balance", value: totalWealth, color: .blue)
             summaryCard("Sell Orders", value: totalSellOrderValue, color: .green)
             summaryCard("Buy Orders (Escrow)", value: totalEscrow, color: .orange)
@@ -31,7 +31,7 @@ extension FinancesView {
         let characterID = selectedFinance?.characterID
         let history = characterID.map { NetWorthHistory.shared.points(characterID: $0, days: 30) } ?? []
         let weekChange = characterID.flatMap { NetWorthHistory.shared.change(characterID: $0, overDays: 7) }
-        return VStack(spacing: 6) {
+        return VStack(spacing: EVESpacing.sm) {
             Text("Net Worth")
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -61,7 +61,7 @@ extension FinancesView {
     }
 
     func summaryCard(_ title: String, value: Double, color: Color, isPrimary: Bool = false) -> some View {
-        let card = VStack(spacing: 6) {
+        let card = VStack(spacing: EVESpacing.sm) {
             Text(title)
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -99,7 +99,7 @@ extension FinancesView {
     }
 
     var todaySummary: some View {
-        HStack(alignment: .top, spacing: 16) {
+        HStack(alignment: .top, spacing: EVESpacing.xl) {
             todayColumn
                 .frame(maxWidth: .infinity, alignment: .topLeading)
             last7DaysColumn
@@ -118,7 +118,7 @@ extension FinancesView {
         let avgNet = sevenDay.isEmpty
             ? 0
             : sevenDay.reduce(0.0) { $0 + ($1.made - $1.spent) } / Double(sevenDay.count)
-        return VStack(alignment: .leading, spacing: 6) {
+        return VStack(alignment: .leading, spacing: EVESpacing.sm) {
             HStack(alignment: .firstTextBaseline) {
                 Text("Today")
                     .font(.subheadline.bold())
@@ -179,7 +179,7 @@ extension FinancesView {
         let opening = current - net
         let up = net >= 0
         let fraction = opening > 1 ? min(abs(net) / opening, 1) : (net == 0 ? 0 : 1)
-        return VStack(alignment: .leading, spacing: 4) {
+        return VStack(alignment: .leading, spacing: EVESpacing.xs) {
             HStack {
                 Text("Wallet Today")
                     .font(.caption)
@@ -225,7 +225,7 @@ extension FinancesView {
                 .font(.caption)
                 .foregroundStyle(.secondary)
             ForEach(todayCategoryRows) { row in
-                HStack(spacing: 6) {
+                HStack(spacing: EVESpacing.sm) {
                     Text(row.category.label)
                         .font(.caption2)
                         .lineLimit(1)
@@ -285,7 +285,7 @@ extension FinancesView {
 
     private func activityLine(label: String, entry: ESIWalletJournalEntry, color: Color) -> some View {
         let amount = entry.amount ?? 0
-        return HStack(spacing: 6) {
+        return HStack(spacing: EVESpacing.sm) {
             VStack(alignment: .leading, spacing: 0) {
                 Text(label)
                     .font(.eveMicro)
@@ -304,7 +304,7 @@ extension FinancesView {
     // MARK:  Last 7 days column
 
     private var last7DaysColumn: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: EVESpacing.sm) {
             HStack(alignment: .firstTextBaseline) {
                 Text("Last 7 Days")
                     .font(.subheadline.bold())
@@ -328,7 +328,7 @@ extension FinancesView {
                     daySummaryRow(day, scale: scale)
                 }
             }
-            .padding(.vertical, 4)
+            .padding(.vertical, EVESpacing.xs)
             .padding(.horizontal, 10)
             .eveCard(cornerRadius: EVERadius.md)
         }
@@ -358,7 +358,7 @@ extension FinancesView {
                 .frame(width: 64, alignment: .trailing)
         }
         .font(.caption.monospacedDigit())
-        .padding(.vertical, 6)
+        .padding(.vertical, EVESpacing.sm)
     }
 
     // MARK:  Wealth Distribution
@@ -373,7 +373,7 @@ extension FinancesView {
     }
 
     var wealthDistribution: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: EVESpacing.sm) {
             Text("Wealth Distribution")
                 .font(.subheadline.bold())
 
@@ -430,9 +430,9 @@ extension FinancesView {
                         }
 
                         if isLoadingAssets && totalAssetValue == 0 {
-                            HStack(spacing: 4) {
+                            HStack(spacing: EVESpacing.xs) {
                                 ProgressView().controlSize(.mini)
-                                Text("Valuing assets...")
+                                Text("Valuing assets…")
                                     .font(.eveMicro)
                                     .foregroundStyle(.tertiary)
                             }
@@ -496,7 +496,7 @@ extension FinancesView {
             .frame(width: 64, height: 64)
             .clipShape(RoundedRectangle(cornerRadius: EVERadius.md))
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: EVESpacing.xs) {
                 Text(finance.characterName)
                     .font(.title3.bold())
                 Text(EVEFormatters.formatISK(finance.balance))
@@ -512,7 +512,7 @@ extension FinancesView {
                 balanceSparkline(finance.journal)
             }
 
-            VStack(alignment: .trailing, spacing: 6) {
+            VStack(alignment: .trailing, spacing: EVESpacing.sm) {
                 Label("\(finance.marketOrders.filter { !($0.isBuyOrder ?? false) }.count) sell", systemImage: "arrow.up.circle.fill")
                     .font(.caption)
                     .foregroundStyle(.green)

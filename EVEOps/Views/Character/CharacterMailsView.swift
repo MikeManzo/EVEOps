@@ -43,8 +43,8 @@ struct CharacterMailsView: View {
                     .buttonStyle(.borderless)
                     .disabled(selectedMail == nil)
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
+                .padding(.horizontal, EVESpacing.lg)
+                .padding(.vertical, EVESpacing.sm)
                 .background(EVESurface.bar)
                 Divider()
                 HSplitView {
@@ -96,7 +96,7 @@ struct CharacterMailsView: View {
                             }
                         }
 
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                         HStack(alignment: .firstTextBaseline) {
                             Text(mail.from.flatMap { senderNames[$0] } ?? mail.from.map { "#\($0)" } ?? "Unknown Sender")
                                 .font(.subheadline.weight(unread ? .semibold : .regular))
@@ -125,6 +125,17 @@ struct CharacterMailsView: View {
                         mailPendingDelete = mail
                     } label: {
                         Label("Delete", systemImage: "trash")
+                    }
+                }
+                .contextMenu {
+                    // Sender items only for pilots — the header doesn't say whether a
+                    // low ID is a corp, alliance or mailing list.
+                    if let from = mail.from, from >= 90_000_000, let name = senderNames[from] {
+                        EVEEntityMenuItems(entity: .character(id: from, name: name))
+                        Divider()
+                    }
+                    Button("Delete Mail…", systemImage: "trash", role: .destructive) {
+                        mailPendingDelete = mail
                     }
                 }
             }
@@ -166,7 +177,7 @@ struct CharacterMailsView: View {
     private var mailDetail: some View {
         if let mail = selectedMail {
             ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: EVESpacing.lg) {
                     Text(mail.subject ?? "(No Subject)")
                         .font(.title2.bold())
 
@@ -320,11 +331,11 @@ struct ComposeMailSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
                     // Recipients
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: EVESpacing.sm) {
                         Text("To").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                         if !recipients.isEmpty {
                             RecipientPillGrid(recipients) { recipient in
-                                HStack(spacing: 4) {
+                                HStack(spacing: EVESpacing.xs) {
                                     Text(recipient.name).font(.caption)
                                     Button {
                                         recipients.removeAll { $0.id == recipient.id }
@@ -334,8 +345,8 @@ struct ComposeMailSheet: View {
                                     .accessibilityLabel("Remove")
                                     .buttonStyle(.plain)
                                 }
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
+                                .padding(.horizontal, EVESpacing.md)
+                                .padding(.vertical, EVESpacing.xs)
                                 .background(.blue.opacity(0.15), in: Capsule())
                             }
                         }
@@ -347,7 +358,7 @@ struct ComposeMailSheet: View {
                                 .disabled(toInput.trimmingCharacters(in: .whitespaces).isEmpty || isSearching)
                         }
                         if isSearching {
-                            HStack(spacing: 6) {
+                            HStack(spacing: EVESpacing.sm) {
                                 ProgressView().controlSize(.small)
                                 Text("Searching…").font(.caption).foregroundStyle(.secondary)
                             }
@@ -360,7 +371,7 @@ struct ComposeMailSheet: View {
                     Divider()
 
                     // Subject
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: EVESpacing.sm) {
                         Text("Subject").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                         TextField("Subject", text: $subject)
                             .textFieldStyle(.roundedBorder)
@@ -369,7 +380,7 @@ struct ComposeMailSheet: View {
                     Divider()
 
                     // Body
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: EVESpacing.sm) {
                         Text("Message").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                         TextEditor(text: $messageBody)
                             .font(.body)
@@ -381,13 +392,13 @@ struct ComposeMailSheet: View {
                     }
 
                     if let sendError {
-                        HStack(spacing: 6) {
+                        HStack(spacing: EVESpacing.sm) {
                             Image(systemName: "exclamationmark.triangle.fill")
                             Text(sendError)
                         }
                         .foregroundStyle(.red)
                         .font(.caption)
-                        .padding(8)
+                        .padding(EVESpacing.md)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(.red.opacity(0.08), in: RoundedRectangle(cornerRadius: EVERadius.md))
                     }
@@ -406,7 +417,7 @@ struct ComposeMailSheet: View {
                 .buttonStyle(.borderedProminent)
                 .disabled(!canSend)
                 .overlay(alignment: .leading) {
-                    if isSending { ProgressView().controlSize(.small).padding(.leading, 8) }
+                    if isSending { ProgressView().controlSize(.small).padding(.leading, EVESpacing.md) }
                 }
             }
             .padding()

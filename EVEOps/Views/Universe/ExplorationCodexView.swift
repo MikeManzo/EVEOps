@@ -92,8 +92,8 @@ struct ExplorationCodexView: View {
                     ForEach(ExplorationSiteKind.allCases) { Text($0.rawValue).tag($0) }
                 }
                 .eveSegmentedPicker()
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
+                .padding(.horizontal, EVESpacing.xl)
+                .padding(.vertical, EVESpacing.md)
                 Divider()
 
                 List(rows) { site in
@@ -136,7 +136,7 @@ struct ExplorationCodexView: View {
     // MARK: Header
 
     private var header: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: EVESpacing.lg) {
             Picker("Content", selection: $content) {
                 ForEach(CodexContent.allCases) { Text($0.rawValue).tag($0) }
             }
@@ -146,8 +146,8 @@ struct ExplorationCodexView: View {
 
             Spacer()
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
+        .padding(.horizontal, EVESpacing.xl)
+        .padding(.vertical, EVESpacing.md)
         .background(EVESurface.bar)
     }
 
@@ -270,7 +270,7 @@ private struct ExplorationSiteRow: View {
     private var iconTint: Color { site.isGhostSite ? .orange : .teal }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: EVESpacing.lg) {
             RoundedRectangle(cornerRadius: EVERadius.md)
                 .fill(iconTint.opacity(0.15))
                 .frame(width: 44, height: 44)
@@ -280,8 +280,8 @@ private struct ExplorationSiteRow: View {
                         .foregroundStyle(iconTint)
                 )
 
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: EVESpacing.xs) {
+                HStack(spacing: EVESpacing.md) {
                     Text(site.name)
                         .font(.subheadline.bold())
                         .lineLimit(1)
@@ -292,7 +292,7 @@ private struct ExplorationSiteRow: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
-                HStack(spacing: 6) {
+                HStack(spacing: EVESpacing.sm) {
                     Label(site.hackingDifficulty.label, systemImage: "lock.shield")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
@@ -306,7 +306,7 @@ private struct ExplorationSiteRow: View {
 
             Spacer(minLength: 0)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, EVESpacing.xs)
         .contentShape(Rectangle())
     }
 }
@@ -324,11 +324,7 @@ private struct ReadinessBadge: View {
     }
 
     var body: some View {
-        Text(verdict.label)
-            .font(.eveMicroBold)
-            .foregroundStyle(color)
-            .padding(.horizontal, 6).padding(.vertical, 2)
-            .background(color.opacity(0.15), in: Capsule())
+        EVEChip(Text(verdict.label), tint: color, size: .small)
     }
 }
 
@@ -354,7 +350,7 @@ private struct ExplorationSiteDetailPane: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 8) {
+            HStack(spacing: EVESpacing.md) {
                 Text(site.name).font(.headline).lineLimit(2)
                 Spacer()
                 Button { onClose() } label: {
@@ -368,7 +364,7 @@ private struct ExplorationSiteDetailPane: View {
             Divider()
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: EVESpacing.xl) {
                     metaBox
 
                     Text(site.summary)
@@ -384,10 +380,10 @@ private struct ExplorationSiteDetailPane: View {
                     }
 
                     section("HACKING") {
-                        HStack(spacing: 6) {
+                        HStack(spacing: EVESpacing.sm) {
                             Text(site.hackingDifficulty.label)
                                 .font(.caption.bold())
-                                .padding(.horizontal, 6).padding(.vertical, 2)
+                                .padding(.horizontal, EVESpacing.sm).padding(.vertical, EVESpacing.xxs)
                                 .background(.quaternary, in: Capsule())
                             Text(site.hackingDifficulty.blurb)
                                 .font(.caption).foregroundStyle(.secondary)
@@ -431,7 +427,7 @@ private struct ExplorationSiteDetailPane: View {
                         .foregroundStyle(.tertiary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                .padding(16)
+                .padding(EVESpacing.xl)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
@@ -440,22 +436,22 @@ private struct ExplorationSiteDetailPane: View {
     }
 
     private var metaBox: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: EVESpacing.sm) {
             metaRow("Space", site.space)
             metaRow("Recommended", site.recommendedShips)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 Text("DEFENSES").font(.caption2.bold()).foregroundStyle(.tertiary)
                 Text(site.rats).font(.caption).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(12)
+        .padding(EVESpacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: EVERadius.lg))
     }
 
     private var linksRow: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: EVESpacing.md) {
             let wiki = site.isGhostSite
                 ? "https://wiki.eveuniversity.org/Ghost_Sites"
                 : "https://wiki.eveuniversity.org/Sleeper_Cache"
@@ -470,23 +466,23 @@ private struct ExplorationSiteDetailPane: View {
 
     @ViewBuilder
     private func section<Content: View>(_ title: String, @ViewBuilder _ content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
             Text(title).font(.caption2.bold()).foregroundStyle(.tertiary)
             content()
         }
     }
 
     private func bullet(_ text: String) -> some View {
-        HStack(alignment: .top, spacing: 6) {
+        HStack(alignment: .top, spacing: EVESpacing.sm) {
             Text("•").foregroundStyle(.secondary)
             Text(text).font(.caption).fixedSize(horizontal: false, vertical: true)
         }
     }
 
     private func metaRow(_ label: String, _ value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: EVESpacing.xxs) {
             Text(label.uppercased()).font(.caption2.bold()).foregroundStyle(.tertiary)
-            Text(value).font(.caption).fixedSize(horizontal: false, vertical: true)
+            Text(value).textSelection(.enabled).font(.caption).fixedSize(horizontal: false, vertical: true)
         }
     }
 }
@@ -506,13 +502,9 @@ private struct HazardRow: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: 6) {
-                Text(hazard.severity.label)
-                    .font(.eveMicroBold)
-                    .foregroundStyle(color)
-                    .padding(.horizontal, 6).padding(.vertical, 1)
-                    .background(color.opacity(0.15), in: Capsule())
+        VStack(alignment: .leading, spacing: EVESpacing.xxs) {
+            HStack(spacing: EVESpacing.sm) {
+                EVEChip(Text(hazard.severity.label), tint: color, size: .small)
                 Text(hazard.name).font(.caption.bold())
             }
             Text(hazard.detail).font(.caption2).foregroundStyle(.secondary)
@@ -537,8 +529,8 @@ private struct ReadinessPanel: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
+        VStack(alignment: .leading, spacing: EVESpacing.sm) {
+            HStack(spacing: EVESpacing.sm) {
                 Image(systemName: readiness.verdict == .ready ? "checkmark.seal.fill" : "exclamationmark.triangle.fill")
                     .foregroundStyle(color)
                 Text(readiness.verdict.label).font(.caption.bold()).foregroundStyle(color)
@@ -550,7 +542,7 @@ private struct ReadinessPanel: View {
                 }
             }
             ForEach(readiness.notes, id: \.self) { note in
-                HStack(alignment: .top, spacing: 6) {
+                HStack(alignment: .top, spacing: EVESpacing.sm) {
                     Text("›").foregroundStyle(.tertiary)
                     Text(note).font(.caption2).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -584,24 +576,20 @@ private struct BlastCheck: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
             if let blast = site.blastDamage {
                 Text("A failed hack detonates the container for ≈ \(blast.formatted()) omni damage.")
                     .font(.caption).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            HStack(spacing: 8) {
+            HStack(spacing: EVESpacing.md) {
                 Text("Your worst-case EHP")
                     .font(.caption)
                 TextField("EHP", value: $shipEHP, format: .number)
                     .textFieldStyle(.roundedBorder)
                     .frame(width: 90)
                     .multilineTextAlignment(.trailing)
-                Text(survivability.label)
-                    .font(.caption.bold())
-                    .foregroundStyle(color)
-                    .padding(.horizontal, 6).padding(.vertical, 2)
-                    .background(color.opacity(0.15), in: Capsule())
+                EVEChip(Text(survivability.label), tint: color, size: .regular)
             }
             Text("Use the minimum-resist EHP from the Fitting Simulator's Defense panel. 'Survivable' means at least double the blast — headroom for rat fire while you warp.")
                 .font(.caption2).foregroundStyle(.tertiary)
@@ -641,7 +629,7 @@ private struct GhostSiteTimer: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
             HStack(spacing: 10) {
                 if let r = remaining {
                     Text(r <= 0 ? "RESPONSE FLEET INBOUND" : timeString(r))
@@ -746,7 +734,7 @@ private struct LootRow: View {
             .frame(width: 32, height: 32)
             .clipShape(RoundedRectangle(cornerRadius: EVERadius.sm))
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 HStack(spacing: 5) {
                     Text(entry.name).font(.caption.bold())
                     if entry.isJackpot {
@@ -759,7 +747,7 @@ private struct LootRow: View {
 
             Spacer(minLength: 0)
 
-            VStack(alignment: .trailing, spacing: 2) {
+            VStack(alignment: .trailing, spacing: EVESpacing.xxs) {
                 Text(priceText)
                     .font(.caption2.monospacedDigit())
                     .foregroundStyle(stat?.current == nil ? .tertiary : .primary)
@@ -780,7 +768,7 @@ private struct LootFooter: View {
     let signal: SiteMarketSignal
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: EVESpacing.xs) {
             if signal.consumableFloor > 0 {
                 HStack {
                     Text("Indicative consumable value").font(.caption2).foregroundStyle(.secondary)
@@ -792,7 +780,7 @@ private struct LootFooter: View {
                 .font(.caption2).foregroundStyle(.tertiary)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(.top, 2)
+        .padding(.top, EVESpacing.xxs)
     }
 }
 
@@ -813,13 +801,13 @@ private struct DeltaBadge: View {
     }
 
     var body: some View {
-        HStack(spacing: 2) {
+        HStack(spacing: EVESpacing.xxs) {
             Image(systemName: arrow).font(.eveNanoBold)
             Text("\(abs(deltaPct), format: .number.precision(.fractionLength(0)))%")
                 .font(.eveMicroBold.monospacedDigit())
         }
         .foregroundStyle(color)
-        .padding(.horizontal, 4).padding(.vertical, 1)
+        .padding(.horizontal, EVESpacing.xs).padding(.vertical, 1)
         .background(color.opacity(0.15), in: Capsule())
         .help("Current Jita average vs its 30-day median")
     }
@@ -840,7 +828,7 @@ private struct MarketSignalView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 6) {
+            HStack(spacing: EVESpacing.sm) {
                 Image(systemName: "chart.line.uptrend.xyaxis").foregroundStyle(color)
                 Text(signal.aggregateSignal.label).font(.caption.bold()).foregroundStyle(color)
                 Spacer()
@@ -855,14 +843,14 @@ private struct MarketSignalView: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             if !pricedStats.isEmpty {
-                VStack(spacing: 4) {
+                VStack(spacing: EVESpacing.xs) {
                     ForEach(pricedStats) { LootSignalRow(stat: $0) }
                 }
             }
 
             if let typeID = signal.featuredJackpotTypeID {
                 MarketMiniHistory(typeId: typeID, regionLabel: "Jita")
-                    .padding(.top, 2)
+                    .padding(.top, EVESpacing.xxs)
             }
         }
         .padding(10)
@@ -890,7 +878,7 @@ private struct LootSignalRow: View {
     let stat: LootMarketStat
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: EVESpacing.md) {
             Text(stat.name)
                 .font(.caption2)
                 .lineLimit(1)
@@ -939,7 +927,7 @@ private struct RunLedgerView: View {
 
                 VStack(spacing: 3) {
                     ForEach(runs.prefix(6)) { run in
-                        HStack(spacing: 8) {
+                        HStack(spacing: EVESpacing.md) {
                             Text(run.date, format: .dateTime.month(.abbreviated).day().hour().minute())
                                 .font(.caption2).foregroundStyle(.secondary)
                             Spacer()
@@ -1010,14 +998,14 @@ private struct HaulLogSheet: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: EVESpacing.lg) {
             Text("Log a \(site.name) run")
                 .font(.headline)
 
             ScrollView {
-                VStack(spacing: 6) {
+                VStack(spacing: EVESpacing.sm) {
                     ForEach(site.loot) { entry in
-                        HStack(spacing: 8) {
+                        HStack(spacing: EVESpacing.md) {
                             VStack(alignment: .leading, spacing: 1) {
                                 Text(entry.name).font(.caption)
                                 if let p = unitPrices[entry.name] {
@@ -1042,11 +1030,11 @@ private struct HaulLogSheet: View {
                         }
                     }
                 }
-                .padding(.vertical, 2)
+                .padding(.vertical, EVESpacing.xxs)
             }
             .frame(maxHeight: 240)
 
-            HStack(spacing: 8) {
+            HStack(spacing: EVESpacing.md) {
                 Text("Duration").font(.caption).foregroundStyle(.secondary)
                 TextField("minutes", text: $minutesText)
                     .textFieldStyle(.roundedBorder)
@@ -1068,7 +1056,7 @@ private struct HaulLogSheet: View {
                 .disabled(total <= 0)
             }
         }
-        .padding(16)
+        .padding(EVESpacing.xl)
         .frame(width: 380)
     }
 }
@@ -1096,13 +1084,13 @@ private struct ScoutingView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
             Text("These are scannable signatures in \(site.space.lowercased()). Pick a quiet pocket — the Galaxy Map's Kills mode and the Route Planner's ‘route around recent kills’ toggle shade systems by ship and pod kills in the last hour.")
                 .font(.caption2).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
             if checked, let systemName {
-                HStack(spacing: 6) {
+                HStack(spacing: EVESpacing.sm) {
                     Circle().fill(color).frame(width: 8, height: 8)
                     Text("You are in \(systemName)").font(.caption)
                     Spacer()
@@ -1117,7 +1105,7 @@ private struct ScoutingView: View {
                     .font(.caption2).foregroundStyle(.tertiary)
             }
 
-            HStack(spacing: 8) {
+            HStack(spacing: EVESpacing.md) {
                 Button(action: onShowQuietSystems) {
                     Label("Find Quiet Systems", systemImage: "sparkle.magnifyingglass").font(.caption)
                 }

@@ -131,29 +131,11 @@ struct ItemSkillTreeView: View {
     // MARK:  Search Bar
 
     private var itemSearchBar: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
-
-            TextField("Search for a ship or module…", text: $searchText).eveFindTarget()
-                .textFieldStyle(.plain)
-                .onChange(of: searchText) { _, new in triggerSearch(new) }
-                .onSubmit {
-                    if let first = searchResults.first { selectItem(first.id, name: first.name) }
-                }
-
-            if isSearching {
-                ProgressView().controlSize(.mini)
-            } else if !searchText.isEmpty {
-                Button { clearItem() } label: {
-                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
-                }
-                .accessibilityLabel("Clear")
-                .buttonStyle(.plain)
+        EVESearchField("Search for a ship or module…", text: $searchText, isBusy: isSearching, onClear: { clearItem() })
+            .onChange(of: searchText) { _, new in triggerSearch(new) }
+            .onSubmit {
+                if let first = searchResults.first { selectItem(first.id, name: first.name) }
             }
-        }
-        .padding(8)
-        .eveCard(cornerRadius: EVERadius.md)
     }
 
     // MARK:  Tree Content
@@ -161,18 +143,12 @@ struct ItemSkillTreeView: View {
     @ViewBuilder
     private var treeContent: some View {
         if isSearching {
-            ProgressView("Searching…")
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            LoadingSkeleton(rows: 8, showsHeader: false)
         } else if !searchResults.isEmpty && selectedTypeId == nil {
             // Show search results as a proper inline list — no floating overlay.
             searchResultsList
         } else if isBuilding {
-            VStack(spacing: 10) {
-                ProgressView()
-                Text("Resolving skill tree…")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            EVELoadingPane("Resolving skill tree…")
         } else if let msg = treeMessage {
             EVEEmptyState("Something Went Wrong", systemImage: "exclamationmark.triangle", message: Text(msg), tint: .orange)
         } else if nodes.isEmpty {
@@ -190,7 +166,7 @@ struct ItemSkillTreeView: View {
             LazyVStack(spacing: 0) {
                 ForEach(searchResults, id: \.id) { result in
                     Button { selectItem(result.id, name: result.name) } label: {
-                        HStack(spacing: 12) {
+                        HStack(spacing: EVESpacing.lg) {
                             CachedAsyncImage(url: EVEImageURL.typeIcon(result.id, size: 64)) { phase in
                                 if let img = phase.image {
                                     img.resizable()
@@ -209,7 +185,7 @@ struct ItemSkillTreeView: View {
                                 .font(.subheadline)
                                 .foregroundStyle(.tertiary)
                         }
-                        .padding(.horizontal, 12)
+                        .padding(.horizontal, EVESpacing.lg)
                         .padding(.vertical, 10)
                         .contentShape(Rectangle())
                     }
@@ -324,18 +300,18 @@ struct ItemSkillTreeView: View {
                         .minimumScaleFactor(0.85)
 
                     if !isRoot {
-                        HStack(spacing: 2) {
+                        HStack(spacing: EVESpacing.xxs) {
                             ForEach(1...5, id: \.self) { lvl in
                                 RoundedRectangle(cornerRadius: EVERadius.hairline)
                                     .fill(lvl <= node.trainedLevel
                                           ? s.color
-                                          : Color.white.opacity(0.10))
+                                          : EVEFill.track)
                                     .frame(width: 11, height: 7)
                             }
                             Text("→ \(skillRoman(node.requiredLevel))")
                                 .font(.eveMicroBold)
                                 .foregroundStyle(s.color)
-                                .padding(.leading, 2)
+                                .padding(.leading, EVESpacing.xxs)
                         }
                     } else {
                         Text("Required skills")
@@ -362,12 +338,12 @@ struct ItemSkillTreeView: View {
                     }
                     .accessibilityLabel("Add \(node.name) \(skillRoman(node.requiredLevel)) to skill plan")
                     .buttonStyle(.plain)
-                    .padding(.trailing, 4)
+                    .padding(.trailing, EVESpacing.xs)
                     .help("Add \(node.name) \(skillRoman(node.requiredLevel)) to skill plan")
                 }
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
+            .padding(.horizontal, EVESpacing.md)
+            .padding(.vertical, EVESpacing.sm)
         }
         .background(.regularMaterial)
         .clipShape(RoundedRectangle(cornerRadius: EVERadius.lg))
@@ -428,7 +404,7 @@ struct ItemSkillTreeView: View {
         }
         if !unmet.isEmpty {
             Divider()
-            HStack(spacing: 6) {
+            HStack(spacing: EVESpacing.sm) {
                 Image(systemName: "exclamationmark.circle.fill")
                     .foregroundStyle(.orange).font(.caption)
                 Text("\(unmet.count) skill\(unmet.count == 1 ? "" : "s") need training")
@@ -449,8 +425,8 @@ struct ItemSkillTreeView: View {
                     .controlSize(.small)
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            .padding(.horizontal, EVESpacing.lg)
+            .padding(.vertical, EVESpacing.md)
         }
     }
 
@@ -811,7 +787,7 @@ private struct NodeDetailView: View {
             if isLoading {
                 ProgressView()
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
+                    .padding(.vertical, EVESpacing.xl)
             } else if let desc = esiType?.description, !desc.isEmpty {
                 Divider()
                 Text(desc)
@@ -841,7 +817,7 @@ private struct NodeDetailView: View {
                         .controlSize(.regular)
                         Spacer()
                     }
-                    .padding(.vertical, 8)
+                    .padding(.vertical, EVESpacing.md)
                 }
             }
         }
@@ -851,7 +827,7 @@ private struct NodeDetailView: View {
     }
 
     private var headerSection: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: EVESpacing.lg) {
             if isRoot {
                 TypeImageView(typeId: typeId, size: 56, cornerRadius: EVERadius.lg)
             } else {
@@ -869,7 +845,7 @@ private struct NodeDetailView: View {
                 }
             }
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: EVESpacing.sm) {
                 Text(node.name)
                     .font(.title3)
                     .lineLimit(2)
@@ -879,7 +855,7 @@ private struct NodeDetailView: View {
                     HStack(spacing: 3) {
                         ForEach(1...5, id: \.self) { lvl in
                             RoundedRectangle(cornerRadius: EVERadius.hairline)
-                                .fill(lvl <= node.trainedLevel ? s.color : Color.white.opacity(0.15))
+                                .fill(lvl <= node.trainedLevel ? s.color : EVEFill.track)
                                 .frame(width: 16, height: 10)
                         }
                         Text("→ \(skillRoman(node.requiredLevel)) req.")

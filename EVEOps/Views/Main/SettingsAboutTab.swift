@@ -74,7 +74,7 @@ struct AboutTab: View {
                             WindowService.shared.showMain()
                             AppRouter.shared.showWhatsNew()
                         }
-                        .padding(.top, 4)
+                        .padding(.top, EVESpacing.xs)
                     }
                     .padding(.top, 28)
 
@@ -92,14 +92,14 @@ struct AboutTab: View {
                         .padding(.top, 18)
 
                     // Feature chips
-                    HStack(spacing: 8) {
+                    HStack(spacing: EVESpacing.md) {
                         chip("antenna.radiowaves.left.and.right", "ESI API")
                         chip("lock.shield", "PKCE Auth")
                         chip("internaldrive", "Smart Cache")
                         chip("bell", "Notifications")
                         chip("apple.intelligence", "Intelligence")
                     }
-                    .padding(.top, 16)
+                    .padding(.top, EVESpacing.xl)
 
                     // Developer links
                     HStack(spacing: 10) {
@@ -124,7 +124,7 @@ struct AboutTab: View {
                             }
                         }
                     }
-                    .padding(.top, 12)
+                    .padding(.top, EVESpacing.lg)
 
                     // EVE Buddy standing card
                     eveBuddyCard
@@ -132,43 +132,43 @@ struct AboutTab: View {
 
                     // zKillboard attribution card
                     zkillboardCard
-                        .padding(.top, 8)
+                        .padding(.top, EVESpacing.md)
 
                     // Fuzzwork attribution card
                     fuzzworkCard
-                        .padding(.top, 8)
+                        .padding(.top, EVESpacing.md)
                     
                     // EVEShipFit dogmaEngine card
                     dogmaEngineCard
-                        .padding(.top, 8)
+                        .padding(.top, EVESpacing.md)
 
                     // Janice attribution card
                     janiceCard
-                        .padding(.top, 8)
+                        .padding(.top, EVESpacing.md)
                     
                     // Claude Code attribution card
                     claudeCodeCard
-                        .padding(.top, 8)
+                        .padding(.top, EVESpacing.md)
                     
                     // EVE Scout
                     scoutCard
-                        .padding(.top, 8)
+                        .padding(.top, EVESpacing.md)
 
                     // EVERef attribution card
                     eveRefCard
-                        .padding(.top, 8)
+                        .padding(.top, EVESpacing.md)
 
                     // GetEveModels attribution card
                     getEveModelsCard
-                        .padding(.top, 8)
+                        .padding(.top, EVESpacing.md)
 
                     // Sparkle attribution card
                     sparkleCard
-                        .padding(.top, 8)
+                        .padding(.top, EVESpacing.md)
 
                     // Anoik.is attribution card
                     anoikCard
-                        .padding(.top, 8)
+                        .padding(.top, EVESpacing.md)
 
                     // Special Thanks section
                     Label("Special Thanks", systemImage: "heart.fill")
@@ -179,22 +179,22 @@ struct AboutTab: View {
 
                     // Kerreah character card
                     kerreahCard
-                        .padding(.top, 8)
+                        .padding(.top, EVESpacing.md)
 
                     // Idle Boy character card
                     idleBoyCard
-                        .padding(.top, 8)
+                        .padding(.top, EVESpacing.md)
 
                     // Collapsible legal
                     DisclosureGroup(isExpanded: $legalExpanded) {
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: EVESpacing.sm) {
                             Text("EVE Online and the EVE logo are registered trademarks of Fenris Creations. All rights reserved worldwide.")
                             Text("EVEOps is an independent third-party application not affiliated with, endorsed by, or sponsored by Fenris Creations.")
                             Text("All EVE Online related materials are used in accordance with the EVE Online Third-Party Developer License Agreement.")
                             Text("\"EVE\", \"EVE Online\", \"Fenris\", and all related logos are trademarks of Fenris Creations.")
 
                             Divider()
-                                .padding(.vertical, 2)
+                                .padding(.vertical, EVESpacing.xxs)
 
                             Text("Sparkle is copyright © Andy Matuschak and contributors. Used under the MIT License. \"Sparkle\" is a trademark of its respective authors.")
                             Text("zKillboard is a service provided by zKillboard.com. Killmail data is consumed via the public zKillboard API.")
@@ -212,7 +212,7 @@ struct AboutTab: View {
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
-                        .padding(.top, 8)
+                        .padding(.top, EVESpacing.md)
                     } label: {
                         Label("Legal Notices", systemImage: "doc.text")
                             .font(.subheadline)

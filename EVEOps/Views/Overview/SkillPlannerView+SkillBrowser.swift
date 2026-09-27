@@ -19,7 +19,7 @@ extension SkillPlannerView {
             Label(title, systemImage: icon)
                 .font(.caption.bold())
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 6)
+                .padding(.vertical, EVESpacing.sm)
                 .contentShape(Rectangle())
                 .background(
                     browserMode == mode ? Color.primary.opacity(0.12) : Color.clear,
@@ -33,16 +33,16 @@ extension SkillPlannerView {
 
     var skillBrowser: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 2) {
+            HStack(spacing: EVESpacing.xxs) {
                 browserTab("Skills",       icon: "list.bullet", mode: .skills)
                 browserTab("Item Tree",    icon: "network",     mode: .tree)
                 browserTab("Intelligence", icon: "scope",       mode: .shipGoal)
             }
             .padding(3)
             .background(.quaternary, in: RoundedRectangle(cornerRadius: EVERadius.md))
-            .padding(.horizontal, 12)
+            .padding(.horizontal, EVESpacing.lg)
             .padding(.top, 10)
-            .padding(.bottom, 8)
+            .padding(.bottom, EVESpacing.md)
 
             Divider()
 
@@ -66,33 +66,20 @@ extension SkillPlannerView {
     var skillBrowserContent: some View {
         VStack(spacing: 0) {
             // Search bar
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                TextField("Search skills...", text: $searchText).eveFindTarget()
-                    .textFieldStyle(.plain)
-                if !searchText.isEmpty {
-                    Button { searchText = "" } label: {
-                        Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
-                    }
-                    .accessibilityLabel("Clear")
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(8)
-            .eveCard(cornerRadius: EVERadius.md)
-            .padding(10)
+            EVESearchField("Search skills…", text: $searchText)
+                .padding(10)
 
             if let info = selectedCharInfo {
                 // Group filter pills
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 6) {
+                    HStack(spacing: EVESpacing.sm) {
                         groupPill(id: nil, name: "All", count: info.skillGroups.reduce(0) { $0 + $1.skills.count })
                         ForEach(info.skillGroups.sorted(by: { $0.groupName < $1.groupName }), id: \.groupId) { group in
                             groupPill(id: group.groupId, name: group.groupName, count: group.skills.count)
                         }
                     }
                     .padding(.horizontal, 10)
-                    .padding(.bottom, 8)
+                    .padding(.bottom, EVESpacing.md)
                 }
                 .eveEdgeFade()
                 .background(EVESurface.bar)
@@ -113,6 +100,8 @@ extension SkillPlannerView {
                                 Section {
                                     ForEach(group.skills.sorted(by: { $0.name < $1.name }), id: \.skillId) { skill in
                                         skillRow(skill)
+                                            .contentShape(Rectangle())
+                                            .eveContextMenu(.item(typeID: skill.skillId, name: skill.name))
                                         Divider().padding(.leading, 46)
                                     }
                                 } header: {
@@ -125,8 +114,8 @@ extension SkillPlannerView {
                                             .font(.caption2)
                                             .foregroundStyle(.tertiary)
                                     }
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 6)
+                                    .padding(.horizontal, EVESpacing.lg)
+                                    .padding(.vertical, EVESpacing.sm)
                                     .frame(maxWidth: .infinity)
                                     .background(EVESurface.bar)
                                 }
@@ -147,7 +136,7 @@ extension SkillPlannerView {
         return Button {
             selectedGroupId = id
         } label: {
-            HStack(spacing: 4) {
+            HStack(spacing: EVESpacing.xs) {
                 Text(name)
                     .font(.caption)
                 Text("\(count)")
@@ -155,7 +144,7 @@ extension SkillPlannerView {
                     .opacity(0.7)
             }
             .padding(.horizontal, 10)
-            .padding(.vertical, 4)
+            .padding(.vertical, EVESpacing.xs)
             .background(isSelected ? palette.accent : Color.secondary.opacity(0.15), in: Capsule())
             .foregroundStyle(isSelected ? .white : .primary)
         }
@@ -180,16 +169,16 @@ extension SkillPlannerView {
                     .font(.subheadline)
                     .lineLimit(1)
 
-                HStack(spacing: 2) {
+                HStack(spacing: EVESpacing.xxs) {
                     ForEach(1...5, id: \.self) { level in
                         RoundedRectangle(cornerRadius: EVERadius.hairline)
-                            .fill(level <= skill.trainedLevel ? levelColor(skill.trainedLevel) : Color.white.opacity(0.08))
+                            .fill(level <= skill.trainedLevel ? levelColor(skill.trainedLevel) : EVEFill.track)
                             .frame(width: 16, height: 10)
                     }
                     Text("L\(skill.trainedLevel)")
                         .font(.caption2.bold())
                         .foregroundStyle(levelColor(skill.trainedLevel))
-                        .padding(.leading, 4)
+                        .padding(.leading, EVESpacing.xs)
                     Text("• \(formatSP(skill.skillpoints))")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
@@ -199,7 +188,7 @@ extension SkillPlannerView {
             Spacer()
 
             if let existing = planned {
-                HStack(spacing: 6) {
+                HStack(spacing: EVESpacing.sm) {
                     Text("→ L\(existing.targetLevel)")
                         .font(.caption.bold())
                         .foregroundStyle(palette.accent)
@@ -215,12 +204,7 @@ extension SkillPlannerView {
                     .buttonStyle(.plain)
                 }
             } else if isMaxed {
-                Text("Maxed")
-                    .font(.caption2.bold())
-                    .foregroundStyle(.orange)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(.orange.opacity(0.12), in: Capsule())
+                EVEChip(Text("Maxed"), tint: .orange, size: .small)
             } else {
                 let nextLevel = skill.trainedLevel + 1
                 Menu {
@@ -239,8 +223,8 @@ extension SkillPlannerView {
                 .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, EVESpacing.lg)
+        .padding(.vertical, EVESpacing.md)
     }
 
     // MARK:  Filtering

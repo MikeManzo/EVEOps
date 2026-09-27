@@ -83,20 +83,20 @@ struct CorporationWalletsView: View {
 
     private var divisionPicker: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
+            HStack(spacing: EVESpacing.md) {
                 ForEach(wallets, id: \.division) { wallet in
                     Button {
                         selectedDivision = wallet.division
                         Task { await loadJournal() }
                     } label: {
-                        VStack(spacing: 2) {
+                        VStack(spacing: EVESpacing.xxs) {
                             Text("Division \(wallet.division)")
                                 .font(.caption)
                             Text(EVEFormatters.formatISKShort(wallet.balance))
                                 .font(.caption2.monospacedDigit())
                         }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
+                        .padding(.horizontal, EVESpacing.lg)
+                        .padding(.vertical, EVESpacing.sm)
                         .background(
                             selectedDivision == wallet.division ? palette.accent.opacity(0.2) : Color.clear,
                             in: RoundedRectangle(cornerRadius: EVERadius.md)
@@ -106,7 +106,7 @@ struct CorporationWalletsView: View {
                 }
             }
             .padding(.horizontal)
-            .padding(.vertical, 8)
+            .padding(.vertical, EVESpacing.md)
         }
         .eveEdgeFade()
         .background(EVESurface.bar)
@@ -151,7 +151,7 @@ struct CorporationWalletsView: View {
             HStack {
                 Image(systemName: (entry.amount ?? 0) >= 0 ? "arrow.down.circle.fill" : "arrow.up.circle.fill")
                     .foregroundStyle((entry.amount ?? 0) >= 0 ? .green : .red)
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                     Text(entry.refType.replacingOccurrences(of: "_", with: " ").capitalized)
                         .font(.subheadline)
                     Text(entry.description.strippingEVEMarkup)
@@ -177,11 +177,7 @@ struct CorporationWalletsView: View {
     @ViewBuilder
     private var liabilitiesView: some View {
         if liabilityEntries.isEmpty {
-            ContentUnavailableView(
-                "No Liability Payments",
-                systemImage: "checkmark.circle",
-                description: Text("No office rent, sovereignty, or maintenance fees found in this division's journal.")
-            )
+            EVEEmptyState("No Liability Payments", systemImage: "checkmark.circle", message: Text("No office rent, sovereignty, or maintenance fees found in this division's journal."))
         } else {
             List {
                 let grandTotal = liabilityEntries.compactMap { $0.amount }.reduce(0, +)
@@ -208,14 +204,14 @@ struct CorporationWalletsView: View {
                     }) {
                         ForEach(group.entries) { entry in
                             HStack {
-                                VStack(alignment: .leading, spacing: 2) {
+                                VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                                     Text(entry.description.strippingEVEMarkup)
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                         .lineLimit(2)
                                 }
                                 Spacer()
-                                VStack(alignment: .trailing, spacing: 2) {
+                                VStack(alignment: .trailing, spacing: EVESpacing.xxs) {
                                     if let amount = entry.amount {
                                         Text(EVEFormatters.formatISKShort(abs(amount)))
                                             .font(.subheadline.monospacedDigit())

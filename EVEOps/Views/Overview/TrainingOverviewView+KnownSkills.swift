@@ -87,22 +87,22 @@ extension TrainingOverviewView {
                         .font(.caption.monospacedDigit())
                         .foregroundStyle(.secondary)
                 }
-                .padding(12)
+                .padding(EVESpacing.lg)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
 
             if isExpanded {
-                Divider().padding(.horizontal, 12)
+                Divider().padding(.horizontal, EVESpacing.lg)
 
                 if displayGroups.isEmpty {
                     Text("No skills match \"\(skillSearchText)\"")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                        .padding(12)
+                        .padding(EVESpacing.lg)
                 } else {
                     if !isSearching && displayGroups.count > 1 {
-                        HStack(spacing: 12) {
+                        HStack(spacing: EVESpacing.lg) {
                             Spacer()
                             Button("Expand All") {
                                 withAnimation(.easeInOut(duration: 0.2)) {
@@ -118,8 +118,8 @@ extension TrainingOverviewView {
                         .font(.caption)
                         .buttonStyle(.plain)
                         .foregroundStyle(.blue)
-                        .padding(.horizontal, 12)
-                        .padding(.top, 8)
+                        .padding(.horizontal, EVESpacing.lg)
+                        .padding(.top, EVESpacing.md)
                     }
 
                     VStack(alignment: .leading, spacing: 0) {
@@ -127,8 +127,8 @@ extension TrainingOverviewView {
                             skillGroupSection(group, characterID: info.characterID)
                         }
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.bottom, 12)
+                    .padding(.horizontal, EVESpacing.lg)
+                    .padding(.bottom, EVESpacing.lg)
                 }
             }
         }
@@ -150,7 +150,7 @@ extension TrainingOverviewView {
                     }
                 }
             } label: {
-                HStack(spacing: 8) {
+                HStack(spacing: EVESpacing.md) {
                     Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
@@ -171,7 +171,7 @@ extension TrainingOverviewView {
                         .font(.caption2.monospacedDigit())
                         .foregroundStyle(.secondary)
                 }
-                .padding(.vertical, 6)
+                .padding(.vertical, EVESpacing.sm)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -180,6 +180,8 @@ extension TrainingOverviewView {
             if isExpanded {
                 ForEach(group.skills.sorted(by: { $0.name < $1.name }), id: \.skillId) { skill in
                     skillRow(skill, groupName: group.groupName)
+                        .contentShape(Rectangle())
+                        .eveContextMenu(.item(typeID: skill.skillId, name: skill.name))
                 }
             }
         }
@@ -195,7 +197,7 @@ extension TrainingOverviewView {
                 queueEntry: nil
             )
         } label: {
-        HStack(spacing: 8) {
+        HStack(spacing: EVESpacing.md) {
             CachedAsyncImage(url: EVEImageURL.typeIcon(skill.skillId, size: 256)) { phase in
                 if let image = phase.image {
                     image.resizable()
@@ -215,7 +217,7 @@ extension TrainingOverviewView {
             Spacer()
 
             // Level pips
-            HStack(spacing: 2) {
+            HStack(spacing: EVESpacing.xxs) {
                 ForEach(1...5, id: \.self) { level in
                     RoundedRectangle(cornerRadius: EVERadius.hairline)
                         .fill(pipColor(trained: skill.trainedLevel, active: skill.activeLevel, pip: level))
@@ -223,7 +225,7 @@ extension TrainingOverviewView {
                         .overlay(
                             RoundedRectangle(cornerRadius: EVERadius.hairline)
                                 .strokeBorder(
-                                    level <= skill.trainedLevel ? .clear : .white.opacity(0.1),
+                                    level <= skill.trainedLevel ? .clear : EVEFill.trackBorder,
                                     lineWidth: 1
                                 )
                         )
@@ -248,7 +250,7 @@ extension TrainingOverviewView {
                 .foregroundStyle(.secondary)
                 .frame(width: 80, alignment: .trailing)
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, EVESpacing.xxs)
         }
         .buttonStyle(.plain)
     }
@@ -267,7 +269,7 @@ extension TrainingOverviewView {
         } else if pip <= trained {
             return levelColor(trained).opacity(0.35)
         }
-        return Color.white.opacity(0.05)
+        return EVEFill.track
     }
 
 }

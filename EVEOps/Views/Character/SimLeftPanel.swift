@@ -128,7 +128,7 @@ struct SimLeftPanel: View {
             searchBar(text: $shipSearchText, placeholder: "Filter ships…") { _ in }
 
             Button { showLoadSheet = true } label: {
-                HStack(spacing: 12) {
+                HStack(spacing: EVESpacing.lg) {
                     ZStack {
                         RoundedRectangle(cornerRadius: EVERadius.md)
                             .fill(.blue.opacity(0.18))
@@ -138,7 +138,7 @@ struct SimLeftPanel: View {
                     }
                     .frame(width: 36, height: 36)
 
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                         Text("Load Fitting or Ship")
                             .font(.subheadline.bold())
                             .foregroundStyle(.primary)
@@ -151,7 +151,7 @@ struct SimLeftPanel: View {
                         .font(.eveLabelSemibold)
                         .foregroundStyle(.tertiary)
                 }
-                .padding(.horizontal, 12)
+                .padding(.horizontal, EVESpacing.lg)
                 .padding(.vertical, 10)
                 .background(
                     RoundedRectangle(cornerRadius: EVERadius.lg)
@@ -162,16 +162,12 @@ struct SimLeftPanel: View {
             }
             .buttonStyle(.plain)
             .padding(.horizontal, 10)
-            .padding(.bottom, 8)
+            .padding(.bottom, EVESpacing.md)
 
             Divider()
 
             if isLoadingShips {
-                VStack(spacing: 8) {
-                    ProgressView()
-                    Text("Loading ship database…").font(.caption).foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                EVELoadingPane("Loading ship database…")
             } else if filteredShipSections.isEmpty {
                 emptyState(shipSearchText.isEmpty ? "No ships" : "No ships match \"\(shipSearchText)\"")
             } else {
@@ -193,7 +189,7 @@ struct SimLeftPanel: View {
                                     }
                             }
                         } header: {
-                            HStack(spacing: 6) {
+                            HStack(spacing: EVESpacing.sm) {
                                 Image(systemName: CharacterFittingsView.shipClassIcon(section.className))
                                     .font(.caption2).foregroundStyle(.secondary)
                                 Text(section.className).font(.subheadline.bold())
@@ -208,7 +204,7 @@ struct SimLeftPanel: View {
             }
 
             if shipLoadIncomplete {
-                HStack(spacing: 6) {
+                HStack(spacing: EVESpacing.sm) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundStyle(.orange)
                     Text("Some ships failed to load")
@@ -218,7 +214,7 @@ struct SimLeftPanel: View {
                         .font(.caption).buttonStyle(.borderless)
                 }
                 .padding(.horizontal, 10)
-                .padding(.vertical, 6)
+                .padding(.vertical, EVESpacing.sm)
                 .background(.background.secondary)
             }
         }
@@ -229,7 +225,7 @@ struct SimLeftPanel: View {
     private var allModulesBrowser: some View {
         VStack(spacing: 0) {
             // Header
-            HStack(spacing: 8) {
+            HStack(spacing: EVESpacing.md) {
                 Button {
                     simState.activeSlotId = nil
                     withAnimation(.easeInOut(duration: 0.15)) { leftMode = .ships }
@@ -281,11 +277,11 @@ struct SimLeftPanel: View {
                     }
                 }
             }
-            .padding(.horizontal, 10).padding(.vertical, 8)
+            .padding(.horizontal, 10).padding(.vertical, EVESpacing.md)
 
             // Slot targeting indicator
             if let active = simState.activeSlot {
-                HStack(spacing: 6) {
+                HStack(spacing: EVESpacing.sm) {
                     Image(systemName: active.category.icon)
                         .font(.caption2).foregroundStyle(active.category.color)
                     Text("Targeting \(active.category.displayName) · slot \(active.index + 1)")
@@ -300,7 +296,7 @@ struct SimLeftPanel: View {
                     .accessibilityLabel("Clear")
                     .buttonStyle(.plain)
                 }
-                .padding(.horizontal, 10).padding(.vertical, 6)
+                .padding(.horizontal, 10).padding(.vertical, EVESpacing.sm)
                 .background(active.category.color.opacity(0.08))
             }
 
@@ -309,13 +305,7 @@ struct SimLeftPanel: View {
             Divider()
 
             if isLoadingModules {
-                VStack(spacing: 8) {
-                    ProgressView()
-                    Text("Loading module database…").font(.caption).foregroundStyle(.secondary)
-                    Text("First launch only — cached for 7 days")
-                        .font(.caption2).foregroundStyle(.tertiary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                EVELoadingPane("Loading module database…", detail: "First launch only — cached for 7 days")
             } else if allModuleSections.isEmpty {
                 emptyState("No modules available")
             } else {
@@ -351,7 +341,7 @@ struct SimLeftPanel: View {
                                             }
                                     }
                                 } header: {
-                                    HStack(spacing: 6) {
+                                    HStack(spacing: EVESpacing.sm) {
                                         Image(systemName: section.category.icon)
                                             .font(.caption2).foregroundStyle(section.category.color)
                                         Text(section.category.displayName).font(.subheadline.bold())
@@ -373,7 +363,7 @@ struct SimLeftPanel: View {
                     if let msg = noSlotMessage {
                         Text(msg)
                             .font(.caption.bold())
-                            .padding(.horizontal, 12).padding(.vertical, 8)
+                            .padding(.horizontal, EVESpacing.lg).padding(.vertical, EVESpacing.md)
                             .glassEffect(.regular, in: Capsule())
                             .padding(.bottom, 10)
                             .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -488,7 +478,7 @@ struct SimLeftPanel: View {
         placeholder: String,
         onChange: @escaping (String) -> Void
     ) -> some View {
-        HStack(spacing: 6) {
+        HStack(spacing: EVESpacing.sm) {
             Image(systemName: "magnifyingglass").foregroundStyle(.secondary).font(.subheadline)
             TextField(placeholder, text: text)
                 .textFieldStyle(.plain)
@@ -501,7 +491,7 @@ struct SimLeftPanel: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, 10).padding(.vertical, 8)
+        .padding(.horizontal, 10).padding(.vertical, EVESpacing.md)
         .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: EVERadius.md))
         .padding(10)
     }
@@ -528,14 +518,14 @@ struct SimShipRow: View {
             .clipShape(RoundedRectangle(cornerRadius: EVERadius.md))
             .overlay(RoundedRectangle(cornerRadius: EVERadius.md).strokeBorder(.primary.opacity(0.08), lineWidth: 0.5))
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 Text(type.name).font(.subheadline.bold())
                 Text(className.isEmpty ? "Ship" : className)
                     .font(.caption).foregroundStyle(.secondary)
             }
             Spacer()
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, EVESpacing.xs)
     }
 }
 
@@ -558,7 +548,7 @@ struct SimModuleRow: View {
             Text(type.name).font(.subheadline).lineLimit(2)
             Spacer()
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, EVESpacing.xxs)
     }
 }
 

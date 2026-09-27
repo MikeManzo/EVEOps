@@ -46,7 +46,7 @@ struct LoadingStateView<Content: View>: View {
         emptyMessage: String = "No data available",
         emptyTitle: String? = nil,
         emptySystemImage: String = "tray",
-        loadingMessage: String = "Loading...",
+        loadingMessage: String = "Loading…",
         showsSkeleton: Bool = true,
         onRetry: (() -> Void)? = nil,
         errorLinkLabel: String? = nil,
@@ -78,7 +78,7 @@ struct LoadingStateView<Content: View>: View {
                 if showsSkeleton {
                     LoadingSkeleton()
                 } else {
-                    VStack(spacing: 12) {
+                    VStack(spacing: EVESpacing.lg) {
                         ProgressView()
                         Text(loadingMessage)
                             .foregroundStyle(.secondary)

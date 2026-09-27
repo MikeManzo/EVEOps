@@ -122,7 +122,7 @@ struct DashboardBriefingWidgetView: View {
             Button {
                 isExpanded.toggle()
             } label: {
-                HStack(spacing: 8) {
+                HStack(spacing: EVESpacing.md) {
                     Image(systemName: "list.bullet.clipboard.fill")
                         .foregroundStyle(accent)
                         .font(.callout)
@@ -138,7 +138,7 @@ struct DashboardBriefingWidgetView: View {
                         .font(.caption.bold())
                         .foregroundStyle(.tertiary)
                 }
-                .padding(.horizontal, 12)
+                .padding(.horizontal, EVESpacing.lg)
                 .padding(.vertical, 10)
                 .background(accent.opacity(0.07), in: RoundedRectangle(cornerRadius: EVERadius.lg))
                 .overlay(RoundedRectangle(cornerRadius: EVERadius.lg).strokeBorder(accent.opacity(0.15), lineWidth: 1))
@@ -148,9 +148,9 @@ struct DashboardBriefingWidgetView: View {
 
             if isExpanded {
                 content
-                    .padding(.horizontal, 12)
-                    .padding(.top, 12)
-                    .padding(.bottom, 4)
+                    .padding(.horizontal, EVESpacing.lg)
+                    .padding(.top, EVESpacing.lg)
+                    .padding(.bottom, EVESpacing.xs)
             }
         }
         .task(id: aiInsightsEnabled) {
@@ -161,7 +161,7 @@ struct DashboardBriefingWidgetView: View {
     @ViewBuilder
     private var content: some View {
         if items.isEmpty {
-            HStack(spacing: 6) {
+            HStack(spacing: EVESpacing.sm) {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundStyle(.green)
                 Text("All clear — nothing needs your attention right now.")
@@ -181,12 +181,12 @@ struct DashboardBriefingWidgetView: View {
     }
 
     private func itemRow(_ item: BriefingItem) -> some View {
-        HStack(alignment: .top, spacing: 8) {
+        HStack(alignment: .top, spacing: EVESpacing.md) {
             Image(systemName: item.icon)
                 .font(.caption)
                 .foregroundStyle(item.color)
                 .frame(width: 16)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 Text(item.title)
                     .font(.caption.weight(.medium))
                 Text(item.detail)

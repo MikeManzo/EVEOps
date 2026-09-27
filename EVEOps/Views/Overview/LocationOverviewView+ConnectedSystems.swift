@@ -61,8 +61,8 @@ extension LocationOverviewView {
     }
 
     func lastHourColumn(_ info: CharacterLocationInfo) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
+            HStack(spacing: EVESpacing.sm) {
                 Image(systemName: "chart.bar.fill")
                     .foregroundStyle(.cyan)
                 Text("Last Hour")
@@ -70,7 +70,7 @@ extension LocationOverviewView {
             }
 
             // This system
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: EVESpacing.xs) {
 //                activityCaption("This System")
                 if let a = systemActivity[info.systemId] {
                     activityPillWrap(killMetrics(ship: a.shipKills, pod: a.podKills, npc: a.npcKills, jumps: a.jumps))
@@ -78,7 +78,7 @@ extension LocationOverviewView {
                     ProgressView().controlSize(.mini)
                 }
                 if let standing = trafficStanding(info) {
-                    HStack(alignment: .top, spacing: 4) {
+                    HStack(alignment: .top, spacing: EVESpacing.xs) {
                         Image(systemName: "chart.line.uptrend.xyaxis")
                             .font(.eveMicro)
                             .foregroundStyle(.blue)
@@ -95,11 +95,11 @@ extension LocationOverviewView {
                 let agg = connectedActivity(info)
                 if agg.systemsWithData > 0 {
                     Divider()
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: EVESpacing.xs) {
                         activityCaption("Within 1 Jump · \(info.nearbySystems.count) system\(info.nearbySystems.count == 1 ? "" : "s")")
                         activityPillWrap(killMetrics(ship: agg.shipKills, pod: agg.podKills, npc: agg.npcKills, jumps: agg.jumps))
                         if let hot = activityHotspot(info) {
-                            HStack(spacing: 4) {
+                            HStack(spacing: EVESpacing.xs) {
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .font(.eveMicro)
                                     .foregroundStyle(.orange)
@@ -148,26 +148,26 @@ extension LocationOverviewView {
     // MARK:  Wormhole Intel
 
     func wormholeSection(_ wh: WHSystemInfo) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
+            HStack(spacing: EVESpacing.sm) {
                 Image(systemName: "tornado.circle.fill")
                     .foregroundStyle(.purple)
                 Text("Wormhole Space")
                     .font(.subheadline.bold())
             }
 
-            HStack(alignment: .top, spacing: 16) {
+            HStack(alignment: .top, spacing: EVESpacing.xl) {
                 // Class column
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: EVESpacing.xs) {
                     Text("CLASS")
                         .font(.eveBadge)
                         .tracking(0.8)
                         .foregroundStyle(.tertiary)
-                    HStack(spacing: 6) {
+                    HStack(spacing: EVESpacing.sm) {
                         Text(wh.whClass.shortName)
                             .font(.system(size: 14, weight: .bold))
                             .foregroundStyle(wh.whClass.color)
-                            .padding(.horizontal, 8)
+                            .padding(.horizontal, EVESpacing.md)
                             .padding(.vertical, 3)
                             .background(wh.whClass.color.opacity(0.15), in: Capsule())
                         Text(wh.whClass.displayName)
@@ -184,7 +184,7 @@ extension LocationOverviewView {
                 // Effect column
                 if let effect = wh.effect {
                     Divider().frame(height: 50)
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: EVESpacing.xs) {
                         Text("SYSTEM EFFECT")
                             .font(.eveBadge)
                             .tracking(0.8)
@@ -219,36 +219,31 @@ extension LocationOverviewView {
                 .font(.caption)
                 .foregroundStyle(active ? .secondary : .tertiary)
         }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 2)
+        .padding(.horizontal, EVESpacing.sm)
+        .padding(.vertical, EVESpacing.xxs)
         .background(tint.opacity(active ? 0.12 : 0.06), in: Capsule())
     }
 
     // MARK:  Helpers
 
     func securityBadge(_ value: Double) -> some View {
-        Text(String(format: "%.1f", value))
-            .font(.caption.bold().monospacedDigit())
-            .foregroundStyle(eveSecurityColor(value))
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(eveSecurityColor(value).opacity(0.15), in: Capsule())
+        EVEChip(Text(String(format: "%.1f", value)), tint: eveSecurityColor(value), size: .regular, monospacedDigits: true)
     }
 
     func infoRow(label: String, value: String) -> some View {
-        HStack(spacing: 6) {
+        HStack(spacing: EVESpacing.sm) {
             Text(label)
                 .font(.caption)
                 .foregroundStyle(.tertiary)
                 .frame(width: 80, alignment: .trailing)
-            Text(value)
+            Text(value).textSelection(.enabled)
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
     }
 
     func shipStat(label: String, value: String) -> some View {
-        HStack(spacing: 4) {
+        HStack(spacing: EVESpacing.xs) {
             Text(label)
                 .font(.caption)
                 .foregroundStyle(.tertiary)

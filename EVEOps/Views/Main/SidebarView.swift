@@ -380,7 +380,7 @@ struct SidebarView: View {
         // A pinned section also appears in its home group; highlight only one copy — the
         // Pinned one while it's on screen — so the sidebar never shows two filled rows.
         let isSelected = section == selectedSection && (inPinned || !pinnedCopyVisible(section))
-        HStack(spacing: 6) {
+        HStack(spacing: EVESpacing.sm) {
             // macOS's sidebar List style auto-tints Label icons with the app's static
             // AccentColor asset regardless of ancestor `.foregroundStyle`/`.tint` — an
             // explicit icon closure is what actually overrides that.
@@ -579,7 +579,7 @@ struct SidebarView: View {
     }
 
     private var noFilterMatchesRow: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: EVESpacing.sm) {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(.tertiary)
             Text("No matches for \"\(filterText)\"")
@@ -608,8 +608,8 @@ struct SidebarView: View {
     /// which looked sparse for just two small icons. A compact segmented
     /// control beside the search field reads as one cohesive control bar.
     private var scopeAndFilterRow: some View {
-        HStack(spacing: 8) {
-            HStack(spacing: 6) {
+        HStack(spacing: EVESpacing.md) {
+            HStack(spacing: EVESpacing.sm) {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
                     .font(.caption)
@@ -628,8 +628,8 @@ struct SidebarView: View {
                     .accessibilityLabel("Clear filter")
                 }
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
+            .padding(.horizontal, EVESpacing.md)
+            .padding(.vertical, EVESpacing.sm)
             .background(RoundedRectangle(cornerRadius: EVERadius.sm).fill(.quaternary.opacity(0.5)))
             .accessibilityLabel("Filter sidebar")
 
@@ -651,15 +651,15 @@ struct SidebarView: View {
             }
         }
         .padding(.horizontal, 10)
-        .padding(.top, 6)
-        .padding(.bottom, 4)
+        .padding(.top, EVESpacing.sm)
+        .padding(.bottom, EVESpacing.xs)
     }
 
     @ViewBuilder
     private func reauthBanner(_ accounts: [StoredAccount]) -> some View {
         VStack(spacing: 0) {
             ForEach(accounts, id: \.characterID) { account in
-                HStack(spacing: 8) {
+                HStack(spacing: EVESpacing.md) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundStyle(.orange)
                         .font(.caption)
@@ -687,8 +687,8 @@ struct SidebarView: View {
                     .disabled(accountManager.isLoading)
                     .accessibilityLabel("Re-authenticate \(account.characterName)")
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
+                .padding(.horizontal, EVESpacing.lg)
+                .padding(.vertical, EVESpacing.sm)
             }
         }
         .background(.orange.opacity(0.08))
@@ -701,7 +701,7 @@ struct SidebarView: View {
     private var accountSwitcher: some View {
         if accountManager.accounts.count > 1, let account = accountManager.selectedAccount {
             VStack(spacing: 0) {
-                HStack(spacing: 12) {
+                HStack(spacing: EVESpacing.lg) {
                     // Plain image, entirely outside the Menu — a `Menu`'s custom label
                     // is measured by AppKit's own button-sizing pass, which does not
                     // reliably respect SwiftUI `.frame()` on an async-loaded image
@@ -719,7 +719,7 @@ struct SidebarView: View {
                     .overlay(RoundedRectangle(cornerRadius: EVERadius.md).strokeBorder(.primary.opacity(0.15), lineWidth: 1))
                     .accessibilityHidden(true)
 
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                         Text("PILOT")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.secondary)
@@ -758,14 +758,14 @@ struct SidebarView: View {
                                                     .foregroundStyle(.secondary)
                                             }
                                         }
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 6)
+                                        .padding(.horizontal, EVESpacing.lg)
+                                        .padding(.vertical, EVESpacing.sm)
                                         .contentShape(Rectangle())
                                     }
                                     .buttonStyle(.plain)
                                 }
                             }
-                            .padding(.vertical, 4)
+                            .padding(.vertical, EVESpacing.xs)
                             .frame(minWidth: 160)
                         }
                         .accessibilityLabel("Switch pilot")
@@ -811,7 +811,7 @@ struct SidebarView: View {
                         .accessibilityElement(children: .combine)
                     }
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, EVESpacing.xl)
                 .padding(.vertical, 14)
 
                 Divider()
@@ -840,8 +840,8 @@ struct SidebarView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .buttonStyle(.plain)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
+        .padding(.horizontal, EVESpacing.xl)
+        .padding(.vertical, EVESpacing.md)
         .disabled(accountManager.isLoading)
         .accessibilityLabel("Add character")
     }

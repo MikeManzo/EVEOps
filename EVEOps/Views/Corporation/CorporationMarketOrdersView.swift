@@ -92,7 +92,7 @@ struct CorporationMarketOrdersView: View {
     }
 
     private var summaryCards: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: EVESpacing.xl) {
             summaryCard("Sell Orders", count: sellOrders.count,
                         value: sellOrders.reduce(0) { $0 + $1.price * Double($1.volumeRemain) }, color: .green)
             summaryCard("Buy Orders", count: buyOrders.count,
@@ -103,13 +103,13 @@ struct CorporationMarketOrdersView: View {
     }
 
     private func summaryCard(_ title: String, count: Int?, value: Double, color: Color) -> some View {
-        VStack(spacing: 4) {
+        VStack(spacing: EVESpacing.xs) {
             Text(title).font(.caption).foregroundStyle(.secondary)
             if let count { Text("\(count)").font(.eveStatCompact).foregroundStyle(color) }
             Text(EVEFormatters.formatISKShort(value)).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
-        .padding(12)
+        .padding(EVESpacing.lg)
         .eveCard(cornerRadius: EVERadius.lg)
     }
 
