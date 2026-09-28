@@ -101,7 +101,13 @@ info "Drafting release notes..."
 PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
 NOTES_DRAFT=$(mktemp "${TMPDIR:-/tmp}/eveops-notes-XXXXXX.md")
 
-if [ -n "$PREV_TAG" ]; then
+# A hand-written Scripts/releasenotes/$VERSION.md (committed ahead of the release)
+# takes precedence over the commit-subject draft — commit subjects are written for
+# developers, the notes file for the people updating.
+if [ -s "Scripts/releasenotes/$VERSION.md" ]; then
+  info "Using existing Scripts/releasenotes/$VERSION.md"
+  cp "Scripts/releasenotes/$VERSION.md" "$NOTES_DRAFT"
+elif [ -n "$PREV_TAG" ]; then
   git log "$PREV_TAG"..HEAD --pretty=format:"- %s" | grep -v "^- Update appcast" > "$NOTES_DRAFT" || true
 else
   echo "- Initial release" > "$NOTES_DRAFT"

@@ -206,6 +206,9 @@ struct AboutTab: View {
                             Text("Claude and Claude Code are trademarks of Anthropic, PBC. Used for AI-assisted development. No user data is transmitted to Anthropic by EVEOps.")
                             Text("GetEveModels provides 3D ship model data for EVE Online. Used in accordance with the GetEveModels public API terms of service.")
                             Text("Anoik.is is a third-party wormhole system database for EVE Online. Used in accordance with the Anoik.is public API terms of service.")
+                            Text("DOTLAN EveMaps (evemaps.dotlan.net) and EVE Who (evewho.com) are independent third-party services. EVEOps links to them for further reading and does not use their data.")
+                            Text("EVE University and its wiki (wiki.eveuniversity.org) are community resources. EVEOps links to them for further reading.")
+                            Text("Discord and the Discord logo are trademarks of Discord Inc. EVEOps is not affiliated with or endorsed by Discord.")
                             Text("EVE Buddy is acknowledged as an inspiration for EVEOps and is not affiliated with or endorsed by this application.")
                         }
                         .font(.caption)
