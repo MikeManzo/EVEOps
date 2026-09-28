@@ -6,9 +6,6 @@
             <title>0.9.5.1</title>
             <pubDate>Mon, 28 Sep 2026 08:36:46 -0400</pubDate>
             <link>https://github.com/MikeManzo/EVEOps/releases/tag/v0.9.5.1</link>
-            <sparkle:informationalUpdate>
-                <sparkle:belowVersion>160</sparkle:belowVersion>
-            </sparkle:informationalUpdate>
             <sparkle:version>160</sparkle:version>
             <sparkle:shortVersionString>0.9.5.1</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>

@@ -384,18 +384,9 @@ open(sys.argv[2], "w").write("\n".join(out))
 
 cp "$DMG_PATH" "$APPCAST_DIR/"
 
-# The Sparkle signing key was replaced in 0.9.5. Builds older than the first one
-# carrying the new public key can't verify updates signed with it, so for them every
-# release is published as an *informational* update: Sparkle shows the notes and a
-# button that opens the release page for a manual download, instead of attempting
-# (and failing) an automatic install.
-# TODO after 0.9.5 ships: replace $NEW_BUILD with that release's literal build number.
-SPARKLE_KEY_ROTATION_BUILD="$NEW_BUILD"
-
 "$SPARKLE_BIN/generate_appcast" \
   --download-url-prefix "$DOWNLOAD_URL_PREFIX" \
   --link "https://github.com/MikeManzo/EVEOps/releases/tag/$TAG" \
-  --informational-update-versions "<$SPARKLE_KEY_ROTATION_BUILD" \
   "$APPCAST_DIR/"
 
 [ -f "$APPCAST_DIR/appcast.xml" ] || error "Appcast generation failed"
