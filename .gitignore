@@ -19,3 +19,6 @@ build/
 # Downloaded CCP ship renders — regenerate locally with fetch_ship_group_icons.py,
 # don't commit bulk copyrighted image assets to the repo.
 Scripts/upload-ship-group-icons/output/
+
+# Git metadata kept out of iCloud sync (see .git symlink)
+.git.nosync/
