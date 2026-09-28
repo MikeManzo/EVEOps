@@ -3,33 +3,25 @@
     <channel>
         <title>EVEOps</title>
         <item>
-            <title>0.9.5</title>
-            <pubDate>Sun, 27 Sep 2026 21:39:47 -0400</pubDate>
-            <link>https://github.com/MikeManzo/EVEOps/releases/tag/v0.9.5</link>
+            <title>0.9.5.1</title>
+            <pubDate>Mon, 28 Sep 2026 08:36:46 -0400</pubDate>
+            <link>https://github.com/MikeManzo/EVEOps/releases/tag/v0.9.5.1</link>
             <sparkle:informationalUpdate>
-                <sparkle:belowVersion>159</sparkle:belowVersion>
+                <sparkle:belowVersion>160</sparkle:belowVersion>
             </sparkle:informationalUpdate>
-            <sparkle:version>159</sparkle:version>
-            <sparkle:shortVersionString>0.9.5</sparkle:shortVersionString>
+            <sparkle:version>160</sparkle:version>
+            <sparkle:shortVersionString>0.9.5.1</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
             <description><![CDATA[<ul>
-<li>One-time manual update: EVEOps now signs its updates with a new key, so please download 0.9.5 from the release page and replace your current copy in Applications. Automatic updates work again from 0.9.5 on.</li>
-<li>Training Overview has been completely redesigned. A new header shows your pilot, total SP and skill level breakdown, your attributes and implants, and your progress toward mastering every skill group — next to a live &quot;Now Training&quot; ring with countdown, SP per hour, queued SP and what&#x27;s up next.</li>
-<li>Training now has Queue and Skills tabs. The Skills tab lists every skill you know in a sortable table, with search and a skill group filter.</li>
-<li>Training also suggests an attribute remap when one would finish your queue sooner, shows your saved skill plan, and tracks your next SP milestone and what a large skill injector is worth at your SP.</li>
-<li>Skill Planner: Import, Copy and Clear now live in the toolbar, each planned skill shows when it will finish, and you can right-click a skill to change its target level, move it, or remove it.</li>
-<li>Market Browser, Galaxy Market Search and the Fitting Shop now use native Mac tables — resize and sort columns, select several rows, copy with ⌘C, and double-click an order or station to set it as your autopilot destination.</li>
-<li>Right-click almost anything — pilots, corporations, alliances, factions, systems, items and skills — to copy its name or ID, search the market, set a destination, or open it in zKillboard, EVE Who, DOTLAN or EVE Ref.</li>
-<li>Detail panels now open in a resizable inspector on the right side of the window.</li>
-<li>Search fields look and work the same everywhere, and ⌘F jumps to the search field on any screen.</li>
-<li>Screens that are loading show placeholder rows instead of a spinner, and the smallest text across the app is larger and easier to read.</li>
-<li>Galaxy Market Search, Trade Hub, Skill Tree and 3D ship windows now remember where you put them, and Esc closes them.</li>
-<li>Discord Rich Presence now tells you when your Discord app doesn&#x27;t support it (for example Swiftcord) and lists the clients that do.</li>
-<li>Fixed: the Remap Advisor mixed up implant bonuses (an Intelligence implant was counted as Memory), which could skew its advice.</li>
-<li>Fixed: untrained skill levels were invisible in Light mode.</li>
-<li>About now credits DOTLAN, EVE Who, EVE University and Discord.</li>
-</ul>]]></description>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.5/EVEOps.dmg" length="33583093" type="application/octet-stream" sparkle:edSignature="9bBpeMgL4aKqrzDug6uPI75FGE0YfX1VgKDWu62rIqxjjtsq6ZSXabF4t3QYRKSul2bm2d8K4u53wv0TYwHpDw=="/>
+<li>Fixes</li>
+</ul>
+<p>* Training Overview no longer hangs or crashes on the Trained Skills tab. Clicking Trained Skills could freeze the app with a spinning cursor and then quit it. Switching between Queue and Trained Skills now works reliably.</p>
+<p>Switching Training Overview tabs is now instant. Pilots with long skill queues no longer get a pause of several seconds the first time they switch between Queue and Trained Skills.</p>
+<ul>
+<li>Improvements</li>
+</ul>
+<p>* Training Overview opens faster. EVEOps now loads your attributes, implants and skill-group progress in the background when it starts. The header shows up complete instead of filling in piece by piece after you open the screen.</p>]]></description>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.5.1/EVEOps.dmg" length="33598486" type="application/octet-stream"/>
         </item>
     </channel>
 </rss>
