@@ -75,10 +75,24 @@ if [ "$CURRENT_BRANCH" != "$RELEASE_BRANCH" ]; then
   [[ $REPLY =~ ^[Yy]$ ]] || exit 0
 fi
 
+# ── Build output formatter ───────────────────────────────────
+# Pipes xcodebuild output through xcbeautify, falling back to xcpretty, then to plain
+# output. With pipefail on, piping into a formatter that isn't installed would fail
+# the archive step — this can't.
+xcformat() {
+  if command -v xcbeautify >/dev/null 2>&1; then
+    xcbeautify
+  elif command -v xcpretty >/dev/null 2>&1; then
+    xcpretty
+  else
+    cat
+  fi
+}
+
 # ── Check dependencies ───────────────────────────────────────
 info "Checking dependencies..."
 command -v gh >/dev/null 2>&1       || error "GitHub CLI not found. Run: brew install gh"
-command -v xcpretty >/dev/null 2>&1 || warning "xcpretty not found. Run: sudo gem install xcpretty"
+command -v xcbeautify >/dev/null 2>&1 || warning "xcbeautify not found — build output will be unformatted. Run: brew install xcbeautify"
 [ -f "$SPARKLE_BIN/generate_keys" ] || error "Sparkle bin not found at $SPARKLE_BIN. Are you running from your project root?"
 
 # ── Confirm before proceeding ────────────────────────────────
@@ -142,7 +156,7 @@ xcodebuild archive \
   -configuration Release \
   -archivePath "$ARCHIVE_PATH" \
   DEVELOPMENT_TEAM="$TEAM_ID" \
-  | xcpretty
+  | xcformat
 
 [ -d "$ARCHIVE_PATH" ] || error "Archive failed — .xcarchive not found"
 info "Archive succeeded ✓"
