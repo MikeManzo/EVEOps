@@ -3,22 +3,16 @@
     <channel>
         <title>EVEOps</title>
         <item>
-            <title>0.9.5.1</title>
-            <pubDate>Mon, 28 Sep 2026 08:36:46 -0400</pubDate>
-            <link>https://github.com/MikeManzo/EVEOps/releases/tag/v0.9.5.1</link>
-            <sparkle:version>160</sparkle:version>
-            <sparkle:shortVersionString>0.9.5.1</sparkle:shortVersionString>
+            <title>0.9.5.2</title>
+            <pubDate>Mon, 28 Sep 2026 10:14:48 -0400</pubDate>
+            <link>https://github.com/MikeManzo/EVEOps/releases/tag/v0.9.5.2</link>
+            <sparkle:version>161</sparkle:version>
+            <sparkle:shortVersionString>0.9.5.2</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
             <description><![CDATA[<ul>
-<li>Fixes</li>
-</ul>
-<p>* Training Overview no longer hangs or crashes on the Trained Skills tab. Clicking Trained Skills could freeze the app with a spinning cursor and then quit it. Switching between Queue and Trained Skills now works reliably.</p>
-<p>Switching Training Overview tabs is now instant. Pilots with long skill queues no longer get a pause of several seconds the first time they switch between Queue and Trained Skills.</p>
-<ul>
-<li>Improvements</li>
-</ul>
-<p>* Training Overview opens faster. EVEOps now loads your attributes, implants and skill-group progress in the background when it starts. The header shows up complete instead of filling in piece by piece after you open the screen.</p>]]></description>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.5.1/EVEOps.dmg" length="33598486" type="application/octet-stream"/>
+<li>Fixed Sparkle updating issue</li>
+</ul>]]></description>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.5.2/EVEOps.dmg" length="33598496" type="application/octet-stream"/>
         </item>
     </channel>
 </rss>
