@@ -23,13 +23,15 @@ private let attrIDToKey: [Int: String] = [
 // Confirmed working: 175=cha, 176=mem, 177=per, 179=int.
 // Willpower is unconfirmed — try both 178 (boost attr) and 168 (char attr ID) as candidates.
 // Detection uses per-implant max to prevent double-counting if both IDs fire on the same type.
+/// Implant attribute-bonus dogma IDs (verified against ESI /dogma/attributes/):
+/// 175 charismaBonus, 176 intelligenceBonus, 177 memoryBonus, 178 perceptionBonus,
+/// 179 willpowerBonus.
 private let implantAttrIDs: [Int: String] = [
-    168: "willpower",   // char attr ID fallback
     175: "charisma",
-    176: "memory",
-    177: "perception",
-    178: "willpower",   // boost attr ID candidate
-    179: "intelligence"
+    176: "intelligence",
+    177: "memory",
+    178: "perception",
+    179: "willpower"
 ]
 
 struct AttributeRemapView: View {

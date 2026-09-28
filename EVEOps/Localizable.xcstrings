@@ -22,6 +22,9 @@
     "· %@" : {
 
     },
+    "· %lld bonus" : {
+
+    },
     "· %lld unpriced" : {
 
     },
@@ -405,13 +408,16 @@
     "%@ SP" : {
 
     },
+    "%@ SP not yet applied to a skill" : {
+
+    },
     "%@ SP trained" : {
 
     },
-    "%@ total LP" : {
+    "%@ to go" : {
 
     },
-    "%@ unallocated" : {
+    "%@ total LP" : {
 
     },
     "%@ vs 30d" : {
@@ -433,6 +439,16 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@: %2$@"
+          }
+        }
+      }
+    },
+    "%@: %lld of %lld skills known · %@ of %@ SP to all V" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@: %2$lld of %3$lld skills known · %4$@ of %5$@ SP to all V"
           }
         }
       }
@@ -502,6 +518,9 @@
 
     },
     "%lld AK" : {
+
+    },
+    "%lld at V" : {
 
     },
     "%lld attackers" : {
@@ -614,10 +633,17 @@
         }
       }
     },
-    "%lld heads" : {
-
+    "%lld hardwiring%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld hardwiring%2$@"
+          }
+        }
+      }
     },
-    "%lld in queue" : {
+    "%lld heads" : {
 
     },
     "%lld industry jobs finished" : {
@@ -750,9 +776,6 @@
     "%lld losses" : {
 
     },
-    "%lld maxed" : {
-
-    },
     "%lld minutes" : {
 
     },
@@ -797,6 +820,16 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$lld of %2$lld items"
+          }
+        }
+      }
+    },
+    "%lld of %lld known skills trained to level V" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld of %2$lld known skills trained to level V"
           }
         }
       }
@@ -954,7 +987,20 @@
         }
       }
     },
+    "%lld skill%@%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld skill%2$@%3$@"
+          }
+        }
+      }
+    },
     "%lld skills" : {
+
+    },
+    "%lld skills queued — resume training in EVE." : {
 
     },
     "%lld solar system%@" : {
@@ -1117,8 +1163,24 @@
     "+%@" : {
 
     },
+    "+%@ SP" : {
+
+    },
+    "+%@ unallocated" : {
+
+    },
     "+%lld" : {
 
+    },
+    "+%lld %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "+%1$lld %2$@"
+          }
+        }
+      }
     },
     "+%lld more degraded" : {
 
@@ -1447,6 +1509,9 @@
     "All EVE Online related materials are used in accordance with the EVE Online Third-Party Developer License Agreement." : {
 
     },
+    "All Groups" : {
+
+    },
     "All items available" : {
 
     },
@@ -1476,6 +1541,22 @@
     },
     "Allows switching to EVEOps via Cmd-Tab and the Dock. Takes effect immediately." : {
 
+    },
+    "Alpha" : {
+
+    },
+    "Alpha clone — trains at half speed, some skills capped" : {
+
+    },
+    "Alpha clone: level %lld active of %lld trained" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Alpha clone: level %1$lld active of %2$lld trained"
+          }
+        }
+      }
     },
     "Already optimal for this pair" : {
 
@@ -1558,6 +1639,9 @@
     "Armor Repair" : {
 
     },
+    "Around %@" : {
+
+    },
     "As %@, you can invite pilots and assign their fleet role." : {
 
     },
@@ -1598,6 +1682,9 @@
 
     },
     "Attributes" : {
+
+    },
+    "Attributes already suit this queue" : {
 
     },
     "Authenticating with EVE SSO…" : {
@@ -1678,6 +1765,9 @@
     "Base (light) plus attribute-enhancing implants (bright)." : {
 
     },
+    "Base values after remap; implant bonuses are added on top." : {
+
+    },
     "Based on %lld recent losses" : {
 
     },
@@ -1733,6 +1823,9 @@
 
     },
     "Browse the market registry or search by name to analyze orders and pricing." : {
+
+    },
+    "Build a Plan" : {
 
     },
     "Building training plan…" : {
@@ -1821,6 +1914,12 @@
 
     },
     "CHA" : {
+
+    },
+    "Change target level" : {
+
+    },
+    "Change Target Level" : {
 
     },
     "Changing the server requires a restart to take effect." : {
@@ -1931,10 +2030,13 @@
     "Click a constellation to set the route origin" : {
 
     },
+    "Clipboard Help" : {
+
+    },
     "Clipboard Import / Export" : {
 
     },
-    "Clone jump %@ ago — times refreshed" : {
+    "Clone jump %@ ago — training times refreshed" : {
 
     },
     "Clone jump available" : {
@@ -2039,6 +2141,9 @@
     "Completes" : {
 
     },
+    "Completes %@" : {
+
+    },
     "Compose" : {
 
     },
@@ -2141,13 +2246,16 @@
     "Copy Name" : {
 
     },
-    "Copy plan to clipboard (EVE-compatible format)" : {
+    "Copy Plan" : {
 
     },
     "Copy selected table rows" : {
 
     },
     "Copy Station Name" : {
+
+    },
+    "Copy the plan to the clipboard in EVE's format" : {
 
     },
     "Copying" : {
@@ -2497,6 +2605,15 @@
     "Done" : {
 
     },
+    "Done %@" : {
+
+    },
+    "Done %@ after the queue" : {
+
+    },
+    "Done %@ if the plan starts now" : {
+
+    },
     "Dotlan" : {
 
     },
@@ -2784,28 +2901,22 @@
     "Export" : {
 
     },
-    "Export All Skills" : {
+    "Export All EVE Skills…" : {
 
     },
     "Export Backup…" : {
 
     },
-    "Export CSV" : {
+    "Export Known Skills…" : {
 
     },
-    "Export every published skill in EVE (name, group, rank, training attributes) to CSV" : {
+    "Export skills to CSV" : {
 
     },
     "Export your plan, switch to EVE, then open the skill queue and choose:" : {
 
     },
     "Export…" : {
-
-    },
-    "Exporting…" : {
-
-    },
-    "Extend to L%lld" : {
 
     },
     "Extracting" : {
@@ -2917,6 +3028,9 @@
 
     },
     "Finishes" : {
+
+    },
+    "Finishes this queue %@ sooner" : {
 
     },
     "Finishes: %@" : {
@@ -3129,6 +3243,9 @@
     "How Cargo Value Is Calculated" : {
 
     },
+    "How clipboard import and export work" : {
+
+    },
     "How often EVEOps checks for notifications and updates in the background." : {
 
     },
@@ -3142,9 +3259,6 @@
 
     },
     "How to remap:" : {
-
-    },
-    "How to use clipboard import/export" : {
 
     },
     "Hub" : {
@@ -3174,13 +3288,16 @@
     "Import a .eft fitting file" : {
 
     },
+    "Import a skill plan from the clipboard" : {
+
+    },
     "Import Backup…" : {
 
     },
     "Import Fitting" : {
 
     },
-    "Import plan from clipboard" : {
+    "Import from Clipboard" : {
 
     },
     "in %@ · out %@" : {
@@ -3192,6 +3309,9 @@
           }
         }
       }
+    },
+    "in ~%@ at this rate" : {
+
     },
     "In Discord, open the channel's settings → Integrations → Webhooks → New Webhook, then Copy Webhook URL." : {
 
@@ -3461,20 +3581,13 @@
     "Kills" : {
 
     },
-    "Known Skills (%lld of %lld)" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Known Skills (%1$lld of %2$lld)"
-          }
-        }
-      }
-    },
-    "Known Skills (%lld)" : {
+    "L%lld" : {
 
     },
-    "L%lld" : {
+    "Large injector: +%@ SP" : {
+
+    },
+    "Large Skill Injector yield drops at 5M, 50M and 80M total SP" : {
 
     },
     "Last 7 Days" : {
@@ -3518,6 +3631,19 @@
     },
     "Level" : {
 
+    },
+    "Level %lld" : {
+
+    },
+    "Level %lld: %lld skills" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Level %1$lld: %2$lld skills"
+          }
+        }
+      }
     },
     "Level 1 agents have no standing requirement" : {
 
@@ -3810,6 +3936,9 @@
     "Mid Slots" : {
 
     },
+    "Milestones" : {
+
+    },
     "Min" : {
 
     },
@@ -3847,7 +3976,16 @@
         }
       }
     },
+    "Move Skill" : {
+
+    },
     "Move the selection" : {
+
+    },
+    "Move to Bottom" : {
+
+    },
+    "Move to Top" : {
 
     },
     "Move to Trash" : {
@@ -3939,6 +4077,9 @@
         }
       }
     },
+    "Next remap %@" : {
+
+    },
     "Next screen" : {
 
     },
@@ -4021,6 +4162,9 @@
 
     },
     "No implants installed" : {
+
+    },
+    "No implants plugged in" : {
 
     },
     "No ISK activity" : {
@@ -4116,6 +4260,9 @@
     "No Saved Fittings Found" : {
 
     },
+    "No saved plan" : {
+
+    },
     "No Scan Yet" : {
 
     },
@@ -4132,9 +4279,6 @@
 
     },
     "No Skills" : {
-
-    },
-    "No skills match \"%@\"" : {
 
     },
     "No Skills Planned" : {
@@ -4224,6 +4368,9 @@
     "Nothing in the pasted text resolved to a known pilot." : {
 
     },
+    "Nothing Queued" : {
+
+    },
     "Nothing to show" : {
 
     },
@@ -4237,6 +4384,9 @@
 
     },
     "Now" : {
+
+    },
+    "NOW TRAINING" : {
 
     },
     "NPC" : {
@@ -4273,6 +4423,15 @@
 
     },
     "OK" : {
+
+    },
+    "Omega" : {
+
+    },
+    "Omega clone — full training speed" : {
+
+    },
+    "Omega rate for this skill: %@ SP/h" : {
 
     },
     "On launch, select" : {
@@ -4350,6 +4509,9 @@
     "Open Settings…" : {
 
     },
+    "Open Skill Planner" : {
+
+    },
     "Open Standings" : {
 
     },
@@ -4390,9 +4552,6 @@
 
     },
     "Optional description" : {
-
-    },
-    "Options" : {
 
     },
     "or search by name to find an item" : {
@@ -4472,6 +4631,9 @@
 
     },
     "Paste the URL into the Webhook URL field here and turn on “Send alerts to Discord.”" : {
+
+    },
+    "Paused" : {
 
     },
     "Peak passive shield recharge rate at 25% shield level" : {
@@ -4639,6 +4801,12 @@
     "Quantity: %lld" : {
 
     },
+    "Queue (%lld)" : {
+
+    },
+    "Queue ≈ %@ large injectors" : {
+
+    },
     "Queue Alert" : {
 
     },
@@ -4651,10 +4819,22 @@
     "Queue ends" : {
 
     },
+    "Queue Ends" : {
+
+    },
+    "Queue ends %@" : {
+
+    },
     "Queue is empty — nothing to analyze." : {
 
     },
     "Queue Position" : {
+
+    },
+    "Queue skills in EVE, or build a plan in the Skill Planner." : {
+
+    },
+    "Queued SP" : {
 
     },
     "Quick switcher" : {
@@ -4735,9 +4915,6 @@
     "Recommended Training" : {
 
     },
-    "Reduce to L%lld" : {
-
-    },
     "Reference market for reward and required-item prices" : {
 
     },
@@ -4789,6 +4966,9 @@
     "Remap Advisor" : {
 
     },
+    "Remap available" : {
+
+    },
     "Remap Available — Recommendation" : {
 
     },
@@ -4799,6 +4979,9 @@
 
     },
     "Remap status" : {
+
+    },
+    "Remap to %@" : {
 
     },
     "Remove" : {
@@ -4816,7 +4999,13 @@
     "Remove Contact" : {
 
     },
+    "Remove every skill from the plan" : {
+
+    },
     "Remove filter" : {
+
+    },
+    "Remove from plan" : {
 
     },
     "Remove from Plan" : {
@@ -5047,9 +5236,6 @@
     "Search journal" : {
 
     },
-    "Search known skills…" : {
-
-    },
     "Search Market" : {
 
     },
@@ -5066,6 +5252,9 @@
 
     },
     "Search ship type…" : {
+
+    },
+    "Search skills or groups" : {
 
     },
     "Search skills…" : {
@@ -5285,6 +5474,9 @@
     "Show Dock Icon" : {
 
     },
+    "Show one skill group" : {
+
+    },
     "Show only agents your current effective standing lets you talk to" : {
 
     },
@@ -5333,19 +5525,22 @@
     "Skill" : {
 
     },
+    "Skill Group Progress" : {
+
+    },
     "Skill Information" : {
 
     },
     "Skill Levels" : {
 
     },
+    "Skill Plan" : {
+
+    },
     "Skill Planner" : {
 
     },
     "Skill Points" : {
-
-    },
-    "Skill Queue (%lld)" : {
 
     },
     "Skill Queue Alert — %@" : {
@@ -5355,6 +5550,9 @@
 
     },
     "Skill queue empty" : {
+
+    },
+    "Skill queue is empty" : {
 
     },
     "Skill queue: %lld skills, ends in %@" : {
@@ -5378,6 +5576,16 @@
     },
     "Skip" : {
 
+    },
+    "Slot %lld: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Slot %1$lld: %2$@"
+          }
+        }
+      }
     },
     "Social & Comms" : {
 
@@ -5413,6 +5621,9 @@
 
     },
     "SP" : {
+
+    },
+    "SP / Hour" : {
 
     },
     "SP distribution across training attribute pairs in your current queue." : {
@@ -5546,6 +5757,9 @@
     "Stop" : {
 
     },
+    "Stop at Level %lld" : {
+
+    },
     "Storage" : {
 
     },
@@ -5667,6 +5881,9 @@
     "This character has never used a neural remap." : {
 
     },
+    "This character isn't training anything." : {
+
+    },
     "this contact" : {
 
     },
@@ -5715,6 +5932,9 @@
     "To" : {
 
     },
+    "to all V" : {
+
+    },
     "Today" : {
 
     },
@@ -5737,9 +5957,6 @@
 
     },
     "Total Paid (this page)" : {
-
-    },
-    "Total SP" : {
 
     },
     "Total values including implants." : {
@@ -5766,10 +5983,19 @@
     "Traffic and kill figures come from EVE's hourly aggregates — a low count means quiet in the last ~60 minutes, not a guarantee." : {
 
     },
+    "Train to Level %lld" : {
+
+    },
+    "Trained Skills (%lld)" : {
+
+    },
     "Training" : {
 
     },
     "Training Overview" : {
+
+    },
+    "Training paused" : {
 
     },
     "Training queue completes in ~%lldh. Add skills to keep training!" : {
@@ -5781,9 +6007,6 @@
     "Training Queue empty!" : {
 
     },
-    "Training Queue Empty!" : {
-
-    },
     "Training queue is empty" : {
 
     },
@@ -5791,6 +6014,9 @@
 
     },
     "Training Speed by Attribute Pair" : {
+
+    },
+    "Training Time" : {
 
     },
     "Tranquility" : {
@@ -5878,6 +6104,9 @@
 
     },
     "up" : {
+
+    },
+    "Up Next" : {
 
     },
     "Up to date" : {

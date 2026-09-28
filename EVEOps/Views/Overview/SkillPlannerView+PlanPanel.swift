@@ -26,7 +26,8 @@ extension SkillPlannerView {
             }
 
             planSummaryBar
-                .padding(10)
+                .padding(.horizontal, 10)
+                .padding(.vertical, EVESpacing.lg)
 
             if let msg = importMessage {
                 Text(msg)
@@ -57,9 +58,10 @@ extension SkillPlannerView {
             if planItems.isEmpty {
                 EVEEmptyState("No Skills Planned", systemImage: "list.bullet.clipboard", message: "Browse skills on the right and tap + to add them to your plan.")
             } else {
+                let finishDates = planFinishDates()
                 List {
                     ForEach(planItems) { item in
-                        planRow(item)
+                        planRow(item, finish: finishDates[item.skillId])
                             .listRowInsets(EdgeInsets())
                             .listRowBackground(Color.clear)
                             .listRowSeparator(.hidden)
@@ -113,185 +115,248 @@ extension SkillPlannerView {
         }
     }
 
+    /// When each planned skill would finish if the plan started training now.
+    func planFinishDates() -> [Int: Date] {
+        guard let attrs = attributes else { return [:] }
+        return Dictionary(plannedQueue(attrs: attrs).compactMap { entry in
+            entry.finishDate.map { (entry.skillId, $0) }
+        }, uniquingKeysWith: { _, last in last })
+    }
+
     var planSummaryBar: some View {
         let totalSP = planItems.reduce(0) { $0 + spNeeded(for: $1) }
         let totalSeconds = planItems.reduce(0.0) { sum, item in
             sum + (attributes.map { attrs in trainingTime(for: item, attrs: attrs) } ?? 0)
         }
+        let completes = attributes != nil && !planItems.isEmpty ? Date.now.addingTimeInterval(totalSeconds) : nil
 
-        return HStack(spacing: 0) {
-            VStack(spacing: EVESpacing.xxs) {
-                Text("Skills")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                Text("\(planItems.count)")
-                    .font(.title3.bold())
-            }
-            .frame(maxWidth: .infinity)
-
-            Divider().frame(height: 30)
-
-            VStack(spacing: EVESpacing.xxs) {
-                Text("Total SP")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                Text(formatSP(totalSP))
-                    .font(.eveStatCompact)
-                    .foregroundStyle(.blue)
-                    .eveNumeric(totalSP)
-            }
-            .frame(maxWidth: .infinity)
-
-            Divider().frame(height: 30)
-
-            VStack(spacing: EVESpacing.xxs) {
-                Text("Time")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                Text(attributes != nil ? formatDuration(totalSeconds) : "—")
-                    .font(.eveStatCompact)
-                    .foregroundStyle(.green)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-            }
-            .frame(maxWidth: .infinity)
-
-            Divider().frame(height: 30)
-
-            HStack(spacing: EVESpacing.lg) {
-                Button {
-                    showingClipboardHelp.toggle()
-                } label: {
-                    Image(systemName: "info.circle")
-                        .foregroundStyle(.secondary)
+        return VStack(spacing: EVESpacing.sm) {
+            HStack(spacing: 0) {
+                summaryStat("Skills") {
+                    Text("\(planItems.count)")
                 }
-                .accessibilityLabel("How to use clipboard import/export")
-                .buttonStyle(.plain)
-                .help("How to use clipboard import/export")
-                .popover(isPresented: $showingClipboardHelp, arrowEdge: .bottom) {
-                    clipboardHelpPopover
+                Divider().frame(height: 30)
+                summaryStat("Skill Points") {
+                    Text(formatSP(totalSP))
+                        .foregroundStyle(.blue)
+                        .eveNumeric(totalSP)
                 }
-
-                Button {
-                    exportPlan()
-                } label: {
-                    Image(systemName: "square.and.arrow.up")
-                        .foregroundStyle(planItems.isEmpty ? Color.secondary : Color.primary)
-                }
-                .accessibilityLabel("Copy plan to clipboard (EVE-compatible format)")
-                .buttonStyle(.plain)
-                .disabled(planItems.isEmpty)
-                .help("Copy plan to clipboard (EVE-compatible format)")
-
-                Button {
-                    Task { await importFromClipboard() }
-                } label: {
-                    if isImporting {
-                        ProgressView().controlSize(.mini).frame(width: 16, height: 16)
-                    } else {
-                        Image(systemName: "square.and.arrow.down")
-                    }
-                }
-                .buttonStyle(.plain)
-                .disabled(isImporting)
-                .help("Import plan from clipboard")
-
-                Button(role: .destructive) {
-                    let count = planItems.count
-                    replacePlan(with: [], actionName: String(localized: "Clear Plan"))
-                    ToastCenter.shared.show(String(localized: "Cleared \(count) skills — ⌘Z to undo"), systemImage: "trash.fill")
-                } label: {
-                    Image(systemName: "trash")
-                        .foregroundStyle(planItems.isEmpty ? Color.secondary : Color.red)
-                }
-                .accessibilityLabel("Delete")
-                .buttonStyle(.plain)
-                .disabled(planItems.isEmpty)
-            }
-            .padding(.horizontal, 10)
-        }
-    }
-
-    func planRow(_ item: SkillPlanItem) -> some View {
-        let sp = spNeeded(for: item)
-        let seconds = attributes.map { trainingTime(for: item, attrs: $0) } ?? 0.0
-
-        return HStack(spacing: EVESpacing.md) {
-            CachedAsyncImage(url: EVEImageURL.typeIcon(item.skillId, size: 64)) { phase in
-                if let image = phase.image {
-                    image.resizable().frame(width: 28, height: 28).clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
-                } else {
-                    RoundedRectangle(cornerRadius: EVERadius.xs).fill(.quaternary).frame(width: 28, height: 28)
-                }
-            }
-
-            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
-                Text(item.skillName)
-                    .font(.caption.bold())
-                    .lineLimit(1)
-                HStack(spacing: EVESpacing.xs) {
-                    levelBadge(item.fromLevel)
-                    Image(systemName: "arrow.right")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                    levelBadge(item.targetLevel)
-                }
-            }
-
-            Spacer()
-
-            VStack(alignment: .trailing, spacing: EVESpacing.xxs) {
-                Text(formatSP(sp))
-                    .font(.caption2.monospacedDigit())
-                    .foregroundStyle(.secondary)
-                if attributes != nil {
-                    Text(formatDuration(seconds))
-                        .font(.caption2.monospacedDigit())
+                Divider().frame(height: 30)
+                summaryStat("Training Time") {
+                    Text(attributes != nil ? formatDuration(totalSeconds) : "—")
                         .foregroundStyle(.green)
                 }
             }
+            if let completes {
+                Label("Completes \(EVEDates.short(completes))", systemImage: "flag.checkered")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .help(EVEDates.full(completes))
+            }
+        }
+    }
 
-            if item.fromLevel < 4 {
-                let canExtend = item.targetLevel < 5
-                let canReduce = item.targetLevel > item.fromLevel + 1
-                if canExtend || canReduce {
-                    Menu {
-                        if canExtend {
-                            ForEach((item.targetLevel + 1)...5, id: \.self) { level in
-                                Button("Extend to L\(level)") { updateItem(item, targetLevel: level) }
-                            }
-                        }
-                        if canExtend && canReduce { Divider() }
-                        if canReduce {
-                            ForEach(((item.fromLevel + 1)...(item.targetLevel - 1)).reversed(), id: \.self) { level in
-                                Button("Reduce to L\(level)") { updateItem(item, targetLevel: level) }
-                            }
-                        }
-                    } label: {
-                        Image(systemName: "slider.horizontal.3")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+    private func summaryStat<Value: View>(_ label: LocalizedStringKey, @ViewBuilder value: () -> Value) -> some View {
+        VStack(spacing: EVESpacing.xxs) {
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            value()
+                .font(.eveStatCompact)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    /// Plan actions for the window toolbar — import, export, clear, and the clipboard
+    /// format help — instead of four small icons squeezed into the summary bar.
+    @ViewBuilder
+    var planToolbarControls: some View {
+        Button {
+            Task { await importFromClipboard() }
+        } label: {
+            if isImporting {
+                ProgressView().controlSize(.small)
+            } else {
+                Label("Import from Clipboard", systemImage: "square.and.arrow.down")
+            }
+        }
+        .disabled(isImporting)
+        .help("Import a skill plan from the clipboard")
+
+        Button {
+            exportPlan()
+        } label: {
+            Label("Copy Plan", systemImage: "square.and.arrow.up")
+        }
+        .disabled(planItems.isEmpty)
+        .help("Copy the plan to the clipboard in EVE's format")
+
+        Button(role: .destructive) {
+            let count = planItems.count
+            replacePlan(with: [], actionName: String(localized: "Clear Plan"))
+            ToastCenter.shared.show(String(localized: "Cleared \(count) skills — ⌘Z to undo"), systemImage: "trash.fill")
+        } label: {
+            Label("Clear Plan", systemImage: "trash")
+        }
+        .disabled(planItems.isEmpty)
+        .help("Remove every skill from the plan")
+
+        Button {
+            showingClipboardHelp.toggle()
+        } label: {
+            Label("Clipboard Help", systemImage: "questionmark.circle")
+        }
+        .help("How clipboard import and export work")
+        .popover(isPresented: $showingClipboardHelp, arrowEdge: .bottom) {
+            clipboardHelpPopover
+        }
+    }
+
+    func planRow(_ item: SkillPlanItem, finish: Date?) -> some View {
+        let sp = spNeeded(for: item)
+        let seconds = attributes.map { trainingTime(for: item, attrs: $0) } ?? 0.0
+
+        return PlanRowChrome {
+            HStack(spacing: EVESpacing.md) {
+                CachedAsyncImage(url: EVEImageURL.typeIcon(item.skillId, size: 64)) { image in
+                    image.resizable()
+                } placeholder: {
+                    RoundedRectangle(cornerRadius: EVERadius.xs).fill(.quaternary)
+                }
+                .frame(width: 28, height: 28)
+                .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
+
+                VStack(alignment: .leading, spacing: EVESpacing.xxs) {
+                    Text(item.skillName)
+                        .font(.callout.weight(.medium))
+                        .lineLimit(1)
+                        .eveTruncationHelp(item.skillName)
+                    HStack(spacing: EVESpacing.xs) {
+                        levelBadge(item.fromLevel)
+                        Image(systemName: "arrow.right")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                        levelBadge(item.targetLevel)
+                        Text(formatSP(sp))
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.tertiary)
                     }
-                    .accessibilityLabel("Options")
-                    .menuStyle(.button)
-                    .buttonStyle(.plain)
+                }
+
+                Spacer(minLength: EVESpacing.sm)
+
+                VStack(alignment: .trailing, spacing: EVESpacing.xxs) {
+                    if attributes != nil {
+                        Text(formatDuration(seconds))
+                            .font(.callout.monospacedDigit())
+                            .foregroundStyle(.green)
+                    }
+                    if let finish {
+                        Text(EVEDates.short(finish))
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                            .help("Done \(EVEDates.full(finish)) if the plan starts now")
+                    }
                 }
             }
-
+        } hoverControls: {
+            levelMenu(item)
             Button(role: .destructive) {
-                replacePlan(with: planItems.filter { $0.skillId != item.skillId },
-                            actionName: String(localized: "Remove Skill"))
-                ToastCenter.shared.show(String(localized: "Removed \(item.skillName) — ⌘Z to undo"), systemImage: "minus.circle.fill")
+                removeFromPlan(item)
             } label: {
                 Image(systemName: "minus.circle.fill")
                     .foregroundStyle(.red)
-                    .font(.callout)
             }
-            .accessibilityLabel("Remove from Plan")
             .buttonStyle(.plain)
+            .accessibilityLabel("Remove from Plan")
+            .help("Remove from plan")
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, EVESpacing.sm)
+        .contextMenu {
+            levelMenuItems(item)
+            Divider()
+            Button("Move to Top", systemImage: "arrow.up.to.line") { move(item, toTop: true) }
+                .disabled(planItems.first?.id == item.id)
+            Button("Move to Bottom", systemImage: "arrow.down.to.line") { move(item, toTop: false) }
+                .disabled(planItems.last?.id == item.id)
+            Divider()
+            EVEEntityMenuItems(entity: .item(typeID: item.skillId, name: item.skillName))
+            Divider()
+            Button("Remove from Plan", systemImage: "minus.circle", role: .destructive) { removeFromPlan(item) }
+        }
     }
 
+    /// Extend/Reduce choices for a plan row's target level.
+    @ViewBuilder
+    private func levelMenuItems(_ item: SkillPlanItem) -> some View {
+        let canExtend = item.targetLevel < 5
+        let canReduce = item.targetLevel > item.fromLevel + 1
+        if canExtend {
+            ForEach((item.targetLevel + 1)...5, id: \.self) { level in
+                Button("Train to Level \(level)") { updateItem(item, targetLevel: level) }
+            }
+        }
+        if canReduce {
+            ForEach(((item.fromLevel + 1)...(item.targetLevel - 1)).reversed(), id: \.self) { level in
+                Button("Stop at Level \(level)") { updateItem(item, targetLevel: level) }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func levelMenu(_ item: SkillPlanItem) -> some View {
+        if item.targetLevel < 5 || item.targetLevel > item.fromLevel + 1 {
+            Menu {
+                levelMenuItems(item)
+            } label: {
+                Image(systemName: "slider.horizontal.3")
+                    .foregroundStyle(.secondary)
+            }
+            .menuStyle(.button)
+            .menuIndicator(.hidden)
+            .buttonStyle(.plain)
+            .fixedSize()
+            .accessibilityLabel("Change Target Level")
+            .help("Change target level")
+        }
+    }
+
+    private func removeFromPlan(_ item: SkillPlanItem) {
+        replacePlan(with: planItems.filter { $0.skillId != item.skillId },
+                    actionName: String(localized: "Remove Skill"))
+        ToastCenter.shared.show(String(localized: "Removed \(item.skillName) — ⌘Z to undo"), systemImage: "minus.circle.fill")
+    }
+
+    private func move(_ item: SkillPlanItem, toTop: Bool) {
+        var items = planItems.filter { $0.id != item.id }
+        if toTop { items.insert(item, at: 0) } else { items.append(item) }
+        replacePlan(with: items, actionName: String(localized: "Move Skill"))
+    }
+}
+
+/// A plan row that reveals its edit controls (level menu, remove) only on hover, so a
+/// long plan doesn't show a column of red buttons. The same actions are always in the
+/// row's context menu.
+private struct PlanRowChrome<Content: View, Controls: View>: View {
+    @ViewBuilder let content: () -> Content
+    @ViewBuilder let hoverControls: () -> Controls
+    @State private var isHovering = false
+
+    var body: some View {
+        HStack(spacing: EVESpacing.sm) {
+            content()
+            HStack(spacing: EVESpacing.sm) {
+                hoverControls()
+            }
+            .opacity(isHovering ? 1 : 0)
+            .allowsHitTesting(isHovering)
+            .animation(.easeOut(duration: 0.12), value: isHovering)
+        }
+        .padding(.horizontal, EVESpacing.lg)
+        .padding(.vertical, EVESpacing.sm)
+        .background(isHovering ? EVEFill.subtle : Color.clear, in: RoundedRectangle(cornerRadius: EVERadius.sm))
+        .contentShape(Rectangle())
+        .onHover { isHovering = $0 }
+    }
 }

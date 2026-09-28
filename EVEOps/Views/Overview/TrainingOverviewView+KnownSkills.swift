@@ -10,249 +10,145 @@
 
 import SwiftUI
 
+/// One known skill as a row of the Skills table.
+struct KnownSkillRow: Identifiable {
+    let skill: KnownSkill
+    let groupId: Int
+    let group: String
+
+    var id: Int { skill.skillId }
+    var name: String { skill.name }
+    var level: Int { skill.trainedLevel }
+    var skillpoints: Int { skill.skillpoints }
+}
+
 extension TrainingOverviewView {
-    // MARK:  Known Skills Section
+    // MARK:  Skills tab
 
-    var collapsedSkillCharacters: Set<Int> {
-        Set(collapsedSkillCharactersRaw.split(separator: ",").compactMap { Int($0) })
-    }
-
-    func toggleSkillExpansion(for characterID: Int) {
-        var set = collapsedSkillCharacters
-        if set.contains(characterID) {
-            set.remove(characterID)
-        } else {
-            set.insert(characterID)
+    /// Every known skill, filtered by the group menu and the search field (which matches
+    /// skill or group names).
+    func knownSkillRows(_ info: CharacterTrainingInfo) -> [KnownSkillRow] {
+        let query = skillSearchText.trimmingCharacters(in: .whitespaces).lowercased()
+        return info.skillGroups.flatMap { group -> [KnownSkillRow] in
+            if let skillGroupFilter, group.groupId != skillGroupFilter { return [] }
+            let groupMatches = query.isEmpty || group.groupName.lowercased().contains(query)
+            return group.skills
+                .filter { groupMatches || $0.name.lowercased().contains(query) }
+                .map { KnownSkillRow(skill: $0, groupId: group.groupId, group: group.groupName) }
         }
-        collapsedSkillCharactersRaw = set.map(String.init).joined(separator: ",")
     }
 
-    var collapsedSkillGroups: Set<String> {
-        Set(collapsedSkillGroupsRaw.split(separator: ",").map(String.init))
-    }
-
-    func toggleSkillGroupExpansion(_ key: String) {
-        var set = collapsedSkillGroups
-        if set.contains(key) {
-            set.remove(key)
-        } else {
-            set.insert(key)
+    func skillGroupMenu(_ info: CharacterTrainingInfo) -> some View {
+        let groups = info.skillGroups.sorted { $0.groupName < $1.groupName }
+        return Picker("Group", selection: $skillGroupFilter) {
+            Text("All Groups").tag(Int?.none)
+            Divider()
+            ForEach(groups, id: \.groupId) { group in
+                Text("\(group.groupName) (\(group.skills.count))").tag(Int?.some(group.groupId))
+            }
         }
-        collapsedSkillGroupsRaw = set.sorted().joined(separator: ",")
+        .labelsHidden()
+        .fixedSize()
+        .help("Show one skill group")
     }
 
-    func setAllSkillGroups(_ info: CharacterTrainingInfo, collapsed: Bool) {
-        var set = collapsedSkillGroups
-        for group in info.skillGroups {
-            let key = "\(info.characterID)-\(group.groupId)"
-            if collapsed {
-                set.insert(key)
+    @ViewBuilder
+    func skillsTab(_ info: CharacterTrainingInfo) -> some View {
+        let rows = knownSkillRows(info).sorted(using: skillSortOrder)
+        if rows.isEmpty {
+            if skillSearchText.isEmpty {
+                EVEEmptyState("No Skills", systemImage: "book.closed")
             } else {
-                set.remove(key)
+                ContentUnavailableView.search(text: skillSearchText)
             }
-        }
-        collapsedSkillGroupsRaw = set.sorted().joined(separator: ",")
-    }
-
-    func knownSkillsSection(_ info: CharacterTrainingInfo) -> some View {
-        let isSearching = !skillSearchText.trimmingCharacters(in: .whitespaces).isEmpty
-        let isExpanded = isSearching || !collapsedSkillCharacters.contains(info.characterID)
-        let displayGroups = filteredSkillGroups(info.skillGroups)
-        let matchedCount = displayGroups.reduce(0) { $0 + $1.skills.count }
-
-        return VStack(alignment: .leading, spacing: 0) {
-            Button {
-                if !isSearching {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        toggleSkillExpansion(for: info.characterID)
-                    }
-                }
-            } label: {
-                HStack {
-                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .frame(width: 16)
-                    Image(systemName: "book.closed.fill")
-                        .foregroundStyle(palette.knowledge)
-                    if isSearching {
-                        Text("Known Skills (\(matchedCount) of \(info.knownSkillCount))")
-                            .font(.subheadline.bold())
-                    } else {
-                        Text("Known Skills (\(info.knownSkillCount))")
-                            .font(.subheadline.bold())
-                    }
-                    Spacer()
-                    Text("\(info.totalSP.formatted()) SP")
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                }
-                .padding(EVESpacing.lg)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-
-            if isExpanded {
-                Divider().padding(.horizontal, EVESpacing.lg)
-
-                if displayGroups.isEmpty {
-                    Text("No skills match \"\(skillSearchText)\"")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .padding(EVESpacing.lg)
-                } else {
-                    if !isSearching && displayGroups.count > 1 {
-                        HStack(spacing: EVESpacing.lg) {
-                            Spacer()
-                            Button("Expand All") {
-                                withAnimation(.easeInOut(duration: 0.2)) {
-                                    setAllSkillGroups(info, collapsed: false)
-                                }
-                            }
-                            Button("Collapse All") {
-                                withAnimation(.easeInOut(duration: 0.2)) {
-                                    setAllSkillGroups(info, collapsed: true)
-                                }
-                            }
+        } else {
+            Table(rows, selection: $selectedSkillRowID, sortOrder: $skillSortOrder) {
+                TableColumn("Skill", value: \.name) { row in
+                    HStack(spacing: EVESpacing.md) {
+                        CachedAsyncImage(url: EVEImageURL.typeIcon(row.id, size: 64)) { image in
+                            image.resizable()
+                        } placeholder: {
+                            RoundedRectangle(cornerRadius: EVERadius.xs).fill(.quaternary)
                         }
-                        .font(.caption)
-                        .buttonStyle(.plain)
-                        .foregroundStyle(.blue)
-                        .padding(.horizontal, EVESpacing.lg)
-                        .padding(.top, EVESpacing.md)
-                    }
-
-                    VStack(alignment: .leading, spacing: 0) {
-                        ForEach(displayGroups.sorted(by: { $0.groupName < $1.groupName }), id: \.groupName) { group in
-                            skillGroupSection(group, characterID: info.characterID)
-                        }
-                    }
-                    .padding(.horizontal, EVESpacing.lg)
-                    .padding(.bottom, EVESpacing.lg)
-                }
-            }
-        }
-    }
-
-    func skillGroupSection(_ group: KnownSkillGroup, characterID: Int) -> some View {
-        let groupSP = group.skills.reduce(0) { $0 + $1.skillpoints }
-        let maxedCount = group.skills.filter { $0.trainedLevel == 5 }.count
-        let isSearching = !skillSearchText.trimmingCharacters(in: .whitespaces).isEmpty
-        let key = "\(characterID)-\(group.groupId)"
-        let isExpanded = isSearching || !collapsedSkillGroups.contains(key)
-
-        return VStack(alignment: .leading, spacing: 0) {
-            // Group header
-            Button {
-                if !isSearching {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        toggleSkillGroupExpansion(key)
-                    }
-                }
-            } label: {
-                HStack(spacing: EVESpacing.md) {
-                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .frame(width: 12)
-                    Text(group.groupName)
-                        .font(.caption.bold())
-                        .foregroundStyle(.primary)
-                    Text("\(group.skills.count) skills")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                    if maxedCount > 0 {
-                        Text("\(maxedCount) maxed")
-                            .font(.caption2)
-                            .foregroundStyle(.orange)
-                    }
-                    Spacer()
-                    Text("\(groupSP.formatted()) SP")
-                        .font(.caption2.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.vertical, EVESpacing.sm)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-
-            // Skills in group
-            if isExpanded {
-                ForEach(group.skills.sorted(by: { $0.name < $1.name }), id: \.skillId) { skill in
-                    skillRow(skill, groupName: group.groupName)
-                        .contentShape(Rectangle())
-                        .eveContextMenu(.item(typeID: skill.skillId, name: skill.name))
-                }
-            }
-        }
-    }
-
-    func skillRow(_ skill: KnownSkill, groupName: String) -> some View {
-        Button {
-            selectedSkill = SkillSelection(
-                skillId: skill.skillId,
-                skillName: skill.name,
-                groupName: groupName,
-                knownSkill: skill,
-                queueEntry: nil
-            )
-        } label: {
-        HStack(spacing: EVESpacing.md) {
-            CachedAsyncImage(url: EVEImageURL.typeIcon(skill.skillId, size: 256)) { phase in
-                if let image = phase.image {
-                    image.resizable()
-                        .frame(width: 24, height: 24)
+                        .frame(width: 20, height: 20)
                         .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
-                } else {
-                    RoundedRectangle(cornerRadius: EVERadius.xs)
-                        .fill(.quaternary)
-                        .frame(width: 24, height: 24)
+                        Text(row.name)
+                            .lineLimit(1)
+                            .eveTruncationHelp(row.name)
+                    }
+                }
+                .width(min: 180, ideal: 260)
+
+                TableColumn("Group", value: \.group) { row in
+                    Text(row.group)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                .width(min: 100, ideal: 150)
+
+                TableColumn("Level", value: \.level) { row in
+                    levelCell(row.skill)
+                }
+                .width(min: 120, ideal: 130)
+
+                TableColumn("Skill Points", value: \.skillpoints) { row in
+                    Text(row.skillpoints.formatted())
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                }
+                .width(min: 80, ideal: 100)
+            }
+            .tableStyle(.inset(alternatesRowBackgrounds: true))
+            .contextMenu(forSelectionType: KnownSkillRow.ID.self) { ids in
+                if let id = ids.first, let row = rows.first(where: { $0.id == id }) {
+                    EVEEntityMenuItems(entity: .item(typeID: row.id, name: row.name))
                 }
             }
+            .onChange(of: selectedSkillRowID) { _, id in
+                guard let id, let row = rows.first(where: { $0.id == id }) else { return }
+                selectedSkill = SkillSelection(
+                    skillId: row.id,
+                    skillName: row.name,
+                    groupName: row.group,
+                    knownSkill: row.skill,
+                    queueEntry: info.queue.first { $0.skillId == row.id }
+                )
+            }
+            .copyable(rows.filter { $0.id == selectedSkillRowID }.map {
+                "\($0.name)\t\($0.group)\t\($0.level)\t\($0.skillpoints)"
+            })
+        }
+    }
 
-            Text(skill.name)
-                .font(.caption)
-                .lineLimit(1)
-
-            Spacer()
-
-            // Level pips
+    /// Five level pips plus the level numeral — or "active/trained" in yellow when an
+    /// Alpha clone caps the skill below what's been trained.
+    private func levelCell(_ skill: KnownSkill) -> some View {
+        HStack(spacing: EVESpacing.sm) {
             HStack(spacing: EVESpacing.xxs) {
                 ForEach(1...5, id: \.self) { level in
                     RoundedRectangle(cornerRadius: EVERadius.hairline)
                         .fill(pipColor(trained: skill.trainedLevel, active: skill.activeLevel, pip: level))
-                        .frame(width: 14, height: 12)
+                        .frame(width: 12, height: 10)
                         .overlay(
                             RoundedRectangle(cornerRadius: EVERadius.hairline)
-                                .strokeBorder(
-                                    level <= skill.trainedLevel ? .clear : EVEFill.trackBorder,
-                                    lineWidth: 1
-                                )
+                                .strokeBorder(level <= skill.trainedLevel ? .clear : EVEFill.trackBorder, lineWidth: 1)
                         )
                 }
             }
-
-            // Active vs trained indicator
             if skill.activeLevel < skill.trainedLevel {
                 Text("\(skill.activeLevel)/\(skill.trainedLevel)")
-                    .font(.caption2.bold().monospacedDigit())
+                    .font(.caption.bold().monospacedDigit())
                     .foregroundStyle(.yellow)
-                    .frame(width: 28)
+                    .help("Alpha clone: level \(skill.activeLevel) active of \(skill.trainedLevel) trained")
             } else {
-                Text("L\(skill.trainedLevel)")
-                    .font(.caption2.bold().monospacedDigit())
+                Text(Self.roman(skill.trainedLevel))
+                    .font(.caption.bold())
                     .foregroundStyle(levelColor(skill.trainedLevel))
-                    .frame(width: 28)
             }
-
-            Text("\(skill.skillpoints.formatted()) SP")
-                .font(.caption2.monospacedDigit())
-                .foregroundStyle(.secondary)
-                .frame(width: 80, alignment: .trailing)
         }
-        .padding(.vertical, EVESpacing.xxs)
-        }
-        .buttonStyle(.plain)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text("Level \(skill.trainedLevel)"))
     }
 
     // MARK:  Selection Helpers
@@ -271,5 +167,4 @@ extension TrainingOverviewView {
         }
         return EVEFill.track
     }
-
 }

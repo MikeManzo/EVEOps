@@ -54,6 +54,7 @@ struct SkillPlannerView: View {
             }
         }
         .eveScreenHeader("Skill Planner", section: .skillPlanner) {
+            planToolbarControls
             FreshnessIndicator(isLoading: isLoading) { await loadData() }
         }
         .task(id: accountManager.selectedCharacterID) {

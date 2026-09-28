@@ -15,9 +15,6 @@ import OSLog
 extension TrainingOverviewView {
     // MARK:  Helpers
 
-    func levelBadge(_ level: Int) -> some View {
-        EVEChip(Text("L\(level)"), tint: levelColor(level), size: .small)
-    }
 
     func levelColor(_ level: Int) -> Color {
         switch level {
@@ -60,35 +57,28 @@ extension TrainingOverviewView {
         return "\(seconds)s"
     }
 
-    func estimateCurrentSP(_ entry: TrainingQueueEntry) -> Int {
+
+    /// EVE writes skill levels as Roman numerals ("Gunnery IV").
+    static func roman(_ level: Int) -> String {
+        ["0", "I", "II", "III", "IV", "V"][min(max(level, 0), 5)]
+    }
+
+    /// Fraction of the current level trained at `date`, from the queue entry's SP span.
+    func levelProgress(_ entry: TrainingQueueEntry, at date: Date) -> Double {
         guard let start = entry.startDate, let finish = entry.finishDate,
-              let startSP = entry.trainingStartSP, let endSP = entry.levelEndSP else {
-            return entry.levelStartSP ?? 0
-        }
-        let totalDuration = finish.timeIntervalSince(start)
-        guard totalDuration > 0 else { return startSP }
-        let elapsed = now.timeIntervalSince(start)
-        let fraction = min(max(elapsed / totalDuration, 0), 1)
-        return startSP + Int(Double(endSP - startSP) * fraction)
+              let trainingStartSP = entry.trainingStartSP,
+              let levelStartSP = entry.levelStartSP, let levelEndSP = entry.levelEndSP,
+              levelEndSP > levelStartSP else { return 0 }
+        let span = finish.timeIntervalSince(start)
+        let fraction = span > 0 ? min(max(date.timeIntervalSince(start) / span, 0), 1) : 1
+        let sp = Double(trainingStartSP) + Double(levelEndSP - trainingStartSP) * fraction
+        return min(max((sp - Double(levelStartSP)) / Double(levelEndSP - levelStartSP), 0), 1)
     }
 
     func formatSP(_ sp: Int) -> String {
         EVEFormatters.formatSP(sp, unit: false)
     }
 
-    func filteredSkillGroups(_ groups: [KnownSkillGroup]) -> [KnownSkillGroup] {
-        let query = skillSearchText.trimmingCharacters(in: .whitespaces)
-        guard !query.isEmpty else { return groups }
-        let lower = query.lowercased()
-        return groups.compactMap { group in
-            if group.groupName.lowercased().contains(lower) {
-                return group
-            }
-            let matched = group.skills.filter { $0.name.lowercased().contains(lower) }
-            guard !matched.isEmpty else { return nil }
-            return KnownSkillGroup(groupId: group.groupId, groupName: group.groupName, skills: matched)
-        }
-    }
 
     func exportSkillsToCSV() async {
         guard !isExportingSkills else { return }
