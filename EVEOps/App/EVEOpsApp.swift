@@ -264,6 +264,7 @@ struct EVEOpsApp: App {
             Task(priority: .utility) { await AgentDataManager.shared.ensureLoaded() }
             Task(priority: .utility) { _ = await UniverseCache.shared.allMarketGroups() }
             Task(priority: .utility) { await UniverseCache.shared.warmFactions() }
+            Task(priority: .utility) { await pf.warmSkillGroupCatalog() }
 
             // The app spends most of its life idling in the menu bar — a great time
             // to have EVE News ready before Dashboard is ever opened.

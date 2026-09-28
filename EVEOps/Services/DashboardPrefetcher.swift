@@ -28,6 +28,9 @@ final class DashboardPrefetcher {
     private(set) var resolvedGroups: [Int: ESIGroup] = [:]
     private(set) var resolvedConstellations: [Int: ESIConstellation] = [:]
     private(set) var resolvedRegions: [Int: ESIRegion] = [:]
+    /// Every published skill group with its skill count and SP-to-all-V, for the
+    /// Training Overview header. Static game data, built once per launch.
+    private(set) var skillGroupCatalog: [SkillGroupCatalogEntry] = []
 
     struct PrefetchedCharacterData {
         let wallet: Double
@@ -46,6 +49,9 @@ final class DashboardPrefetcher {
         let loyaltyPoints: [ESILoyaltyPoints]
         // Clone status — used to detect recent jumps that affect training speed
         let clones: ESIClonesResponse?
+        // Training Overview header: attribute bars, remap payoff, plugged-in implants
+        let attributes: ESICharacterAttributes?
+        let implantIDs: [Int]
         // Fresh public info — always fetched with cache cleared
         let corporationName: String
         let allianceName: String?
@@ -140,6 +146,10 @@ final class DashboardPrefetcher {
                 "/characters/\(charID)/loyalty/points/", token: token)
             async let fetchClones: ESIClonesResponse = ESIClient.shared.fetch(
                 "/characters/\(charID)/clones/", token: token)
+            async let fetchAttributes: ESICharacterAttributes = ESIClient.shared.fetch(
+                "/characters/\(charID)/attributes/", token: token)
+            async let fetchImplants: [Int] = ESIClient.shared.fetch(
+                "/characters/\(charID)/implants/", token: token)
             async let fetchPublicInfo: ESICharacterPublic = ESIClient.shared.fetch(
                 "/characters/\(charID)/", bypassCache: true)
 
@@ -158,6 +168,8 @@ final class DashboardPrefetcher {
             let orders = (try? await fetchOrders) ?? []
             let lp = (try? await fetchLP) ?? []
             let clonesData = try? await fetchClones
+            let attributes = try? await fetchAttributes
+            let implantIDs = (try? await fetchImplants) ?? []
             let publicInfo = try? await fetchPublicInfo
 
             // Resolve corp and alliance names from the fresh public info
@@ -188,6 +200,8 @@ final class DashboardPrefetcher {
                 marketOrders: orders,
                 loyaltyPoints: lp,
                 clones: clonesData,
+                attributes: attributes,
+                implantIDs: implantIDs,
                 corporationName: corporationName,
                 allianceName: allianceName,
                 fetchedAt: Date()
@@ -226,6 +240,9 @@ final class DashboardPrefetcher {
                 allTypeIDs.insert(job.blueprintTypeId)
                 allNameIDs.insert(job.blueprintTypeId)
             }
+
+            // Implants (Training Overview header)
+            allTypeIDs.formUnion(data.implantIDs)
 
             // Solar systems
             allSystemIDs.insert(data.location.solarSystemId)
@@ -637,7 +654,34 @@ final class DashboardPrefetcher {
         )
     }
 
+    /// Builds `skillGroupCatalog` from the published skill category (16). Types come
+    /// from `UniverseCache`, so after the first run this is disk-backed.
+    func warmSkillGroupCatalog() async {
+        guard skillGroupCatalog.isEmpty,
+              let category = await UniverseCache.shared.category(id: 16) else { return }
+        let groups = await UniverseCache.shared.groups(ids: Set(category.groups)).values.filter(\.published)
+        let types = await UniverseCache.shared.types(ids: groups.flatMap(\.types))
+        skillGroupCatalog = groups.map { group in
+            let skills = group.types.compactMap { types[$0] }.filter(\.published)
+            let maxSP = skills.reduce(0) { sum, skill in
+                let rank = skill.dogmaAttributes?.first { $0.attributeId == 275 }.map { Int($0.value) } ?? 1
+                return sum + rank * 256_000
+            }
+            return SkillGroupCatalogEntry(id: group.groupId, name: group.name,
+                                          skillCount: skills.count, maxSP: maxSP)
+        }
+        .filter { $0.skillCount > 0 }
+    }
+
     private static func formatSP(_ sp: Int) -> String {
         EVEFormatters.formatSP(sp)
     }
+}
+
+struct SkillGroupCatalogEntry: Identifiable {
+    let id: Int
+    let name: String
+    let skillCount: Int
+    /// SP to train every published skill in the group to V (rank × 256,000 each).
+    let maxSP: Int
 }

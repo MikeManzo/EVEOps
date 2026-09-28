@@ -366,7 +366,7 @@ extension TrainingOverviewView {
             .flatMap { try? JSONDecoder().decode([SkillPlanItem].self, from: $0) } ?? []
         async let planTypes = UniverseCache.shared.types(ids: plan.map(\.skillId))
 
-        if let token = try? await accountManager.validToken(for: account) {
+        if !implantsLoaded, let token = try? await accountManager.validToken(for: account) {
             let ids: [Int] = (try? await ESIClient.shared.fetch("/characters/\(info.characterID)/implants/", token: token)) ?? []
             implantTypes = Array(await UniverseCache.shared.types(ids: ids).values)
         }

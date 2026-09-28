@@ -39,9 +39,6 @@ struct TrainingOverviewView: View {
     /// attribute dogma IDs (164…168).
     @State var attributes: ESICharacterAttributes?
     @State var currentSkillAttributeIDs: [Int] = []
-    /// Every published skill group with its skill count and SP-to-all-V, for the
-    /// header's group progress list. Static game data, loaded once.
-    @State var skillGroupCatalog: [SkillGroupCatalogEntry] = []
     /// Header insights: plugged-in implants, types for the queued skills (rank and
     /// attribute pair, for the remap payoff) and the character's saved Skill Planner plan.
     @State var implantTypes: [ESIType] = []
@@ -49,14 +46,6 @@ struct TrainingOverviewView: View {
     @State var queueSkillTypes: [Int: ESIType] = [:]
     @State var savedPlan: [SkillPlanItem] = []
     @State var planSkillTypes: [Int: ESIType] = [:]
-
-    struct SkillGroupCatalogEntry: Identifiable {
-        let id: Int
-        let name: String
-        let skillCount: Int
-        /// SP to train every published skill in the group to V (rank × 256,000 each).
-        let maxSP: Int
-    }
 
     enum TrainingTab: String, CaseIterable, Identifiable {
         case queue, skills
@@ -98,11 +87,14 @@ struct TrainingOverviewView: View {
 
                     Divider()
 
-                    switch tab {
-                    case .queue:  queueTab(info)
-                    case .skills: skillsTab(info)
-                    }
-                }
+                    // Both tabs stay mounted and only the active one is shown. Inserting the
+                    // Skills table into the already laid-out window sent the split view into
+                    // endless Update Constraints passes (hang, then crash); built with the
+                    // first layout, it's fine.
+                    ZStack {
+                        tabPane(.queue) { queueTab(info) }
+                        tabPane(.skills) { skillsTab(info) }
+                    }                }
             }
         }
         .eveInspector(item: $selectedSkill, width: 320) { skill in
@@ -141,7 +133,7 @@ struct TrainingOverviewView: View {
             await loadTraining()
         }
         .task(id: heroDetailsKey) { await loadHeroDetails() }
-        .task { await loadSkillGroupCatalog() }
+        .task { await prefetcher.warmSkillGroupCatalog() }
         .task(id: insightsKey) { await loadInsights() }
         .periodicTick(every: 60) { now = Date() }
         .autoRefresh(every: pollInterval) { await refresh() }
@@ -164,12 +156,23 @@ struct TrainingOverviewView: View {
 
             Spacer(minLength: EVESpacing.md)
 
-            if tab == .skills {
+            // Always laid out (hidden on Queue) so switching tabs doesn't resize the bar.
+            Group {
                 skillGroupMenu(info)
                 EVESearchField("Search skills or groups", text: $skillSearchText)
                     .frame(maxWidth: 260)
             }
+            .opacity(tab == .skills ? 1 : 0)
+            .allowsHitTesting(tab == .skills)
+            .accessibilityHidden(tab != .skills)
         }
+    }
+
+    private func tabPane(_ pane: TrainingTab, @ViewBuilder content: () -> some View) -> some View {
+        content()
+            .opacity(tab == pane ? 1 : 0)
+            .allowsHitTesting(tab == pane)
+            .accessibilityHidden(tab != pane)
     }
 
     private var exportMenu: some View {

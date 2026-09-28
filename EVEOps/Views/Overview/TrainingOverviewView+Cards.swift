@@ -597,24 +597,9 @@ extension TrainingOverviewView {
         return "\(info?.characterID ?? 0)-\(info?.queue.first(where: \.isCurrentlyTraining)?.skillId ?? 0)"
     }
 
-    /// Published skill groups (category 16) with their skill counts and SP to all V.
-    /// Types come from `UniverseCache`, so after the first load this is disk-backed.
-    func loadSkillGroupCatalog() async {
-        guard skillGroupCatalog.isEmpty,
-              let category = await UniverseCache.shared.category(id: 16) else { return }
-        let groups = await UniverseCache.shared.groups(ids: Set(category.groups)).values.filter(\.published)
-        let types = await UniverseCache.shared.types(ids: groups.flatMap(\.types))
-        skillGroupCatalog = groups.map { group in
-            let skills = group.types.compactMap { types[$0] }.filter(\.published)
-            let maxSP = skills.reduce(0) { sum, skill in
-                let rank = skill.dogmaAttributes?.first { $0.attributeId == 275 }.map { Int($0.value) } ?? 1
-                return sum + rank * 256_000
-            }
-            return SkillGroupCatalogEntry(id: group.groupId, name: group.name,
-                                          skillCount: skills.count, maxSP: maxSP)
-        }
-        .filter { $0.skillCount > 0 }
-    }
+    /// Published skill groups with their skill counts and SP to all V — built once
+    /// at launch by the prefetcher.
+    var skillGroupCatalog: [SkillGroupCatalogEntry] { prefetcher.skillGroupCatalog }
 
     func loadHeroDetails() async {
         guard let info = trainingData.first,
@@ -663,7 +648,9 @@ extension TrainingOverviewView {
     private func queueList(_ info: CharacterTrainingInfo) -> some View {
         let durations = info.queue.map { queueDuration($0) }
         let longest = max(durations.max() ?? 1, 1)
-        return VStack(spacing: 0) {
+        // Lazy: a queue can hold 150 entries, and building every row up front stalled
+        // the first switch to this tab for seconds.
+        return LazyVStack(spacing: 0) {
             ForEach(Array(info.queue.enumerated()), id: \.element.position) { index, entry in
                 if index > 0 { Divider().padding(.leading, 76) }
                 Button {

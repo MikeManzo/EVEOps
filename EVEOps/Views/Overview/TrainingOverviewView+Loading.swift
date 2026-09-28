@@ -88,6 +88,15 @@ extension TrainingOverviewView {
         if selectedSkill == nil, let firstInfo = data.first, let firstEntry = firstInfo.queue.first {
             selectedSkill = skillSelection(for: firstEntry, in: firstInfo)
         }
+        // Header extras fetched at launch, so the hero doesn't fill in piece by piece.
+        if let characterID = data.first?.characterID, let prefetched = prefetcher.data(for: characterID) {
+            attributes = prefetched.attributes
+            let implants = prefetched.implantIDs.compactMap { prefetcher.resolvedTypes[$0] }
+            if implants.count == prefetched.implantIDs.count {
+                implantTypes = implants
+                implantsLoaded = true
+            }
+        }
         return !data.isEmpty
     }
 
