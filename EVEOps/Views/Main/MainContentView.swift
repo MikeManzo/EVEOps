@@ -40,6 +40,12 @@ struct MainContentView: View {
                     .transition(.eveSection)
             }
                 .animation(reduceMotion ? nil : EVEMotion.section, value: selectedSection)
+                .task(id: themeManager.faction) { await FactionDockIcon.apply(themeManager.faction) }
+                .task(id: accountManager.selectedCharacterID) {
+                    guard let account = accountManager.selectedAccount,
+                          let token = try? await accountManager.validToken(for: account) else { return }
+                    await StandingsIndex.shared.load(for: account, token: token)
+                }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background {
                     if ambientBackground { EVEAmbientBackground() }

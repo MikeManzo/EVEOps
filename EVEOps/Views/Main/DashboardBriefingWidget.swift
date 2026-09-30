@@ -29,7 +29,9 @@ struct BriefingItem: Identifiable {
         static func < (lhs: Severity, rhs: Severity) -> Bool { lhs.rawValue < rhs.rawValue }
     }
 
-    let id = UUID()
+    /// Stable across rebuilds (character + kind), so SwiftUI keeps each row's identity
+    /// and a newly raised item can be told apart from ones already showing.
+    let id: String
     let severity: Severity
     let icon: String
     let color: Color
@@ -54,6 +56,10 @@ struct DashboardBriefingWidgetView: View {
     @AppStorage("aiInsightsEnabled") private var aiInsightsEnabled = false
     @AppStorage("aiInsightBriefing") private var aiInsightBriefing = true
     @State private var aiEntries: [BriefingAIEntry] = []
+    /// Items already seen on screen, and a per-item counter bumped when an item first
+    /// appears after the initial load — each bump bounces that item's icon once.
+    @State private var seenItemIDs: Set<String>?
+    @State private var arrivals: [String: Int] = [:]
 
     private var items: [BriefingItem] {
         var result: [BriefingItem] = []
@@ -63,12 +69,14 @@ struct DashboardBriefingWidgetView: View {
 
             if summary.isQueueEmpty {
                 result.append(BriefingItem(
+                    id: "\(summary.characterID)-queue-empty",
                     severity: .urgent, icon: "graduationcap.fill", color: .red,
                     title: "Skill queue empty",
                     detail: "\(name)'s training queue is empty — SP is being wasted."
                 ))
             } else if let end = summary.queueEnd, end.timeIntervalSinceNow > 0, end.timeIntervalSinceNow < 86_400 {
                 result.append(BriefingItem(
+                    id: "\(summary.characterID)-queue-ending",
                     severity: .notice, icon: "graduationcap", color: .orange,
                     title: "Skill queue ending soon",
                     detail: "\(name)'s queue finishes \(end.formatted(.relative(presentation: .named)))."
@@ -77,6 +85,7 @@ struct DashboardBriefingWidgetView: View {
 
             if summary.expiredExtractorCount > 0 {
                 result.append(BriefingItem(
+                    id: "\(summary.characterID)-pi-idle",
                     severity: .notice, icon: "globe.americas.fill", color: .orange,
                     title: "PI extractors idle",
                     detail: "\(name) has \(summary.expiredExtractorCount) expired extractor head(s) sitting idle."
@@ -85,6 +94,7 @@ struct DashboardBriefingWidgetView: View {
 
             if let next = summary.nextJobFinish, next.timeIntervalSinceNow > 0, next.timeIntervalSinceNow < 7_200 {
                 result.append(BriefingItem(
+                    id: "\(summary.characterID)-industry-soon",
                     severity: .info, icon: "hammer.fill", color: .blue,
                     title: "Industry job finishing soon",
                     detail: "\(name) has a job completing \(next.formatted(.relative(presentation: .named)))."
@@ -93,6 +103,7 @@ struct DashboardBriefingWidgetView: View {
 
             if summary.dailyISKNet < -1_000_000 {
                 result.append(BriefingItem(
+                    id: "\(summary.characterID)-net-negative",
                     severity: .info, icon: "arrow.down.right.circle", color: .secondary,
                     title: "Spent more than earned today",
                     detail: "\(name) is net \(EVEFormatters.formatISKShort(summary.dailyISKNet)) today."
@@ -102,6 +113,7 @@ struct DashboardBriefingWidgetView: View {
 
         for entry in aiEntries {
             result.append(BriefingItem(
+                id: "ai-\(entry.domainLabel)",
                 severity: .info, icon: entry.icon, color: .purple,
                 title: "\(entry.domainLabel) insight",
                 detail: entry.suggestion.isEmpty ? entry.headline : entry.suggestion
@@ -126,6 +138,7 @@ struct DashboardBriefingWidgetView: View {
                     Image(systemName: "list.bullet.clipboard.fill")
                         .foregroundStyle(accent)
                         .font(.callout)
+                        .eveBounce(on: items.count)
                     Text("Daily Briefing")
                         .font(.title3.bold())
                     if !items.isEmpty {
@@ -156,6 +169,14 @@ struct DashboardBriefingWidgetView: View {
         .task(id: aiInsightsEnabled) {
             await loadAIEntries()
         }
+        .onChange(of: items.map(\.id), initial: true) { _, ids in
+            let current = Set(ids)
+            // The first load isn't news; only items raised after it get a bounce.
+            if let seen = seenItemIDs {
+                for id in current.subtracting(seen) { arrivals[id, default: 0] += 1 }
+            }
+            seenItemIDs = current
+        }
     }
 
     @ViewBuilder
@@ -185,6 +206,7 @@ struct DashboardBriefingWidgetView: View {
             Image(systemName: item.icon)
                 .font(.caption)
                 .foregroundStyle(item.color)
+                .eveBounce(on: arrivals[item.id, default: 0])
                 .frame(width: 16)
             VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 Text(item.title)

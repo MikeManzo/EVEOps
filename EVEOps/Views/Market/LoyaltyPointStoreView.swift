@@ -124,7 +124,7 @@ struct LoyaltyPointStoreView: View {
             Divider()
 
             if isLoadingLP {
-                EVELoadingPane("Loading LP…")
+                LoadingSkeleton(rows: 6)
             } else if lpData.isEmpty {
                 EVEEmptyState("No Loyalty Points", systemImage: "medal", message: "Earn LP by running missions for NPC corporations.")
             } else {

@@ -130,6 +130,7 @@ struct ShipDetailPane: View {
                             .padding(.vertical, EVESpacing.sm)
                             .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
                             .foregroundStyle(.white)
+                            .eveHoverable(cornerRadius: EVERadius.md)
                     }
                     .buttonStyle(.plain)
                     if ship.isSingleton && !modules.isEmpty {
@@ -140,6 +141,7 @@ struct ShipDetailPane: View {
                                 .padding(.vertical, EVESpacing.sm)
                                 .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
                                 .foregroundStyle(.white)
+                                .eveHoverable(cornerRadius: EVERadius.md)
                         }
                         .buttonStyle(.plain)
                         Button { showShopView = true } label: {
@@ -149,6 +151,7 @@ struct ShipDetailPane: View {
                                 .padding(.vertical, EVESpacing.sm)
                                 .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
                                 .foregroundStyle(.white)
+                                .eveHoverable(cornerRadius: EVERadius.md)
                         }
                         .buttonStyle(.plain)
                     }

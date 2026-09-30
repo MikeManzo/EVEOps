@@ -196,7 +196,7 @@ struct CharacterContactsView: View {
     @ViewBuilder
     private var detailPane: some View {
         if isLoadingDetail {
-            EVELoadingPane("Loading contact details…")
+            LoadingSkeleton(rows: 4)
         } else if let detail = selectedDetail {
             ScrollView {
                 VStack(spacing: 20) {
@@ -235,12 +235,15 @@ struct CharacterContactsView: View {
             }
             .frame(width: 96, height: 96)
             .clipShape(isCharacter ? AnyShape(Circle()) : AnyShape(RoundedRectangle(cornerRadius: EVERadius.xl)))
+            // Ringed in the contact's standing color; neutral contacts keep the theme ring.
             .overlay {
+                let ring: AnyShapeStyle = detail.contact.standing == 0
+                    ? AnyShapeStyle(LinearGradient.evePortraitRing(palette.accent))
+                    : AnyShapeStyle(eveStandingColor(detail.contact.standing))
                 if isCharacter {
-                    Circle().strokeBorder(LinearGradient.evePortraitRing(palette.accent), lineWidth: 1.5)
+                    Circle().strokeBorder(ring, lineWidth: 2)
                 } else {
-                    RoundedRectangle(cornerRadius: EVERadius.xl)
-                        .strokeBorder(LinearGradient.evePortraitRing(palette.accent), lineWidth: 1.5)
+                    RoundedRectangle(cornerRadius: EVERadius.xl).strokeBorder(ring, lineWidth: 2)
                 }
             }
             .shadow(color: .black.opacity(0.35), radius: 8, y: 3)
@@ -904,6 +907,7 @@ struct StandingOptionButton: View {
                 RoundedRectangle(cornerRadius: EVERadius.md)
                     .stroke(isSelected ? color.opacity(0.4) : Color.clear, lineWidth: 1)
             )
+            .eveHoverable(cornerRadius: EVERadius.md)
         }
         .buttonStyle(.plain)
     }

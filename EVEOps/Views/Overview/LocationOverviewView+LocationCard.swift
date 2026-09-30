@@ -204,32 +204,39 @@ extension LocationOverviewView {
                                 .font(.subheadline.bold())
                         }
 
-                        HStack(alignment: .top, spacing: EVESpacing.md) {
-                            VStack(alignment: .leading, spacing: EVESpacing.xs) {
-                                Text(info.shipName)
-                                    .font(.headline)
-                                    .lineLimit(1)
-                                Text(info.shipTypeName)
-                                    .font(.callout)
-                                    .foregroundStyle(.secondary)
+                        VStack(alignment: .leading, spacing: EVESpacing.xs) {
+                            Text(info.shipName)
+                                .font(.headline)
+                                .lineLimit(1)
+                                .eveTruncationHelp(info.shipName)
+                            let typeLine = [info.shipTypeName, info.shipGroupName].compactMap { $0 }.joined(separator: " · ")
+                            Text(typeLine)
+                                .font(.callout)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .eveTruncationHelp(typeLine)
+                        }
 
-                                if let group = info.shipGroupName {
-                                    Text(group)
-                                        .font(.caption)
-                                        .foregroundStyle(.tertiary)
+                        // Label/value pairs that never break mid-word: one row when the
+                        // column is wide enough, otherwise stacked.
+                        let stats = shipStats(info)
+                        if !stats.isEmpty {
+                            ViewThatFits(in: .horizontal) {
+                                HStack(spacing: EVESpacing.lg) {
+                                    ForEach(stats) { shipStat(label: $0.label, value: $0.value) }
                                 }
-                            }
-
-                            if info.shipMass != nil || info.shipVolume != nil || info.shipCapacity != nil {
-                                VStack(alignment: .leading, spacing: EVESpacing.sm) {
-                                    if let mass = info.shipMass, mass > 0 {
-                                        shipStat(label: "Mass", value: formatLarge(mass) + " kg")
-                                    }
-                                    if let volume = info.shipVolume, volume > 0 {
-                                        shipStat(label: "Volume", value: String(format: "%.0f m\u{00B3}", volume))
-                                    }
-                                    if let capacity = info.shipCapacity, capacity > 0 {
-                                        shipStat(label: "Cargo", value: String(format: "%.0f m\u{00B3}", capacity))
+                                Grid(alignment: .leading, horizontalSpacing: EVESpacing.sm, verticalSpacing: EVESpacing.xxs) {
+                                    ForEach(stats) { stat in
+                                        GridRow {
+                                            Text(stat.label)
+                                                .font(.caption)
+                                                .foregroundStyle(.tertiary)
+                                            Text(stat.value)
+                                                .font(.caption.monospacedDigit())
+                                                .foregroundStyle(.secondary)
+                                        }
+                                        .lineLimit(1)
+                                        .fixedSize()
                                     }
                                 }
                             }
@@ -278,8 +285,43 @@ extension LocationOverviewView {
             }
             .padding(EVESpacing.lg)
         }
+        // The pilot's ship, blurred, under a light wash of the system's security color,
+        // plus a security strip along the top edge. Both are drawn behind or over the
+        // card, never in it. (The star's icon is only 64 px; blurred across the card it
+        // reads as a flat gradient, so the ship render is used instead.)
+        .eveHeroBackdrop(EVEImageURL.typeRender(info.shipTypeId, size: 512),
+                         height: 180, tint: eveSecurityColor(info.securityValue), intensity: 0.5)
         .eveCard()
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(eveSecurityColor(info.securityValue))
+                .frame(height: 3)
+                .accessibilityHidden(true)
+        }
         .clipShape(RoundedRectangle(cornerRadius: EVERadius.xl))
+    }
+
+    struct ShipStat: Identifiable {
+        let id: String
+        let label: LocalizedStringKey
+        let value: String
+    }
+
+    /// Mass, volume and cargo for the Ship column, skipping any the type doesn't have.
+    func shipStats(_ info: CharacterLocationInfo) -> [ShipStat] {
+        var stats: [ShipStat] = []
+        if let mass = info.shipMass, mass > 0 {
+            stats.append(ShipStat(id: "mass", label: "Mass", value: formatLarge(mass) + " kg"))
+        }
+        if let volume = info.shipVolume, volume > 0 {
+            stats.append(ShipStat(id: "volume", label: "Volume",
+                                  value: volume.formatted(.number.precision(.fractionLength(0))) + " m\u{00B3}"))
+        }
+        if let capacity = info.shipCapacity, capacity > 0 {
+            stats.append(ShipStat(id: "cargo", label: "Cargo",
+                                  value: capacity.formatted(.number.precision(.fractionLength(0))) + " m\u{00B3}"))
+        }
+        return stats
     }
 
     // MARK:  Station Services
@@ -301,9 +343,14 @@ extension LocationOverviewView {
 
             let columns = [GridItem(.adaptive(minimum: 130), alignment: .leading)]
             LazyVGrid(columns: columns, alignment: .leading, spacing: 6) {
-                ForEach(services.sorted(), id: \.self) { service in
+                // Key services first, then the rest alphabetically.
+                let ordered = services.sorted().sorted {
+                    Self.keyStationServices.contains($0) && !Self.keyStationServices.contains($1)
+                }
+                ForEach(ordered, id: \.self) { service in
                     let (label, icon, color) = stationServiceInfo(service)
-                    StationServiceBadge(service: service, label: label, icon: icon, color: color, station: station)
+                    StationServiceBadge(service: service, label: label, icon: icon, color: color, station: station,
+                                        isKey: Self.keyStationServices.contains(service))
                 }
             }
 
@@ -323,29 +370,35 @@ extension LocationOverviewView {
         }
     }
 
+    /// The services a pilot actually docks for. They're listed first and drawn in the
+    /// theme accent; everything else is a neutral pill, so the row isn't a rainbow.
+    static let keyStationServices: Set<String> = [
+        "market", "repair-facilities", "fitting", "cloning", "reprocessing-plant", "loyalty-point-store"
+    ]
+
     func stationServiceInfo(_ service: String) -> (String, String, Color) {
-        switch service {
-        case "market":                return (String(localized: "Market"), "cart.fill", .blue)
-        case "reprocessing-plant":    return (String(localized: "Reprocessing"), "arrow.3.trianglepath", .orange)
-        case "repair-facilities":     return (String(localized: "Repair"), "wrench.and.screwdriver.fill", .green)
-        case "fitting":               return (String(localized: "Fitting"), "gearshape.2.fill", .purple)
-        case "cloning":               return (String(localized: "Cloning"), "person.2.fill", .pink)
-        case "factory", "manufacturing": return (String(localized: "Manufacturing"), "hammer.fill", .yellow)
-        case "labratory", "research": return (String(localized: "Research"), "flask.fill", .cyan)
-        case "insurance":             return (String(localized: "Insurance"), "shield.fill", .mint)
-        case "docking":               return (String(localized: "Docking"), "arrow.down.to.line", .teal)
-        case "office-rental":         return (String(localized: "Offices"), "building.fill", .indigo)
-        case "loyalty-point-store":   return (String(localized: "LP Store"), "star.fill", .yellow)
-        case "navy-offices":          return (String(localized: "Navy"), "flag.fill", .red)
-        case "security-offices":      return (String(localized: "Security"), "lock.shield.fill", .gray)
-        case "bounty-missions":       return (String(localized: "Bounties"), "target", .red)
-        case "assay-office":          return (String(localized: "Assay"), "scalemass.fill", .brown)
-        case "storage":               return (String(localized: "Storage"), "archivebox.fill", .secondary.opacity(0.8) as Color)
-        case "stock-exchange":        return (String(localized: "Exchange"), "arrow.left.arrow.right", .blue)
+        let (label, icon): (String, String) = switch service {
+        case "market":                  (String(localized: "Market"), "cart.fill")
+        case "reprocessing-plant":      (String(localized: "Reprocessing"), "arrow.3.trianglepath")
+        case "repair-facilities":       (String(localized: "Repair"), "wrench.and.screwdriver.fill")
+        case "fitting":                 (String(localized: "Fitting"), "gearshape.2.fill")
+        case "cloning":                 (String(localized: "Cloning"), "person.2.fill")
+        case "factory", "manufacturing": (String(localized: "Manufacturing"), "hammer.fill")
+        case "labratory", "research":   (String(localized: "Research"), "flask.fill")
+        case "insurance":               (String(localized: "Insurance"), "shield.fill")
+        case "docking":                 (String(localized: "Docking"), "arrow.down.to.line")
+        case "office-rental":           (String(localized: "Offices"), "building.fill")
+        case "loyalty-point-store":     (String(localized: "LP Store"), "star.fill")
+        case "navy-offices":            (String(localized: "Navy"), "flag.fill")
+        case "security-offices":        (String(localized: "Security"), "lock.shield.fill")
+        case "bounty-missions":         (String(localized: "Bounties"), "target")
+        case "assay-office":            (String(localized: "Assay"), "scalemass.fill")
+        case "storage":                 (String(localized: "Storage"), "archivebox.fill")
+        case "stock-exchange":          (String(localized: "Exchange"), "arrow.left.arrow.right")
         default:
-            let label = service.split(separator: "-").map { $0.capitalized }.joined(separator: " ")
-            return (label, "circle.fill", .secondary)
+            (service.split(separator: "-").map { $0.capitalized }.joined(separator: " "), "circle.fill")
         }
+        return (label, icon, Self.keyStationServices.contains(service) ? palette.accent : .secondary)
     }
 
     // MARK:  System Stations

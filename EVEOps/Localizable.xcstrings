@@ -1065,6 +1065,12 @@
     "%lld unread" : {
 
     },
+    "%lld unread mails" : {
+
+    },
+    "%lld unread notifications" : {
+
+    },
     "%lld unresolved" : {
 
     },
@@ -1501,6 +1507,9 @@
 
     },
     "All clear — nothing needs your attention right now." : {
+
+    },
+    "All Contacts" : {
 
     },
     "All Divisions" : {
@@ -2172,6 +2181,9 @@
 
     },
     "Constellation" : {
+
+    },
+    "Contact" : {
 
     },
     "Contact comes online / goes offline" : {
@@ -3696,16 +3708,7 @@
     "Loading" : {
 
     },
-    "Loading colony…" : {
-
-    },
     "Loading connections…" : {
-
-    },
-    "Loading contact details…" : {
-
-    },
-    "Loading dashboard…" : {
 
     },
     "Loading details…" : {
@@ -3726,22 +3729,10 @@
     "Loading item details…" : {
 
     },
-    "Loading LP…" : {
-
-    },
-    "Loading market data…" : {
-
-    },
-    "Loading member details…" : {
-
-    },
     "Loading module database…" : {
 
     },
     "Loading news…" : {
-
-    },
-    "Loading recent kills…" : {
 
     },
     "Loading region list…" : {
@@ -3751,9 +3742,6 @@
 
     },
     "Loading ship database…" : {
-
-    },
-    "Loading sovereignty data…" : {
 
     },
     "Loading star map…" : {

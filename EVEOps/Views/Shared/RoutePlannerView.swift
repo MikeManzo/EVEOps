@@ -113,6 +113,7 @@ struct RoutePlannerView: View {
                             .foregroundStyle(.secondary)
                             .frame(width: 28, height: 28)
                             .background(.quaternary, in: RoundedRectangle(cornerRadius: EVERadius.sm))
+                            .eveHoverable(cornerRadius: EVERadius.sm)
                     }
                     .accessibilityLabel("Swap Origin and Destination")
                     .buttonStyle(.plain)

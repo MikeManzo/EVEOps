@@ -325,6 +325,7 @@ struct AgentFinderView: View {
             .padding(.horizontal, EVESpacing.xl).padding(.vertical, EVESpacing.md)
             .background(isSelected ? typeFilter.color.opacity(0.08) : Color.clear)
             .contentShape(Rectangle())
+            .eveHoverable(cornerRadius: EVERadius.sm)
         }
         .eveContextMenu([
             agent.name.map { .character(id: agent.id, name: $0) },

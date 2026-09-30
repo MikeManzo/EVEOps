@@ -389,6 +389,8 @@ struct SidebarView: View {
             } icon: {
                 Image(systemName: section.iconName)
                     .foregroundStyle(isSelected ? .white : palette.accent)
+                    .eveBounce(on: badgeKey(for: section))
+                    .eveWiggle(on: arrivals(for: section))
             }
             if section == .calendar && todayEventCount > 0 {
                 Circle()
@@ -468,8 +470,35 @@ struct SidebarView: View {
             return s.activeContractCount > 0
                 ? .count(s.activeContractCount, accessibility: String(localized: "\(s.activeContractCount) active contracts"))
                 : nil
+        case .mails:
+            let unread = ActivitySignals.shared.unreadMail[id] ?? 0
+            return unread > 0 ? .count(unread, accessibility: String(localized: "\(unread) unread mails")) : nil
+        case .communications:
+            let unread = ActivitySignals.shared.unreadNotifications[id] ?? 0
+            return unread > 0 ? .count(unread, accessibility: String(localized: "\(unread) unread notifications")) : nil
         default:
             return nil
+        }
+    }
+
+    /// What the row's badge currently says; the icon bounces when it changes. Mail and
+    /// notifications are left out — they wiggle on arrivals instead of bouncing on reads.
+    private func badgeKey(for section: NavigationSection) -> String {
+        guard section != .mails, section != .communications else { return "" }
+        switch badge(for: section) {
+        case .alert(let text, _, _): return "alert-\(text)"
+        case .count(let n, _):       return "count-\(n)"
+        case nil:                    return ""
+        }
+    }
+
+    /// Bumps each time new mail or notifications arrive for the selected character.
+    private func arrivals(for section: NavigationSection) -> Int {
+        guard let id = accountManager.selectedAccount?.characterID else { return 0 }
+        switch section {
+        case .mails:          return ActivitySignals.shared.mailArrivals[id] ?? 0
+        case .communications: return ActivitySignals.shared.notificationArrivals[id] ?? 0
+        default:              return 0
         }
     }
 
@@ -716,7 +745,17 @@ struct SidebarView: View {
                     }
                     .frame(width: 40, height: 40)
                     .clipShape(RoundedRectangle(cornerRadius: EVERadius.md))
-                    .overlay(RoundedRectangle(cornerRadius: EVERadius.md).strokeBorder(.primary.opacity(0.15), lineWidth: 1))
+                    // Status ring: a green glow while the pilot is logged in, a dim hairline
+                    // otherwise. Drawn as an overlay, so it never changes the header's size.
+                    .overlay {
+                        let online = prefetcher.data(for: account.characterID)?.online.online == true
+                        RoundedRectangle(cornerRadius: EVERadius.md)
+                            .strokeBorder(online ? AnyShapeStyle(Color.green.gradient) : AnyShapeStyle(Color.primary.opacity(0.15)),
+                                          lineWidth: online ? 2 : 1)
+                            .shadow(color: .green.opacity(online ? 0.6 : 0), radius: 5)
+                            .animation(.smooth(duration: 0.3), value: online)
+                            .allowsHitTesting(false)
+                    }
                     .accessibilityHidden(true)
 
                     VStack(alignment: .leading, spacing: EVESpacing.xxs) {
@@ -761,6 +800,7 @@ struct SidebarView: View {
                                         .padding(.horizontal, EVESpacing.lg)
                                         .padding(.vertical, EVESpacing.sm)
                                         .contentShape(Rectangle())
+                                        .eveHoverable(cornerRadius: EVERadius.sm)
                                     }
                                     .buttonStyle(.plain)
                                 }

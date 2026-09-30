@@ -19,10 +19,9 @@ struct DashboardView: View {
     @State private var summaries: [CharacterSummary] = []
     @State private var isLoading = false
     @AppStorage("backgroundPollInterval") private var pollInterval: Double = 300
-    @State private var contactSummaries: [ContactSummary] = []
-    @AppStorage("dashboard.contacts.playersExpanded") private var playersExpanded = true
-    @AppStorage("dashboard.contacts.npcsExpanded")    private var npcsExpanded = true
-    @AppStorage("dashboard.contacts.orgsExpanded")    private var orgsExpanded = true
+    /// Contacts marked "watched" in EVE. The full list lives on the Contacts screen; the
+    /// Dashboard only keeps the few people you've chosen to keep an eye on.
+    @State private var watchedContacts: [ContactSummary] = []
     @State private var newsItems: [EVENewsItem] = []
     @State private var newsIsLoading = true
     @AppStorage("dashboard.news.expanded") private var newsExpanded = true
@@ -49,13 +48,19 @@ struct DashboardView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 // Character hero cards — full-width split layout
-                let columns = [GridItem(.adaptive(minimum: 340, maximum: 480), spacing: 16)]
                 LazyVGrid(columns: [GridItem(.flexible())], spacing: 16) {
                     ForEach(accountManager.accounts, id: \.characterID) { account in
                         CharacterHeroView(
                             account: account,
                             summary: summaries.first { $0.characterID == account.characterID }
                         )
+                        // With several pilots, mark the one the rest of the app is showing.
+                        .eveSelectionGlow(
+                            isActive: accountManager.accounts.count > 1
+                                && accountManager.selectedCharacterID == account.characterID,
+                            cornerRadius: EVERadius.xl
+                        )
+                        .eveScrollReveal()
                     }
                 }
                 .padding(.horizontal)
@@ -72,35 +77,9 @@ struct DashboardView: View {
 
                 EVENewsWidgetView(items: newsItems, isLoading: newsIsLoading, isExpanded: $newsExpanded, readIDs: readIDs)
 
-                // Contacts — split into Players, NPCs, Organizations
-                let playerContacts = contactSummaries.filter { $0.isPlayerCharacter }
-                let npcContacts    = contactSummaries.filter { $0.contactType == "character" && !$0.isPlayerCharacter }
-                let orgContacts    = contactSummaries.filter { $0.contactType != "character" }
-
-                // #8: Styled collapsible section headers
-                if !playerContacts.isEmpty {
-                    contactSection(
-                        icon: "person.2.fill", color: .blue,
-                        title: "Players", count: playerContacts.count,
-                        isExpanded: $playersExpanded,
-                        contacts: playerContacts, columns: columns
-                    )
-                }
-                if !npcContacts.isEmpty {
-                    contactSection(
-                        icon: "cpu", color: .indigo,
-                        title: "NPCs", count: npcContacts.count,
-                        isExpanded: $npcsExpanded,
-                        contacts: npcContacts, columns: columns
-                    )
-                }
-                if !orgContacts.isEmpty {
-                    contactSection(
-                        icon: "building.2.fill", color: .teal,
-                        title: "Organizations", count: orgContacts.count,
-                        isExpanded: $orgsExpanded,
-                        contacts: orgContacts, columns: columns
-                    )
+                if !watchedContacts.isEmpty {
+                    DashboardWatchedContactsStrip(contacts: watchedContacts)
+                        .padding(.horizontal)
                 }
             }
             .padding(.vertical)
@@ -115,7 +94,7 @@ struct DashboardView: View {
                     tint: .orange
                 )
             } else if isLoading && summaries.isEmpty {
-                EVELoadingPane("Loading dashboard…")
+                LoadingSkeleton(rows: 6)
             }
         }
         .task {
@@ -133,56 +112,6 @@ struct DashboardView: View {
                 await refreshQueueFromESI()
             }
         }
-    }
-
-    // #8: Reusable styled collapsible contact section header
-    @ViewBuilder
-    private func contactSection(
-        icon: String,
-        color: Color,
-        title: String,
-        count: Int,
-        isExpanded: Binding<Bool>,
-        contacts: [ContactSummary],
-        columns: [GridItem]
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Button {
-                isExpanded.wrappedValue.toggle()
-            } label: {
-                HStack(spacing: EVESpacing.md) {
-                    Image(systemName: icon)
-                        .foregroundStyle(color)
-                        .font(.callout)
-                    Text(title)
-                        .font(.title3.bold())
-                    Text("(\(count))")
-                        .font(.title3)
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Image(systemName: isExpanded.wrappedValue ? "chevron.down" : "chevron.right")
-                        .font(.caption.bold())
-                        .foregroundStyle(.tertiary)
-                }
-                .padding(.horizontal, EVESpacing.lg)
-                .padding(.vertical, 10)
-                .background(color.opacity(0.07), in: RoundedRectangle(cornerRadius: EVERadius.lg))
-                .overlay(RoundedRectangle(cornerRadius: EVERadius.lg).strokeBorder(color.opacity(0.15), lineWidth: 1))
-                .eveHoverable(cornerRadius: EVERadius.lg)
-            }
-            .buttonStyle(.plain)
-
-            if isExpanded.wrappedValue {
-                LazyVGrid(columns: columns, spacing: 16) {
-                    ForEach(contacts) { contact in
-                        ContactCardView(contact: contact)
-                            .eveContextMenu(contact.entity)
-                    }
-                }
-                .padding(.top, EVESpacing.lg)
-            }
-        }
-        .padding(.horizontal)
     }
 
     /// Build summaries synchronously from prefetcher data. Returns true if all accounts had data.
@@ -424,7 +353,14 @@ struct DashboardView: View {
                 labelNames: labelNames
             )
         }
-        contactSummaries = summaries
+        // Only watched contacts are shown, so only those get their names and details
+        // resolved. That used to be one ESI call per character contact on every visit.
+        summaries = summaries.filter(\.isWatched)
+        guard !summaries.isEmpty else {
+            watchedContacts = []
+            return
+        }
+        watchedContacts = summaries
 
         let nonCharIndices = summaries.indices.filter { summaries[$0].contactType != "character" }
         if !nonCharIndices.isEmpty {
@@ -433,7 +369,7 @@ struct DashboardView: View {
             for i in nonCharIndices {
                 summaries[i].name = resolved[summaries[i].contactID] ?? ""
             }
-            contactSummaries = summaries
+            watchedContacts = summaries
         }
 
         let charIndices = summaries.indices.filter { summaries[$0].contactType == "character" }
@@ -465,7 +401,7 @@ struct DashboardView: View {
             }
         }
 
-        contactSummaries = summaries
+        watchedContacts = summaries
     }
 
     private func loadNews() async {

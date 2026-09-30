@@ -386,6 +386,7 @@ struct QuietSystemsView: View {
             }
             .padding(.vertical, EVESpacing.xs)
             .contentShape(Rectangle())
+            .eveHoverable(cornerRadius: EVERadius.sm)
         }
         .buttonStyle(.plain)
         .textCase(nil)

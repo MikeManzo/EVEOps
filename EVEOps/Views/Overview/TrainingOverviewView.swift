@@ -49,6 +49,9 @@ struct TrainingOverviewView: View {
     /// Best remap for the queue, worked out once per insights load: the search tries every
     /// allocation, too slow to repeat on each render. Keeps the demand it was computed for.
     @State var remapResult: RemapResult?
+    /// Bumped when the skill in training finishes while this screen is open, to play the
+    /// completion ping around the Now Training ring.
+    @State var skillCompletionPings = 0
 
     struct RemapResult {
         let demand: [SkillTrainingMath.Demand]
@@ -148,6 +151,7 @@ struct TrainingOverviewView: View {
             await loadTraining()
         }
         .task(id: heroDetailsKey) { await loadHeroDetails() }
+        .task(id: trainingFinishKey) { await pingWhenCurrentSkillFinishes() }
         .task { await prefetcher.warmSkillGroupCatalog() }
         .task(id: insightsKey) { await loadInsights() }
         .periodicTick(every: 60) { now = Date() }
@@ -208,6 +212,25 @@ struct TrainingOverviewView: View {
             }
         }
         .help("Export skills to CSV")
+    }
+
+    private var currentTrainingFinish: Date? {
+        trainingData.first?.queue.first(where: \.isCurrentlyTraining)?.finishDate
+    }
+
+    private var trainingFinishKey: String {
+        "\(trainingData.first?.characterID ?? 0)-\(currentTrainingFinish?.timeIntervalSince1970 ?? 0)"
+    }
+
+    /// Sleeps until the skill in training finishes, then plays the completion ping. The
+    /// task restarts whenever the character or the skill in training changes.
+    private func pingWhenCurrentSkillFinishes() async {
+        guard let finish = currentTrainingFinish else { return }
+        let delay = finish.timeIntervalSinceNow
+        guard delay > 0 else { return }
+        try? await Task.sleep(for: .seconds(delay))
+        guard !Task.isCancelled else { return }
+        skillCompletionPings += 1
     }
 
     func refresh() async {

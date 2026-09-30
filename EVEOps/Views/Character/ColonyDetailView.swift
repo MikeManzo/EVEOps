@@ -38,7 +38,7 @@ struct ColonyDetailView: View {
         NavigationStack {
             Group {
                 if isLoading {
-                    EVELoadingPane("Loading colony…")
+                    LoadingSkeleton(rows: 5)
                 } else if let errorMsg = error {
                     EVEEmptyState("Error", systemImage: "exclamationmark.triangle", message: Text(errorMsg), tint: .orange)
                 } else {

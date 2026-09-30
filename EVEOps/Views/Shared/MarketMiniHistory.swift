@@ -27,6 +27,7 @@ struct MarketMiniHistory: View {
     @State private var days = 90
     @State private var isLoading = true
     @State private var failed = false
+    @State private var hoveredDate: Date?
 
     private var lineColor: Color { palette.accent }
 
@@ -100,23 +101,45 @@ struct MarketMiniHistory: View {
 
     // MARK: Chart
 
+    private var hoveredPoint: MarketHistoryService.Point? {
+        guard let hoveredDate else { return nil }
+        return visible.min { abs($0.date.timeIntervalSince(hoveredDate)) < abs($1.date.timeIntervalSince(hoveredDate)) }
+    }
+
     private var chart: some View {
         let med = series?.median(days: days)
         return Chart {
             ForEach(visible) { p in
                 AreaMark(x: .value("Date", p.date), y: .value("Price", p.average))
                     .foregroundStyle(.eveAreaFill(lineColor))
-                    .interpolationMethod(.catmullRom)
+                    .interpolationMethod(EVEChartStyle.interpolation)
                 LineMark(x: .value("Date", p.date), y: .value("Price", p.average))
                     .foregroundStyle(lineColor)
-                    .interpolationMethod(.catmullRom)
+                    .lineStyle(EVEChartStyle.line)
+                    .interpolationMethod(EVEChartStyle.interpolation)
             }
             if let med {
                 RuleMark(y: .value("30d median", med))
                     .foregroundStyle(.secondary.opacity(0.5))
-                    .lineStyle(StrokeStyle(lineWidth: 0.5, dash: [3, 2]))
+                    .lineStyle(EVEChartStyle.reference)
+            }
+            if let hovered = hoveredPoint {
+                RuleMark(x: .value("Date", hovered.date))
+                    .foregroundStyle(.secondary.opacity(0.5))
+                    .lineStyle(EVEChartStyle.reference)
+                    .annotation(position: .top, spacing: 2, overflowResolution: .init(x: .fit(to: .chart), y: .fit(to: .chart))) {
+                        EVEChartCallout(
+                            title: hovered.date.formatted(date: .abbreviated, time: .omitted),
+                            value: EVEFormatters.formatISKShort(hovered.average),
+                            tint: lineColor
+                        )
+                    }
+                PointMark(x: .value("Date", hovered.date), y: .value("Price", hovered.average))
+                    .foregroundStyle(lineColor)
+                    .symbolSize(EVEChartStyle.hoverSymbolSize)
             }
         }
+        .chartXSelection(value: $hoveredDate)
         .eveISKYAxis(desiredCount: 3)
         .eveDateXAxis(desiredCount: 3)
         .eveChartAccessibility(String(localized: "Average price"), points: visible.map { ($0.date, $0.average) })

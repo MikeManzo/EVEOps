@@ -194,6 +194,7 @@ struct SimLoadFittingSheet: View {
                 Image(systemName: "chevron.right").font(.caption2).foregroundStyle(.tertiary)
             }
             .contentShape(Rectangle())
+            .eveHoverable(cornerRadius: EVERadius.sm)
         }
         .buttonStyle(.plain)
     }

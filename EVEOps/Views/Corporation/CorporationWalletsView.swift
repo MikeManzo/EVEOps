@@ -71,9 +71,11 @@ struct CorporationWalletsView: View {
                 Text("Total Corporation Balance")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Text(EVEFormatters.formatISK(totalBalance))
-                    .font(.eveStat)
-                    .eveNumeric(totalBalance)
+                EVERollIn(totalBalance) { shown in
+                    Text(EVEFormatters.formatISK(shown))
+                        .eveNumeric(shown)
+                }
+                .font(.eveStat)
             }
             Spacer()
         }
@@ -101,6 +103,7 @@ struct CorporationWalletsView: View {
                             selectedDivision == wallet.division ? palette.accent.opacity(0.2) : Color.clear,
                             in: RoundedRectangle(cornerRadius: EVERadius.md)
                         )
+                        .eveHoverable(cornerRadius: EVERadius.md)
                     }
                     .buttonStyle(.plain)
                 }

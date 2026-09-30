@@ -54,7 +54,7 @@ struct SovereigntyView: View {
                 Divider()
 
                 if isLoading {
-                    EVELoadingPane("Loading sovereignty data…")
+                    LoadingSkeleton(rows: 8)
                 } else if let error {
                     EVEEmptyState("Couldn't load sovereignty", systemImage: "exclamationmark.triangle", message: Text(error), tint: .orange)
                 } else {

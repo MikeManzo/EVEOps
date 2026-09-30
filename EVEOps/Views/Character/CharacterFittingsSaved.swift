@@ -243,6 +243,7 @@ struct SavedFittingDetailPane: View {
                             .padding(.vertical, EVESpacing.sm)
                             .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
                             .foregroundStyle(.white)
+                            .eveHoverable(cornerRadius: EVERadius.md)
                     }
                     .buttonStyle(.plain)
                     Button { showExporter = true } label: {
@@ -252,6 +253,7 @@ struct SavedFittingDetailPane: View {
                             .padding(.vertical, EVESpacing.sm)
                             .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
                             .foregroundStyle(.white)
+                            .eveHoverable(cornerRadius: EVERadius.md)
                     }
                     .buttonStyle(.plain)
                     if !fitting.items.isEmpty {
@@ -262,6 +264,7 @@ struct SavedFittingDetailPane: View {
                                 .padding(.vertical, EVESpacing.sm)
                                 .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
                                 .foregroundStyle(.white)
+                                .eveHoverable(cornerRadius: EVERadius.md)
                         }
                         .buttonStyle(.plain)
                     }
@@ -462,6 +465,7 @@ struct SavedModuleCell: View {
             .padding(EVESpacing.md)
             .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: EVERadius.md))
             .contentShape(RoundedRectangle(cornerRadius: EVERadius.md))
+            .eveHoverable(cornerRadius: EVERadius.md)
         }
         .buttonStyle(.plain)
         .overlay(alignment: .topTrailing) {

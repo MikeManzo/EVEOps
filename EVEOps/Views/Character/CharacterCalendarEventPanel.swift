@@ -31,7 +31,7 @@ struct CalendarEventDetailPanel: View {
             detailHeader
             Divider()
             if isLoading {
-                EVELoadingPane("Loading…")
+                LoadingSkeleton(rows: 3)
             } else if let detail {
                 detailBody(detail)
             } else {
@@ -202,6 +202,7 @@ struct RSVPButton: View {
                 .background(isSelected ? color.opacity(0.15) : Color.clear, in: RoundedRectangle(cornerRadius: EVERadius.md))
                 .overlay(RoundedRectangle(cornerRadius: EVERadius.md)
                     .stroke(isSelected ? color.opacity(0.4) : Color.secondary.opacity(0.2), lineWidth: 1))
+                    .eveHoverable(cornerRadius: EVERadius.md)
         }
         .buttonStyle(.plain)
         .disabled(isLoading || isSelected)

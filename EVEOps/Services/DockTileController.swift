@@ -9,6 +9,7 @@
 //
 
 import AppKit
+import SwiftUI
 
 /// Drives the Dock icon's badge and optional training-progress ring from the latest
 /// character summaries. Only visible while the Dock icon is shown (Settings > General);
@@ -79,7 +80,55 @@ private final class ProgressTileView: NSView {
                       startAngle: 90, endAngle: 90 - 360 * progress, clockwise: true)
         arc.lineWidth = lineWidth
         arc.lineCapStyle = .round
-        NSColor(red: 0.30, green: 0.85, blue: 0.95, alpha: 1).setStroke()
+        FactionDockIcon.ringColor.setStroke()
         arc.stroke()
+    }
+}
+
+/// Puts the theme faction's crest on the Dock icon (Caldari, Gallente, Amarr,
+/// Minmatar), and colors the Dock progress ring to match. The default theme uses the
+/// plain app icon. Setting `applicationIconImage` needs no system permission and is
+/// undone by setting it back to nil.
+@MainActor
+enum FactionDockIcon {
+    /// The progress ring's color; follows the theme accent.
+    private(set) static var ringColor = NSColor(red: 0.30, green: 0.85, blue: 0.95, alpha: 1)
+
+    static func apply(_ faction: FactionTheme) async {
+        ringColor = NSColor(faction.palette.accent)
+        guard let factionID = faction.factionID,
+              let crestURL = EVEImageURL.factionCrest(factionID, size: 128),
+              let crest = await ImageCache.shared.image(for: crestURL) else {
+            NSApp.applicationIconImage = nil
+            NSApp.dockTile.display()
+            return
+        }
+        // The bundle's own icon, not `applicationIconImage`, which may already carry
+        // a previous faction's crest.
+        let base = NSWorkspace.shared.icon(forFile: Bundle.main.bundlePath)
+        NSApp.applicationIconImage = composite(base: base, crest: crest, accent: ringColor)
+        NSApp.dockTile.display()
+    }
+
+    /// The app icon with the crest in a small accent-rimmed disc at its lower right,
+    /// like a document badge.
+    private static func composite(base: NSImage, crest: NSImage, accent: NSColor) -> NSImage {
+        let size = NSSize(width: 512, height: 512)
+        return NSImage(size: size, flipped: false) { bounds in
+            base.draw(in: bounds)
+            let diameter = bounds.width * 0.40
+            let disc = NSRect(x: bounds.maxX - diameter - bounds.width * 0.06,
+                              y: bounds.minY + bounds.height * 0.06,
+                              width: diameter, height: diameter)
+            let circle = NSBezierPath(ovalIn: disc)
+            NSColor(white: 0.08, alpha: 0.92).setFill()
+            circle.fill()
+            circle.lineWidth = bounds.width * 0.014
+            accent.setStroke()
+            circle.stroke()
+            crest.draw(in: disc.insetBy(dx: diameter * 0.14, dy: diameter * 0.14),
+                       from: .zero, operation: .sourceOver, fraction: 1)
+            return true
+        }
     }
 }

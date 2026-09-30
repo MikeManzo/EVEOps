@@ -154,7 +154,7 @@ struct CharacterCalendarView: View {
         VStack(spacing: 0) {
             filterBar
             if isLoading && allItems.isEmpty {
-                EVELoadingPane("Loading…")
+                LoadingSkeleton(rows: 8)
             } else if let msg = error, allItems.isEmpty {
                 EVEEmptyState(verbatim: msg, systemImage: "calendar.badge.exclamationmark", tint: .orange)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)

@@ -147,6 +147,7 @@ struct ModuleCell: View {
             .padding(EVESpacing.md)
             .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: EVERadius.md))
             .contentShape(RoundedRectangle(cornerRadius: EVERadius.md))
+            .eveHoverable(cornerRadius: EVERadius.md)
         }
         .buttonStyle(.plain)
         .overlay(alignment: .topTrailing) {

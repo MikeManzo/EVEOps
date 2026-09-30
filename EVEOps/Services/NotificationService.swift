@@ -47,6 +47,7 @@ actor NotificationService {
                 let token = try await getToken(account)
                 try await checkSkillQueue(for: account, token: token)
                 try await checkNotifications(for: account, token: token)
+                try await checkUnreadMail(for: account, token: token)
                 try await checkContracts(for: account, token: token)
                 try await checkStandings(for: account, token: token)
                 try await checkIndustryJobs(for: account, token: token)
@@ -117,17 +118,26 @@ actor NotificationService {
     }
 
     private func checkNotifications(for account: StoredAccount, token: String) async throws {
-        guard UserDefaults.standard.object(forKey: "notificationsEnabled") as? Bool ?? true else { return }
-        let structureAlertsOn = UserDefaults.standard.object(forKey: "notifyStructureAlerts") as? Bool ?? true
-        let warAlertsOn = UserDefaults.standard.object(forKey: "notifyWarAlerts") as? Bool ?? true
-        guard structureAlertsOn || warAlertsOn else { return }
-
         do {
             let notifications: [ESINotification] = try await ESIClient.shared.fetch(
                 "/characters/\(account.characterID)/notifications/", token: token
             )
+            // The sidebar's unread badge works whether or not system alerts are on.
+            let unread = notifications.filter { $0.isRead != true }.count
+            await ActivitySignals.shared.setUnreadNotifications(unread, for: account.characterID)
+
             let sorted = notifications.sorted { $0.notificationId > $1.notificationId }
             guard let latest = sorted.first else { return }
+
+            let alertsOn = UserDefaults.standard.object(forKey: "notificationsEnabled") as? Bool ?? true
+            let structureAlertsOn = UserDefaults.standard.object(forKey: "notifyStructureAlerts") as? Bool ?? true
+            let warAlertsOn = UserDefaults.standard.object(forKey: "notifyWarAlerts") as? Bool ?? true
+            guard alertsOn, structureAlertsOn || warAlertsOn else {
+                // Nothing to alert on; still move the marker so re-enabling alerts later
+                // doesn't replay everything that arrived in between.
+                lastCheckedNotifications[account.characterID] = latest.notificationId
+                return
+            }
 
             let lastSeen = lastCheckedNotifications[account.characterID] ?? latest.notificationId
             let newNotifications = sorted.filter { $0.notificationId > lastSeen }
@@ -151,6 +161,21 @@ actor NotificationService {
             }
 
             lastCheckedNotifications[account.characterID] = latest.notificationId
+        } catch ESIError.unauthorized {
+            throw ESIError.unauthorized
+        } catch {
+            // Skip
+        }
+    }
+
+    /// Unread mail count for the sidebar badge. One small call: the labels endpoint
+    /// carries the total unread count, so no mail headers are downloaded.
+    private func checkUnreadMail(for account: StoredAccount, token: String) async throws {
+        do {
+            let labels: ESIMailLabelsResponse = try await ESIClient.shared.fetch(
+                "/characters/\(account.characterID)/mail/labels/", token: token
+            )
+            await ActivitySignals.shared.setUnreadMail(labels.totalUnreadCount ?? 0, for: account.characterID)
         } catch ESIError.unauthorized {
             throw ESIError.unauthorized
         } catch {

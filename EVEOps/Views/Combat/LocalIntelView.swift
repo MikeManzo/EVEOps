@@ -140,6 +140,8 @@ private struct LocalIntelRow: View {
             }
             .frame(width: 32, height: 32)
             .clipShape(Circle())
+            .eveStandingRing(StandingsIndex.shared.standing(
+                character: pilot.characterId, corporation: pilot.corporationId, alliance: pilot.allianceId))
 
             VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                 Text(pilot.name)

@@ -372,6 +372,7 @@ struct ShipGoalBrowserView: View {
                             Image(systemName: "chevron.right").font(.subheadline).foregroundStyle(.tertiary)
                         }
                         .padding(.horizontal, EVESpacing.lg).padding(.vertical, 10).contentShape(Rectangle())
+                        .eveHoverable(cornerRadius: EVERadius.sm)
                     }
                     .buttonStyle(.plain)
                     Divider().padding(.leading, 72)
@@ -420,6 +421,7 @@ struct ShipGoalBrowserView: View {
                             Spacer()
                         }
                         .padding(.horizontal, EVESpacing.lg).padding(.vertical, 10).contentShape(Rectangle())
+                        .eveHoverable(cornerRadius: EVERadius.sm)
                     }
                     .buttonStyle(.plain)
 

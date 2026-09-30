@@ -403,6 +403,9 @@ struct KillmailDetailPane: View {
                         } placeholder: { Circle().fill(.white.opacity(0.1)) }
                         .frame(width: 18, height: 18)
                         .clipShape(Circle())
+                        .eveStandingRing(StandingsIndex.shared.standing(
+                            character: charID, corporation: killmail.victim.corporationId,
+                            alliance: killmail.victim.allianceId), lineWidth: 1)
                     }
                     if !victimName.isEmpty {
                         Text(victimName)
@@ -648,6 +651,8 @@ struct KillmailAttackerRow: View {
                         image.resizable()
                     } placeholder: { Circle().fill(.quaternary) }
                     .frame(width: 28, height: 28).clipShape(Circle())
+                    .eveStandingRing(StandingsIndex.shared.standing(
+                        character: charId, corporation: attacker.corporationId, alliance: attacker.allianceId))
                 } else {
                     Circle().fill(.quaternary).frame(width: 28, height: 28)
                 }
@@ -708,6 +713,9 @@ struct AttackerInfoPopover: View {
                         image.resizable()
                     } placeholder: { Circle().fill(.quaternary) }
                     .frame(width: 56, height: 56).clipShape(Circle())
+                    .eveStandingRing(StandingsIndex.shared.standing(
+                        character: charId, corporation: attacker.corporationId, alliance: attacker.allianceId),
+                                     lineWidth: 2)
                 }
                 VStack(alignment: .leading, spacing: 3) {
                     Text(name.isEmpty ? "Unknown" : name)

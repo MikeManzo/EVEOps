@@ -188,6 +188,7 @@ struct ItemSkillTreeView: View {
                         .padding(.horizontal, EVESpacing.lg)
                         .padding(.vertical, 10)
                         .contentShape(Rectangle())
+                        .eveHoverable(cornerRadius: EVERadius.sm)
                     }
                     .buttonStyle(.plain)
                     Divider().padding(.leading, 54)

@@ -48,6 +48,8 @@ extension TrainingOverviewView {
                 .frame(minWidth: 320, idealWidth: 380, maxWidth: 440, alignment: .leading)
         }
         .padding(EVESpacing.xl)
+        .eveHeroBackdrop(EVEImageURL.characterPortrait(info.characterID, size: 256),
+                         height: 200, cornerRadius: 12)
         .eveElevatedCard()
     }
 
@@ -84,9 +86,11 @@ extension TrainingOverviewView {
                 }
 
                 HStack(alignment: .firstTextBaseline, spacing: EVESpacing.sm) {
-                    Text(info.totalSP.formatted())
-                        .font(.eveStat)
-                        .eveNumeric(info.totalSP)
+                    EVERollIn(Double(info.totalSP)) { sp in
+                        Text(Int(sp).formatted())
+                            .eveNumeric(Int(sp))
+                    }
+                    .font(.eveStat)
                     Text("SP")
                         .font(.callout)
                         .foregroundStyle(.secondary)
@@ -364,6 +368,8 @@ extension TrainingOverviewView {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
+            .eveSelectionGlow(isActive: isFiltered,
+                              outset: CGSize(width: EVESpacing.sm, height: EVESpacing.xs))
         }
         .buttonStyle(.plain)
         .help("\(group.name): \(group.knownCount) of \(group.skillCount) skills known · \(group.trainedSP.formatted()) of \(group.maxSP.formatted()) SP to all V")
@@ -483,6 +489,7 @@ extension TrainingOverviewView {
                 }
             }
             .frame(width: 64, height: 64)
+            .overlay { EVECompletionPing(trigger: skillCompletionPings) }
             .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: EVESpacing.xxs) {
@@ -575,6 +582,7 @@ extension TrainingOverviewView {
                             }
                         }
                         .contentShape(Rectangle())
+                        .eveHoverable(cornerRadius: EVERadius.sm)
                     }
                     .buttonStyle(.plain)
                     .eveContextMenu(.item(typeID: entry.skillId, name: entry.skillName))
@@ -737,7 +745,7 @@ extension TrainingOverviewView {
         }
         .padding(.horizontal, EVESpacing.lg)
         .padding(.vertical, EVESpacing.md)
-        .background(isSelected ? palette.accent.opacity(EVEOpacity.soft) : Color.clear)
         .contentShape(Rectangle())
+        .eveSelectionGlow(isActive: isSelected, outset: CGSize(width: -EVESpacing.xs, height: -EVESpacing.xxs))
     }
 }

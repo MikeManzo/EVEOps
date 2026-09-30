@@ -21,7 +21,7 @@ struct WhatsNewView: View {
     var body: some View {
         VStack(spacing: 0) {
             VStack(spacing: EVESpacing.md) {
-                Image(nsImage: NSApp.applicationIconImage)
+                Image(nsImage: NSWorkspace.shared.icon(forFile: Bundle.main.bundlePath))
                     .resizable()
                     .frame(width: 72, height: 72)
                     .shadow(color: .black.opacity(0.25), radius: 8, y: 4)

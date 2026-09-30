@@ -242,7 +242,7 @@ extension LocationOverviewView {
         }
     }
 
-    func shipStat(label: String, value: String) -> some View {
+    func shipStat(label: LocalizedStringKey, value: String) -> some View {
         HStack(spacing: EVESpacing.xs) {
             Text(label)
                 .font(.caption)
@@ -251,6 +251,8 @@ extension LocationOverviewView {
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
         }
+        .lineLimit(1)
+        .fixedSize()
     }
 
     func formatLarge(_ value: Double) -> String {

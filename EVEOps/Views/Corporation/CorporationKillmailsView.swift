@@ -209,6 +209,7 @@ private struct CorpKillmailSectionHeader: View {
                     .frame(width: 12)
             }
             .contentShape(Rectangle())
+            .eveHoverable(cornerRadius: EVERadius.sm)
         }
         .buttonStyle(.plain)
     }

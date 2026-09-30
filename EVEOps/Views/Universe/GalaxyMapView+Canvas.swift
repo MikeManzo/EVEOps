@@ -503,7 +503,15 @@ extension GalaxyMapView {
                 }
             }
             .padding(10)
-            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
+            // Glass tinted with the current system's security color, and a matching edge.
+            .glassEffect(.regular.tint(eveSecurityColor(sec).opacity(0.18)),
+                         in: RoundedRectangle(cornerRadius: EVERadius.md))
+            .overlay(alignment: .leading) {
+                UnevenRoundedRectangle(topLeadingRadius: EVERadius.md, bottomLeadingRadius: EVERadius.md)
+                    .fill(eveSecurityColor(sec))
+                    .frame(width: 3)
+                    .accessibilityHidden(true)
+            }
             .padding(EVESpacing.lg)
         }
     }

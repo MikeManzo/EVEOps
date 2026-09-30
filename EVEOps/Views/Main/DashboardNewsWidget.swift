@@ -74,6 +74,7 @@ struct EVENewsWidgetView: View {
                     LazyVGrid(columns: columns, spacing: 12) {
                         ForEach(items) { item in
                             NewsCardView(item: item, readIDs: $readIDs)
+                                .eveScrollReveal()
                         }
                     }
                     .padding(.top, EVESpacing.lg)

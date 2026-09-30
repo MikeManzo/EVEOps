@@ -118,9 +118,11 @@ struct CharacterHeroView: View {
             }
         }
         .task(id: locationTaskID) { await fetchStationName() }
+        // Countdowns here show minutes, so a 15-second tick is plenty: it keeps the
+        // training bar moving without re-rendering the whole card every second.
         .task(id: "timer") {
             while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(1))
+                try? await Task.sleep(for: .seconds(15))
                 now = Date()
             }
         }

@@ -18,6 +18,7 @@ struct StationServiceBadge: View {
     let icon: String
     let color: Color
     let station: ESIStation
+    var isKey = false
     @State private var showPopover = false
 
     var body: some View {
@@ -28,11 +29,12 @@ struct StationServiceBadge: View {
                     .foregroundStyle(color)
                 Text(label)
                     .font(.caption)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(isKey ? .primary : .secondary)
             }
             .padding(.horizontal, EVESpacing.md)
             .padding(.vertical, EVESpacing.xs)
-            .background(color.opacity(0.12), in: Capsule())
+            .background(isKey ? color.opacity(0.14) : Color.primary.opacity(0.06), in: Capsule())
+            .eveHoverable(cornerRadius: 100)
         }
         .buttonStyle(.plain)
         .popover(isPresented: $showPopover, arrowEdge: .bottom) {

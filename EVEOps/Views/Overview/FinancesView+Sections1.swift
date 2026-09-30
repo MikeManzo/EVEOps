@@ -35,10 +35,12 @@ extension FinancesView {
             Text("Net Worth")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            Text(EVEFormatters.formatISKShort(netWorth))
-                .font(.eveStatCompact)
-                .foregroundStyle(eveAmountStyle(netWorth, palette.accent))
-                .eveNumeric(netWorth)
+            EVERollIn(netWorth) { shown in
+                Text(EVEFormatters.formatISKShort(shown))
+                    .eveNumeric(shown)
+            }
+            .font(.eveStatCompact)
+            .foregroundStyle(eveAmountStyle(netWorth, palette.accent))
             if let weekChange {
                 Text("\(weekChange >= 0 ? "▲" : "▼") \(abs(weekChange).formatted(.percent.precision(.fractionLength(1)))) this week")
                     .font(.eveMicro.monospacedDigit())
@@ -499,10 +501,12 @@ extension FinancesView {
             VStack(alignment: .leading, spacing: EVESpacing.xs) {
                 Text(finance.characterName)
                     .font(.title3.bold())
-                Text(EVEFormatters.formatISK(finance.balance))
-                    .font(.eveHeroStat)
-                    .foregroundStyle(.blue)
-                    .eveNumeric(finance.balance)
+                EVERollIn(finance.balance) { shown in
+                    Text(EVEFormatters.formatISK(shown))
+                        .eveNumeric(shown)
+                }
+                .font(.eveHeroStat)
+                .foregroundStyle(.blue)
             }
 
             Spacer()

@@ -143,16 +143,16 @@ struct BalanceSparkline: View {
             ForEach(points, id: \.date) { point in
                 AreaMark(x: .value("Date", point.date), y: .value("Balance", point.balance))
                     .foregroundStyle(.eveAreaFill(tint))
-                    .interpolationMethod(.monotone)
+                    .interpolationMethod(EVEChartStyle.interpolation)
                 LineMark(x: .value("Date", point.date), y: .value("Balance", point.balance))
                     .foregroundStyle(tint)
-                    .lineStyle(StrokeStyle(lineWidth: 1.5, lineCap: .round))
-                    .interpolationMethod(.monotone)
+                    .lineStyle(EVEChartStyle.line)
+                    .interpolationMethod(EVEChartStyle.interpolation)
             }
             if let hovered = hoveredPoint {
                 RuleMark(x: .value("Date", hovered.date))
                     .foregroundStyle(.secondary.opacity(0.5))
-                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 2]))
+                    .lineStyle(EVEChartStyle.reference)
                     .annotation(position: .top, spacing: 2, overflowResolution: .init(x: .fit(to: .chart), y: .fit(to: .chart))) {
                         EVEChartCallout(
                             title: hovered.date.formatted(date: .abbreviated, time: .shortened),
@@ -162,7 +162,7 @@ struct BalanceSparkline: View {
                     }
                 PointMark(x: .value("Date", hovered.date), y: .value("Balance", hovered.balance))
                     .foregroundStyle(tint)
-                    .symbolSize(28)
+                    .symbolSize(EVEChartStyle.hoverSymbolSize)
             }
         }
         .chartXAxis(.hidden)
@@ -229,11 +229,11 @@ struct NetWorthSparkline: View {
                      yStart: .value("Floor", floor),
                      yEnd: .value("Net Worth", point.netWorth))
                 .foregroundStyle(.eveAreaFill(tint))
-                .interpolationMethod(.monotone)
+                .interpolationMethod(EVEChartStyle.interpolation)
             LineMark(x: .value("Day", point.date), y: .value("Net Worth", point.netWorth))
                 .foregroundStyle(tint.opacity(0.7))
-                .lineStyle(StrokeStyle(lineWidth: 1.2))
-                .interpolationMethod(.monotone)
+                .lineStyle(EVEChartStyle.line)
+                .interpolationMethod(EVEChartStyle.interpolation)
         }
         .chartYScale(domain: yDomain)
         .chartXScale(domain: NetWorthHistoryCard.dayDomain(days: 30, points: points))
@@ -332,16 +332,16 @@ struct NetWorthHistoryCard: View {
                          yStart: .value("Floor", floor),
                          yEnd: .value("Net Worth", point.netWorth))
                     .foregroundStyle(.eveAreaFill(tint))
-                    .interpolationMethod(.monotone)
+                    .interpolationMethod(EVEChartStyle.interpolation)
                 LineMark(x: .value("Day", point.date), y: .value("Net Worth", point.netWorth))
                     .foregroundStyle(tint)
-                    .lineStyle(StrokeStyle(lineWidth: 1.8, lineCap: .round))
-                    .interpolationMethod(.monotone)
+                    .lineStyle(EVEChartStyle.line)
+                    .interpolationMethod(EVEChartStyle.interpolation)
             }
             if let hovered = hoveredPoint {
                 RuleMark(x: .value("Day", hovered.date))
                     .foregroundStyle(.secondary.opacity(0.5))
-                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 2]))
+                    .lineStyle(EVEChartStyle.reference)
                     .annotation(position: .top, spacing: 2, overflowResolution: .init(x: .fit(to: .chart), y: .fit(to: .chart))) {
                         EVEChartCallout(
                             title: hovered.date.formatted(date: .abbreviated, time: .omitted),
@@ -351,7 +351,7 @@ struct NetWorthHistoryCard: View {
                     }
                 PointMark(x: .value("Day", hovered.date), y: .value("Net Worth", hovered.netWorth))
                     .foregroundStyle(tint)
-                    .symbolSize(30)
+                    .symbolSize(EVEChartStyle.hoverSymbolSize)
             }
         }
         .chartYScale(domain: yDomain)

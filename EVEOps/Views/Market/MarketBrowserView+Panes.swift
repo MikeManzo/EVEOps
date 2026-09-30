@@ -263,7 +263,7 @@ extension MarketBrowserView {
                 }
 
                 if isLoadingOrders {
-                    EVELoadingPane("Loading market data…")
+                    LoadingSkeleton(rows: 6, showsHeader: false)
                         .frame(minHeight: 200)
                 } else if let error = ordersError {
                     Text("Error: \(error)")

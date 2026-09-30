@@ -145,7 +145,7 @@ struct CommunityFittingsView: View {
 
             if searchText.isEmpty {
                 if isLoadingRecent {
-                    EVELoadingPane("Loading recent kills\u{2026}")
+                    LoadingSkeleton(rows: 8, showsHeader: false)
                 } else if recentlyDestroyed.isEmpty {
                     EVEEmptyState(
                         "Search for a Ship Type",
@@ -802,6 +802,7 @@ struct CommunityModuleRow: View {
             }
             .padding(.vertical, EVESpacing.xxs)
             .contentShape(Rectangle())
+            .eveHoverable(cornerRadius: EVERadius.sm)
         }
         .buttonStyle(.plain)
         .popover(isPresented: $showPopover, arrowEdge: .trailing) {
@@ -851,6 +852,7 @@ struct AttackerShipRow: View {
             }
             .padding(.vertical, EVESpacing.xxs)
             .contentShape(Rectangle())
+            .eveHoverable(cornerRadius: EVERadius.sm)
         }
         .buttonStyle(.plain)
         .popover(isPresented: $showPopover, arrowEdge: .trailing) {

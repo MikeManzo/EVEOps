@@ -95,6 +95,9 @@ struct AssetBrowser: View {
     @State private var assets: [ResolvedAsset] = []
     @State private var assetByID: [Int: ResolvedAsset] = [:]
     @State private var sections: [AssetSection] = []
+    /// Security of each NPC station's system, keyed by location name (what the station
+    /// sections are keyed by). Player structures aren't looked up, so they have none.
+    @State private var locationSecurity: [String: Double] = [:]
     @State private var isLoading = true
     @State private var isRefreshing = false
     @State private var lastRefresh: Date?
@@ -250,6 +253,9 @@ struct AssetBrowser: View {
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .frame(width: 10)
+                if let security = locationSecurity[section.key] {
+                    EVESecurityBadge(status: security, compact: true)
+                }
                 Text(section.key)
                     .font(.title3.bold())
                 Spacer()
@@ -258,6 +264,7 @@ struct AssetBrowser: View {
                     .foregroundStyle(.secondary)
             }
             .contentShape(Rectangle())
+            .eveHoverable(cornerRadius: EVERadius.sm)
         }
         .buttonStyle(.plain)
     }
@@ -287,8 +294,13 @@ struct AssetBrowser: View {
                         }
                     }
                 case .type:
-                    Text(asset.locationName)
-                        .font(.callout)
+                    HStack(spacing: EVESpacing.xs) {
+                        if let security = locationSecurity[asset.locationName] {
+                            EVESecurityBadge(status: security, compact: true)
+                        }
+                        Text(asset.locationName)
+                            .font(.callout)
+                    }
                     if asset.isBlueprintCopy {
                         Text("(BPC)")
                             .font(.caption2)
@@ -414,6 +426,17 @@ struct AssetBrowser: View {
             assetByID = Dictionary(assets.map { ($0.itemId, $0) }, uniquingKeysWith: { first, _ in first })
             if selectedAssetID == nil { selectedAssetID = assets.first?.itemId }
             await recomputeSections()
+
+            // Security for NPC stations, from the disk-backed universe cache. Done after
+            // the list is on screen; the badges fill in as they resolve.
+            var security: [String: Double] = [:]
+            for locID in locationIDs where (60_000_000..<64_000_000).contains(locID) {
+                guard let name = locationNames[locID],
+                      let station = await UniverseCache.shared.station(id: locID),
+                      let system = await UniverseCache.shared.solarSystem(id: station.systemId) else { continue }
+                security[name] = system.securityStatus
+            }
+            locationSecurity = security
         } catch {
             self.error = error.localizedDescription
         }

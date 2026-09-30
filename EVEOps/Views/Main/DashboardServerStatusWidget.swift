@@ -17,6 +17,7 @@ struct ServerStatusWidgetView: View {
     @Binding var isExpanded: Bool
     @Environment(APIStatusMonitor.self) private var apiStatus
     @State private var now = Date()
+    @State private var hoveredSampleDate: Date?
 
     private var timeUntilDowntime: TimeInterval {
         EVEDowntime.next(from: now).timeIntervalSince(now)
@@ -39,6 +40,9 @@ struct ServerStatusWidgetView: View {
                     Image(systemName: "server.rack")
                         .foregroundStyle(accent)
                         .font(.callout)
+                        // Keeps pulsing while Tranquility is unreachable, degraded or
+                        // in maintenance.
+                        .evePulse(isActive: !healthy)
                     Text("Tranquility")
                         .font(.title3.bold())
                     if apiStatus.vipMode {
@@ -259,15 +263,36 @@ struct ServerStatusWidgetView: View {
     private var populationSparkline: some View {
         let samples = apiStatus.populationHistory
         if samples.count > 1 {
-            Chart(samples) { sample in
-                AreaMark(x: .value("Time", sample.date), y: .value("Players", sample.players))
-                    .foregroundStyle(.eveAreaFill(.green))
-                    .interpolationMethod(.monotone)
-                LineMark(x: .value("Time", sample.date), y: .value("Players", sample.players))
-                    .foregroundStyle(.green)
-                    .lineStyle(StrokeStyle(lineWidth: 1.5, lineCap: .round))
-                    .interpolationMethod(.monotone)
+            let hovered = hoveredSampleDate.flatMap { date in
+                samples.min { abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date)) }
             }
+            Chart {
+                ForEach(samples) { sample in
+                    AreaMark(x: .value("Time", sample.date), y: .value("Players", sample.players))
+                        .foregroundStyle(.eveAreaFill(.green))
+                        .interpolationMethod(EVEChartStyle.interpolation)
+                    LineMark(x: .value("Time", sample.date), y: .value("Players", sample.players))
+                        .foregroundStyle(.green)
+                        .lineStyle(EVEChartStyle.line)
+                        .interpolationMethod(EVEChartStyle.interpolation)
+                }
+                if let hovered {
+                    RuleMark(x: .value("Time", hovered.date))
+                        .foregroundStyle(.secondary.opacity(0.5))
+                        .lineStyle(EVEChartStyle.reference)
+                        .annotation(position: .top, spacing: 2, overflowResolution: .init(x: .fit(to: .chart), y: .fit(to: .chart))) {
+                            EVEChartCallout(
+                                title: hovered.date.formatted(date: .omitted, time: .shortened),
+                                value: String(localized: "\(hovered.players.formatted()) online"),
+                                tint: .green
+                            )
+                        }
+                    PointMark(x: .value("Time", hovered.date), y: .value("Players", hovered.players))
+                        .foregroundStyle(.green)
+                        .symbolSize(EVEChartStyle.hoverSymbolSize)
+                }
+            }
+            .chartXSelection(value: $hoveredSampleDate)
             .chartXAxis(.hidden)
             .chartYAxis(.hidden)
             .eveChartAccessibility(String(localized: "Players online"),

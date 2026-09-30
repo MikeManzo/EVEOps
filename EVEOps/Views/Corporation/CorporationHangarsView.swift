@@ -267,6 +267,7 @@ struct CorporationHangarsView: View {
                 isSelected ? palette.accent.opacity(0.2) : Color.clear,
                 in: RoundedRectangle(cornerRadius: EVERadius.md)
             )
+            .eveHoverable(cornerRadius: EVERadius.md)
         }
         .buttonStyle(.plain)
     }
@@ -312,6 +313,7 @@ struct CorporationHangarsView: View {
                 isSelected ? palette.accent.opacity(0.2) : Color.clear,
                 in: RoundedRectangle(cornerRadius: EVERadius.md)
             )
+            .eveHoverable(cornerRadius: EVERadius.md)
         }
         .buttonStyle(.plain)
     }

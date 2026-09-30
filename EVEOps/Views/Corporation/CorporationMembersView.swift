@@ -177,7 +177,7 @@ struct CorporationMembersView: View {
     @ViewBuilder
     private var detailPane: some View {
         if isLoadingDetail {
-            EVELoadingPane("Loading member details…")
+            LoadingSkeleton(rows: 4)
         } else if let detail = selectedDetail {
             ScrollView {
                 VStack(spacing: 20) {

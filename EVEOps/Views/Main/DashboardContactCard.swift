@@ -10,177 +10,71 @@
 
 import SwiftUI
 
-// Mark:  Contact Card
+// MARK: Watched contacts strip
 
-struct ContactCardView: View {
-    let contact: ContactSummary
-    @Environment(PresenceTracker.self) private var presenceTracker
+/// The contacts you've marked "watched" in EVE, as one compact row of portraits and
+/// logos. The Dashboard used to show every contact — players, NPC agents and
+/// organizations — as full cards, which repeated the Contacts screen and buried
+/// everything below it.
+struct DashboardWatchedContactsStrip: View {
+    let contacts: [ContactSummary]
+
+    @Environment(ThemeManager.self) private var themeManager
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Banner: standing-tinted gradient + overlay logo
-            ZStack(alignment: .bottomTrailing) {
-                LinearGradient(
-                    colors: [standingColor.opacity(0.30), Color(white: 0.10)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .frame(height: 80)
+        HStack(spacing: EVESpacing.md) {
+            Image(systemName: "eye.fill")
+                .foregroundStyle(themeManager.palette.accent)
+                .font(.callout)
+            Text("Watched")
+                .font(.title3.bold())
 
-                if let bannerURL = contact.bannerLogoURL {
-                    CachedAsyncImage(url: bannerURL) { phase in
-                        if let image = phase.image {
-                            image.resizable()
-                                .frame(width: 32, height: 32)
-                                .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
-                                .shadow(color: .black.opacity(0.5), radius: 3)
-                        }
+            ScrollView(.horizontal) {
+                HStack(spacing: EVESpacing.sm) {
+                    ForEach(contacts) { contact in
+                        avatar(contact)
                     }
-                    .padding(EVESpacing.md)
                 }
+                .padding(.vertical, EVESpacing.xxs)
             }
+            .scrollIndicators(.never)
 
-            VStack(alignment: .leading, spacing: 10) {
-                // Identity row
-                HStack(spacing: EVESpacing.lg) {
-                    ZStack(alignment: .bottomTrailing) {
-                        CachedAsyncImage(url: contact.imageURL) { image in
-                            image.resizable()
-                        } placeholder: {
-                            RoundedRectangle(cornerRadius: EVERadius.md).fill(.quaternary)
-                        }
-                        .frame(width: 52, height: 52)
-                        .clipShape(RoundedRectangle(cornerRadius: EVERadius.md))
-                        .overlay(RoundedRectangle(cornerRadius: EVERadius.md).strokeBorder(.primary.opacity(0.1), lineWidth: 1))
-
-                        if contact.isPlayerCharacter {
-                            PresenceBadge(score: presenceTracker.score(for: contact.contactID), size: 13)
-                                .offset(x: 3, y: 3)
-                        }
-                    }
-
-                    VStack(alignment: .leading, spacing: 3) {
-                        HStack(spacing: EVESpacing.sm) {
-                            Text(contact.name.isEmpty ? "Loading…" : contact.name)
-                                .font(.headline)
-                            Spacer()
-                            if let sec = contact.securityStatus {
-                                Text(String(format: "%.1f", sec))
-                                    .font(.caption2.monospacedDigit())
-                                    .foregroundStyle(sec >= 0 ? .green : .red)
-                            }
-                        }
-                        if let title = contact.title, !title.isEmpty {
-                            Text(title)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                        }
-                        if !contact.corporationName.isEmpty {
-                            Text(contact.corporationName)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                        if let alliance = contact.allianceName {
-                            Text(alliance)
-                                .font(.caption)
-                                .foregroundStyle(.secondary.opacity(0.6))
-                        }
-                    }
-                }
-
-                Divider()
-
-                // Type badge + flags + standing
-                HStack(spacing: EVESpacing.md) {
-                    Image(systemName: contactTypeIcon)
-                        .foregroundStyle(.blue)
-                        .font(.caption)
-                    Text(contactTypeLabel)
-                        .font(.caption.bold())
-                        .foregroundStyle(.blue)
-
-                    if contact.isWatched {
-                        Image(systemName: "eye.fill")
-                            .font(.caption)
-                            .foregroundStyle(.orange)
-                        Text("Watched")
-                            .font(.caption2)
-                            .foregroundStyle(.orange)
-                    }
-
-                    if contact.isBlocked {
-                        Image(systemName: "slash.circle.fill")
-                            .font(.caption)
-                            .foregroundStyle(.red)
-                        Text("Blocked")
-                            .font(.caption2)
-                            .foregroundStyle(.red)
-                    }
-
-                    Spacer()
-
-                    HStack(spacing: EVESpacing.xs) {
-                        Image(systemName: standingIcon)
-                            .foregroundStyle(standingColor)
-                            .font(.caption)
-                        Text(String(format: "%.1f", contact.standing))
-                            .font(.caption.monospacedDigit())
-                            .foregroundStyle(standingColor)
-                    }
-                }
-
-                // Label tags
-                if !contact.labelNames.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: EVESpacing.sm) {
-                            ForEach(contact.labelNames, id: \.self) { label in
-                                Text(label)
-                                    .font(.caption2)
-                                    .padding(.horizontal, EVESpacing.sm)
-                                    .padding(.vertical, EVESpacing.xxs)
-                                    .background(.quaternary, in: Capsule())
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                    .eveEdgeFade()
-                }
+            Button {
+                AppRouter.shared.pendingSection = .contacts
+            } label: {
+                Label("All Contacts", systemImage: "chevron.right")
+                    .labelStyle(.titleAndIcon)
+                    .font(.caption)
             }
-            .padding(EVESpacing.lg)
+            .buttonStyle(.link)
+            .help("Open Contacts")
         }
-        .eveCard()
-        .clipShape(RoundedRectangle(cornerRadius: EVERadius.xl))
+        .padding(.horizontal, EVESpacing.lg)
+        .padding(.vertical, EVESpacing.md)
+        .background(themeManager.palette.accent.opacity(0.07), in: RoundedRectangle(cornerRadius: EVERadius.lg))
+        .overlay(RoundedRectangle(cornerRadius: EVERadius.lg).strokeBorder(themeManager.palette.accent.opacity(0.15), lineWidth: 1))
     }
 
-    private var contactTypeIcon: String {
-        switch contact.contactType {
-        case "corporation":                                return "building.2.fill"
-        case "alliance":                                   return "shield.fill"
-        case "faction":                                    return "globe"
-        case "character" where contact.isPlayerCharacter:  return "person.fill"
-        default:                                           return "cpu"
+    private func avatar(_ contact: ContactSummary) -> some View {
+        let isCharacter = contact.contactType == "character"
+        let shape = RoundedRectangle(cornerRadius: isCharacter ? 16 : EVERadius.sm)
+        return CachedAsyncImage(url: contact.imageURL) { image in
+            image.resizable()
+        } placeholder: {
+            shape.fill(.quaternary)
         }
+        .frame(width: 32, height: 32)
+        .clipShape(shape)
+        .overlay(shape.strokeBorder(eveStandingColor(contact.standing).opacity(0.8), lineWidth: 1.5))
+        .help(helpText(contact))
+        .eveContextMenu(contact.entity)
+        .accessibilityLabel(Text(contact.name.isEmpty ? String(localized: "Contact") : contact.name))
     }
 
-    private var contactTypeLabel: String {
-        switch contact.contactType {
-        case "corporation":                                return "Corp"
-        case "alliance":                                   return "Alliance"
-        case "faction":                                    return "Faction"
-        case "character" where contact.isPlayerCharacter:  return "Player"
-        default:                                           return "NPC"
-        }
-    }
-
-    private var standingColor: Color { eveStandingColor(contact.standing) }
-
-    private var standingIcon: String {
-        if contact.standing >= 5 { return "star.fill" }
-        if contact.standing > 0 { return "hand.thumbsup.fill" }
-        if contact.standing == 0 { return "minus" }
-        if contact.standing > -5 { return "hand.thumbsdown.fill" }
-        return "xmark.circle.fill"
+    private func helpText(_ contact: ContactSummary) -> String {
+        let standing = contact.standing.formatted(.number.precision(.fractionLength(1)).sign(strategy: .always()))
+        let org = contact.corporationName.isEmpty ? "" : " · \(contact.corporationName)"
+        return "\(contact.name)\(org) · standing \(standing)"
     }
 }
 

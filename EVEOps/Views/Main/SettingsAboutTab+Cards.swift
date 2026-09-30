@@ -48,7 +48,7 @@ extension AboutTab {
                 .rotationEffect(.degrees(ringRotation))
 
             // App icon
-            Image(nsImage: NSApp.applicationIconImage)
+            Image(nsImage: NSWorkspace.shared.icon(forFile: Bundle.main.bundlePath))
                 .resizable()
                 .frame(width: 84, height: 84)
                 .clipShape(RoundedRectangle(cornerRadius: 19, style: .continuous))
@@ -775,6 +775,7 @@ extension AboutTab {
             .padding(.vertical, EVESpacing.md)
             .background(.blue.opacity(0.08), in: RoundedRectangle(cornerRadius: EVERadius.md, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: EVERadius.md, style: .continuous).strokeBorder(.blue.opacity(0.18)))
+            .eveHoverable(cornerRadius: EVERadius.md)
         }
         .buttonStyle(.plain)
     }

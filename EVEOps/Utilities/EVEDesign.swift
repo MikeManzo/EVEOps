@@ -854,6 +854,8 @@ struct EVEEmptyState<Actions: View>: View {
         self.init(title: Text(title), systemImage: systemImage, message: message, tint: tint, actions: actions)
     }
 
+    @Environment(ThemeManager.self) private var themeManager: ThemeManager?
+
     var body: some View {
         ContentUnavailableView {
             Label {
@@ -862,6 +864,7 @@ struct EVEEmptyState<Actions: View>: View {
                 Image(systemName: systemImage)
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(tint ?? .secondary)
+                    .eveBreathe()
             }
         } description: {
             if let message { message }
@@ -869,6 +872,26 @@ struct EVEEmptyState<Actions: View>: View {
             actions()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background { factionWatermark }
+    }
+
+    /// The theme faction's crest, very faint, behind the empty state. Nothing for the
+    /// default theme, which isn't a faction.
+    @ViewBuilder
+    private var factionWatermark: some View {
+        if let factionID = themeManager?.faction.factionID {
+            CachedAsyncImage(url: EVEImageURL.factionCrest(factionID, size: 256)) { image in
+                image.resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .grayscale(1)
+                    .opacity(0.06)
+            } placeholder: {
+                Color.clear
+            }
+            .frame(width: 220, height: 220)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+        }
     }
 }
 
@@ -1002,18 +1025,25 @@ struct EVEHeroBackdrop: View {
     let url: URL?
     var height: CGFloat = 160
     var blur: CGFloat = 18
+    /// Overrides the theme accent — e.g. the system's security color on Location.
+    var tint: Color? = nil
+    /// Rounds the top corners to match the card it sits in, for cards that can't be
+    /// clipped as a whole because that would cut off their drop shadow.
+    var cornerRadius: CGFloat = 0
+    /// Scales how strongly the tint washes over the image (1 = full strength).
+    var intensity: Double = 1
 
     @Environment(ThemeManager.self) private var themeManager
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        let accent = themeManager.palette.accent
+        let accent = tint ?? themeManager.palette.accent
         // Dark mode seats the image with a black vignette; on a light card that reads as
         // grime, so Light mode vignettes with the accent tint alone.
-        let vignetteEdge: Color = colorScheme == .dark ? .black.opacity(0.35) : accent.opacity(0.12)
+        let vignetteEdge: Color = colorScheme == .dark ? .black.opacity(0.35) : accent.opacity(0.12 * intensity)
         ZStack {
             LinearGradient(
-                colors: [accent.opacity(0.35), accent.opacity(0.05)],
+                colors: [accent.opacity(0.35 * intensity), accent.opacity(0.05 * intensity)],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -1030,7 +1060,7 @@ struct EVEHeroBackdrop: View {
                 }
             }
             RadialGradient(
-                colors: [.clear, accent.opacity(0.18), vignetteEdge],
+                colors: [.clear, accent.opacity(0.18 * intensity), vignetteEdge],
                 center: .center,
                 startRadius: 40,
                 endRadius: 420
@@ -1047,7 +1077,7 @@ struct EVEHeroBackdrop: View {
         )
         .frame(height: height)
         .frame(maxWidth: .infinity)
-        .clipped()
+        .clipShape(UnevenRoundedRectangle(topLeadingRadius: cornerRadius, topTrailingRadius: cornerRadius))
         .allowsHitTesting(false)
         .accessibilityHidden(true)
     }
@@ -1055,9 +1085,16 @@ struct EVEHeroBackdrop: View {
 
 extension View {
     /// Places an `EVEHeroBackdrop` behind the top of this view.
-    func eveHeroBackdrop(_ url: URL?, height: CGFloat = 160) -> some View {
+    func eveHeroBackdrop(
+        _ url: URL?,
+        height: CGFloat = 160,
+        tint: Color? = nil,
+        cornerRadius: CGFloat = 0,
+        intensity: Double = 1
+    ) -> some View {
         background(alignment: .top) {
-            EVEHeroBackdrop(url: url, height: height)
+            EVEHeroBackdrop(url: url, height: height, tint: tint, cornerRadius: cornerRadius,
+                            intensity: intensity)
         }
     }
 }
@@ -1161,6 +1198,19 @@ private struct SeededGenerator: RandomNumberGenerator {
 }
 
 // MARK: - Charts
+
+/// One line style for every chart, so series, reference lines and hover crosshairs
+/// look the same from screen to screen.
+enum EVEChartStyle {
+    /// The data line of a time series.
+    static let line = StrokeStyle(lineWidth: 1.8, lineCap: .round)
+    /// Medians, averages and the hover crosshair.
+    static let reference = StrokeStyle(lineWidth: 1, dash: [3, 2])
+    /// Smooth but never overshoots the data (catmull-rom can draw peaks that didn't happen).
+    static let interpolation: InterpolationMethod = .monotone
+    /// The dot on the hovered point.
+    static let hoverSymbolSize: CGFloat = 30
+}
 
 extension ShapeStyle where Self == LinearGradient {
     /// Vertical fade used under every line/area series so charts share one fill style.

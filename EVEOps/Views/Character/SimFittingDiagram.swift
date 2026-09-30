@@ -111,6 +111,7 @@ struct SimFittingDiagram: View {
                         .padding(.horizontal, 10).padding(.vertical, EVESpacing.sm)
                         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
                         .foregroundStyle(.white)
+                        .eveHoverable(cornerRadius: EVERadius.md)
                 }
                 .buttonStyle(.plain)
                 if simState.slots.contains(where: { !$0.isEmpty }) {
@@ -120,6 +121,7 @@ struct SimFittingDiagram: View {
                             .padding(.horizontal, 10).padding(.vertical, EVESpacing.sm)
                             .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
                             .foregroundStyle(.white)
+                            .eveHoverable(cornerRadius: EVERadius.md)
                     }
                     .buttonStyle(.plain)
                     Button { Task { await simState.clearAll() } } label: {
@@ -128,6 +130,7 @@ struct SimFittingDiagram: View {
                             .padding(.horizontal, 10).padding(.vertical, EVESpacing.sm)
                             .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
                             .foregroundStyle(.white)
+                            .eveHoverable(cornerRadius: EVERadius.md)
                     }
                     .buttonStyle(.plain)
                 }
