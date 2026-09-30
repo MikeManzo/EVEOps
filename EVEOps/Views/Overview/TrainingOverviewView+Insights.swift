@@ -165,37 +165,33 @@ extension TrainingOverviewView {
     /// the current attributes already fit the queue.
     @ViewBuilder
     func remapPayoff(_ info: CharacterTrainingInfo) -> some View {
-        if let attrs = attributes, !queueSkillTypes.isEmpty {
-            let demand = queueDemand(info)
-            let implants = implantBonuses
+        if let attrs = attributes, let best = remapResult {
             let current = Dictionary(uniqueKeysWithValues: EVEAttribute.allCases.map { ($0, $0.value(in: attrs)) })
-            let currentMinutes = SkillTrainingMath.minutes(for: demand, totals: current)
-            if let best = SkillTrainingMath.optimalRemap(for: demand, implants: implants) {
-                let saved = (currentMinutes - best.minutes) * 60
-                let raised = EVEAttribute.allCases
-                    .filter { best.base[$0, default: 17] > SkillTrainingMath.baseAttribute }
-                    .sorted { best.base[$0, default: 0] > best.base[$1, default: 0] }
-                if saved >= 3600 {
-                    VStack(alignment: .leading, spacing: EVESpacing.xs) {
-                        HStack(alignment: .firstTextBaseline, spacing: EVESpacing.xs) {
-                            Image(systemName: "lightbulb.fill")
-                                .foregroundStyle(.yellow)
-                            Text("Remap to \(raised.map { "\($0.abbreviation) \(best.base[$0]!)" }.joined(separator: " · "))")
-                                .font(.caption.weight(.semibold))
-                        }
-                        Text("Finishes this queue \(formatDuration(saved)) sooner")
-                            .font(.caption)
-                            .foregroundStyle(.green)
-                        Button("Open Remap Advisor") { AppRouter.shared.pendingSection = .remapAdvisor }
-                            .buttonStyle(.link)
-                            .font(.caption)
+            let currentMinutes = SkillTrainingMath.minutes(for: best.demand, totals: current)
+            let saved = (currentMinutes - best.minutes) * 60
+            let raised = EVEAttribute.allCases
+                .filter { best.base[$0, default: 17] > SkillTrainingMath.baseAttribute }
+                .sorted { best.base[$0, default: 0] > best.base[$1, default: 0] }
+            if saved >= 3600 {
+                VStack(alignment: .leading, spacing: EVESpacing.xs) {
+                    HStack(alignment: .firstTextBaseline, spacing: EVESpacing.xs) {
+                        Image(systemName: "lightbulb.fill")
+                            .foregroundStyle(.yellow)
+                        Text("Remap to \(raised.map { "\($0.abbreviation) \(best.base[$0]!)" }.joined(separator: " · "))")
+                            .font(.caption.weight(.semibold))
                     }
-                    .help("Base values after remap; implant bonuses are added on top.")
-                } else {
-                    Label("Attributes already suit this queue", systemImage: "checkmark.circle.fill")
+                    Text("Finishes this queue \(formatDuration(saved)) sooner")
                         .font(.caption)
                         .foregroundStyle(.green)
+                    Button("Open Remap Advisor") { AppRouter.shared.pendingSection = .remapAdvisor }
+                        .buttonStyle(.link)
+                        .font(.caption)
                 }
+                .help("Base values after remap; implant bonuses are added on top.")
+            } else {
+                Label("Attributes already suit this queue", systemImage: "checkmark.circle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.green)
             }
         }
     }
@@ -374,5 +370,12 @@ extension TrainingOverviewView {
         queueSkillTypes = await queueTypes
         savedPlan = plan
         planSkillTypes = await planTypes
+
+        let demand = queueDemand(info)
+        let implants = implantBonuses
+        let best = await Task.detached(priority: .userInitiated) {
+            SkillTrainingMath.optimalRemap(for: demand, implants: implants)
+        }.value
+        remapResult = best.map { RemapResult(demand: demand, base: $0.base, minutes: $0.minutes) }
     }
 }

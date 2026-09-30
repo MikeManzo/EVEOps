@@ -46,6 +46,15 @@ struct TrainingOverviewView: View {
     @State var queueSkillTypes: [Int: ESIType] = [:]
     @State var savedPlan: [SkillPlanItem] = []
     @State var planSkillTypes: [Int: ESIType] = [:]
+    /// Best remap for the queue, worked out once per insights load: the search tries every
+    /// allocation, too slow to repeat on each render. Keeps the demand it was computed for.
+    @State var remapResult: RemapResult?
+
+    struct RemapResult {
+        let demand: [SkillTrainingMath.Demand]
+        let base: [EVEAttribute: Int]
+        let minutes: Double
+    }
 
     enum TrainingTab: String, CaseIterable, Identifiable {
         case queue, skills
@@ -94,7 +103,12 @@ struct TrainingOverviewView: View {
                     ZStack {
                         tabPane(.queue) { queueTab(info) }
                         tabPane(.skills) { skillsTab(info) }
-                    }                }
+                    }
+                }
+                // Don't pass the hero's and Skills table's minimum width up to the window:
+                // with the inspector open, that minimum left the split view with
+                // constraints it could never fully satisfy.
+                .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
             }
         }
         .eveInspector(item: $selectedSkill, width: 320) { skill in
@@ -128,6 +142,7 @@ struct TrainingOverviewView: View {
             queueSkillTypes = [:]
             savedPlan = []
             planSkillTypes = [:]
+            remapResult = nil
             if buildFromPrefetcher() { return }
             isLoading = true
             await loadTraining()

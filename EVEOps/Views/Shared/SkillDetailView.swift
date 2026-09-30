@@ -20,7 +20,6 @@ struct SkillDetailView: View {
     let queueEntry: TrainingQueueEntry?
 
     @State private var typeInfo: ESIType?
-    @State private var now = Date()
 
     private var trainedLevel: Int { knownSkill?.trainedLevel ?? 0 }
     private var activeLevel: Int { knownSkill?.activeLevel ?? 0 }
@@ -52,9 +51,7 @@ struct SkillDetailView: View {
                 .padding()
             }
         }
-        .frame(minWidth: 280, idealWidth: 320)
         .task(id: skillId) { await loadTypeInfo() }
-        .periodicTick(every: 1) { now = Date() }
     }
 
     // MARK:  Header
@@ -94,7 +91,15 @@ struct SkillDetailView: View {
 
     // MARK:  Training Status
 
+    /// Only this section ticks every second. Re-rendering the whole inspector each second
+    /// re-measured the inspector's split view and relaid out the entire Training screen.
     private func trainingStatusSection(_ entry: TrainingQueueEntry) -> some View {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            trainingStatusContent(entry, now: context.date)
+        }
+    }
+
+    private func trainingStatusContent(_ entry: TrainingQueueEntry, now: Date) -> some View {
         VStack(alignment: .leading, spacing: EVESpacing.md) {
             HStack {
                 Image(systemName: entry.isCurrentlyTraining ? "play.circle.fill" : "clock.fill")
@@ -106,7 +111,7 @@ struct SkillDetailView: View {
             }
 
             if let startSP = entry.levelStartSP, let endSP = entry.levelEndSP {
-                let currentSP = estimateCurrentSP(entry)
+                let currentSP = estimateCurrentSP(entry, at: now)
                 let progress = endSP > startSP ? Double(currentSP - startSP) / Double(endSP - startSP) : 0
 
                 ProgressView(value: min(max(progress, 0), 1))
@@ -143,7 +148,7 @@ struct SkillDetailView: View {
                     VStack(alignment: .trailing, spacing: 1) {
                         Text("Remaining")
                             .font(.caption2).foregroundStyle(.tertiary)
-                        Text(timeUntil(finish))
+                        Text(timeUntil(finish, now: now))
                             .font(.caption2.bold().monospacedDigit())
                             .foregroundStyle(entry.isCurrentlyTraining ? .green : palette.knowledge)
                     }
@@ -209,10 +214,12 @@ struct SkillDetailView: View {
                     .foregroundStyle(.green)
                     .font(.caption)
             } else if isTargetLevel, let finish = queueEntry?.finishDate {
-                Label(timeUntil(finish), systemImage: queueEntry?.isCurrentlyTraining == true ? "play.circle.fill" : "clock")
-                    .font(.caption2.monospacedDigit())
-                    .foregroundStyle(queueEntry?.isCurrentlyTraining == true ? .green : palette.knowledge)
-                    .lineLimit(1)
+                TimelineView(.periodic(from: .now, by: 1)) { context in
+                    Label(timeUntil(finish, now: context.date), systemImage: queueEntry?.isCurrentlyTraining == true ? "play.circle.fill" : "clock")
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(queueEntry?.isCurrentlyTraining == true ? .green : palette.knowledge)
+                        .lineLimit(1)
+                }
             }
         }
         .padding(.vertical, EVESpacing.xxs)
@@ -305,7 +312,7 @@ struct SkillDetailView: View {
         EVEFormatters.formatSP(sp)
     }
 
-    private func timeUntil(_ date: Date) -> String {
+    private func timeUntil(_ date: Date, now: Date) -> String {
         let interval = date.timeIntervalSince(now)
         if interval <= 0 { return "Done" }
         let total = Int(interval)
@@ -319,7 +326,7 @@ struct SkillDetailView: View {
         return "\(seconds)s"
     }
 
-    private func estimateCurrentSP(_ entry: TrainingQueueEntry) -> Int {
+    private func estimateCurrentSP(_ entry: TrainingQueueEntry, at now: Date) -> Int {
         guard let start = entry.startDate, let finish = entry.finishDate,
               let startSP = entry.trainingStartSP, let endSP = entry.levelEndSP else {
             return entry.levelStartSP ?? 0

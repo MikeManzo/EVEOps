@@ -404,6 +404,12 @@ private struct EVEInspectorModifier<Value, Pane: View>: ViewModifier {
             Group {
                 if let item { pane(item) }
             }
+            // A fixed size range, so the pane's size never follows its content. Otherwise a
+            // ticking countdown that changes width makes the split view rebuild its
+            // constraints and lay out the whole window every second, until AppKit gives up
+            // on "Update Constraints in Window" and aborts.
+            .frame(minWidth: 0, idealWidth: idealWidth, maxWidth: .infinity,
+                   minHeight: 0, maxHeight: .infinity, alignment: .top)
             .inspectorColumnWidth(min: minWidth, ideal: idealWidth, max: maxWidth)
         }
     }

@@ -22,3 +22,6 @@ Scripts/upload-ship-group-icons/output/
 
 # Git metadata kept out of iCloud sync (see .git symlink)
 .git.nosync/
+
+# Code coverage output
+*.profraw

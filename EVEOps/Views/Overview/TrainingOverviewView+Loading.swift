@@ -84,10 +84,10 @@ extension TrainingOverviewView {
                 lastCloneJumpDate: prefetched.clones?.lastCloneJumpDate
             ))
         }
+        // No skill is preselected: opening the inspector while the window first lays out
+        // this screen stalled the main thread for seconds (the inspector's split view kept
+        // rebuilding its constraints). It opens when the user picks a skill.
         trainingData = data
-        if selectedSkill == nil, let firstInfo = data.first, let firstEntry = firstInfo.queue.first {
-            selectedSkill = skillSelection(for: firstEntry, in: firstInfo)
-        }
         // Header extras fetched at launch, so the hero doesn't fill in piece by piece.
         if let characterID = data.first?.characterID, let prefetched = prefetcher.data(for: characterID) {
             attributes = prefetched.attributes
@@ -226,9 +226,6 @@ extension TrainingOverviewView {
             }
         }
         trainingData = data
-        if selectedSkill == nil, let firstInfo = data.first, let firstEntry = firstInfo.queue.first {
-            selectedSkill = skillSelection(for: firstEntry, in: firstInfo)
-        }
         if data.isEmpty, let lastError {
             self.error = lastError.localizedDescription
         }

@@ -95,6 +95,19 @@ command -v gh >/dev/null 2>&1       || error "GitHub CLI not found. Run: brew in
 command -v xcbeautify >/dev/null 2>&1 || warning "xcbeautify not found — build output will be unformatted. Run: brew install xcbeautify"
 [ -f "$SPARKLE_BIN/generate_keys" ] || error "Sparkle bin not found at $SPARKLE_BIN. Are you running from your project root?"
 
+# ── Check the Sparkle signing key ────────────────────────────
+# 0.9.5.1 and 0.9.5.2 shipped unsigned: generate_appcast couldn't read the private key
+# from the Keychain and carried on without signing, and Sparkle rejects unsigned
+# updates. Check the key up front, before the long archive/notarize pipeline. `-p` only
+# looks up the existing key, it never creates one. If the Keychain asks, choose
+# "Always Allow".
+info "Checking Sparkle signing key..."
+KEYCHAIN_PUBLIC_KEY=$("$SPARKLE_BIN/generate_keys" -p 2>/dev/null | tail -1 | tr -d '[:space:]') || true
+PLIST_PUBLIC_KEY=$(/usr/libexec/PlistBuddy -c "Print :SUPublicEDKey" "EVEOps/Info.plist" 2>/dev/null | tr -d '[:space:]')
+[ -n "$KEYCHAIN_PUBLIC_KEY" ] || error "Couldn't read the Sparkle private key from the Keychain (item 'https://sparkle-project.org', account 'ed25519'). Unlock the login keychain, allow access, and try again."
+[ "$KEYCHAIN_PUBLIC_KEY" = "$PLIST_PUBLIC_KEY" ] || error "Sparkle key mismatch: Keychain key is $KEYCHAIN_PUBLIC_KEY but Info.plist SUPublicEDKey is $PLIST_PUBLIC_KEY. Updates signed now would fail verification."
+info "Sparkle signing key matches Info.plist ✓"
+
 # ── Confirm before proceeding ────────────────────────────────
 echo ""
 echo -e "${YELLOW}About to release:${NC}"
@@ -384,16 +397,50 @@ open(sys.argv[2], "w").write("\n".join(out))
 
 cp "$DMG_PATH" "$APPCAST_DIR/"
 
+# The Sparkle signing key was replaced in 0.9.5 (build 159). Older builds only trust the
+# old key and can never verify an update signed with the new one, so for them every
+# release is *informational*: Sparkle shows the notes and a button that opens the
+# release page for a manual download. Builds 159 and later update automatically.
+# Keep this for as long as anyone might still run a pre-0.9.5 build.
+SPARKLE_KEY_ROTATION_BUILD=159
+
 "$SPARKLE_BIN/generate_appcast" \
   --download-url-prefix "$DOWNLOAD_URL_PREFIX" \
   --link "https://github.com/MikeManzo/EVEOps/releases/tag/$TAG" \
+  --informational-update-versions "<$SPARKLE_KEY_ROTATION_BUILD" \
   "$APPCAST_DIR/"
 
 [ -f "$APPCAST_DIR/appcast.xml" ] || error "Appcast generation failed"
+
+# generate_appcast still writes the appcast when it can't sign, so check the result.
+# Never publish an item without an EdDSA signature: every installed build rejects it.
+python3 - "$APPCAST_DIR/appcast.xml" "$NEW_BUILD" "$SPARKLE_KEY_ROTATION_BUILD" <<'PY' || error "Appcast check failed. Not publishing."
+import sys, xml.etree.ElementTree as ET
+path, build, rotation = sys.argv[1], sys.argv[2], sys.argv[3]
+ns = {"sparkle": "http://www.andymatuschak.org/xml-namespaces/sparkle"}
+sig = "{%s}edSignature" % ns["sparkle"]
+items = [i for i in ET.parse(path).getroot().iter("item")
+         if i.findtext("sparkle:version", namespaces=ns) == build]
+if not items:
+    sys.exit(f"No appcast item for build {build}")
+item = items[0]
+enclosure = item.find("enclosure")
+if enclosure is None or not enclosure.get(sig):
+    sys.exit(f"Build {build} has no sparkle:edSignature. generate_appcast couldn't sign it (Keychain access?)")
+informational = item.find("sparkle:informationalUpdate", ns)
+below = [e.text for e in informational.findall("sparkle:belowVersion", ns)] if informational is not None else []
+if rotation not in below:
+    sys.exit(f"Build {build} isn't informational for builds below {rotation}")
+print(f"Build {build} is signed and informational below {rotation}")
+PY
+info "Appcast signature verified ✓"
 info "Appcast generated ✓"
 
 # ── Commit Appcast + Release Notes to main branch ────────────
-info "Committing appcast.xml and release notes to $RELEASE_BRANCH..."
+# The build number and version bump is committed too. Earlier releases left it
+# uncommitted, so main stayed at the previous build and the next release would have
+# reused a build number that had already shipped.
+info "Committing appcast.xml, release notes and version bump to $RELEASE_BRANCH..."
 CURRENT_BRANCH=$(git branch --show-current)
 NOTES_REPO_PATH="Scripts/releasenotes/$VERSION.md"
 mkdir -p "$(dirname "$NOTES_REPO_PATH")"
@@ -404,18 +451,20 @@ if [ "$CURRENT_BRANCH" != "$RELEASE_BRANCH" ]; then
   git stash --include-untracked -q 2>/dev/null
   git checkout "$RELEASE_BRANCH"
   git pull origin "$RELEASE_BRANCH" --ff-only
+  sed -i '' "s/CURRENT_PROJECT_VERSION = [^;]*/CURRENT_PROJECT_VERSION = $NEW_BUILD/" "$PROJECT/project.pbxproj"
+  sed -i '' "s/MARKETING_VERSION = [^;]*/MARKETING_VERSION = $VERSION/" "$PROJECT/project.pbxproj"
   mkdir -p "$(dirname "$NOTES_REPO_PATH")"
   cp "$APPCAST_DIR/appcast.xml" ./appcast.xml
   cp "$NOTES_DRAFT" "$NOTES_REPO_PATH"
 fi
 
-git add appcast.xml "$NOTES_REPO_PATH"
+git add appcast.xml "$NOTES_REPO_PATH" "$PROJECT/project.pbxproj"
 if git diff --cached --quiet; then
-  info "No changes to appcast.xml or release notes, skipping commit"
+  info "No changes to appcast.xml, release notes or version, skipping commit"
 else
   git commit -m "Update appcast for $TAG"
   git push origin "$RELEASE_BRANCH"
-  info "Appcast and release notes committed to $RELEASE_BRANCH ✓"
+  info "Appcast, release notes and version bump committed to $RELEASE_BRANCH ✓"
 fi
 
 if [ "$CURRENT_BRANCH" != "$RELEASE_BRANCH" ]; then
@@ -423,7 +472,7 @@ if [ "$CURRENT_BRANCH" != "$RELEASE_BRANCH" ]; then
   git stash pop -q 2>/dev/null || true
   cp "$APPCAST_DIR/appcast.xml" ./appcast.xml
   cp "$NOTES_DRAFT" "$NOTES_REPO_PATH"
-  git add appcast.xml "$NOTES_REPO_PATH"
+  git add appcast.xml "$NOTES_REPO_PATH" "$PROJECT/project.pbxproj"
   git diff --cached --quiet || git commit -m "Update appcast for $TAG"
 fi
 
