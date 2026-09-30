@@ -3,16 +3,19 @@
     <channel>
         <title>EVEOps</title>
         <item>
-            <title>0.9.5.2</title>
-            <pubDate>Mon, 28 Sep 2026 10:14:48 -0400</pubDate>
-            <link>https://github.com/MikeManzo/EVEOps/releases/tag/v0.9.5.2</link>
-            <sparkle:version>161</sparkle:version>
-            <sparkle:shortVersionString>0.9.5.2</sparkle:shortVersionString>
+            <title>0.9.5.3</title>
+            <pubDate>Tue, 29 Sep 2026 20:43:18 -0400</pubDate>
+            <link>https://github.com/MikeManzo/EVEOps/releases/tag/v0.9.5.3</link>
+            <sparkle:informationalUpdate>
+                <sparkle:belowVersion>159</sparkle:belowVersion>
+            </sparkle:informationalUpdate>
+            <sparkle:version>162</sparkle:version>
+            <sparkle:shortVersionString>0.9.5.3</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
             <description><![CDATA[<ul>
-<li>Fixed Sparkle updating issue</li>
+<li>Fix Training Overview hang and crash</li>
 </ul>]]></description>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.5.2/EVEOps.dmg" length="33598496" type="application/octet-stream"/>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.5.3/EVEOps.dmg" length="33595601" type="application/octet-stream" sparkle:edSignature="dbraa0wwh49zf4W41DV2rn0wJMVa4qJaWRlblJFy95D7LYjyYu2f1J5bPqS/mmUr6HquzgCvlnFUNk6WqDd8BA=="/>
         </item>
     </channel>
 </rss>
