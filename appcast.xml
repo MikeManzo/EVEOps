@@ -3,19 +3,52 @@
     <channel>
         <title>EVEOps</title>
         <item>
-            <title>0.9.5.3</title>
-            <pubDate>Tue, 29 Sep 2026 20:43:18 -0400</pubDate>
-            <link>https://github.com/MikeManzo/EVEOps/releases/tag/v0.9.5.3</link>
+            <title>0.9.6</title>
+            <pubDate>Wed, 30 Sep 2026 20:04:31 -0400</pubDate>
+            <link>https://github.com/MikeManzo/EVEOps/releases/tag/v0.9.6</link>
             <sparkle:informationalUpdate>
                 <sparkle:belowVersion>159</sparkle:belowVersion>
             </sparkle:informationalUpdate>
-            <sparkle:version>162</sparkle:version>
-            <sparkle:shortVersionString>0.9.5.3</sparkle:shortVersionString>
+            <sparkle:version>163</sparkle:version>
+            <sparkle:shortVersionString>0.9.6</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<ul>
-<li>Fix Training Overview hang and crash</li>
+            <description><![CDATA[<p>App-wide visual pass: shared effects, Dashboard cleanup, EVE-style theming</p>
+<p>General:</p>
+<ul>
+<li>eveSelectionGlow: one theme-accent glow for selected rows and cards</li>
+<li>Symbol effects (bounce, wiggle, pulse, breathe), scroll reveal, completion ping</li>
+<li>EVERollIn: headline figures roll in from their leading digit (same width)</li>
+<li>eveStandingRing: friend-or-foe ring on portraits, identity-stable</li>
+</ul>
+<p>Dashboard:</p>
+<ul>
+<li>Replace the Players/NPCs/Organizations contact sections with a compact Watched strip</li>
+<li>Selected-pilot glow, scroll reveal on pilot and news cards</li>
+<li>Briefing items get stable IDs; new items bounce. Server icon pulses when degraded</li>
+<li>Pilot card ticks every 15s instead of every second</li>
+</ul>
+<p>Screens:</p>
+<ul>
+<li>Training: selection glow on group and queue rows, portrait backdrop, ping when</li>
+</ul>
+<p>the skill in training finishes</p>
+<ul>
+<li>Location: ship backdrop under a light security-color wash with a security strip;</li>
+</ul>
+<p>Ship column no longer breaks labels; Station Services neutral except key services</p>
+<ul>
+<li>Galaxy Map HUD tinted by security; Assets show station security</li>
+<li>Local Intel, Killmails and Contacts ring portraits by standing (StandingsIndex)</li>
+</ul>
+<p>App:</p>
+<ul>
+<li>Sidebar: unread counts on Mails and Communications (ActivitySignals), wiggle on new arrivals, bounce on badge changes; online ring on the pilot portrait</li>
+<li>Faction crest on the Dock icon and themed Dock progress ring</li>
+<li>Empty states breathe over a faint faction crest</li>
+<li>Hover on ~30 clickable cards and rows; skeletons replace 10 list/detail spinners</li>
+<li>EVEChartStyle shared by all charts; hover readouts on market history and population</li>
 </ul>]]></description>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.5.3/EVEOps.dmg" length="33595601" type="application/octet-stream" sparkle:edSignature="dbraa0wwh49zf4W41DV2rn0wJMVa4qJaWRlblJFy95D7LYjyYu2f1J5bPqS/mmUr6HquzgCvlnFUNk6WqDd8BA=="/>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.6/EVEOps.dmg" length="33750904" type="application/octet-stream" sparkle:edSignature="88Ac+oA5AlBN3RCY+gn0kIjR/pz0Drq4frcGd0UWWlk1Hy+Oo0utt8KbinmcKW+vuBifCswUdOx1vv0uCUy+Aw=="/>
         </item>
     </channel>
 </rss>
