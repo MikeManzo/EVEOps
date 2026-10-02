@@ -151,16 +151,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
-        // The "Install Update" action installs the update; tapping the banner itself
-        // checks (which asks first when an update is already staged).
+        // Tapping the "update available" banner (or its "Install Update" action)
+        // opens the Sparkle update flow.
         if response.notification.request.content.userInfo[NotificationRoute.sectionKey] != nil {
             Task { @MainActor in _ = NotificationRoute.handle(response) }
         } else if response.notification.request.identifier == AppUpdater.updateNotificationID,
            response.actionIdentifier == AppUpdater.installActionID
             || response.actionIdentifier == UNNotificationDefaultActionIdentifier {
-            let install = response.actionIdentifier == AppUpdater.installActionID
             Task { @MainActor in
-                if install { AppUpdater.shared?.installUpdate() } else { AppUpdater.shared?.checkForUpdates() }
+                AppUpdater.shared?.checkForUpdates()
             }
         }
         completionHandler()
