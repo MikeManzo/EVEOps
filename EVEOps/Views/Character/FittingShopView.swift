@@ -582,7 +582,7 @@ struct FittingShopView: View {
             let sysName  = sys?.name ?? (sysId > 0 ? "#\(sysId)" : "Unknown")
 
             finalQuotes.append(StationQuote(locationId: raw.locationId, stationName: name,
-                systemName: sysName, regionName: "",
+                systemId: sysId, systemName: sysName, regionName: "",
                 securityStatus: sys?.securityStatus ?? 0, totalISK: raw.totalISK,
                 itemQuotes: raw.itemQuotes))
         }

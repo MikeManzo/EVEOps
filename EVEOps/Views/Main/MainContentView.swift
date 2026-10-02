@@ -289,6 +289,8 @@ struct MainContentView: View {
                 CharacterKillmailsView()
             case .fittings:
                 CharacterFittingsView()
+            case .readyRoom:
+                ReadyRoomView()
             case .localIntel:
                 LocalIntelView()
             case .calendar:

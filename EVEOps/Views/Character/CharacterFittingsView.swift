@@ -191,6 +191,7 @@ struct CharacterFittingsView: View {
         }
         .task(id: accountManager.selectedCharacterID) {
             if AppRouter.shared.pendingEFTURL != nil { activeTab = .simulate }
+            if AppRouter.shared.pendingSavedFittingID != nil { activeTab = .savedFittings }
             shipSections = []
             fittingSections = []
             selectedShip = nil
@@ -212,6 +213,11 @@ struct CharacterFittingsView: View {
         }
         .onChange(of: AppRouter.shared.pendingEFTURL) { _, url in
             if url != nil { activeTab = .simulate }
+        }
+        .onChange(of: AppRouter.shared.pendingSavedFittingID) { _, id in
+            guard id != nil else { return }
+            activeTab = .savedFittings
+            if savedFittingsLoaded { selectPendingSavedFitting() }
         }
     }
 
@@ -555,10 +561,23 @@ struct CharacterFittingsView: View {
             .map { className in
                 (className: className, fittings: byClass[className]!.sorted { $0.name < $1.name })
             }
+        selectPendingSavedFitting()
         if selectedFitting == nil { selectedFitting = fittingSections.first?.fittings.first }
         fittingListID = UUID()
         isSavingsLoading = false
         savedFittingsLoaded = true
+    }
+
+    /// Selects the saved fitting another screen asked for (the Ready Room's "Show in
+    /// Fittings"), expanding its section if it was collapsed.
+    private func selectPendingSavedFitting() {
+        guard let pending = AppRouter.shared.pendingSavedFittingID else { return }
+        AppRouter.shared.pendingSavedFittingID = nil
+        guard let match = fittingSections.flatMap(\.fittings).first(where: { $0.fittingId == pending }) else { return }
+        collapsedFittingRaw = collapsedFittingRaw.components(separatedBy: "\n")
+            .filter { $0 != match.shipClassName }
+            .joined(separator: "\n")
+        selectedFitting = match
     }
 
     // MARK:  Delete Fitting

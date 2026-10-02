@@ -411,6 +411,26 @@ actor NotificationService {
         }
     }
 
+    /// Saved fittings that became ready to undock (or flyable) since the last background
+    /// check — one alert per pilot, naming up to three fits.
+    func notifyReadyRoom(characterID: Int, characterName: String,
+                         fits: [(name: String, detail: String, shipTypeID: Int)]) async {
+        guard let first = fits.first else { return }
+        let listed = fits.prefix(3).map { "\($0.name) — \($0.detail)" }.joined(separator: "\n")
+        let more = fits.count > 3 ? "\n" + String(localized: "and \(fits.count - 3) more") : ""
+        await sendNotification(
+            title: fits.count == 1
+                ? String(localized: "Ready Room — \(characterName)")
+                : String(localized: "\(fits.count) fits ready — \(characterName)"),
+            body: listed + more,
+            identifier: "readyroom-\(characterID)-\(Date().timeIntervalSince1970)",
+            category: .readyRoom,
+            characterName: characterName,
+            characterID: characterID,
+            imageURL: EVEImageURL.typeRender(first.shipTypeID, size: 128)
+        )
+    }
+
     private func sendNotification(
         title: String,
         body: String,

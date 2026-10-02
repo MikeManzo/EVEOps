@@ -31,6 +31,7 @@ struct ItemQuote: Sendable {
 struct StationQuote: Identifiable, Sendable {
     let locationId: Int
     let stationName: String
+    let systemId: Int
     let systemName: String
     let regionName: String
     let securityStatus: Double
@@ -46,12 +47,12 @@ struct StationQuote: Identifiable, Sendable {
 
 enum FittingMarketService {
 
-    static let tradeHubs: [(name: String, stationId: Int, systemName: String, regionName: String, securityStatus: Double)] = [
-        ("Jita IV - Moon 4 - Caldari Navy Assembly Plant",           60003760, "Jita",    "The Forge",    0.946),
-        ("Amarr VIII (Oris) - Emperor Family Academy",               60008494, "Amarr",   "Domain",       1.0),
-        ("Dodixie IX - Moon 20 - Federation Navy Assembly Plant",    60011866, "Dodixie", "Sinq Laison",  0.9),
-        ("Rens VI - Moon 8 - Brutor Tribe Treasury",                 60004588, "Rens",    "Heimatar",     0.9),
-        ("Hek VIII - Moon 12 - Boundless Creation Factory",          60005686, "Hek",     "Metropolis",   0.5),
+    static let tradeHubs: [(name: String, stationId: Int, systemId: Int, systemName: String, regionName: String, securityStatus: Double)] = [
+        ("Jita IV - Moon 4 - Caldari Navy Assembly Plant",           60003760, 30000142, "Jita",    "The Forge",    0.946),
+        ("Amarr VIII (Oris) - Emperor Family Academy",               60008494, 30002187, "Amarr",   "Domain",       1.0),
+        ("Dodixie IX - Moon 20 - Federation Navy Assembly Plant",    60011866, 30002659, "Dodixie", "Sinq Laison",  0.9),
+        ("Rens VI - Moon 8 - Brutor Tribe Treasury",                 60004588, 30002510, "Rens",    "Heimatar",     0.9),
+        ("Hek VIII - Moon 12 - Boundless Creation Factory",          60005686, 30002053, "Hek",     "Metropolis",   0.5),
     ]
 
     /// Quick search: Fuzzwork station aggregates for the 5 major trade hubs.
@@ -82,7 +83,7 @@ enum FittingMarketService {
                         }
                     }
                     return StationQuote(locationId: hub.stationId, stationName: hub.name,
-                        systemName: hub.systemName, regionName: hub.regionName,
+                        systemId: hub.systemId, systemName: hub.systemName, regionName: hub.regionName,
                         securityStatus: hub.securityStatus, totalISK: total, itemQuotes: itemQuotes)
                 }
             }

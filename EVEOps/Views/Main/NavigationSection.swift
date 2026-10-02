@@ -27,6 +27,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
     case mails = "Mails"
     case killmails = "Kill Mails"
     case fittings = "Fittings"
+    case readyRoom = "Ready Room"
     case localIntel = "Local Intel"
     case calendar = "Calendar"
     case standings = "Standings"
@@ -83,6 +84,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
         case .mails: "Mails"
         case .killmails: "Kill Mails"
         case .fittings: "Fittings"
+        case .readyRoom: "Ready Room"
         case .localIntel: "Local Intel"
         case .calendar: "Calendar"
         case .standings: "Standings"
@@ -134,6 +136,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
         case .mails: return "envelope.fill"
         case .killmails, .corpKillmails: return "flame.fill"
         case .fittings: return "wrench.and.screwdriver.fill"
+        case .readyRoom: return "checkmark.shield.fill"
         case .localIntel: return "binoculars.fill"
         case .calendar: return "calendar"
         case .standings: return "star.fill"
@@ -173,7 +176,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
     }
 
     static var combatSections: [NavigationSection] {
-        [.fittings, .killmails, .fleetManager, .factionWarfare, .localIntel]
+        [.fittings, .readyRoom, .killmails, .fleetManager, .factionWarfare, .localIntel]
     }
 
     static var socialSections: [NavigationSection] {

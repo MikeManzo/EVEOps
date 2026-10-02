@@ -90,6 +90,8 @@ final class BackgroundMonitor {
                     getToken: { account in try await accountManager.validToken(for: account) },
                     onUnauthorized: { account in await accountManager.handleUnauthorized(for: account) }
                 )
+                // Ready Room: rebuild each pilot's board and alert on fits that became ready.
+                await ReadyRoomService.shared.backgroundCheck(accountManager: accountManager, prefetcher: prefetcher)
 
                 // Sparkle's own scheduled-check timer only fires if the app stays running until
                 // it elapses; a menu-bar app that gets quit/relaunched within the 24h interval can

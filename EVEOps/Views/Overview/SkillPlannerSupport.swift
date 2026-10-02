@@ -29,6 +29,44 @@ struct SkillPlanItem: Identifiable, Codable, Equatable {
     var id: Int { skillId }
 }
 
+/// The per-pilot skill plan as stored on disk — the Skill Planner's own storage, so other
+/// screens (e.g. the Ready Room's "Add Missing Skills to Plan") can add to a plan the
+/// planner then shows.
+enum SkillPlanStore {
+    static func key(for characterID: Int) -> String { "skillPlan-\(characterID)" }
+
+    static func load(characterID: Int) -> [SkillPlanItem] {
+        guard let data = UserDefaults.standard.data(forKey: key(for: characterID)),
+              let items = try? JSONDecoder().decode([SkillPlanItem].self, from: data) else { return [] }
+        return items
+    }
+
+    static func save(_ items: [SkillPlanItem], characterID: Int) {
+        if let data = try? JSONEncoder().encode(items) {
+            UserDefaults.standard.set(data, forKey: key(for: characterID))
+        }
+    }
+
+    /// Appends `items` in order, raising the target of skills already planned rather than
+    /// adding them twice. Returns how many items were added or raised.
+    @discardableResult
+    static func merge(_ items: [SkillPlanItem], characterID: Int) -> Int {
+        var plan = load(characterID: characterID)
+        var changed = 0
+        for item in items {
+            if let index = plan.firstIndex(where: { $0.skillId == item.skillId }) {
+                guard plan[index].targetLevel < item.targetLevel else { continue }
+                plan[index].targetLevel = item.targetLevel
+            } else {
+                plan.append(item)
+            }
+            changed += 1
+        }
+        if changed > 0 { save(plan, characterID: characterID) }
+        return changed
+    }
+}
+
 // Mark:  Skill Plan AI Insight Card
 
 @available(macOS 26.0, *)

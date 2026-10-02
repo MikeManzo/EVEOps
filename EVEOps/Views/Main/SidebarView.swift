@@ -473,6 +473,9 @@ struct SidebarView: View {
         case .mails:
             let unread = ActivitySignals.shared.unreadMail[id] ?? 0
             return unread > 0 ? .count(unread, accessibility: String(localized: "\(unread) unread mails")) : nil
+        case .readyRoom:
+            let fresh = ReadyRoomService.shared.unseenReady[id]?.count ?? 0
+            return fresh > 0 ? .count(fresh, accessibility: String(localized: "\(fresh) fits newly ready")) : nil
         case .communications:
             let unread = ActivitySignals.shared.unreadNotifications[id] ?? 0
             return unread > 0 ? .count(unread, accessibility: String(localized: "\(unread) unread notifications")) : nil

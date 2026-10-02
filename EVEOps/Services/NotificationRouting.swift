@@ -30,6 +30,7 @@ nonisolated enum NotificationRoute {
         case .war:            return .corpWars
         case .standings:      return .standings
         case .presence:       return .contacts
+        case .readyRoom:      return .readyRoom
         case .serverStatus, .test, .general: return nil
         }
     }
@@ -50,6 +51,7 @@ nonisolated enum NotificationRoute {
             (.corpWars,       String(localized: "Open Wars")),
             (.standings,      String(localized: "Open Standings")),
             (.contacts,       String(localized: "Open Contacts")),
+            (.readyRoom,      String(localized: "Open Ready Room")),
         ]
         return Set(sections.map { section, title in
             UNNotificationCategory(

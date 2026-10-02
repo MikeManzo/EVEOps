@@ -27,6 +27,7 @@ struct NotificationsTab: View {
     @AppStorage("notifyContactPresence") private var notifyContactPresence = true
     @AppStorage("notifyStandingsChanged") private var notifyStandingsChanged = true
     @AppStorage("notifyServerStatus") private var notifyServerStatus = true
+    @AppStorage("notifyReadyRoom") private var notifyReadyRoom = true
     @AppStorage("discordNotificationsEnabled") private var discordNotificationsEnabled = false
     @AppStorage("discordRichPresenceEnabled") private var discordRichPresenceEnabled = false
 
@@ -65,6 +66,8 @@ struct NotificationsTab: View {
                 Toggle("Standing increases or decreases", isOn: $notifyStandingsChanged)
                     .disabled(!notificationsEnabled)
                 Toggle("Servers back online after downtime", isOn: $notifyServerStatus)
+                    .disabled(!notificationsEnabled)
+                Toggle("Saved fit becomes ready to fly (Ready Room)", isOn: $notifyReadyRoom)
                     .disabled(!notificationsEnabled)
             }
 

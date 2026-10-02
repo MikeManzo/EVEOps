@@ -40,6 +40,14 @@ final class AppRouter {
     }
     var pendingRoute: PendingRoute?
 
+    /// A saved fitting (by ESI fitting ID) for the Ready Room to select once its reports
+    /// load — set by the Fittings screen's "Ready Room" button. Cleared when consumed.
+    var pendingReadyRoomFittingID: Int?
+
+    /// A saved fitting for the Fittings screen to show on its Saved Ships tab — set by the
+    /// Ready Room's "Show in Fittings". Cleared when consumed.
+    var pendingSavedFittingID: Int?
+
     /// Bumped by the "Refresh Current View" command (⌘K) and the ⌘R shortcut.
     /// Views that show live data observe this and re-fetch.
     var refreshTick = 0

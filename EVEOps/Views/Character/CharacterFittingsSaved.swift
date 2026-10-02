@@ -170,6 +170,11 @@ struct SavedFittingRow: View {
         }
         .padding(.vertical, 3)
         .contextMenu {
+            Button("Check in Ready Room", systemImage: NavigationSection.readyRoom.iconName) {
+                AppRouter.shared.pendingReadyRoomFittingID = fitting.fittingId
+                AppRouter.shared.pendingSection = .readyRoom
+            }
+            Divider()
             Button(role: .destructive, action: onDelete) {
                 Label("Delete Fitting", systemImage: "trash")
             }
@@ -235,7 +240,7 @@ struct SavedFittingDetailPane: View {
                     }
                     SkillRequirementsView(typeId: fitting.shipTypeId, typeInfo: nil, characterSkills: characterSkills)
                 }
-                HStack(spacing: EVESpacing.md) {
+                FlowLayout(spacing: EVESpacing.md) {
                     Button { showModelViewer = true } label: {
                         Label("View 3D", systemImage: "cube.transparent")
                             .font(.caption.bold())
@@ -256,6 +261,20 @@ struct SavedFittingDetailPane: View {
                             .eveHoverable(cornerRadius: EVERadius.md)
                     }
                     .buttonStyle(.plain)
+                    Button {
+                        AppRouter.shared.pendingReadyRoomFittingID = fitting.fittingId
+                        AppRouter.shared.pendingSection = .readyRoom
+                    } label: {
+                        Label("Ready Room", systemImage: NavigationSection.readyRoom.iconName)
+                            .font(.caption.bold())
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, EVESpacing.sm)
+                            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: EVERadius.md))
+                            .foregroundStyle(.white)
+                            .eveHoverable(cornerRadius: EVERadius.md)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Check whether you can fly this fit right now — skills, parts and where they are")
                     if !fitting.items.isEmpty {
                         Button { showShopView = true } label: {
                             Label("Shop Fit", systemImage: "cart.fill")

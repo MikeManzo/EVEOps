@@ -71,7 +71,7 @@ extension SkillPlannerView {
     // MARK:  Persistence
 
     var planKey: String {
-        "skillPlan-\(accountManager.selectedAccount?.characterID ?? 0)"
+        SkillPlanStore.key(for: accountManager.selectedAccount?.characterID ?? 0)
     }
 
     /// Replaces the plan and saves it, registering the reverse with the window's undo

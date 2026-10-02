@@ -119,7 +119,31 @@ struct SummaryGridView: View {
                     destination: .colonies
                 )
             }
+            if let doctrines = pinnedFits {
+                MetricTileView(
+                    icon: "pin.fill", color: doctrines.ready == doctrines.total ? .green : .orange,
+                    value: "\(doctrines.ready) / \(doctrines.total)",
+                    label: String(localized: "Pinned Fits Ready"),
+                    destination: .readyRoom
+                )
+            }
         }
+    }
+
+    /// Pinned Ready Room fits that are ready to undock, across the pilots shown — nil
+    /// when nothing is pinned or the Ready Room hasn't loaded for them yet.
+    private var pinnedFits: (ready: Int, total: Int)? {
+        let service = ReadyRoomService.shared
+        var ready = 0
+        var total = 0
+        for summary in summaries {
+            let pins = service.pinnedFittingIDs(for: summary.characterID)
+            guard !pins.isEmpty, let reports = service.snapshots[summary.characterID]?.reports else { continue }
+            let pinned = reports.filter { pins.contains($0.fittingID) }
+            total += pinned.count
+            ready += pinned.filter { $0.tier == .ready }.count
+        }
+        return total > 0 ? (ready, total) : nil
     }
 
     private func formatSP(_ sp: Int) -> String {
