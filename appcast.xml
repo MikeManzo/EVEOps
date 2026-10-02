@@ -3,35 +3,24 @@
     <channel>
         <title>EVEOps</title>
         <item>
-            <title>0.9.7</title>
-            <pubDate>Fri, 02 Oct 2026 12:10:12 -0400</pubDate>
-            <link>https://github.com/MikeManzo/EVEOps/releases/tag/v0.9.7</link>
+            <title>0.9.8</title>
+            <pubDate>Fri, 02 Oct 2026 14:00:13 -0400</pubDate>
+            <link>https://github.com/MikeManzo/EVEOps/releases/tag/v0.9.8</link>
             <sparkle:informationalUpdate>
                 <sparkle:belowVersion>159</sparkle:belowVersion>
             </sparkle:informationalUpdate>
-            <sparkle:version>164</sparkle:version>
-            <sparkle:shortVersionString>0.9.7</sparkle:shortVersionString>
+            <sparkle:version>165</sparkle:version>
+            <sparkle:shortVersionString>0.9.8</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<p>What&#x27;s New</p>
-<p>Ready Room: what can I fly right now?</p>
-<p>A new screen in the sidebar that checks every saved fitting against your pilot and sorts them by how close each one is to undocking: Ready, Travel, Waiting, Buy, Train or Blocked.</p>
-<p>* Skills: shows which skills you&#x27;re missing, how long they&#x27;ll take to train, and when skills already in your queue will finish. It flags skills limited by an Alpha clone, and fitting skills you only need to stay within CPU and powergrid.</p>
-<p>* Will it fit? Checks CPU, powergrid and calibration using your current skills and implants, and tells you if a fit can never work, even with every fitting skill at V.</p>
-<p>* Parts: shows which parts you already own and where they are, including corporation hangars and modules fitted to ships. It also counts parts that are on their way from buy orders, industry jobs or courier contracts.</p>
-<p>* Staging and pickup route: picks the station where most of the fit already sits, plans a short route to collect the rest, and can send it to your in-game autopilot. It also tells you if one of your jump clones is in that station.</p>
-<p>* Where to buy: compares prices for the missing parts across Jita, Amarr, Dodixie, Rens and Hek, with a shortcut to the Fitting Shop.</p>
-<p>* One-click actions: add missing skills to your Skill Planner, open the Remap Advisor, or jump to the fit on the Fittings screen.</p>
-<p>* Other pilots: see how each of your other characters measures up for the same fit.</p>
-<p>* Pin your doctrine fits: the Dashboard gets a &quot;Pinned Fits Ready&quot; tile.</p>
-<p>* Notifications: get notified when a saved fit becomes ready to fly. You can turn this on or off in Settings → Notifications, and it&#x27;s also available for Discord.</p>
-<p>* You can sort by closest to ready, nearest, cheapest to complete, shortest training or name, and search or filter by status.</p>
-<p>* Saved fittings now have a &quot;Check in Ready Room&quot; button.</p>
-<p>Improvements</p>
-<p>More reliable ship goals: the Ship Goal Browser now always lists every skill you need for a ship. Before, it could miss some prerequisites if their skill data hadn&#x27;t been downloaded yet.</p>
-<p>Consistent training times everywhere: the Ship Goal Browser, Skill Planner, Item Skill Tree, Training Overview and Ready Room now share one set of calculations, so skill points and training times always agree from screen to screen.</p>
-<p>Fixes</p>
-<p>Other UI and back end quality of life inmprovements</p>]]></description>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.7/EVEOps.dmg" length="34357033" type="application/octet-stream" sparkle:edSignature="R1ZJ+iGg1GKJeS6PjfmMSci1Xi3AiOUvX3VqwL8j4y85Ty92RdXGtdjdTIgWc19x1zXPNfajVaHexgb5k9KcDg=="/>
+            <description><![CDATA[<ul>
+<li>Updates install only when the user chooses to</li>
+<li>Revert &quot;Install staged Sparkle updates directly instead of re-checking&quot;</li>
+<li>Install staged Sparkle updates directly instead of re-checking</li>
+<li>Expand Idle Capacity: new lines, idle time, timeline, totals and alerts</li>
+<li>Use Infomorph Synchronizing for clone jump cooldown on Clones and Dashboard</li>
+<li>Idle Capacity Updates</li>
+</ul>]]></description>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.8/EVEOps.dmg" length="34618959" type="application/octet-stream" sparkle:edSignature="4OIibd7iZsHMDMIQ2PVYQ6icj/QX2M8zNR0orYKpzHhgAWYqIw/Z0M74BJHUl/QwQyxBUXdiEYHmZVp2erwlCw=="/>
         </item>
     </channel>
 </rss>
