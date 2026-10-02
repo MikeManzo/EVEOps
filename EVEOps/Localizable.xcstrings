@@ -183,6 +183,19 @@
         }
       }
     },
+    "%@ · ready" : {
+
+    },
+    "%@ · ready in %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · ready in %2$@"
+          }
+        }
+      }
+    },
     "%@ › %@" : {
       "localizations" : {
         "en" : {
@@ -540,6 +553,16 @@
     "%lld active jobs" : {
 
     },
+    "%lld agents · %@ RP" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld agents · %2$@ RP"
+          }
+        }
+      }
+    },
     "%lld agents found" : {
 
     },
@@ -629,6 +652,9 @@
     "%lld effective" : {
 
     },
+    "%lld end < 24h" : {
+
+    },
     "%lld entries · %@ – %@" : {
       "localizations" : {
         "en" : {
@@ -695,6 +721,19 @@
         }
       }
     },
+    "%lld free" : {
+
+    },
+    "%lld free · %lld to deliver" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld free · %2$lld to deliver"
+          }
+        }
+      }
+    },
     "%lld from corporation hangars" : {
 
     },
@@ -710,6 +749,19 @@
     },
     "%lld heads" : {
 
+    },
+    "%lld idle" : {
+
+    },
+    "%lld idle across %lld pilots" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld idle across %2$lld pilots"
+          }
+        }
+      }
     },
     "%lld in %@" : {
       "localizations" : {
@@ -781,6 +833,9 @@
       }
     },
     "%lld jobs" : {
+
+    },
+    "%lld jump clones" : {
 
     },
     "%lld jump%@" : {
@@ -986,6 +1041,9 @@
     "%lld pts" : {
 
     },
+    "%lld ready to deliver" : {
+
+    },
     "%lld required item%@" : {
       "localizations" : {
         "en" : {
@@ -1137,6 +1195,9 @@
         }
       }
     },
+    "%lld soon" : {
+
+    },
     "%lld SP/min" : {
 
     },
@@ -1162,6 +1223,12 @@
           }
         }
       }
+    },
+    "%lld stop < 24h" : {
+
+    },
+    "%lld stopped" : {
+
     },
     "%lld stops · %lld jumps" : {
       "localizations" : {
@@ -1572,6 +1639,9 @@
     "Add a character" : {
 
     },
+    "Add a character in Settings → Accounts, or refresh to load your pilots." : {
+
+    },
     "Add All" : {
 
     },
@@ -1681,6 +1751,9 @@
     "All alliances" : {
 
     },
+    "All busy" : {
+
+    },
     "All Categories" : {
 
     },
@@ -1697,6 +1770,9 @@
 
     },
     "All Groups" : {
+
+    },
+    "All in use" : {
 
     },
     "All items available" : {
@@ -2285,6 +2361,9 @@
 
     },
     "Clipboard Import / Export" : {
+
+    },
+    "Clone Jump" : {
 
     },
     "Clone jump %@ ago — training times refreshed" : {
@@ -3007,6 +3086,9 @@
     "Ends %@" : {
 
     },
+    "Ends in %@" : {
+
+    },
     "Ends: %@" : {
 
     },
@@ -3251,6 +3333,9 @@
     "Extractors (%lld)" : {
 
     },
+    "Extractors Stopped" : {
+
+    },
     "Facilities" : {
 
     },
@@ -3267,6 +3352,9 @@
 
     },
     "Factions" : {
+
+    },
+    "Factory Slots Free" : {
 
     },
     "Failed — check the URL" : {
@@ -3434,6 +3522,9 @@
     "Frame Galaxy" : {
 
     },
+    "Frees in %@" : {
+
+    },
     "Frequency Key" : {
 
     },
@@ -3447,6 +3538,9 @@
 
     },
     "Fuel expires" : {
+
+    },
+    "Full" : {
 
     },
     "Full Galaxy Search" : {
@@ -3600,6 +3694,12 @@
 
     },
     "Idle Boy" : {
+
+    },
+    "Idle Capacity" : {
+
+    },
+    "Idle Queues" : {
 
     },
     "If you can see this in Discord, your webhook is configured correctly." : {
@@ -3935,6 +4035,9 @@
 
     },
     "L%lld" : {
+
+    },
+    "Lab Slots Free" : {
 
     },
     "Large injector: +%@ SP" : {
@@ -4430,6 +4533,9 @@
     "Next Skill" : {
 
     },
+    "Next stops in %@" : {
+
+    },
     "Next window %@" : {
 
     },
@@ -4580,7 +4686,13 @@
     "No office rent, sovereignty, or maintenance fees found in this division's journal." : {
 
     },
+    "No pilot has this capacity idle or freeing up soon." : {
+
+    },
     "No Pilots Found" : {
+
+    },
+    "No Pilots Loaded" : {
 
     },
     "No price history available" : {
@@ -4721,6 +4833,9 @@
     "Note: if an implant is not detected, its floor may show slightly low. The allocations (+10 / +4 / +0) are always correct regardless." : {
 
     },
+    "Nothing Idle Here" : {
+
+    },
     "Nothing in the pasted text resolved to a known pilot." : {
 
     },
@@ -4767,6 +4882,12 @@
 
     },
     "Occupied by %@" : {
+
+    },
+    "of %lld" : {
+
+    },
+    "of %lld pilots" : {
 
     },
     "Offer #%lld" : {
@@ -4828,6 +4949,16 @@
     },
     "Open %@" : {
 
+    },
+    "Open %@ for %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Open %1$@ for %2$@"
+          }
+        }
+      }
     },
     "Open Contacts" : {
 
@@ -4935,6 +5066,9 @@
 
     },
     "Order Details" : {
+
+    },
+    "Order Slots Free" : {
 
     },
     "Order Type" : {
@@ -5127,6 +5261,12 @@
     "Planetary Industry" : {
 
     },
+    "Planets" : {
+
+    },
+    "Planets Unused" : {
+
+    },
     "Planning the pickup route…" : {
 
     },
@@ -5247,6 +5387,9 @@
     "queue paused" : {
 
     },
+    "Queue paused" : {
+
+    },
     "Queue Position" : {
 
     },
@@ -5305,6 +5448,9 @@
 
     },
     "Re-authorize…" : {
+
+    },
+    "Reaction Slots Free" : {
 
     },
     "Reactions" : {
@@ -5602,6 +5748,9 @@
 
     },
     "Schematic #%lld" : {
+
+    },
+    "Science" : {
 
     },
     "Score: %@" : {
@@ -5938,6 +6087,12 @@
     "Show all fits" : {
 
     },
+    "Show all pilots" : {
+
+    },
+    "Show All Pilots" : {
+
+    },
     "Show current character in Discord status" : {
 
     },
@@ -5954,6 +6109,9 @@
 
     },
     "Show only agents your current effective standing lets you talk to" : {
+
+    },
+    "Show only pilots with %@ to use" : {
 
     },
     "Show Required Skills" : {

@@ -10,6 +10,47 @@
 
 import Foundation
 
+// MARK:  Attributes
+
+/// The five character attributes, keyed by their dogma IDs (164…168) as skills
+/// reference them in `primaryAttribute` (180) / `secondaryAttribute` (181).
+nonisolated enum EVEAttribute: Int, CaseIterable, Identifiable, Sendable {
+    case intelligence = 165, memory = 166, perception = 167, willpower = 168, charisma = 164
+
+    var id: Int { rawValue }
+
+    var abbreviation: String {
+        switch self {
+        case .intelligence: "INT"
+        case .memory:       "MEM"
+        case .perception:   "PER"
+        case .willpower:    "WIL"
+        case .charisma:     "CHA"
+        }
+    }
+
+    /// Implant bonus dogma attribute for this attribute (175…179, verified against ESI).
+    var implantBonusDogmaID: Int {
+        switch self {
+        case .charisma:     175
+        case .intelligence: 176
+        case .memory:       177
+        case .perception:   178
+        case .willpower:    179
+        }
+    }
+
+    func value(in attrs: ESICharacterAttributes) -> Int {
+        switch self {
+        case .intelligence: attrs.intelligence
+        case .memory:       attrs.memory
+        case .perception:   attrs.perception
+        case .willpower:    attrs.willpower
+        case .charisma:     attrs.charisma
+        }
+    }
+}
+
 // MARK:  Training math
 
 /// Skill-point and training-time arithmetic shared by every screen that answers "how long
@@ -20,6 +61,12 @@ nonisolated enum SkillTraining {
     static let spThresholds: [Int: Int] = [
         0: 0, 1: 250, 2: 1_414, 3: 8_000, 4: 45_255, 5: 256_000
     ]
+
+    /// Base attribute pool: each attribute starts at 17, 14 points to distribute, max
+    /// 27 (base) per attribute.
+    static let baseAttribute = 17
+    static let remapPoints = 14
+    static let maxBaseAttribute = 27
 
     static func sp(forLevel level: Int, rank: Int) -> Int {
         (spThresholds[min(max(level, 0), 5)] ?? 0) * max(rank, 1)
@@ -48,6 +95,87 @@ nonisolated enum SkillTraining {
         default:  return attributes.intelligence
         }
     }
+
+    /// Seconds to train `sp` at `spPerMinute`; 0 when there's nothing to train or no rate.
+    static func seconds(forSP sp: Int, spPerMinute: Double) -> Double {
+        guard sp > 0, spPerMinute > 0 else { return 0 }
+        return Double(sp) / spPerMinute * 60
+    }
+
+    // MARK: Skill type dogma
+
+    /// Training rank (dogma 275) of a skill type; 1 when unknown.
+    static func rank(of type: ESIType?) -> Int {
+        type?.dogmaAttributes?.first { $0.attributeId == 275 }.map { max(1, Int($0.value)) } ?? 1
+    }
+
+    /// Primary (180) / secondary (181) training attribute IDs of a skill type, defaulting
+    /// to Intelligence / Memory.
+    static func attributeIDs(of type: ESIType?) -> (primary: Int, secondary: Int) {
+        let dogma = type?.dogmaAttributes ?? []
+        let primary = dogma.first { $0.attributeId == 180 }.map { Int($0.value) } ?? 165
+        let secondary = dogma.first { $0.attributeId == 181 }.map { Int($0.value) } ?? 166
+        return (primary, secondary)
+    }
+
+    static func attributes(of type: ESIType?) -> (primary: EVEAttribute, secondary: EVEAttribute) {
+        let ids = attributeIDs(of: type)
+        return (EVEAttribute(rawValue: ids.primary) ?? .intelligence, EVEAttribute(rawValue: ids.secondary) ?? .memory)
+    }
+
+    // MARK: Injectors & remaps
+
+    /// Large skill injector yield at a character's total SP.
+    static func largeInjectorYield(totalSP: Int) -> Int {
+        switch totalSP {
+        case ..<5_000_000:   500_000
+        case ..<50_000_000:  400_000
+        case ..<80_000_000:  300_000
+        default:             150_000
+        }
+    }
+
+    /// SP still to train for one attribute pair.
+    struct Demand: Sendable {
+        let primary: EVEAttribute
+        let secondary: EVEAttribute
+        let sp: Int
+    }
+
+    /// Minutes to train `demand` with the given attribute totals (Omega rate).
+    static func minutes(for demand: [Demand], totals: [EVEAttribute: Int]) -> Double {
+        demand.reduce(0) { sum, d in
+            let rate = Double(totals[d.primary, default: 17]) + Double(totals[d.secondary, default: 17]) / 2
+            return sum + (rate > 0 ? Double(d.sp) / rate : 0)
+        }
+    }
+
+    /// Best base allocation (each 17…27, 14 points spread) for `demand`, with the
+    /// character's implant bonuses added on top. Exhaustive — only a few thousand
+    /// allocations exist.
+    static func optimalRemap(for demand: [Demand], implants: [EVEAttribute: Int]) -> (base: [EVEAttribute: Int], minutes: Double)? {
+        guard !demand.isEmpty else { return nil }
+        let attrs = EVEAttribute.allCases
+        var best: (base: [EVEAttribute: Int], minutes: Double)?
+        func search(_ index: Int, _ remaining: Int, _ current: [EVEAttribute: Int]) {
+            if index == attrs.count - 1 {
+                guard remaining <= maxBaseAttribute - baseAttribute else { return }
+                var base = current
+                base[attrs[index]] = baseAttribute + remaining
+                let totals = Dictionary(uniqueKeysWithValues: attrs.map { ($0, base[$0]! + implants[$0, default: 0]) })
+                let m = minutes(for: demand, totals: totals)
+                if best == nil || m < best!.minutes { best = (base, m) }
+                return
+            }
+            for points in 0...min(remaining, maxBaseAttribute - baseAttribute) {
+                var next = current
+                next[attrs[index]] = baseAttribute + points
+                search(index + 1, remaining - points, next)
+            }
+        }
+        search(0, remapPoints, [:])
+        return best
+    }
 }
 
 // MARK:  Prerequisites
@@ -67,17 +195,31 @@ nonisolated struct SkillTrainingInfo: Sendable, Hashable {
 /// Resolves an item type's *full* skill requirements — its own required skills plus each
 /// of their prerequisites, recursively — from dogma attributes, memoised per type.
 ///
-/// Before this, the walk was copied privately into the Ship Goal Browser, Item Skill Tree
-/// and Skill Requirements views; new screens should use this one.
+/// Used by the Ready Room and the Ship Goal Browser; the Item Skill Tree and Skill
+/// Requirements views share its dogma parsing (`directRequirements(in:)`).
 actor SkillPrerequisites {
     static let shared = SkillPrerequisites()
 
-    /// Dogma attribute pairs (required skill ID, required level). Skills 4–6 don't follow
-    /// the simple "next ID" pattern skills 1–3 do — see `SkillRequirementsView`.
+    /// Dogma attribute pairs (required skill ID, required level). Skills 4-6 don't follow
+    /// the simple "next ID" pattern skills 1-3 do — CCP's actual numbering pairs
+    /// 1285↔1286, 1289↔1287, 1290↔1288 (confirmed against ESI's own attribute
+    /// descriptions: e.g. attr 1286 is named "Level 5 required" but its description reads
+    /// "Required skill level for skill 4").
     nonisolated static let attributePairs: [(skill: Int, level: Int)] = [
         (182, 277), (183, 278), (184, 279),
         (1285, 1286), (1289, 1287), (1290, 1288)
     ]
+
+    /// The skills a type lists *directly* in its dogma, in attribute-pair order (no
+    /// prerequisites, no de-duplication).
+    nonisolated static func directRequirements(in attributes: [ESIDogmaAttribute]) -> [(skillID: Int, level: Int)] {
+        let map = Dictionary(attributes.map { ($0.attributeId, $0.value) }, uniquingKeysWith: { a, _ in a })
+        return attributePairs.compactMap { pair in
+            guard let skill = map[pair.skill].map(Int.init), skill > 0,
+                  let level = map[pair.level].map(Int.init), level > 0 else { return nil }
+            return (skill, level)
+        }
+    }
 
     private var directCache: [Int: [Int: Int]] = [:]
     private var closureCache: [Int: [Int: Int]] = [:]
@@ -124,11 +266,8 @@ actor SkillPrerequisites {
     private func direct(for typeID: Int) async -> [Int: Int] {
         if let cached = directCache[typeID] { return cached }
         guard let attributes = await dogma(for: typeID) else { return [:] }
-        let map = Dictionary(attributes.map { ($0.attributeId, $0.value) }, uniquingKeysWith: { a, _ in a })
         var out: [Int: Int] = [:]
-        for pair in Self.attributePairs {
-            guard let skill = map[pair.skill].map(Int.init), skill > 0,
-                  let level = map[pair.level].map(Int.init), level > 0 else { continue }
+        for (skill, level) in Self.directRequirements(in: attributes) {
             out[skill] = max(out[skill] ?? 0, level)
         }
         directCache[typeID] = out

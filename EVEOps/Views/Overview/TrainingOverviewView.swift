@@ -54,7 +54,7 @@ struct TrainingOverviewView: View {
     @State var skillCompletionPings = 0
 
     struct RemapResult {
-        let demand: [SkillTrainingMath.Demand]
+        let demand: [SkillTraining.Demand]
         let base: [EVEAttribute: Int]
         let minutes: Double
     }

@@ -340,15 +340,15 @@ struct ReadyRoomDetailPane: View {
     /// exhaustive remap search, run over just these skills.
     private var remapSaving: (seconds: Double, base: [EVEAttribute: Int])? {
         guard let attributes = snapshot.input.attributes else { return nil }
-        let demand: [SkillTrainingMath.Demand] = report.unqueuedGaps.compactMap { gap in
+        let demand: [SkillTraining.Demand] = report.unqueuedGaps.compactMap { gap in
             guard gap.sp > 0, let info = snapshot.input.skillInfo[gap.skillID],
                   let primary = EVEAttribute(rawValue: info.primaryAttribute),
                   let secondary = EVEAttribute(rawValue: info.secondaryAttribute) else { return nil }
-            return SkillTrainingMath.Demand(primary: primary, secondary: secondary, sp: gap.sp)
+            return SkillTraining.Demand(primary: primary, secondary: secondary, sp: gap.sp)
         }
         let current = Dictionary(uniqueKeysWithValues: EVEAttribute.allCases.map { ($0, $0.value(in: attributes)) })
-        guard let best = SkillTrainingMath.optimalRemap(for: demand, implants: snapshot.pilot.implantBonuses) else { return nil }
-        let saved = (SkillTrainingMath.minutes(for: demand, totals: current) - best.minutes) * 60
+        guard let best = SkillTraining.optimalRemap(for: demand, implants: snapshot.pilot.implantBonuses) else { return nil }
+        let saved = (SkillTraining.minutes(for: demand, totals: current) - best.minutes) * 60
         return saved > 0 ? (saved, best.base) : nil
     }
 

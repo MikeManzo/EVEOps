@@ -291,6 +291,8 @@ struct MainContentView: View {
                 CharacterFittingsView()
             case .readyRoom:
                 ReadyRoomView()
+            case .idleCapacity:
+                IdleCapacityView()
             case .localIntel:
                 LocalIntelView()
             case .calendar:

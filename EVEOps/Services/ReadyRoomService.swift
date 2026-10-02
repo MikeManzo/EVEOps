@@ -462,12 +462,11 @@ private struct Loader {
         return (Calendar.current.date(byAdding: .year, value: 1, to: last) ?? .distantFuture) <= .now
     }
 
-    /// 24 hours between clone jumps, an hour less per level of Infomorph Synchronizing.
     private static func cloneJumpReadyAt(_ clones: ESIClonesResponse?, skills: [Int: ReadyRoomSkillLevel]) -> Date? {
-        guard let last = clones?.lastCloneJumpDate else { return nil }
-        let hours = 24 - (skills[33399]?.active ?? 0)
-        let ready = last.addingTimeInterval(Double(hours) * 3600)
-        return ready > .now ? ready : nil
+        IdleCapacityEngine.cloneJumpReadyAt(
+            lastJump: clones?.lastCloneJumpDate,
+            infomorphSynchronizing: skills[IdleCapacityEngine.Skill.infomorphSynchronizing]?.active ?? 0
+        )
     }
 
     // MARK:  Places

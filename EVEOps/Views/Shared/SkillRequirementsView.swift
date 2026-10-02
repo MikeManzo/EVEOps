@@ -10,16 +10,6 @@
 
 import SwiftUI
 
-// EVE dogma attribute ID pairs that encode required skills on an item type.
-// Skills 4-6 don't follow the simple "next ID" pattern skills 1-3 do — CCP's actual
-// numbering pairs 1285↔1286, 1289↔1287, 1290↔1288 (confirmed against ESI's own
-// attribute descriptions: e.g. attr 1286 is named "Level 5 required" but its
-// description reads "Required skill level for skill 4").
-private let skillAttrPairs: [(skillAttr: Int, levelAttr: Int)] = [
-    (182, 277), (183, 278), (184, 279),
-    (1285, 1286), (1289, 1287), (1290, 1288)
-]
-
 private struct ResolvedSkillReq: Identifiable {
     let skillTypeId: Int
     let requiredLevel: Int
@@ -123,17 +113,8 @@ struct SkillRequirementsView: View {
 
         guard !Task.isCancelled else { return }
 
-        let attrMap = Dictionary(attrs.map { ($0.attributeId, $0.value) },
-                                 uniquingKeysWith: { a, _ in a })
-
-        var parsed: [ResolvedSkillReq] = []
-        for pair in skillAttrPairs {
-            guard let rawSkill = attrMap[pair.skillAttr],
-                  let rawLevel = attrMap[pair.levelAttr] else { continue }
-            let skillId = Int(rawSkill)
-            let level   = Int(rawLevel)
-            guard skillId > 0, level > 0 else { continue }
-            parsed.append(ResolvedSkillReq(skillTypeId: skillId, requiredLevel: level, skillName: "…"))
+        let parsed = SkillPrerequisites.directRequirements(in: attrs).map {
+            ResolvedSkillReq(skillTypeId: $0.skillID, requiredLevel: $0.level, skillName: "…")
         }
 
         guard !parsed.isEmpty else { return }
@@ -225,18 +206,7 @@ struct SkillStatusDot: View {
 
         guard !Task.isCancelled else { return }
 
-        let attrMap = Dictionary(attrs.map { ($0.attributeId, $0.value) },
-                                  uniquingKeysWith: { a, _ in a })
-        var parsed: [(skillId: Int, level: Int)] = []
-
-        for pair in skillAttrPairs {
-            guard let rawSkill = attrMap[pair.skillAttr],
-                  let rawLevel = attrMap[pair.levelAttr] else { continue }
-            let skillId = Int(rawSkill)
-            let required = Int(rawLevel)
-            guard skillId > 0, required > 0 else { continue }
-            parsed.append((skillId, required))
-        }
+        let parsed = SkillPrerequisites.directRequirements(in: attrs).map { (skillId: $0.skillID, level: $0.level) }
 
         guard !Task.isCancelled else { return }
         requirements = parsed

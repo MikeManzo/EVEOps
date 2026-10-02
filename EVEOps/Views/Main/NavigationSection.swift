@@ -16,6 +16,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
     // Character
     case location = "Location"
     case training = "Training"
+    case idleCapacity = "Idle Capacity"
     case finances = "Finances"
     case assets = "Assets"
     case clones = "Clones"
@@ -73,6 +74,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
         case .dashboard: "Dashboard"
         case .location: "Location"
         case .training: "Training"
+        case .idleCapacity: "Idle Capacity"
         case .finances: "Finances"
         case .assets: "Assets"
         case .clones: "Clones"
@@ -124,6 +126,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
         case .dashboard: return "square.grid.2x2.fill"
         case .location: return "location.fill"
         case .training: return "graduationcap.fill"
+        case .idleCapacity: return "gauge.with.dots.needle.33percent"
         case .finances: return "banknote.fill"
         case .assets, .corpAssets: return "shippingbox.fill"
         case .corpHangars: return "archivebox.fill"
@@ -168,7 +171,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
     }
 
     static var pilotSections: [NavigationSection] {
-        [.location, .training, .skillPlanner, .clones, .research, .remapAdvisor, .medals]
+        [.location, .training, .idleCapacity, .skillPlanner, .clones, .research, .remapAdvisor, .medals]
     }
 
     static var economySections: [NavigationSection] {

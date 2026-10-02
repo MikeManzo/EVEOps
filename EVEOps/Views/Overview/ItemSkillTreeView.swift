@@ -12,15 +12,6 @@ import SwiftUI
 
 // MARK:  Tree Data Models
 
-// Skills 4-6 don't follow the simple "next ID" pattern skills 1-3 do — CCP's actual
-// numbering pairs 1285↔1286, 1289↔1287, 1290↔1288 (confirmed against ESI's own
-// attribute descriptions: e.g. attr 1286 is named "Level 5 required" but its
-// description reads "Required skill level for skill 4").
-private let treeAttrPairs: [(skillAttr: Int, levelAttr: Int)] = [
-    (182, 277), (183, 278), (184, 279),
-    (1285, 1286), (1289, 1287), (1290, 1288)
-]
-
 private enum SkillNodeStatus: Equatable {
     case root, met, partial, missing, noChar
 
@@ -487,7 +478,7 @@ struct ItemSkillTreeView: View {
 
         // Filter to only items that have at least one skill prerequisite in their dogma attributes.
         // This definitively excludes SKINs, apparel, commodities, and anything else with no training requirements.
-        let skillAttrIds = Set(treeAttrPairs.map(\.skillAttr))
+        let skillAttrIds = Set(SkillPrerequisites.attributePairs.map(\.skill))
         let typeMap = await UniverseCache.shared.types(ids: candidates.map(\.id))
         let filtered = candidates.filter { item in
             guard let attrs = typeMap[item.id]?.dogmaAttributes else { return false }
@@ -622,16 +613,7 @@ struct ItemSkillTreeView: View {
         attrs: [ESIDogmaAttribute],
         state: SkillTreeBuildState
     ) async {
-        let attrMap = Dictionary(attrs.map { ($0.attributeId, $0.value) },
-                                 uniquingKeysWith: { a, _ in a })
-        var prereqs: [(id: Int, level: Int)] = []
-        for pair in treeAttrPairs {
-            guard let rawSkill = attrMap[pair.skillAttr],
-                  let rawLevel = attrMap[pair.levelAttr] else { continue }
-            let sid = Int(rawSkill), lvl = Int(rawLevel)
-            guard sid > 0, lvl > 0 else { continue }
-            prereqs.append((sid, lvl))
-        }
+        let prereqs = SkillPrerequisites.directRequirements(in: attrs).map { (id: $0.skillID, level: $0.level) }
         guard !prereqs.isEmpty else { return }
 
         // Batch-fetch ESIType for skills not yet visited.

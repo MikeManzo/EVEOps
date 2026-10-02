@@ -14,58 +14,16 @@ import OSLog
 extension SkillPlannerView {
     // MARK:  SP & Time Calculations
 
-    // Total SP at each level for rank-1 skills
-    static let spThresholds: [Int: Int] = [
-        0: 0, 1: 250, 2: 1414, 3: 8000, 4: 45255, 5: 256000
-    ]
-
-    func spForLevel(_ level: Int, rank: Int) -> Int {
-        (Self.spThresholds[level] ?? 0) * rank
-    }
-
     func spNeeded(for item: SkillPlanItem) -> Int {
         guard item.fromLevel < item.targetLevel else { return 0 }
-        let rank = skillRank(for: item.skillId)
-        return spForLevel(item.targetLevel, rank: rank) - spForLevel(item.fromLevel, rank: rank)
+        let rank = SkillTraining.rank(of: skillTypes[item.skillId])
+        return SkillTraining.sp(forLevel: item.targetLevel, rank: rank) - SkillTraining.sp(forLevel: item.fromLevel, rank: rank)
     }
 
     func trainingTime(for item: SkillPlanItem, attrs: ESICharacterAttributes) -> Double {
-        let sp = Double(spNeeded(for: item))
-        guard sp > 0 else { return 0 }
-        let type = skillTypes[item.skillId]
-        let (primaryId, secondaryId) = dogmaAttributes(for: type)
-        let primary = Double(characterAttr(attrs, dogmaId: primaryId))
-        let secondary = Double(characterAttr(attrs, dogmaId: secondaryId))
-        // EVE formula: SP per minute = primary + secondary × 0.5
-        let spPerMinute = primary + secondary * 0.5
-        guard spPerMinute > 0 else { return 0 }
-        return sp / spPerMinute * 60.0
-    }
-
-    func skillRank(for typeId: Int) -> Int {
-        guard let type = skillTypes[typeId],
-              let attr = type.dogmaAttributes?.first(where: { $0.attributeId == 275 }) else { return 1 }
-        return max(1, Int(attr.value))
-    }
-
-    /// Returns (primaryDogmaID, secondaryDogmaID) — values are 164…168
-    func dogmaAttributes(for type: ESIType?) -> (Int, Int) {
-        guard let dogma = type?.dogmaAttributes else { return (165, 166) }
-        let primary = dogma.first(where: { $0.attributeId == 180 }).map { Int($0.value) } ?? 165
-        let secondary = dogma.first(where: { $0.attributeId == 181 }).map { Int($0.value) } ?? 166
-        return (primary, secondary)
-    }
-
-    /// Maps dogma attribute ID (164-168) → actual character attribute value
-    func characterAttr(_ attrs: ESICharacterAttributes, dogmaId: Int) -> Int {
-        switch dogmaId {
-        case 164: return attrs.charisma
-        case 165: return attrs.intelligence
-        case 166: return attrs.memory
-        case 167: return attrs.perception
-        case 168: return attrs.willpower
-        default:  return attrs.intelligence
-        }
+        let ids = SkillTraining.attributeIDs(of: skillTypes[item.skillId])
+        let rate = SkillTraining.spPerMinute(primary: ids.primary, secondary: ids.secondary, attributes: attrs)
+        return SkillTraining.seconds(forSP: spNeeded(for: item), spPerMinute: rate)
     }
 
     // MARK:  Persistence

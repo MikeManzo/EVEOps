@@ -123,7 +123,8 @@ private struct EVEScrollRevealModifier: ViewModifier {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func body(content: Content) -> some View {
-        content.scrollTransition(.animated(.smooth(duration: 0.3))) { view, phase in
+        let reduceMotion = reduceMotion
+        return content.scrollTransition(.animated(.smooth(duration: 0.3))) { view, phase in
             // Opacity plus a small offset, never a scale: offsets move AppKit-backed
             // controls without resizing them (see `AnyTransition.eveSection`).
             view

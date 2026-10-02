@@ -10,121 +10,6 @@
 
 import SwiftUI
 
-// MARK: - Training math
-
-/// The five character attributes, keyed by their dogma IDs (164…168) as skills
-/// reference them in `primaryAttribute` (180) / `secondaryAttribute` (181).
-enum EVEAttribute: Int, CaseIterable, Identifiable {
-    case intelligence = 165, memory = 166, perception = 167, willpower = 168, charisma = 164
-
-    var id: Int { rawValue }
-
-    var abbreviation: String {
-        switch self {
-        case .intelligence: "INT"
-        case .memory:       "MEM"
-        case .perception:   "PER"
-        case .willpower:    "WIL"
-        case .charisma:     "CHA"
-        }
-    }
-
-    /// Implant bonus dogma attribute for this attribute (175…179, verified against ESI).
-    var implantBonusDogmaID: Int {
-        switch self {
-        case .charisma:     175
-        case .intelligence: 176
-        case .memory:       177
-        case .perception:   178
-        case .willpower:    179
-        }
-    }
-
-    func value(in attrs: ESICharacterAttributes) -> Int {
-        switch self {
-        case .intelligence: attrs.intelligence
-        case .memory:       attrs.memory
-        case .perception:   attrs.perception
-        case .willpower:    attrs.willpower
-        case .charisma:     attrs.charisma
-        }
-    }
-}
-
-enum SkillTrainingMath {
-    /// SP to reach each level at rank 1 (multiply by the skill's rank).
-    static let spThresholds = [0, 250, 1_414, 8_000, 45_255, 256_000]
-
-    /// Base attribute pool: each attribute starts at 17, 14 points to distribute, max
-    /// 27 (base) per attribute.
-    static let baseAttribute = 17
-    static let remapPoints = 14
-    static let maxBaseAttribute = 27
-
-    static func rank(of type: ESIType?) -> Int {
-        type?.dogmaAttributes?.first { $0.attributeId == 275 }.map { max(1, Int($0.value)) } ?? 1
-    }
-
-    static func attributes(of type: ESIType?) -> (primary: EVEAttribute, secondary: EVEAttribute) {
-        let dogma = type?.dogmaAttributes ?? []
-        let primary = dogma.first { $0.attributeId == 180 }.flatMap { EVEAttribute(rawValue: Int($0.value)) }
-        let secondary = dogma.first { $0.attributeId == 181 }.flatMap { EVEAttribute(rawValue: Int($0.value)) }
-        return (primary ?? .intelligence, secondary ?? .memory)
-    }
-
-    /// Large skill injector yield at a character's total SP.
-    static func largeInjectorYield(totalSP: Int) -> Int {
-        switch totalSP {
-        case ..<5_000_000:   500_000
-        case ..<50_000_000:  400_000
-        case ..<80_000_000:  300_000
-        default:             150_000
-        }
-    }
-
-    /// SP still to train for one attribute pair.
-    struct Demand {
-        let primary: EVEAttribute
-        let secondary: EVEAttribute
-        let sp: Int
-    }
-
-    /// Minutes to train `demand` with the given attribute totals (Omega rate).
-    static func minutes(for demand: [Demand], totals: [EVEAttribute: Int]) -> Double {
-        demand.reduce(0) { sum, d in
-            let rate = Double(totals[d.primary, default: 17]) + Double(totals[d.secondary, default: 17]) / 2
-            return sum + (rate > 0 ? Double(d.sp) / rate : 0)
-        }
-    }
-
-    /// Best base allocation (each 17…27, 14 points spread) for `demand`, with the
-    /// character's implant bonuses added on top. Exhaustive — only a few thousand
-    /// allocations exist.
-    static func optimalRemap(for demand: [Demand], implants: [EVEAttribute: Int]) -> (base: [EVEAttribute: Int], minutes: Double)? {
-        guard !demand.isEmpty else { return nil }
-        let attrs = EVEAttribute.allCases
-        var best: (base: [EVEAttribute: Int], minutes: Double)?
-        func search(_ index: Int, _ remaining: Int, _ current: [EVEAttribute: Int]) {
-            if index == attrs.count - 1 {
-                guard remaining <= maxBaseAttribute - baseAttribute else { return }
-                var base = current
-                base[attrs[index]] = baseAttribute + remaining
-                let totals = Dictionary(uniqueKeysWithValues: attrs.map { ($0, base[$0]! + implants[$0, default: 0]) })
-                let m = minutes(for: demand, totals: totals)
-                if best == nil || m < best!.minutes { best = (base, m) }
-                return
-            }
-            for points in 0...min(remaining, maxBaseAttribute - baseAttribute) {
-                var next = current
-                next[attrs[index]] = baseAttribute + points
-                search(index + 1, remaining - points, next)
-            }
-        }
-        search(0, remapPoints, [:])
-        return best
-    }
-}
-
 // MARK: - Header insight blocks
 
 extension TrainingOverviewView {
@@ -142,8 +27,8 @@ extension TrainingOverviewView {
     }
 
     /// Remaining queue SP grouped by attribute pair.
-    func queueDemand(_ info: CharacterTrainingInfo) -> [SkillTrainingMath.Demand] {
-        var byPair: [String: SkillTrainingMath.Demand] = [:]
+    func queueDemand(_ info: CharacterTrainingInfo) -> [SkillTraining.Demand] {
+        var byPair: [String: SkillTraining.Demand] = [:]
         for entry in info.queue {
             guard let end = entry.levelEndSP else { continue }
             let start = entry.isCurrentlyTraining
@@ -151,7 +36,7 @@ extension TrainingOverviewView {
                 : (entry.levelStartSP ?? end)
             let sp = max(end - start, 0)
             guard sp > 0 else { continue }
-            let pair = SkillTrainingMath.attributes(of: queueSkillTypes[entry.skillId])
+            let pair = SkillTraining.attributes(of: queueSkillTypes[entry.skillId])
             let key = "\(pair.primary.rawValue)-\(pair.secondary.rawValue)"
             let prior = byPair[key]?.sp ?? 0
             byPair[key] = .init(primary: pair.primary, secondary: pair.secondary, sp: prior + sp)
@@ -167,10 +52,10 @@ extension TrainingOverviewView {
     func remapPayoff(_ info: CharacterTrainingInfo) -> some View {
         if let attrs = attributes, let best = remapResult {
             let current = Dictionary(uniqueKeysWithValues: EVEAttribute.allCases.map { ($0, $0.value(in: attrs)) })
-            let currentMinutes = SkillTrainingMath.minutes(for: best.demand, totals: current)
+            let currentMinutes = SkillTraining.minutes(for: best.demand, totals: current)
             let saved = (currentMinutes - best.minutes) * 60
             let raised = EVEAttribute.allCases
-                .filter { best.base[$0, default: 17] > SkillTrainingMath.baseAttribute }
+                .filter { best.base[$0, default: 17] > SkillTraining.baseAttribute }
                 .sorted { best.base[$0, default: 0] > best.base[$1, default: 0] }
             if saved >= 3600 {
                 VStack(alignment: .leading, spacing: EVESpacing.xs) {
@@ -276,9 +161,9 @@ extension TrainingOverviewView {
             guard let attrs = attributes else { return 0 }
             return items.reduce(0) { sum, item in
                 let type = planSkillTypes[item.skillId]
-                let rank = SkillTrainingMath.rank(of: type)
-                let sp = (SkillTrainingMath.spThresholds[item.targetLevel] - SkillTrainingMath.spThresholds[item.fromLevel]) * rank
-                let pair = SkillTrainingMath.attributes(of: type)
+                let rank = SkillTraining.rank(of: type)
+                let sp = SkillTraining.sp(forLevel: item.targetLevel, rank: rank) - SkillTraining.sp(forLevel: item.fromLevel, rank: rank)
+                let pair = SkillTraining.attributes(of: type)
                 let rate = Double(pair.primary.value(in: attrs)) + Double(pair.secondary.value(in: attrs)) / 2
                 return sum + (rate > 0 ? Double(max(sp, 0)) / rate * 60 : 0)
             }
@@ -317,7 +202,7 @@ extension TrainingOverviewView {
         let step = sp < 10_000_000 ? 5_000_000 : 10_000_000
         let milestone = (sp / step + 1) * step
         let rate = currentSPPerHour(info)
-        let injector = SkillTrainingMath.largeInjectorYield(totalSP: sp)
+        let injector = SkillTraining.largeInjectorYield(totalSP: sp)
         let queued = queueDemand(info).reduce(0) { $0 + $1.sp }
         return VStack(alignment: .leading, spacing: EVESpacing.sm) {
             blockTitle("Milestones")
@@ -374,7 +259,7 @@ extension TrainingOverviewView {
         let demand = queueDemand(info)
         let implants = implantBonuses
         let best = await Task.detached(priority: .userInitiated) {
-            SkillTrainingMath.optimalRemap(for: demand, implants: implants)
+            SkillTraining.optimalRemap(for: demand, implants: implants)
         }.value
         remapResult = best.map { RemapResult(demand: demand, base: $0.base, minutes: $0.minutes) }
     }

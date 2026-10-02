@@ -10,29 +10,6 @@
 
 import SwiftUI
 
-// MARK:  Constants
-
-// Skills 4-6 don't follow the simple "next ID" pattern skills 1-3 do — CCP's actual
-// numbering pairs 1285↔1286, 1289↔1287, 1290↔1288 (confirmed against ESI's own
-// attribute descriptions: e.g. attr 1286 is named "Level 5 required" but its
-// description reads "Required skill level for skill 4").
-private let prereqAttrPairs: [(skillAttr: Int, levelAttr: Int)] = [
-    (182, 277), (183, 278), (184, 279),
-    (1285, 1286), (1289, 1287), (1290, 1288)
-]
-
-private let spThresholds: [Int: Int] = [
-    0: 0, 1: 250, 2: 1_414, 3: 8_000, 4: 45_255, 5: 256_000
-]
-
-// MARK:  Accumulator
-
-private final class PrereqAccumulator {
-    var maxRequired: [Int: Int] = [:]
-    var names: [Int: String] = [:]
-    var visited: Set<Int> = []
-}
-
 // MARK:  Entry Model
 
 private struct PrereqEntry: Identifiable {
@@ -680,100 +657,52 @@ struct ShipGoalBrowserView: View {
         defer { isResolving = false }
 
         guard let typeData = await UniverseCache.shared.type(id: typeId),
-              let attrs = typeData.dogmaAttributes else {
+              typeData.dogmaAttributes != nil else {
             prereqMessage = "Could not load ship data."
             return
         }
 
-        let acc = PrereqAccumulator()
-        await walkPrereqs(attrs: attrs, acc: acc)
+        let required = await SkillPrerequisites.shared.requirements(for: typeId)
 
-        guard !acc.maxRequired.isEmpty else {
+        guard !required.isEmpty else {
             prereqMessage = "This ship has no skill requirements."
             return
         }
 
         // Batch-fetch type data for SP/time calculations
-        let skillIds = Array(acc.maxRequired.keys)
+        let skillIds = Array(required.keys)
         skillTypeMap = await UniverseCache.shared.types(ids: skillIds)
 
-        // Fill in any names not captured during the walk
-        let missingNames = skillIds.filter { acc.names[$0] == nil }
+        // Fill in any names the type data doesn't carry
+        var names: [Int: String] = [:]
+        let missingNames = skillIds.filter { skillTypeMap[$0] == nil }
         if !missingNames.isEmpty {
-            let resolved = await NameResolver.shared.resolve(ids: missingNames)
-            for (id, name) in resolved { acc.names[id] = name }
+            names = await NameResolver.shared.resolve(ids: missingNames)
         }
 
-        prerequisites = acc.maxRequired.map { skillId, required in
+        prerequisites = required.map { skillId, required in
             PrereqEntry(
                 skillId: skillId,
-                name: acc.names[skillId] ?? skillTypeMap[skillId]?.name ?? "Skill #\(skillId)",
+                name: skillTypeMap[skillId]?.name ?? names[skillId] ?? "Skill #\(skillId)",
                 required: required,
                 trained: characterSkills?[skillId] ?? 0
             )
         }.sorted { $0.name < $1.name }
     }
 
-    private func walkPrereqs(attrs: [ESIDogmaAttribute], acc: PrereqAccumulator) async {
-        for (skillAttr, levelAttr) in prereqAttrPairs {
-            guard let skillVal = attrs.first(where: { $0.attributeId == skillAttr }),
-                  skillVal.value > 0,
-                  let levelVal = attrs.first(where: { $0.attributeId == levelAttr }),
-                  levelVal.value > 0 else { continue }
-
-            let skillId = Int(skillVal.value)
-            let reqLevel = Int(levelVal.value)
-
-            // Keep the highest required level if this skill appears on multiple paths
-            acc.maxRequired[skillId] = max(acc.maxRequired[skillId] ?? 0, reqLevel)
-
-            guard !acc.visited.contains(skillId) else { continue }
-            acc.visited.insert(skillId)
-
-            // Recurse into the skill's own prerequisites
-            if let skillType = await UniverseCache.shared.type(id: skillId) {
-                acc.names[skillId] = skillType.name
-                if let subAttrs = skillType.dogmaAttributes {
-                    await walkPrereqs(attrs: subAttrs, acc: acc)
-                }
-            }
-        }
-    }
-
     // MARK: SP & Time Calculations
 
     private func spNeeded(_ entry: PrereqEntry) -> Int {
         guard entry.trained < entry.required else { return 0 }
-        let rank = skillRank(entry.skillId)
-        return (spThresholds[entry.required] ?? 0) * rank
-             - (spThresholds[entry.trained]   ?? 0) * rank
+        let rank = SkillTraining.rank(of: skillTypeMap[entry.skillId])
+        return SkillTraining.spNeeded(toLevel: entry.required, trainedLevel: entry.trained, spInSkill: 0, rank: rank)
     }
 
     private func trainingTime(_ entry: PrereqEntry, attrs: ESICharacterAttributes) -> Double {
-        let sp = Double(spNeeded(entry))
-        guard sp > 0, let type = skillTypeMap[entry.skillId] else { return 0 }
-        let dogma = type.dogmaAttributes ?? []
-        let primaryId   = dogma.first(where: { $0.attributeId == 180 }).map { Int($0.value) } ?? 165
-        let secondaryId = dogma.first(where: { $0.attributeId == 181 }).map { Int($0.value) } ?? 166
-        let spPerMin = Double(charAttr(attrs, id: primaryId)) + Double(charAttr(attrs, id: secondaryId)) * 0.5
-        guard spPerMin > 0 else { return 0 }
-        return sp / spPerMin * 60.0
-    }
-
-    private func skillRank(_ typeId: Int) -> Int {
-        guard let attr = skillTypeMap[typeId]?.dogmaAttributes?.first(where: { $0.attributeId == 275 }) else { return 1 }
-        return max(1, Int(attr.value))
-    }
-
-    private func charAttr(_ attrs: ESICharacterAttributes, id: Int) -> Int {
-        switch id {
-        case 164: return attrs.charisma
-        case 165: return attrs.intelligence
-        case 166: return attrs.memory
-        case 167: return attrs.perception
-        case 168: return attrs.willpower
-        default:  return attrs.intelligence
-        }
+        guard let type = skillTypeMap[entry.skillId] else { return 0 }
+        let ids = SkillTraining.attributeIDs(of: type)
+        let rate = SkillTraining.spPerMinute(primary: ids.primary, secondary: ids.secondary, attributes: attrs)
+        return SkillTraining.seconds(forSP: spNeeded(entry), spPerMinute: rate)
     }
 
     // MARK: Visual Helpers
