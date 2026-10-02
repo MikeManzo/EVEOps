@@ -96,7 +96,7 @@ struct MenuBarView: View {
             if appUpdater.updateAvailable {
                 Button {
                     dismiss()
-                    appUpdater.checkForUpdates()
+                    appUpdater.installUpdate()
                 } label: {
                     HStack(spacing: EVESpacing.sm) {
                         Image(systemName: "arrow.down.circle.fill")

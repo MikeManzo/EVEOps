@@ -136,7 +136,7 @@ struct GeneralTab: View {
                         }
                         Spacer()
                         Button("Install Update") {
-                            appUpdater.checkForUpdates()
+                            appUpdater.installUpdate()
                         }
                         .buttonStyle(.borderedProminent)
                         .tint(.green)

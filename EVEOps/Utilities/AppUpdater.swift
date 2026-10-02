@@ -51,6 +51,11 @@ final class AppUpdater: NSObject {
     /// True while the user explicitly asked to check (so we don't also fire a
     /// background "update available" notification on top of Sparkle's own window).
     @ObservationIgnored private var userInitiatedCheckInFlight = false
+    /// Set once Sparkle has downloaded an update in the background and its installer is
+    /// waiting for the app to quit: installs it and relaunches, no UI. See
+    /// `updater(_:willInstallUpdateOnQuit:immediateInstallationBlock:)`.
+    @ObservationIgnored private var stagedInstall: (() -> Void)?
+    @ObservationIgnored private var stagedVersion: String?
 
     var updater: SPUUpdater { controller.updater }
     var canCheckForUpdates = false
@@ -109,14 +114,51 @@ final class AppUpdater: NSObject {
         }
     }
 
-    /// User asked to check / install (menu bar banner, Settings, ⌘-menu). Bring the
-    /// app forward first — as an `LSUIElement` app the Sparkle window would
-    /// otherwise open unfocused behind everything and read as "nothing happened".
+    /// User asked to install the available update (menu bar banner, Settings, the
+    /// notification's "Install Update"). An update already staged in the background is
+    /// installed straight away; otherwise this runs Sparkle's normal check and window.
+    func installUpdate() {
+        if let stagedInstall {
+            Logger.updates.info("Installing staged update \(self.stagedVersion ?? "?") and relaunching")
+            stagedInstall()
+        } else {
+            checkForUpdates()
+        }
+    }
+
+    /// User asked to check (Settings, ⌘-menu). Bring the app forward first — as an
+    /// `LSUIElement` app the Sparkle window would otherwise open unfocused behind
+    /// everything and read as "nothing happened".
+    ///
+    /// With an update already staged, a Sparkle check would try to resume the waiting
+    /// installer and fail ("Failed to resume installing update."): the installer can't
+    /// decode an appcast item carrying `sparkle:informationalUpdate`, so it never
+    /// registers what it's installing. Offer to install the staged update instead.
     func checkForUpdates() {
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate(ignoringOtherApps: true)
+        if stagedInstall != nil {
+            confirmStagedInstall()
+            return
+        }
         userInitiatedCheckInFlight = true
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
         updater.checkForUpdates()
+    }
+
+    private func confirmStagedInstall() {
+        let alert = NSAlert()
+        alert.messageText = stagedVersion.map { String(localized: "EVEOps \($0) Is Ready to Install") }
+            ?? String(localized: "An Update Is Ready to Install")
+        alert.informativeText = String(localized: "It has already been downloaded. EVEOps will quit, install it and reopen. If you choose Later, it installs the next time you quit EVEOps.")
+        alert.addButton(withTitle: String(localized: "Install and Relaunch"))
+        alert.addButton(withTitle: String(localized: "Later"))
+        if alert.runModal() == .alertFirstButtonReturn {
+            installUpdate()
+        } else {
+            restoreActivationPolicy()
+        }
     }
 
     /// Restore the activation policy the user actually wants once an update
@@ -159,6 +201,8 @@ final class AppUpdater: NSObject {
     /// Sparkle's own interval/last-check bookkeeping, so it doesn't check any more often
     /// than the user's configured interval allows.
     func checkForUpdatesIfDue() {
+        // A staged update installs on quit; checking again would only trip the resume bug.
+        guard stagedInstall == nil else { return }
         guard canCheckForUpdates, updater.automaticallyChecksForUpdates else {
             Logger.updates.debug("checkForUpdatesIfDue skipped — canCheckForUpdates=\(self.canCheckForUpdates), automaticallyChecksForUpdates=\(self.updater.automaticallyChecksForUpdates)")
             return
@@ -185,6 +229,22 @@ extension AppUpdater: SPUUpdaterDelegate {
                 postUpdateNotification(version: item.displayVersionString)
             }
         }
+    }
+
+    /// An automatic download finished and the installer is waiting for the app to quit.
+    /// Keep the install-now handler so "Install Update" can use it rather than starting a
+    /// new check, which would fail to resume this installer. Returning true also stops
+    /// Sparkle's own later cycles from trying that resume; it still installs on quit.
+    nonisolated func updater(_ updater: SPUUpdater, willInstallUpdateOnQuit item: SUAppcastItem,
+                             immediateInstallationBlock immediateInstallHandler: @escaping () -> Void) -> Bool {
+        MainActor.assumeIsolated {
+            Logger.updates.info("Update \(item.displayVersionString) staged — installs on quit or via Install Update")
+            stagedInstall = immediateInstallHandler
+            stagedVersion = item.displayVersionString
+            updateAvailable = true
+            availableVersion = item.displayVersionString
+        }
+        return true
     }
 
     nonisolated func updaterDidNotFindUpdate(_ updater: SPUUpdater) {
