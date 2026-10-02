@@ -3,52 +3,35 @@
     <channel>
         <title>EVEOps</title>
         <item>
-            <title>0.9.6</title>
-            <pubDate>Wed, 30 Sep 2026 20:04:31 -0400</pubDate>
-            <link>https://github.com/MikeManzo/EVEOps/releases/tag/v0.9.6</link>
+            <title>0.9.7</title>
+            <pubDate>Fri, 02 Oct 2026 12:10:12 -0400</pubDate>
+            <link>https://github.com/MikeManzo/EVEOps/releases/tag/v0.9.7</link>
             <sparkle:informationalUpdate>
                 <sparkle:belowVersion>159</sparkle:belowVersion>
             </sparkle:informationalUpdate>
-            <sparkle:version>163</sparkle:version>
-            <sparkle:shortVersionString>0.9.6</sparkle:shortVersionString>
+            <sparkle:version>164</sparkle:version>
+            <sparkle:shortVersionString>0.9.7</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<p>App-wide visual pass: shared effects, Dashboard cleanup, EVE-style theming</p>
-<p>General:</p>
-<ul>
-<li>eveSelectionGlow: one theme-accent glow for selected rows and cards</li>
-<li>Symbol effects (bounce, wiggle, pulse, breathe), scroll reveal, completion ping</li>
-<li>EVERollIn: headline figures roll in from their leading digit (same width)</li>
-<li>eveStandingRing: friend-or-foe ring on portraits, identity-stable</li>
-</ul>
-<p>Dashboard:</p>
-<ul>
-<li>Replace the Players/NPCs/Organizations contact sections with a compact Watched strip</li>
-<li>Selected-pilot glow, scroll reveal on pilot and news cards</li>
-<li>Briefing items get stable IDs; new items bounce. Server icon pulses when degraded</li>
-<li>Pilot card ticks every 15s instead of every second</li>
-</ul>
-<p>Screens:</p>
-<ul>
-<li>Training: selection glow on group and queue rows, portrait backdrop, ping when</li>
-</ul>
-<p>the skill in training finishes</p>
-<ul>
-<li>Location: ship backdrop under a light security-color wash with a security strip;</li>
-</ul>
-<p>Ship column no longer breaks labels; Station Services neutral except key services</p>
-<ul>
-<li>Galaxy Map HUD tinted by security; Assets show station security</li>
-<li>Local Intel, Killmails and Contacts ring portraits by standing (StandingsIndex)</li>
-</ul>
-<p>App:</p>
-<ul>
-<li>Sidebar: unread counts on Mails and Communications (ActivitySignals), wiggle on new arrivals, bounce on badge changes; online ring on the pilot portrait</li>
-<li>Faction crest on the Dock icon and themed Dock progress ring</li>
-<li>Empty states breathe over a faint faction crest</li>
-<li>Hover on ~30 clickable cards and rows; skeletons replace 10 list/detail spinners</li>
-<li>EVEChartStyle shared by all charts; hover readouts on market history and population</li>
-</ul>]]></description>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.6/EVEOps.dmg" length="33750904" type="application/octet-stream" sparkle:edSignature="88Ac+oA5AlBN3RCY+gn0kIjR/pz0Drq4frcGd0UWWlk1Hy+Oo0utt8KbinmcKW+vuBifCswUdOx1vv0uCUy+Aw=="/>
+            <description><![CDATA[<p>What&#x27;s New</p>
+<p>Ready Room: what can I fly right now?</p>
+<p>A new screen in the sidebar that checks every saved fitting against your pilot and sorts them by how close each one is to undocking: Ready, Travel, Waiting, Buy, Train or Blocked.</p>
+<p>* Skills: shows which skills you&#x27;re missing, how long they&#x27;ll take to train, and when skills already in your queue will finish. It flags skills limited by an Alpha clone, and fitting skills you only need to stay within CPU and powergrid.</p>
+<p>* Will it fit? Checks CPU, powergrid and calibration using your current skills and implants, and tells you if a fit can never work, even with every fitting skill at V.</p>
+<p>* Parts: shows which parts you already own and where they are, including corporation hangars and modules fitted to ships. It also counts parts that are on their way from buy orders, industry jobs or courier contracts.</p>
+<p>* Staging and pickup route: picks the station where most of the fit already sits, plans a short route to collect the rest, and can send it to your in-game autopilot. It also tells you if one of your jump clones is in that station.</p>
+<p>* Where to buy: compares prices for the missing parts across Jita, Amarr, Dodixie, Rens and Hek, with a shortcut to the Fitting Shop.</p>
+<p>* One-click actions: add missing skills to your Skill Planner, open the Remap Advisor, or jump to the fit on the Fittings screen.</p>
+<p>* Other pilots: see how each of your other characters measures up for the same fit.</p>
+<p>* Pin your doctrine fits: the Dashboard gets a &quot;Pinned Fits Ready&quot; tile.</p>
+<p>* Notifications: get notified when a saved fit becomes ready to fly. You can turn this on or off in Settings → Notifications, and it&#x27;s also available for Discord.</p>
+<p>* You can sort by closest to ready, nearest, cheapest to complete, shortest training or name, and search or filter by status.</p>
+<p>* Saved fittings now have a &quot;Check in Ready Room&quot; button.</p>
+<p>Improvements</p>
+<p>More reliable ship goals: the Ship Goal Browser now always lists every skill you need for a ship. Before, it could miss some prerequisites if their skill data hadn&#x27;t been downloaded yet.</p>
+<p>Consistent training times everywhere: the Ship Goal Browser, Skill Planner, Item Skill Tree, Training Overview and Ready Room now share one set of calculations, so skill points and training times always agree from screen to screen.</p>
+<p>Fixes</p>
+<p>Other UI and back end quality of life inmprovements</p>]]></description>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.7/EVEOps.dmg" length="34357033" type="application/octet-stream" sparkle:edSignature="R1ZJ+iGg1GKJeS6PjfmMSci1Xi3AiOUvX3VqwL8j4y85Ty92RdXGtdjdTIgWc19x1zXPNfajVaHexgb5k9KcDg=="/>
         </item>
     </channel>
 </rss>
