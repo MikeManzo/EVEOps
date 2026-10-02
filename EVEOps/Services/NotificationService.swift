@@ -431,6 +431,19 @@ actor NotificationService {
         )
     }
 
+    /// Capacity that just went idle or is about to run out — one alert per pilot.
+    func notifyIdleCapacity(characterID: Int, characterName: String, lines: [String]) async {
+        guard !lines.isEmpty else { return }
+        await sendNotification(
+            title: String(localized: "Idle capacity — \(characterName)"),
+            body: lines.joined(separator: "\n"),
+            identifier: "idle-\(characterID)-\(Date().timeIntervalSince1970)",
+            category: .idleCapacity,
+            characterName: characterName,
+            characterID: characterID
+        )
+    }
+
     private func sendNotification(
         title: String,
         body: String,

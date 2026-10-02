@@ -24,6 +24,7 @@ nonisolated enum DiscordAlertCategory {
     case standings
     case presence
     case readyRoom
+    case idleCapacity
     case serverStatus
     case test
     case general
@@ -39,6 +40,7 @@ nonisolated enum DiscordAlertCategory {
         case .standings: return 0x1ABC9C
         case .presence: return 0x2ECC71
         case .readyRoom: return 0x27AE60
+        case .idleCapacity: return 0xE67E22
         case .serverStatus: return 0x95A5A6
         case .test: return 0x2E86DE
         case .general: return 0x2E86DE
@@ -56,6 +58,7 @@ nonisolated enum DiscordAlertCategory {
         case .standings: return "🤝"
         case .presence: return "🟢"
         case .readyRoom: return "🚀"
+        case .idleCapacity: return "⏳"
         case .serverStatus: return "🖥️"
         case .test: return "🧪"
         case .general: return "🔔"

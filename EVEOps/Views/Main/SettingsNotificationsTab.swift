@@ -28,6 +28,8 @@ struct NotificationsTab: View {
     @AppStorage("notifyStandingsChanged") private var notifyStandingsChanged = true
     @AppStorage("notifyServerStatus") private var notifyServerStatus = true
     @AppStorage("notifyReadyRoom") private var notifyReadyRoom = true
+    @AppStorage("notifyCloneJumpReady") private var notifyCloneJumpReady = true
+    @AppStorage("notifyListingsExpiring") private var notifyListingsExpiring = true
     @AppStorage("discordNotificationsEnabled") private var discordNotificationsEnabled = false
     @AppStorage("discordRichPresenceEnabled") private var discordRichPresenceEnabled = false
 
@@ -50,6 +52,10 @@ struct NotificationsTab: View {
                 Toggle("Skill queue becomes empty", isOn: $notifySkillQueueEmpty)
                     .disabled(!notificationsEnabled)
                 Toggle("PI extractors expired", isOn: $notifyExtractorsExpired)
+                    .disabled(!notificationsEnabled)
+                Toggle("Clone jump becomes available", isOn: $notifyCloneJumpReady)
+                    .disabled(!notificationsEnabled)
+                Toggle("Market orders or contracts expire within a day", isOn: $notifyListingsExpiring)
                     .disabled(!notificationsEnabled)
                 Toggle("Industry jobs finished", isOn: $notifyIndustryFinished)
                     .disabled(!notificationsEnabled)

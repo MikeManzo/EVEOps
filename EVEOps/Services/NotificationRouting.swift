@@ -31,6 +31,7 @@ nonisolated enum NotificationRoute {
         case .standings:      return .standings
         case .presence:       return .contacts
         case .readyRoom:      return .readyRoom
+        case .idleCapacity:   return .idleCapacity
         case .serverStatus, .test, .general: return nil
         }
     }

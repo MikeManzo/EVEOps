@@ -456,10 +456,11 @@ private struct Loader {
     }
 
     private static func isRemapAvailable(_ attributes: ESICharacterAttributes) -> Bool {
-        if (attributes.bonusRemaps ?? 0) > 0 { return true }
-        if let cooldown = attributes.accruedRemapCooldownDate { return cooldown <= .now }
-        guard let last = attributes.lastRemapDate else { return true }
-        return (Calendar.current.date(byAdding: .year, value: 1, to: last) ?? .distantFuture) <= .now
+        IdleCapacityEngine.isRemapAvailable(
+            bonusRemaps: attributes.bonusRemaps ?? 0,
+            nextRemap: IdleCapacityEngine.nextRemap(accruedCooldown: attributes.accruedRemapCooldownDate,
+                                                    lastRemap: attributes.lastRemapDate)
+        )
     }
 
     private static func cloneJumpReadyAt(_ clones: ESIClonesResponse?, skills: [Int: ReadyRoomSkillLevel]) -> Date? {

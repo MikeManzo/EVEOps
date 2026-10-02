@@ -92,6 +92,8 @@ final class BackgroundMonitor {
                 )
                 // Ready Room: rebuild each pilot's board and alert on fits that became ready.
                 await ReadyRoomService.shared.backgroundCheck(accountManager: accountManager, prefetcher: prefetcher)
+                // Idle Capacity: stopped extractors, clone jumps come ready, listings about to expire.
+                await IdleCapacityService.shared.backgroundCheck(accountManager: accountManager, prefetcher: prefetcher)
 
                 // Sparkle's own scheduled-check timer only fires if the app stays running until
                 // it elapses; a menu-bar app that gets quit/relaunched within the 24h interval can

@@ -4,7 +4,8 @@
 //
 //  Covers the Idle Capacity engine: slot limits from skills, which jobs occupy a slot,
 //  finished-but-undelivered jobs, skill queue states, extractors, which lines a pilot
-//  gets, and the clone jump timer. Pure inputs only — no network, no ESI.
+//  gets, the clone jump timer and slots, SP and remaps, expiring listings, idle time
+//  from job history, and timeline events. Pure inputs only — no network, no ESI.
 //
 
 import Foundation
@@ -18,6 +19,14 @@ private let hour: TimeInterval = 3600
 
 private func job(_ activity: Int, _ status: String = "active", endsIn: TimeInterval = 48 * hour) -> IdleCapacityJob {
     IdleCapacityJob(activityID: activity, status: status, endDate: now.addingTimeInterval(endsIn))
+}
+
+/// A job with a start date, for idle-time tests: ran from `startedAgo` to `endsIn`.
+private func timedJob(_ status: String, startedAgo: TimeInterval, endsIn: TimeInterval,
+                      completedAgo: TimeInterval? = nil) -> IdleCapacityJob {
+    IdleCapacityJob(activityID: 1, status: status, endDate: now.addingTimeInterval(endsIn),
+                    startDate: now.addingTimeInterval(-startedAgo),
+                    completedDate: completedAgo.map { now.addingTimeInterval(-$0) })
 }
 
 private func report(_ input: IdleCapacityInput) -> IdleCapacityReport {
@@ -188,5 +197,123 @@ private func report(_ input: IdleCapacityInput) -> IdleCapacityReport {
         #expect(r.line(.cloneJump)?.status == .info)
         #expect(r.line(.research)?.points == 110)
         #expect(r.idleCount == 1) // only the empty skill queue
+    }
+
+    @Test func freeJumpCloneSlotsAreIdle() {
+        let skills = [Skill.infomorphPsychology: 5, Skill.advancedInfomorphPsychology: 2]
+        #expect(IdleCapacityEngine.jumpCloneLimit(skills) == 7)
+        let line = report(IdleCapacityInput(skills: skills, jumpCloneCount: 4)).line(.cloneJump)
+        #expect(line?.status == .idle)
+        #expect(line?.free == 3)
+        let full = report(IdleCapacityInput(skills: [Skill.infomorphPsychology: 2], jumpCloneCount: 2)).line(.cloneJump)
+        #expect(full?.status == .info)
+    }
+
+    // MARK: - Skill points & remaps
+
+    @Test func unallocatedSkillPointsAreIdle() {
+        #expect(report(IdleCapacityInput()).line(.skillPoints) == nil)
+        let line = report(IdleCapacityInput(unallocatedSP: 250_000)).line(.skillPoints)
+        #expect(line?.status == .idle)
+        #expect(line?.count == 250_000)
+    }
+
+    @Test func remapLineFollowsCooldownAndBonusRemaps() {
+        #expect(report(IdleCapacityInput()).line(.remap) == nil) // attributes not read
+        #expect(report(IdleCapacityInput(nextRemap: now.addingTimeInterval(48 * hour))).line(.remap) == nil)
+        #expect(report(IdleCapacityInput(nextRemap: now.addingTimeInterval(-hour))).line(.remap)?.status == .info)
+        #expect(report(IdleCapacityInput(bonusRemaps: 2, nextRemap: now.addingTimeInterval(48 * hour))).line(.remap)?.count == 2)
+    }
+
+    @Test func nextRemapIsAYearAfterTheLastUnlessESISaysOtherwise() {
+        let last = now.addingTimeInterval(-30 * 24 * hour)
+        let cooldown = now.addingTimeInterval(5 * hour)
+        #expect(IdleCapacityEngine.nextRemap(accruedCooldown: cooldown, lastRemap: last) == cooldown)
+        #expect(IdleCapacityEngine.nextRemap(accruedCooldown: nil, lastRemap: last)
+                == Calendar.current.date(byAdding: .year, value: 1, to: last))
+        #expect(IdleCapacityEngine.nextRemap(accruedCooldown: nil, lastRemap: nil) == .distantPast)
+    }
+
+    // MARK: - Listings
+
+    @Test func fullMarketWithAnOrderExpiringIsSoon() {
+        let expiries = [now.addingTimeInterval(3 * hour), now.addingTimeInterval(72 * hour)]
+        let line = report(IdleCapacityInput(orderCount: 5, orderExpiries: expiries)).line(.market)
+        #expect(line?.status == .soon)
+        #expect(line?.expiring == 1)
+        #expect(line?.date == now.addingTimeInterval(3 * hour))
+    }
+
+    @Test func contractSlotsFollowContracting() {
+        #expect(IdleCapacityEngine.contractSlots([Skill.contracting: 4]) == 17)
+        let line = report(IdleCapacityInput(skills: [Skill.contracting: 1], contractCount: 2,
+                                            contractExpiries: [now.addingTimeInterval(hour)])).line(.contracts)
+        #expect(line?.status == .idle)
+        #expect(line?.free == 3)
+        #expect(line?.expiring == 1)
+        #expect(report(IdleCapacityInput()).line(.contracts) == nil)
+    }
+
+    // MARK: - Idle time
+
+    @Test func freeSlotIdlesSinceTheLastDelivery() {
+        // Two slots: one job still running, one delivered five hours ago.
+        let jobs = [
+            timedJob("active", startedAgo: 10 * hour, endsIn: 20 * hour),
+            timedJob("delivered", startedAgo: 30 * hour, endsIn: -8 * hour, completedAgo: 5 * hour),
+        ]
+        let line = report(IdleCapacityInput(skills: [Skill.industry: 1, Skill.massProduction: 1],
+                                            jobs: jobs, jobHistoryLoaded: true)).line(.manufacturing)
+        #expect(line?.status == .idle)
+        #expect(line?.idleSince == now.addingTimeInterval(-5 * hour))
+    }
+
+    @Test func idleSinceNeedsHistoryForFreeSlots() {
+        let line = report(IdleCapacityInput(skills: [Skill.industry: 1], jobs: [])).line(.manufacturing)
+        #expect(line?.idleSince == nil)
+        let unused = report(IdleCapacityInput(skills: [Skill.industry: 1], jobs: [], jobHistoryLoaded: true)).line(.manufacturing)
+        #expect(unused?.idleSince == .distantPast)
+    }
+
+    @Test func finishedJobIdlesSinceItEnded() {
+        let line = report(IdleCapacityInput(skills: [Skill.industry: 1], jobs: [job(1, "ready", endsIn: -3 * hour)]))
+            .line(.manufacturing)
+        #expect(line?.idleSince == now.addingTimeInterval(-3 * hour))
+    }
+
+    @Test func idleSlotTimeIntegratesUnusedSlots() {
+        let from = now.addingTimeInterval(-10 * hour)
+        // One slot, a job running the last 4 hours: 6 hours idle.
+        let one = [timedJob("active", startedAgo: 4 * hour, endsIn: 10 * hour)]
+        #expect(IdleCapacityEngine.idleSlotTime(one, limit: 1, from: from, to: now) == 6 * hour)
+        // Two slots: one busy throughout, the other used 2 of 10 hours before a cancel — 8 idle.
+        let two = [
+            timedJob("active", startedAgo: 20 * hour, endsIn: 10 * hour),
+            timedJob("cancelled", startedAgo: 10 * hour, endsIn: 10 * hour, completedAgo: 8 * hour),
+        ]
+        #expect(IdleCapacityEngine.idleSlotTime(two, limit: 2, from: from, to: now) == 8 * hour)
+        #expect(IdleCapacityEngine.idleSlotTime([], limit: 3, from: from, to: now) == 30 * hour)
+    }
+
+    @Test func historyOnlyJobsDontAddLines() {
+        let old = timedJob("delivered", startedAgo: 50 * hour, endsIn: -40 * hour, completedAgo: 40 * hour)
+        #expect(report(IdleCapacityInput(jobs: [old], jobHistoryLoaded: true)).line(.manufacturing) == nil)
+    }
+
+    // MARK: - Timeline
+
+    @Test func eventsCoverTheNextDayInOrder() {
+        let input = IdleCapacityInput(
+            queueFinishDates: [now.addingTimeInterval(5 * hour)],
+            jobs: [job(1, endsIn: 2 * hour), job(5, endsIn: 30 * hour), job(9, "ready", endsIn: -hour)],
+            orderExpiries: [now.addingTimeInterval(12 * hour)],
+            colonyCount: 1,
+            extractorExpiries: [now.addingTimeInterval(-hour), now.addingTimeInterval(8 * hour)],
+            lastCloneJump: now.addingTimeInterval(-20 * hour),
+            jumpCloneCount: 1
+        )
+        let events = IdleCapacityEngine.events(input, now: now)
+        #expect(events.map(\.kind) == [.manufacturing, .cloneJump, .training, .extractors, .market])
+        #expect(events.first?.date == now.addingTimeInterval(2 * hour))
     }
 }
