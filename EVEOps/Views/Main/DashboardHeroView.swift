@@ -788,9 +788,19 @@ struct CharacterHeroView: View {
             async let implantFetch: [Int] = ESIClient.shared.fetch(
                 "/characters/\(charID)/implants/", token: token
             )
+            async let skillsFetch: ESISkillsResponse = ESIClient.shared.fetch(
+                "/characters/\(charID)/skills/", token: token
+            )
             if let attrs = try? await attrFetch { liveAttributes = attrs }
             if let clones = try? await cloneFetch, let lastJump = clones.lastCloneJumpDate {
-                liveCloneJumpReadyAt = lastJump.addingTimeInterval(24 * 3600)
+                let skills = (try? await skillsFetch) ?? prefetcher.data(for: charID)?.skills
+                // `.distantPast` keeps the date even once it has passed, so the row
+                // still shows "Clone jump available".
+                liveCloneJumpReadyAt = IdleCapacityEngine.cloneJumpReadyAt(
+                    lastJump: lastJump,
+                    infomorphSynchronizing: IdleCapacityEngine.infomorphSynchronizing(in: skills),
+                    now: .distantPast
+                )
             }
             if let implantIDs = try? await implantFetch {
                 liveImplantBonuses = await resolveImplantAttributeBonuses(implantTypeIDs: implantIDs)

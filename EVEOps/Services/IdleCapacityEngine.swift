@@ -163,6 +163,11 @@ nonisolated enum IdleCapacityEngine {
         return ready > now ? ready : nil
     }
 
+    /// The pilot's active Infomorph Synchronizing level, 0 when untrained or unknown.
+    static func infomorphSynchronizing(in skills: ESISkillsResponse?) -> Int {
+        skills?.skills.first { $0.skillId == Skill.infomorphSynchronizing }?.activeSkillLevel ?? 0
+    }
+
     // MARK: Report
 
     /// A pilot's capacity. Slot lines only appear for activities the pilot has invested

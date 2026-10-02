@@ -17,6 +17,7 @@ struct CharacterClonesView: View {
     @Environment(ThemeManager.self) private var themeManager
     private var palette: EVEPalette { themeManager.palette }
     @State private var clonesResponse: ESIClonesResponse?
+    @State private var infomorphSynchronizing = 0
     @State private var activeImplants: [ResolvedImplant] = []
     @State private var jumpClones: [ResolvedJumpClone] = []
     @State private var isLoading = true
@@ -76,6 +77,7 @@ struct CharacterClonesView: View {
         }
         .task(id: accountManager.selectedCharacterID) {
             clonesResponse = nil
+            infomorphSynchronizing = 0
             activeImplants = []
             jumpClones = []
             selectedImplant = nil
@@ -94,16 +96,13 @@ struct CharacterClonesView: View {
                     .foregroundStyle(.blue)
                 Text("Clone Jump Timer")
                 Spacer()
-                if let lastJump = clonesResponse?.lastCloneJumpDate {
-                    let cooldownEnd = lastJump.addingTimeInterval(36000)
-                    if cooldownEnd > Date() {
-                        Text(EVEFormatters.timeUntil(cooldownEnd))
-                            .foregroundStyle(.orange)
-                            .monospacedDigit()
-                    } else {
-                        Text("Ready")
-                            .foregroundStyle(.green)
-                    }
+                if let cooldownEnd = IdleCapacityEngine.cloneJumpReadyAt(
+                    lastJump: clonesResponse?.lastCloneJumpDate,
+                    infomorphSynchronizing: infomorphSynchronizing
+                ) {
+                    Text(EVEFormatters.timeUntil(cooldownEnd))
+                        .foregroundStyle(.orange)
+                        .monospacedDigit()
                 } else {
                     Text("Ready")
                         .foregroundStyle(.green)
@@ -272,9 +271,14 @@ struct CharacterClonesView: View {
         isLoading = true
         do {
             let token = try await accountManager.validToken(for: account)
+            async let skillsFetch: ESISkillsResponse = ESIClient.shared.fetch(
+                "/characters/\(account.characterID)/skills/", token: token
+            )
             let clones: ESIClonesResponse = try await ESIClient.shared.fetch(
                 "/characters/\(account.characterID)/clones/", token: token
             )
+            let skills = (try? await skillsFetch) ?? prefetcher.data(for: account.characterID)?.skills
+            infomorphSynchronizing = IdleCapacityEngine.infomorphSynchronizing(in: skills)
             clonesResponse = clones
 
             let implantIDs: [Int] = try await ESIClient.shared.fetch(
