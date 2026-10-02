@@ -157,13 +157,6 @@ struct GeneralTab: View {
                 )) {
                     Label("Automatically check for updates", systemImage: "clock.arrow.2.circlepath")
                 }
-
-                Toggle(isOn: Binding(
-                    get: { appUpdater.updater.automaticallyDownloadsUpdates },
-                    set: { appUpdater.updater.automaticallyDownloadsUpdates = $0 }
-                )) {
-                    Label("Automatically download updates", systemImage: "arrow.down.circle")
-                }
             }
         }
         .formStyle(.grouped)
