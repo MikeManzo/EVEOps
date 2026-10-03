@@ -110,6 +110,38 @@ final class ReadyRoomService {
         return built
     }
 
+    // MARK:  Fit checks
+
+    /// What a fit check depends on from the pilot: active skill levels and implants.
+    nonisolated static func pilotHash(skills: [Int: Int], implants: [Int]) -> Int {
+        var hasher = Hasher()
+        for (skill, level) in skills.sorted(by: { $0.key < $1.key }) { hasher.combine(skill); hasher.combine(level) }
+        hasher.combine(implants)
+        return hasher.finalize()
+    }
+
+    nonisolated static func fitCheckKey(_ fitting: ESIFitting, pilotHash: Int) -> Int {
+        var hasher = Hasher()
+        hasher.combine(pilotHash)
+        hasher.combine(fitting.shipTypeId)
+        hasher.combine(fitting.items)
+        return hasher.finalize()
+    }
+
+    /// Checks any fit for any pilot through the board's cache — the Hangar Matrix measures
+    /// every pilot against every pilot's fits. Nil when the dogma engine isn't loaded.
+    func fittingCheck(_ fitting: ESIFitting, skills: [Int: Int], implants: [Int],
+                      types: [Int: ESIType]) -> ReadyRoomFittingCheck? {
+        let key = Self.fitCheckKey(fitting, pilotHash: Self.pilotHash(skills: skills, implants: implants))
+        if let cached = fitCheckCache[key] { return cached }
+        guard let check = ReadyRoomFittingChecker.check(fitting: fitting, skills: skills, implants: implants,
+                                                        shipType: types[fitting.shipTypeId], moduleTypes: types) else {
+            return nil
+        }
+        fitCheckCache[key] = check
+        return check
+    }
+
     // MARK:  Refresh
 
     /// Loads the board for `account` in stages, publishing after each: the board itself,
@@ -472,10 +504,57 @@ private struct Loader {
 
     // MARK:  Places
 
+    private func resolvePlaces(_ ids: Set<Int>) async -> [Int: ReadyRoomPlace] {
+        await ReadyRoomPlaces.resolve(ids, token: token)
+    }
+
+    // MARK:  Fitting check
+
+    /// Runs each fit through the dogma engine, and adds the fitting skills' own
+    /// prerequisites and training info so the engine can cost them.
+    func addFittingChecks(to snapshot: inout ReadyRoomSnapshot, cache: inout [Int: ReadyRoomFittingCheck]) async {
+        let fittings = snapshot.input.fittings
+        let typeIDs = Set(fittings.flatMap { [$0.shipTypeId] + $0.items.map(\.typeId) })
+        let types = await UniverseCache.shared.types(ids: Array(typeIDs))
+        let skills = snapshot.input.skills.mapValues(\.active)
+        let implants = snapshot.pilot.implantIDs
+
+        let pilotHash = ReadyRoomService.pilotHash(skills: skills, implants: implants)
+
+        var checks: [Int: ReadyRoomFittingCheck] = [:]
+        for fitting in fittings {
+            let cacheKey = ReadyRoomService.fitCheckKey(fitting, pilotHash: pilotHash)
+            if let cached = cache[cacheKey] {
+                checks[fitting.fittingId] = cached
+                continue
+            }
+            if let check = ReadyRoomFittingChecker.check(fitting: fitting, skills: skills, implants: implants,
+                                                         shipType: types[fitting.shipTypeId], moduleTypes: types) {
+                checks[fitting.fittingId] = check
+                cache[cacheKey] = check
+            }
+            await Task.yield()   // the engine runs on the main actor; keep the UI responsive
+        }
+        snapshot.input.fittingChecks = checks
+
+        let fittingSkills = Set(checks.values.flatMap(\.skillsToFit.keys))
+        guard !fittingSkills.isEmpty else { return }
+        let extra = await SkillPrerequisites.shared.requirements(for: Array(fittingSkills))
+        snapshot.input.requirements.merge(extra) { _, new in new }
+        let allSkills = fittingSkills.union(extra.values.flatMap(\.keys))
+        let info = await SkillPrerequisites.shared.trainingInfo(for: Array(allSkills))
+        snapshot.input.skillInfo.merge(info) { _, new in new }
+    }
+}
+
+// MARK:  Places
+
+/// Station, structure and solar system lookups shared by the Ready Room, Hangar Matrix and
+/// Dead Stock.
+enum ReadyRoomPlaces {
     /// Names, systems and security for stations, structures and (for ships in space)
     /// solar systems, resolved in parallel.
-    private func resolvePlaces(_ ids: Set<Int>) async -> [Int: ReadyRoomPlace] {
-        let token = token
+    static func resolve(_ ids: Set<Int>, token: String) async -> [Int: ReadyRoomPlace] {
         return await withTaskGroup(of: ReadyRoomPlace.self) { group in
             for id in ids {
                 group.addTask {
@@ -515,50 +594,5 @@ private struct Loader {
             for await place in group { out[place.id] = place }
             return out
         }
-    }
-
-    // MARK:  Fitting check
-
-    /// Runs each fit through the dogma engine, and adds the fitting skills' own
-    /// prerequisites and training info so the engine can cost them.
-    func addFittingChecks(to snapshot: inout ReadyRoomSnapshot, cache: inout [Int: ReadyRoomFittingCheck]) async {
-        let fittings = snapshot.input.fittings
-        let typeIDs = Set(fittings.flatMap { [$0.shipTypeId] + $0.items.map(\.typeId) })
-        let types = await UniverseCache.shared.types(ids: Array(typeIDs))
-        let skills = snapshot.input.skills.mapValues(\.active)
-        let implants = snapshot.pilot.implantIDs
-
-        var pilotKey = Hasher()
-        for (skill, level) in skills.sorted(by: { $0.key < $1.key }) { pilotKey.combine(skill); pilotKey.combine(level) }
-        pilotKey.combine(implants)
-        let pilotHash = pilotKey.finalize()
-
-        var checks: [Int: ReadyRoomFittingCheck] = [:]
-        for fitting in fittings {
-            var key = Hasher()
-            key.combine(pilotHash)
-            key.combine(fitting.shipTypeId)
-            key.combine(fitting.items)
-            let cacheKey = key.finalize()
-            if let cached = cache[cacheKey] {
-                checks[fitting.fittingId] = cached
-                continue
-            }
-            if let check = ReadyRoomFittingChecker.check(fitting: fitting, skills: skills, implants: implants,
-                                                         shipType: types[fitting.shipTypeId], moduleTypes: types) {
-                checks[fitting.fittingId] = check
-                cache[cacheKey] = check
-            }
-            await Task.yield()   // the engine runs on the main actor; keep the UI responsive
-        }
-        snapshot.input.fittingChecks = checks
-
-        let fittingSkills = Set(checks.values.flatMap(\.skillsToFit.keys))
-        guard !fittingSkills.isEmpty else { return }
-        let extra = await SkillPrerequisites.shared.requirements(for: Array(fittingSkills))
-        snapshot.input.requirements.merge(extra) { _, new in new }
-        let allSkills = fittingSkills.union(extra.values.flatMap(\.keys))
-        let info = await SkillPrerequisites.shared.trainingInfo(for: Array(allSkills))
-        snapshot.input.skillInfo.merge(info) { _, new in new }
     }
 }

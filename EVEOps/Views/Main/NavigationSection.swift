@@ -17,8 +17,11 @@ enum NavigationSection: String, CaseIterable, Identifiable {
     case location = "Location"
     case training = "Training"
     case idleCapacity = "Idle Capacity"
+    case loginPlanner = "Login Planner"
+    case skillROI = "Skill ROI"
     case finances = "Finances"
     case assets = "Assets"
+    case deadStock = "Dead Stock"
     case clones = "Clones"
     case colonies = "Colonies"
     case lpStore = "LP Store"
@@ -29,6 +32,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
     case killmails = "Kill Mails"
     case fittings = "Fittings"
     case readyRoom = "Ready Room"
+    case hangarMatrix = "Hangar Matrix"
     case localIntel = "Local Intel"
     case calendar = "Calendar"
     case standings = "Standings"
@@ -75,8 +79,11 @@ enum NavigationSection: String, CaseIterable, Identifiable {
         case .location: "Location"
         case .training: "Training"
         case .idleCapacity: "Idle Capacity"
+        case .loginPlanner: "Login Planner"
+        case .skillROI: "Skill ROI"
         case .finances: "Finances"
         case .assets: "Assets"
+        case .deadStock: "Dead Stock"
         case .clones: "Clones"
         case .colonies: "Colonies"
         case .lpStore: "LP Store"
@@ -87,6 +94,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
         case .killmails: "Kill Mails"
         case .fittings: "Fittings"
         case .readyRoom: "Ready Room"
+        case .hangarMatrix: "Hangar Matrix"
         case .localIntel: "Local Intel"
         case .calendar: "Calendar"
         case .standings: "Standings"
@@ -127,6 +135,10 @@ enum NavigationSection: String, CaseIterable, Identifiable {
         case .location: return "location.fill"
         case .training: return "graduationcap.fill"
         case .idleCapacity: return "gauge.with.dots.needle.33percent"
+        case .loginPlanner: return "calendar.badge.clock"
+        case .skillROI: return "chart.line.uptrend.xyaxis"
+        case .deadStock: return "archivebox.circle.fill"
+        case .hangarMatrix: return "square.grid.3x3.fill"
         case .finances: return "banknote.fill"
         case .assets, .corpAssets: return "shippingbox.fill"
         case .corpHangars: return "archivebox.fill"
@@ -171,15 +183,15 @@ enum NavigationSection: String, CaseIterable, Identifiable {
     }
 
     static var pilotSections: [NavigationSection] {
-        [.location, .training, .idleCapacity, .skillPlanner, .clones, .research, .remapAdvisor, .medals]
+        [.location, .training, .idleCapacity, .loginPlanner, .skillPlanner, .skillROI, .clones, .research, .remapAdvisor, .medals]
     }
 
     static var economySections: [NavigationSection] {
-        [.finances, .assets, .market, .contracts, .industry, .colonies, .lpStore]
+        [.finances, .assets, .deadStock, .market, .contracts, .industry, .colonies, .lpStore]
     }
 
     static var combatSections: [NavigationSection] {
-        [.fittings, .readyRoom, .killmails, .fleetManager, .factionWarfare, .localIntel]
+        [.fittings, .readyRoom, .hangarMatrix, .killmails, .fleetManager, .factionWarfare, .localIntel]
     }
 
     static var socialSections: [NavigationSection] {

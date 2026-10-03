@@ -4,6 +4,12 @@
     "" : {
 
     },
+    " · idle %@" : {
+
+    },
+    " +%lld" : {
+
+    },
     " +%lld more" : {
 
     },
@@ -133,6 +139,16 @@
         }
       }
     },
+    "%@ · %@ in %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$@ in %3$@"
+          }
+        }
+      }
+    },
     "%@ · %@ LP available" : {
       "localizations" : {
         "en" : {
@@ -179,19 +195,6 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ · %2$lld stations"
-          }
-        }
-      }
-    },
-    "%@ · ready" : {
-
-    },
-    "%@ · ready in %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ · ready in %2$@"
           }
         }
       }
@@ -339,6 +342,16 @@
         }
       }
     },
+    "%@ across %lld item types" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ across %2$lld item types"
+          }
+        }
+      }
+    },
     "%@ appears to be online." : {
 
     },
@@ -381,8 +394,28 @@
     "%@ buy" : {
 
     },
+    "%@ dead of %@ owned" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ dead of %2$@ owned"
+          }
+        }
+      }
+    },
     "%@ hit points" : {
 
+    },
+    "%@ in %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ in %2$@"
+          }
+        }
+      }
     },
     "%@ is %@ pricier but %lld jumps closer than %@." : {
       "localizations" : {
@@ -435,6 +468,19 @@
     "%@ online" : {
 
     },
+    "%@ owned" : {
+
+    },
+    "%@ owned · %@ kept for fittings" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ owned · %2$@ kept for fittings"
+          }
+        }
+      }
+    },
     "%@ payout" : {
 
     },
@@ -457,6 +503,9 @@
 
     },
     "%@ total LP" : {
+
+    },
+    "%@ unallocated" : {
 
     },
     "%@ vs 30d" : {
@@ -499,6 +548,9 @@
 
     },
     "%@%%" : {
+
+    },
+    "%@h" : {
 
     },
     "%@x %@" : {
@@ -595,6 +647,9 @@
         }
       }
     },
+    "%lld bonus remaps" : {
+
+    },
     "%lld bonus remaps available" : {
 
     },
@@ -610,6 +665,29 @@
           }
         }
       }
+    },
+    "%lld clones · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld clones · %2$@"
+          }
+        }
+      }
+    },
+    "%lld clones · jump in %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld clones · jump in %2$@"
+          }
+        }
+      }
+    },
+    "%lld clones · jump ready" : {
+
     },
     "%lld colon%@" : {
       "localizations" : {
@@ -635,6 +713,9 @@
 
     },
     "%lld contracts" : {
+
+    },
+    "%lld contracts expire within a day" : {
 
     },
     "%lld corp" : {
@@ -664,6 +745,9 @@
           }
         }
       }
+    },
+    "%lld expire < 24h" : {
+
     },
     "%lld external → %@" : {
       "localizations" : {
@@ -708,6 +792,36 @@
         }
       }
     },
+    "%lld fits × %lld pilots" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld fits × %2$lld pilots"
+          }
+        }
+      }
+    },
+    "%lld fits closer · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld fits closer · %2$@"
+          }
+        }
+      }
+    },
+    "%lld fits flyable · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld fits flyable · %2$@"
+          }
+        }
+      }
+    },
     "%lld fits newly ready" : {
 
     },
@@ -721,8 +835,27 @@
         }
       }
     },
+    "%lld fits ready to undock" : {
+
+    },
+    "%lld fitting skills to train" : {
+
+    },
+    "%lld flyable" : {
+
+    },
     "%lld free" : {
 
+    },
+    "%lld free · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld free · %2$@"
+          }
+        }
+      }
     },
     "%lld free · %lld to deliver" : {
       "localizations" : {
@@ -750,6 +883,16 @@
     "%lld heads" : {
 
     },
+    "%lld here · %lld elsewhere · %lld missing" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld here · %2$lld elsewhere · %3$lld missing"
+          }
+        }
+      }
+    },
     "%lld idle" : {
 
     },
@@ -762,6 +905,12 @@
           }
         }
       }
+    },
+    "%lld idle now" : {
+
+    },
+    "%lld implants" : {
+
     },
     "%lld in %@" : {
       "localizations" : {
@@ -835,9 +984,6 @@
     "%lld jobs" : {
 
     },
-    "%lld jump clones" : {
-
-    },
     "%lld jump%@" : {
       "localizations" : {
         "en" : {
@@ -903,7 +1049,20 @@
     "%lld logins" : {
 
     },
+    "%lld logins over the next %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld logins over the next %2$@"
+          }
+        }
+      }
+    },
     "%lld losses" : {
+
+    },
+    "%lld market orders expire within a day" : {
 
     },
     "%lld minutes" : {
@@ -1009,7 +1168,26 @@
     "%lld orders" : {
 
     },
+    "%lld other stations" : {
+
+    },
     "%lld others" : {
+
+    },
+    "%lld parts" : {
+
+    },
+    "%lld parts · last in %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld parts · last in %2$@"
+          }
+        }
+      }
+    },
+    "%lld PI extractors stopped" : {
 
     },
     "%lld pilots" : {
@@ -1039,6 +1217,22 @@
       }
     },
     "%lld pts" : {
+
+    },
+    "%lld ready" : {
+
+    },
+    "%lld ready · %lld flyable" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld ready · %2$lld flyable"
+          }
+        }
+      }
+    },
+    "%lld ready now" : {
 
     },
     "%lld ready to deliver" : {
@@ -1108,6 +1302,16 @@
     },
     "%lld shown" : {
 
+    },
+    "%lld skill levels ranked for %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld skill levels ranked for %2$@"
+          }
+        }
+      }
     },
     "%lld skill%@ in queue" : {
       "localizations" : {
@@ -1284,12 +1488,25 @@
     "%lld unresolved" : {
 
     },
+    "%lld upcoming" : {
+
+    },
     "%lld/%lld" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$lld/%2$lld"
+          }
+        }
+      }
+    },
+    "%lld/%lld can fly" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld/%2$lld can fly"
           }
         }
       }
@@ -1327,6 +1544,9 @@
     "%lld×" : {
 
     },
+    "%lldd" : {
+
+    },
     "%lldd • %@" : {
       "localizations" : {
         "en" : {
@@ -1340,7 +1560,13 @@
     "%lldd ago" : {
 
     },
+    "%lldh" : {
+
+    },
     "%lldh ago" : {
+
+    },
+    "%lldj" : {
 
     },
     "%lldm" : {
@@ -1408,7 +1634,30 @@
         }
       }
     },
+    "+%lld %@ · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "+%1$lld %2$@ · %3$@"
+          }
+        }
+      }
+    },
+    "+%lld %@ slots" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "+%1$lld %2$@ slots"
+          }
+        }
+      }
+    },
     "+%lld more degraded" : {
+
+    },
+    "+%lld more skills" : {
 
     },
     "+%lld more…" : {
@@ -1443,6 +1692,18 @@
       }
     },
     "≤0" : {
+
+    },
+    "≥ 1M" : {
+
+    },
+    "≥ 10M" : {
+
+    },
+    "≥ 100K" : {
+
+    },
+    "≥ 100M" : {
 
     },
     "≥75% — Core to the role" : {
@@ -1514,6 +1775,9 @@
     "20–49% — Situational" : {
 
     },
+    "24 hours" : {
+
+    },
     "30 days" : {
 
     },
@@ -1536,6 +1800,9 @@
 
     },
     "90D" : {
+
+    },
+    "90d+" : {
 
     },
     "A contract status changed to: %@" : {
@@ -1703,6 +1970,9 @@
     "Added to Plan" : {
 
     },
+    "Adds Slots" : {
+
+    },
     "After remap" : {
 
     },
@@ -1782,6 +2052,9 @@
 
     },
     "All owned · %lld elsewhere" : {
+
+    },
+    "All pilots" : {
 
     },
     "All Responses" : {
@@ -1881,6 +2154,12 @@
     "Any" : {
 
     },
+    "Any age" : {
+
+    },
+    "Any value" : {
+
+    },
     "App Caches" : {
 
     },
@@ -1944,6 +2223,12 @@
     "Assets" : {
 
     },
+    "At staging" : {
+
+    },
+    "at the lowest Jita sell order" : {
+
+    },
     "Attacker details not published for this campaign." : {
 
     },
@@ -1975,9 +2260,6 @@
 
     },
     "Automatically check for updates" : {
-
-    },
-    "Automatically download updates" : {
 
     },
     "Availability" : {
@@ -2052,13 +2334,25 @@
     "Based on publicly-observable signals.\nNot an exact online indicator." : {
 
     },
+    "Before tracking" : {
+
+    },
     "Best Buy" : {
+
+    },
+    "Best Pick" : {
 
     },
     "Best price across Jita, Amarr, Dodixie, Rens & Hek" : {
 
     },
     "Best Sell" : {
+
+    },
+    "Best Value" : {
+
+    },
+    "Biggest Pile" : {
 
     },
     "Bio" : {
@@ -2097,6 +2391,9 @@
     "Breakdown" : {
 
     },
+    "Brings closer" : {
+
+    },
     "Browse skills on the right and tap + to add them to your plan." : {
 
     },
@@ -2118,6 +2415,9 @@
           }
         }
       }
+    },
+    "Busy Slots" : {
+
     },
     "Buy" : {
 
@@ -2276,6 +2576,9 @@
     "Checking for updates…" : {
 
     },
+    "Checking market volume…" : {
+
+    },
     "Checking the trade hubs…" : {
 
     },
@@ -2357,13 +2660,16 @@
     "Click a constellation to set the route origin" : {
 
     },
+    "Click to sort for this pilot" : {
+
+    },
     "Clipboard Help" : {
 
     },
     "Clipboard Import / Export" : {
 
     },
-    "Clone Jump" : {
+    "Clone" : {
 
     },
     "Clone jump %@ ago — training times refreshed" : {
@@ -2372,10 +2678,16 @@
     "Clone jump available" : {
 
     },
+    "Clone jump becomes available" : {
+
+    },
     "Clone jump in %@" : {
 
     },
     "Clone Jump Timer" : {
+
+    },
+    "Clone Slots Free" : {
 
     },
     "Clones" : {
@@ -2400,6 +2712,9 @@
 
     },
     "Closest to Ready" : {
+
+    },
+    "Closest: %@" : {
 
     },
     "Collapse" : {
@@ -2540,6 +2855,9 @@
     "Content" : {
 
     },
+    "Contents" : {
+
+    },
     "Contest score" : {
 
     },
@@ -2550,6 +2868,9 @@
 
     },
     "Contract Details" : {
+
+    },
+    "Contract Slots Free" : {
 
     },
     "Contract Update - %@" : {
@@ -2570,7 +2891,19 @@
     "Copied %@" : {
 
     },
+    "Copied %lld items for appraisal" : {
+
+    },
+    "Copied %lld skill levels — paste into EVE's skill queue" : {
+
+    },
     "Copied for Multibuy — paste into EVE's Multibuy window" : {
+
+    },
+    "Copies “Name ⇥ Quantity” lines — paste into Janice, Evepraisal or EVE’s multi-sell." : {
+
+    },
+    "Copies the top five picks as a skill plan — prerequisites first — to paste into EVE's skill queue." : {
 
     },
     "Copies your plan as plain text — one skill per line:" : {
@@ -2582,7 +2915,13 @@
     "Copy %lld Entries" : {
 
     },
+    "Copy All for Appraisal" : {
+
+    },
     "Copy Entry" : {
+
+    },
+    "Copy for Appraisal" : {
 
     },
     "Copy ID" : {
@@ -2597,6 +2936,9 @@
     "Copy Plan" : {
 
     },
+    "Copy Selected" : {
+
+    },
     "Copy selected table rows" : {
 
     },
@@ -2604,6 +2946,12 @@
 
     },
     "Copy the plan to the clipboard in EVE's format" : {
+
+    },
+    "Copy this pick as an EVE skill plan" : {
+
+    },
+    "Copy Top 5 for EVE" : {
 
     },
     "Copying" : {
@@ -2696,6 +3044,9 @@
     "Couldn't load" : {
 
     },
+    "Couldn’t load %@ — not shown." : {
+
+    },
     "Couldn’t load release notes — check your connection" : {
 
     },
@@ -2703,6 +3054,12 @@
 
     },
     "Couldn't load the star-map data." : {
+
+    },
+    "Couldn’t read any pilot’s assets." : {
+
+    },
+    "Couldn’t read assets for %@ — they aren’t counted." : {
 
     },
     "Couldn’t read corporation hangars: %@" : {
@@ -2732,13 +3089,22 @@
     "Courier Missions" : {
 
     },
+    "Coverage" : {
+
+    },
     "Coverage Tiers" : {
+
+    },
+    "Covered" : {
 
     },
     "CPU" : {
 
     },
     "CPU and powergrid weren't checked — the fitting engine's data couldn't be loaded. Opening the Simulator once downloads it." : {
+
+    },
+    "CPU/PG not checked" : {
 
     },
     "Current" : {
@@ -2818,6 +3184,9 @@
 
     },
     "Day" : {
+
+    },
+    "Dead Stock" : {
 
     },
     "Debug" : {
@@ -2956,6 +3325,9 @@
     "Distance" : {
 
     },
+    "Distinct Fits" : {
+
+    },
     "Div" : {
 
     },
@@ -3026,6 +3398,9 @@
 
     },
     "Dropped" : {
+
+    },
+    "duplicates across pilots merged" : {
 
     },
     "Duration" : {
@@ -3204,6 +3579,9 @@
     "EVEOps only checks for updates — the real launcher does the actual patching." : {
 
     },
+    "EVEOps started noting when items arrive on %@. “Untouched” ages build from there; anything older shows as “Before tracking”." : {
+
+    },
     "EVEOps Test Notification" : {
 
     },
@@ -3219,7 +3597,16 @@
     "everef.net" : {
 
     },
+    "every pilot needs training" : {
+
+    },
+    "Every saved fit is already flyable (or queued), and no slot skill would add capacity you use. Save more fittings to see what to train for them." : {
+
+    },
     "Every skill for the hull, its modules and its fitting is trained." : {
+
+    },
+    "Everything" : {
 
     },
     "EVEScout and the EVEScout logo/name are trademarks and/or service marks of EVEScout." : {
@@ -3423,6 +3810,9 @@
     "Find…" : {
 
     },
+    "Finding stations…" : {
+
+    },
     "Finding…" : {
 
     },
@@ -3456,7 +3846,22 @@
     "Fit check unavailable" : {
 
     },
+    "Fit details" : {
+
+    },
+    "Fit value" : {
+
+    },
+    "Fit Value" : {
+
+    },
     "Fits" : {
+
+    },
+    "Fits One Goal Away" : {
+
+    },
+    "fits some pilot is ready in" : {
 
     },
     "Fits with your current skills and implants." : {
@@ -3519,6 +3924,12 @@
     "Flow" : {
 
     },
+    "flyable after a single pick" : {
+
+    },
+    "Flyable by someone" : {
+
+    },
     "Frame Galaxy" : {
 
     },
@@ -3528,7 +3939,13 @@
     "Frequency Key" : {
 
     },
+    "From" : {
+
+    },
     "from %@" : {
+
+    },
+    "From corp" : {
 
     },
     "From File" : {
@@ -3615,6 +4032,9 @@
     "Hangar Is Empty" : {
 
     },
+    "Hangar Matrix" : {
+
+    },
     "Haul value" : {
 
     },
@@ -3693,16 +4113,37 @@
     "Idle" : {
 
     },
+    "Idle Accepted" : {
+
+    },
     "Idle Boy" : {
 
     },
     "Idle Capacity" : {
 
     },
+    "Idle capacity — %@" : {
+
+    },
+    "Idle Longest" : {
+
+    },
     "Idle Queues" : {
 
     },
+    "Idle up to" : {
+
+    },
+    "If listed" : {
+
+    },
+    "If Listed" : {
+
+    },
     "If you can see this in Discord, your webhook is configured correctly." : {
+
+    },
+    "If you skip this login, its %lld items wait for the next one." : {
 
     },
     "Implant Upgrade Potential" : {
@@ -3729,6 +4170,9 @@
     "Import from Clipboard" : {
 
     },
+    "in %@" : {
+
+    },
     "in %@ · out %@" : {
       "localizations" : {
         "en" : {
@@ -3739,7 +4183,20 @@
         }
       }
     },
+    "in %lld locations · %lld fits kept aside" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "in %1$lld locations · %2$lld fits kept aside"
+          }
+        }
+      }
+    },
     "in ~%@ at this rate" : {
+
+    },
+    "In a %@" : {
 
     },
     "In Discord, open the channel's settings → Integrations → Webhooks → New Webhook, then Copy Webhook URL." : {
@@ -3809,6 +4266,9 @@
     "Includes universe data, resolved names, and ESI responses. All data re-fetches automatically." : {
 
     },
+    "Incoming" : {
+
+    },
     "increased" : {
 
     },
@@ -3836,6 +4296,12 @@
     "Industry Overview" : {
 
     },
+    "Industry slot time unused" : {
+
+    },
+    "Industry Slots Free" : {
+
+    },
     "INFLUENCE" : {
 
     },
@@ -3858,6 +4324,9 @@
 
     },
     "Install update version %@" : {
+
+    },
+    "instead of %lld chasing every timer" : {
 
     },
     "Insufficient Fitting Data" : {
@@ -3914,6 +4383,12 @@
     "Item Appraisal" : {
 
     },
+    "Item Types" : {
+
+    },
+    "item-hours waiting for a login" : {
+
+    },
     "Items" : {
 
     },
@@ -3938,6 +4413,12 @@
     "Jita / The Forge — Market Orders" : {
 
     },
+    "Jita daily volume" : {
+
+    },
+    "Jita value of the hull, modules, drones and cargo" : {
+
+    },
     "Job Details" : {
 
     },
@@ -3959,6 +4440,9 @@
     "Jump Anywhere" : {
 
     },
+    "Jump clone" : {
+
+    },
     "Jump Clone Cooldown" : {
 
     },
@@ -3975,6 +4459,12 @@
 
     },
     "Jump Clones (%lld)" : {
+
+    },
+    "Jump in %@" : {
+
+    },
+    "Jump ready" : {
 
     },
     "Jump To" : {
@@ -4005,6 +4495,9 @@
 
     },
     "Keep this fit at the top of the board and on the Dashboard" : {
+
+    },
+    "Kept for fittings" : {
 
     },
     "Kerreah" : {
@@ -4119,6 +4612,12 @@
     "Limitations" : {
 
     },
+    "Liquid" : {
+
+    },
+    "Liquidity" : {
+
+    },
     "List density" : {
 
     },
@@ -4143,6 +4642,16 @@
     "Loading" : {
 
     },
+    "Loading %@ · %lld of %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Loading %1$@ · %2$lld of %3$lld"
+          }
+        }
+      }
+    },
     "Loading connections…" : {
 
     },
@@ -4162,6 +4671,9 @@
 
     },
     "Loading item details…" : {
+
+    },
+    "Loading job history…" : {
 
     },
     "Loading module database…" : {
@@ -4200,6 +4712,9 @@
     "Location" : {
 
     },
+    "Location #%lld" : {
+
+    },
     "Location Change" : {
 
     },
@@ -4227,10 +4742,28 @@
     "Log Out" : {
 
     },
+    "Login %lld" : {
+
+    },
+    "Login Planner" : {
+
+    },
     "Login:" : {
 
     },
+    "Logins are only planned between these hours. Pick the same hour twice for any time." : {
+
+    },
+    "Logins Needed" : {
+
+    },
     "Logout:" : {
+
+    },
+    "Longest wait %@" : {
+
+    },
+    "Looking up item types…" : {
 
     },
     "Looking up names" : {
@@ -4258,6 +4791,9 @@
 
     },
     "Low Slots" : {
+
+    },
+    "Lower the minimum value or clear the filters." : {
 
     },
     "Loyalty Points (%lld)" : {
@@ -4296,6 +4832,9 @@
     "Make sure the official Discord desktop app — or a client with Rich Presence built in, like Vesktop, Equibop, or Legcord — is running on this Mac." : {
 
     },
+    "Makes flyable" : {
+
+    },
     "Manage all your characters and corporations.\nTrack assets, skills, industry, contracts, and more." : {
 
     },
@@ -4318,6 +4857,9 @@
 
     },
     "Market Orders (%lld)" : {
+
+    },
+    "Market orders or contracts expire within a day" : {
 
     },
     "MARKET PRICE DATA SOURCE" : {
@@ -4374,6 +4916,9 @@
     "Min" : {
 
     },
+    "Minimum value" : {
+
+    },
     "minutes" : {
 
     },
@@ -4393,6 +4938,15 @@
 
     },
     "More Info" : {
+
+    },
+    "More than a day’s Jita volume — dumping it all would push the price down." : {
+
+    },
+    "Most Pilots Ready" : {
+
+    },
+    "Most Ready" : {
 
     },
     "Mothership present" : {
@@ -4466,6 +5020,9 @@
     "Needs fitting skills" : {
 
     },
+    "Needs Omega" : {
+
+    },
     "Net" : {
 
     },
@@ -4505,10 +5062,22 @@
     "New Eden" : {
 
     },
+    "New jobs and queues you start at a login add their own timers — the plan updates as they appear." : {
+
+    },
     "New Message" : {
 
     },
+    "Next 24 Hours" : {
+
+    },
+    "Next expires in %@" : {
+
+    },
     "Next Job" : {
+
+    },
+    "Next Login" : {
 
     },
     "Next maintenance %@: %@" : {
@@ -4534,6 +5103,9 @@
 
     },
     "Next stops in %@" : {
+
+    },
+    "Next Up" : {
 
     },
     "Next window %@" : {
@@ -4596,6 +5168,9 @@
     "No extractors" : {
 
     },
+    "No fit" : {
+
+    },
     "No fitting slots detected for this ship type" : {
 
     },
@@ -4612,6 +5187,9 @@
 
     },
     "No implants plugged in" : {
+
+    },
+    "No industry slots" : {
 
     },
     "No ISK activity" : {
@@ -4689,6 +5267,9 @@
     "No pilot has this capacity idle or freeing up soon." : {
 
     },
+    "No pilot ready yet" : {
+
+    },
     "No Pilots Found" : {
 
     },
@@ -4764,6 +5345,9 @@
     "No Tradeable Items in This Group" : {
 
     },
+    "No trades" : {
+
+    },
     "No Transactions" : {
 
     },
@@ -4774,6 +5358,9 @@
 
     },
     "No wealth data" : {
+
+    },
+    "Nobody Can Fly" : {
 
     },
     "None" : {
@@ -4833,10 +5420,25 @@
     "Note: if an implant is not detected, its floor may show slightly low. The allocations (+10 / +4 / +0) are always correct regardless." : {
 
     },
+    "Nothing comes due in this window. Start some jobs or queue skills and the plan fills in." : {
+
+    },
+    "Nothing due" : {
+
+    },
+    "Nothing idle" : {
+
+    },
     "Nothing Idle Here" : {
 
     },
+    "Nothing in the next 24h" : {
+
+    },
     "Nothing in the pasted text resolved to a known pilot." : {
+
+    },
+    "Nothing Matches" : {
 
     },
     "Nothing owned yet" : {
@@ -4845,7 +5447,19 @@
     "Nothing Queued" : {
 
     },
+    "Nothing to Log In For" : {
+
+    },
+    "Nothing to Rank" : {
+
+    },
+    "Nothing to sell" : {
+
+    },
     "Nothing to show" : {
+
+    },
+    "Nothing traded in Jita over the last 30 days." : {
 
     },
     "Notification" : {
@@ -4887,6 +5501,9 @@
     "of %lld" : {
 
     },
+    "of %lld across all pilots" : {
+
+    },
     "of %lld pilots" : {
 
     },
@@ -4920,10 +5537,23 @@
     "Omega required" : {
 
     },
+    "on %lld · %lld%% busy" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "on %1$lld · %2$lld%% busy"
+          }
+        }
+      }
+    },
     "On launch, select" : {
 
     },
     "ON ROUTE" : {
+
+    },
+    "On the way" : {
 
     },
     "On the Way" : {
@@ -4960,6 +5590,9 @@
         }
       }
     },
+    "Open %@ in the Ready Room" : {
+
+    },
     "Open Contacts" : {
 
     },
@@ -4991,6 +5624,9 @@
 
     },
     "Open in EVE Who" : {
+
+    },
+    "Open in Ready Room" : {
 
     },
     "Open in zKillboard" : {
@@ -5045,6 +5681,9 @@
 
     },
     "Opens a list of choices" : {
+
+    },
+    "Opens this fit in %@'s Ready Room" : {
 
     },
     "Optimal Range" : {
@@ -5113,6 +5752,9 @@
     "over CPU or PG" : {
 
     },
+    "over the next %@" : {
+
+    },
     "Overall %@ %@, ending at %@." : {
       "localizations" : {
         "en" : {
@@ -5168,6 +5810,9 @@
     "Paused" : {
 
     },
+    "pay off in under a day of training" : {
+
+    },
     "Peak passive shield recharge rate at 25% shield level" : {
 
     },
@@ -5189,6 +5834,9 @@
     "Pick the empire whose colors EVEOps should wear. You can change it any time in Settings." : {
 
     },
+    "Pick up from" : {
+
+    },
     "Pilot" : {
 
     },
@@ -5196,6 +5844,9 @@
 
     },
     "Pilot Backup" : {
+
+    },
+    "Pilot is here" : {
 
     },
     "Pilot Name" : {
@@ -5237,10 +5888,16 @@
     "Place" : {
 
     },
+    "Plan ahead" : {
+
+    },
     "Plan completes" : {
 
     },
     "Plan copied — paste into EVE's skill queue" : {
+
+    },
+    "Plan for" : {
 
     },
     "Plan Route" : {
@@ -5399,6 +6056,9 @@
     "Queued SP" : {
 
     },
+    "Queued until" : {
+
+    },
     "Quick switcher" : {
 
     },
@@ -5409,6 +6069,12 @@
 
     },
     "Quick Switcher…" : {
+
+    },
+    "Quick win" : {
+
+    },
+    "Quick Wins" : {
 
     },
     "Quiet — no PvP in the last hour" : {
@@ -5455,6 +6121,16 @@
     },
     "Reactions" : {
 
+    },
+    "Reading assets · %lld of %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Reading assets · %1$lld of %2$lld"
+          }
+        }
+      }
     },
     "Reads the same format from your clipboard and adds skills to this plan." : {
 
@@ -5559,6 +6235,9 @@
 
     },
     "Remap to %@" : {
+
+    },
+    "Remaps" : {
 
     },
     "Remove" : {
@@ -5720,10 +6399,19 @@
     "Save Fitting to EVE" : {
 
     },
+    "Save fittings in EVE or from Ships & Fittings on any pilot, and the matrix shows which of your pilots can fly each one." : {
+
+    },
     "Save run" : {
 
     },
     "Save to EVE" : {
+
+    },
+    "Saved By" : {
+
+    },
+    "Saved by %@" : {
 
     },
     "Saved fit becomes ready to fly (Ready Room)" : {
@@ -5742,6 +6430,9 @@
 
     },
     "Scanning…" : {
+
+    },
+    "Schedule" : {
 
     },
     "Scheduled %@" : {
@@ -5937,6 +6628,12 @@
     "sell at %@" : {
 
     },
+    "Sell now" : {
+
+    },
+    "Sell Now" : {
+
+    },
     "Sell Order" : {
 
     },
@@ -6045,6 +6742,9 @@
     "ship + pod kills in the last hour" : {
 
     },
+    "Ship Class" : {
+
+    },
     "SHIP FIT SIM ENGINE" : {
 
     },
@@ -6084,6 +6784,9 @@
     "Shortest Training" : {
 
     },
+    "Shortest training to fly it" : {
+
+    },
     "Show all fits" : {
 
     },
@@ -6097,6 +6800,9 @@
 
     },
     "Show Dock Icon" : {
+
+    },
+    "Show each fit's value, contents, required skills and who saved it" : {
 
     },
     "Show in Fittings" : {
@@ -6199,6 +6905,9 @@
         }
       }
     },
+    "Skill ROI" : {
+
+    },
     "Skill Training" : {
 
     },
@@ -6214,6 +6923,9 @@
     "Skip" : {
 
     },
+    "Skip it: +%@ idle" : {
+
+    },
     "Slot %lld: %@" : {
       "localizations" : {
         "en" : {
@@ -6223,6 +6935,15 @@
           }
         }
       }
+    },
+    "slot skills where you're 80%+ full" : {
+
+    },
+    "Slot-Days Idle · 7d" : {
+
+    },
+    "Slow" : {
+
     },
     "Social & Comms" : {
 
@@ -6254,7 +6975,13 @@
     "Sort by estimated ISK per LP or by LP cost" : {
 
     },
+    "Sort the matrix by how close %@ is" : {
+
+    },
     "Sort: %@" : {
+
+    },
+    "Sorted for %@" : {
 
     },
     "Sovereignty" : {
@@ -6387,6 +7114,9 @@
     "status.eveonline.com" : {
 
     },
+    "Steady" : {
+
+    },
     "Step %lld of %lld" : {
       "localizations" : {
         "en" : {
@@ -6404,6 +7134,12 @@
 
     },
     "Stop at Level %lld" : {
+
+    },
+    "Stop sorting for %@" : {
+
+    },
+    "Stop sorting for this pilot" : {
 
     },
     "Storage" : {
@@ -6506,6 +7242,9 @@
     "The Categories above decide which events fire — Discord receives the same ones as your native notifications." : {
 
     },
+    "The fitting engine's data couldn't be loaded, so fits aren't checked against CPU and powergrid." : {
+
+    },
     "The fitting engine's data couldn't be loaded. Open the Simulator once to download it." : {
 
     },
@@ -6546,6 +7285,9 @@
     "These skills are already in your plan" : {
 
     },
+    "Things are idle now" : {
+
+    },
     "This character has never used a neural remap." : {
 
     },
@@ -6567,6 +7309,9 @@
     "this mail" : {
 
     },
+    "This pilot hasn't saved this fit — save it to them to see it in their Ready Room." : {
+
+    },
     "This removes the contact and its standing in EVE as well." : {
 
     },
@@ -6582,6 +7327,9 @@
     "Time Left" : {
 
     },
+    "Time unknown" : {
+
+    },
     "Time Until" : {
 
     },
@@ -6589,6 +7337,9 @@
 
     },
     "Timer" : {
+
+    },
+    "timers across %lld pilots" : {
 
     },
     "Timers, blast figures and loot tables are community estimates and shift with balance passes — verify in-game before you commit a ship." : {
@@ -6601,6 +7352,15 @@
 
     },
     "to all V" : {
+
+    },
+    "To buy" : {
+
+    },
+    "To fit" : {
+
+    },
+    "to Jita buy orders" : {
 
     },
     "Today" : {
@@ -6693,6 +7453,9 @@
     "Training Time" : {
 
     },
+    "Trains %@" : {
+
+    },
     "Tranquility" : {
 
     },
@@ -6744,6 +7507,15 @@
     "Unable to Reach EVE Servers" : {
 
     },
+    "Unallocated SP" : {
+
+    },
+    "Under a tenth of a day’s Jita volume — sells without moving the price." : {
+
+    },
+    "Undock Now" : {
+
+    },
     "Undocked — dock and refresh to view" : {
 
     },
@@ -6760,6 +7532,9 @@
 
     },
     "Unlock Pilot Backup" : {
+
+    },
+    "Unlocks Fits" : {
 
     },
     "Unpackage the ship in-game to view its fitting." : {
@@ -6786,13 +7561,31 @@
     "Unresolved (%lld)" : {
 
     },
+    "Until" : {
+
+    },
     "until pop" : {
+
+    },
+    "Untouched" : {
+
+    },
+    "Untouched 7d+" : {
+
+    },
+    "Untouched 30d+" : {
+
+    },
+    "Untouched 90d+" : {
 
     },
     "up" : {
 
     },
     "Up Next" : {
+
+    },
+    "Up to a day’s Jita volume." : {
 
     },
     "Up to date" : {
@@ -6851,6 +7644,9 @@
       }
     },
     "Value" : {
+
+    },
+    "Value counts fits made flyable (pinned fits double), fits brought closer, and extra slots weighted by how busy your current ones are — divided by training days." : {
 
     },
     "Valuing assets…" : {
@@ -6991,6 +7787,12 @@
     "When the cooldown expires you can reassign your base attributes (Charisma, Intelligence, Memory, Perception, Willpower) to optimise training time for a new skill plan." : {
 
     },
+    "Where" : {
+
+    },
+    "Where it sits" : {
+
+    },
     "Where to Buy" : {
 
     },
@@ -7019,6 +7821,9 @@
 
     },
     "x%lld" : {
+
+    },
+    "Yearly remap available" : {
 
     },
     "Yesterday" : {
@@ -7116,6 +7921,9 @@
           }
         }
       }
+    },
+    "Ω" : {
+
     }
   },
   "version" : "1.0"

@@ -293,6 +293,14 @@ struct MainContentView: View {
                 ReadyRoomView()
             case .idleCapacity:
                 IdleCapacityView()
+            case .loginPlanner:
+                LoginPlannerView()
+            case .skillROI:
+                SkillROIView()
+            case .deadStock:
+                DeadStockView()
+            case .hangarMatrix:
+                HangarMatrixView()
             case .localIntel:
                 LocalIntelView()
             case .calendar:
