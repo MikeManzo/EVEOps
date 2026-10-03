@@ -3,24 +3,22 @@
     <channel>
         <title>EVEOps</title>
         <item>
-            <title>0.9.8</title>
-            <pubDate>Fri, 02 Oct 2026 14:00:13 -0400</pubDate>
-            <link>https://github.com/MikeManzo/EVEOps/releases/tag/v0.9.8</link>
+            <title>0.9.9</title>
+            <pubDate>Sat, 03 Oct 2026 17:03:26 -0400</pubDate>
+            <link>https://github.com/MikeManzo/EVEOps/releases/tag/v0.9.9</link>
             <sparkle:informationalUpdate>
                 <sparkle:belowVersion>159</sparkle:belowVersion>
             </sparkle:informationalUpdate>
-            <sparkle:version>165</sparkle:version>
-            <sparkle:shortVersionString>0.9.8</sparkle:shortVersionString>
+            <sparkle:version>166</sparkle:version>
+            <sparkle:shortVersionString>0.9.9</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
             <description><![CDATA[<ul>
-<li>Updates install only when the user chooses to</li>
-<li>Revert &quot;Install staged Sparkle updates directly instead of re-checking&quot;</li>
-<li>Install staged Sparkle updates directly instead of re-checking</li>
-<li>Expand Idle Capacity: new lines, idle time, timeline, totals and alerts</li>
-<li>Use Infomorph Synchronizing for clone jump cooldown on Clones and Dashboard</li>
-<li>Idle Capacity Updates</li>
+<li>**Login Planner (new):** Works out the fewest logins that keep every pilot&#x27;s training, industry, PI and market orders running. Set how long things may sit idle and the hours you can play. Each login lists who to log in and what&#x27;s due, how many logins you save compared with answering every timer, and what skipping one would cost.</li>
+<li>**Dead Stock (new):** Finds what you own but never use — anything not in a ship, not a blueprint, not an industry material, and not needed by any pilot&#x27;s saved fittings. Each item is priced at Jita (sell now and if listed), rated for how quickly it would sell, and shown with where it sits. &quot;Copy for Appraisal&quot; copies the list for Janice, Evepraisal or EVE&#x27;s multi-sell. EVEOps now records how long items sit untouched, so that column fills in over the coming weeks.</li>
+<li>**Hangar Matrix (new):** Every saved fit from every pilot, checked against every pilot. Each cell shows how close that pilot is to undocking and what&#x27;s in the way: jumps, ISK or training. Pilot cards show location, ship, SP, jump clones and how many fits each pilot is ready for; click one to sort the matrix for that pilot. Each fit shows its value, contents and who saved it, and clicking a cell shows parts, training and CPU/powergrid details.</li>
+<li>**Skill ROI (new):** Ranks skills by what they unlock for you per day of training — saved fits that become flyable, fits that get closer, and more industry, market, PI or clone slots where yours are busy. &quot;Copy for EVE&quot; copies your picks as a skill plan you can paste into the in-game skill queue.</li>
 </ul>]]></description>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.8/EVEOps.dmg" length="34618959" type="application/octet-stream" sparkle:edSignature="4OIibd7iZsHMDMIQ2PVYQ6icj/QX2M8zNR0orYKpzHhgAWYqIw/Z0M74BJHUl/QwQyxBUXdiEYHmZVp2erwlCw=="/>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.9/EVEOps.dmg" length="35368843" type="application/octet-stream" sparkle:edSignature="XMBk7EsON3QFbK79GCH0gcbMfbYOTHyrwaKnhle59H8Fpw8SSgjVHa5ersxcGB/rVvyBWYVrmsbi/ogsGVBXBA=="/>
         </item>
     </channel>
 </rss>
