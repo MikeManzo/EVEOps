@@ -125,6 +125,48 @@ struct DogmaLoadoutTests {
     }
 }
 
+// MARK: - Saved fit → engine fit
+
+struct DogmaFitTests {
+    private let fitting = ESIFitting(description: "", fittingId: 1, items: [
+        ESIFittingItem(flag: "HiSlot0", quantity: 1, typeId: autocannon),
+        ESIFittingItem(flag: "HiSlot1", quantity: 1, typeId: autocannon),
+        ESIFittingItem(flag: "MedSlot0", quantity: 1, typeId: 5_975),      // active: needs cap
+        ESIFittingItem(flag: "LoSlot0", quantity: 1, typeId: 1_405),       // passive
+        ESIFittingItem(flag: "Cargo", quantity: 1000, typeId: emsSmall),
+        ESIFittingItem(flag: "DroneBay", quantity: 2, typeId: hobgoblin),
+    ], name: "Test", shipTypeId: vexor)
+
+    private var fitTypes: [Int: ESIType] {
+        types.merging([5_975: type(5_975, [6: 10]), 1_405: type(1_405)]) { a, _ in a }
+    }
+
+    @Test func onlineOnlySendsEveryModuleOnlineWithoutChargesOrDrones() {
+        let fit = DogmaFit(fitting: fitting, types: fitTypes, implants: [9_941], onlineOnly: true)
+        #expect(fit.shipTypeID == vexor)
+        #expect(fit.slots.map(\.flag) == ["HiSlot0", "HiSlot1", "MedSlot0", "LoSlot0"])
+        #expect(fit.slots.allSatisfy { $0.chargeTypeId == nil })
+        #expect(fit.droneTypeIDs.isEmpty)
+        #expect(fit.passiveModuleTypeIDs == [autocannon, 5_975, 1_405])
+        #expect(fit.implantTypeIDs == [9_941])
+    }
+
+    @Test func combatFitLoadsAmmoAndDronesAndRunsModulesThatNeedCap() {
+        let fit = DogmaFit(fitting: fitting, types: fitTypes, onlineOnly: false)
+        #expect(fit.slots.map(\.chargeTypeId) == [emsSmall, emsSmall, nil, nil])
+        #expect(fit.droneTypeIDs == [hobgoblin, hobgoblin])
+        #expect(fit.passiveModuleTypeIDs == [autocannon, 1_405])
+    }
+
+    @Test func flagsWithoutAnIndexTakeTheNextFreeSlot() {
+        let odd = ESIFitting(description: "", fittingId: 2, items: [
+            ESIFittingItem(flag: "HiSlot1", quantity: 1, typeId: autocannon),
+            ESIFittingItem(flag: "HiSlot", quantity: 1, typeId: autocannon),
+        ], name: "Odd", shipTypeId: rifter)
+        #expect(DogmaFit.slots(for: odd).map(\.index) == [1, 2])
+    }
+}
+
 // MARK: - Engine (needs the cached SDE)
 
 private let sdeDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
@@ -158,6 +200,28 @@ struct DogmaEngineOffenseTests {
 
     @Test func noAmmoAndNoDronesMeansNoDPS() {
         #expect(stats(skills: skills, ammo: false, drones: false).dps == 0)
+    }
+
+    @Test func concurrentCalculationsMatchSerialOnes() async {
+        DogmaEngine.shared.prepare(pbDirPath: sdeDir)
+        let base = stats(skills: skills)
+        let fit = DogmaFit(shipTypeID: vexor,
+                           slots: (0..<4).map { SimSlot(category: .high, index: $0, moduleTypeId: blaster, chargeTypeId: voidM) },
+                           droneTypeIDs: Array(repeating: hammerhead, count: 5))
+        let serial = DogmaEngine.shared.calculate(fit, skills: skills).dps
+        let results = await withTaskGroup(of: Double.self) { group in
+            for _ in 0..<8 {
+                group.addTask { [skills] in
+                    (0..<50).map { _ in DogmaEngine.shared.calculate(fit, skills: skills).dps }.max() ?? 0
+                }
+            }
+            var all: [Double] = []
+            for await value in group { all.append(value) }
+            return all
+        }
+        #expect(results.count == 8)
+        #expect(results.allSatisfy { $0 == serial })
+        #expect(serial > 0 && serial < base.dps)   // no damage amps here
     }
 
     @Test func supportSkillsMoveTheirOwnDamage() {

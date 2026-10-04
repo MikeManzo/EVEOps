@@ -93,6 +93,43 @@ nonisolated extension DogmaLoadout {
     }
 }
 
+// MARK:  Saved fit → engine fit
+
+nonisolated extension DogmaFit {
+    /// A saved fit as the engine sees it. `onlineOnly` sends every module as online and
+    /// skips charges and drones — all a CPU/powergrid check needs. Otherwise modules with a
+    /// capacitor cost run active, weapons load cargo ammo and drones launch, for combat stats.
+    init(fitting: ESIFitting, types: [Int: ESIType], implants: [Int] = [], onlineOnly: Bool) {
+        var slots = Self.slots(for: fitting)
+        let moduleIDs = Set(slots.compactMap(\.moduleTypeId))
+        var drones: [Int] = []
+        let passive: Set<Int>
+        if onlineOnly {
+            passive = moduleIDs
+        } else {
+            drones = DogmaLoadout.apply(items: fitting.items, to: &slots, ship: types[fitting.shipTypeId], types: types)
+            passive = moduleIDs.filter { (types[$0]?.attribute(6) ?? 0) == 0 }   // capacitorNeed
+        }
+        self.init(shipTypeID: fitting.shipTypeId, slots: slots, droneTypeIDs: drones,
+                  implantTypeIDs: implants, passiveModuleTypeIDs: passive)
+    }
+
+    /// The fit's modules as simulator slots. Flags are "HiSlot0", "SubSystemSlot0", …; a flag
+    /// without a parsable index gets the next free one in its group.
+    static func slots(for fitting: ESIFitting) -> [SimSlot] {
+        var next: [SimSlotCategory: Int] = [:]
+        var result: [SimSlot] = []
+        for item in fitting.items {
+            guard let category = SimSlotCategory.allCases.first(where: { item.flag.hasPrefix($0.flagPrefix) }) else { continue }
+            let suffix = item.flag.dropFirst(category.flagPrefix.count).replacingOccurrences(of: "Slot", with: "")
+            let index = Int(suffix) ?? next[category, default: 0]
+            next[category] = max(next[category, default: 0], index + 1)
+            result.append(SimSlot(category: category, index: index, moduleTypeId: item.typeId))
+        }
+        return result
+    }
+}
+
 nonisolated extension ESIType {
     /// A dogma attribute's value, if the type has it.
     func attribute(_ id: Int) -> Double? {

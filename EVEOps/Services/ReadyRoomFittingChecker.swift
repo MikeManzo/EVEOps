@@ -12,9 +12,9 @@ import Foundation
 
 /// Runs saved fits through the same dogma engine as the Simulator to answer "does this
 /// actually fit?" — CPU, powergrid and calibration with the pilot's skills and implants —
-/// and, when it doesn't, which fitting skills would make it fit.
-@MainActor
-enum ReadyRoomFittingChecker {
+/// and, when it doesn't, which fitting skills would make it fit. Checks run on any thread;
+/// only loading the engine needs the main actor.
+nonisolated enum ReadyRoomFittingChecker {
     /// Skills that raise CPU/powergrid output or lower module fitting costs.
     static let cpuSkills = [3426, 3318, 3432, 3424]          // CPU Management, Weapon / Electronics / Energy Grid Upgrades
     static let powerSkills = [3413, 11207, 3425]             // Power Grid Management, Advanced Weapon / Shield Upgrades
@@ -24,11 +24,12 @@ enum ReadyRoomFittingChecker {
     /// more than this many levels is reported as fitting at all-V, without the path.
     private static let searchBudget = 60
 
-    private static var lastFailedPrepare: Date?
+    @MainActor private static var lastFailedPrepare: Date?
 
     /// Loads the engine's static data. Background checks (`allowLoad` false) only use an
     /// engine that's already loaded — loading checks GitHub for a new data release, which
     /// shouldn't happen every poll — and a failed load isn't retried for ten minutes.
+    @MainActor
     static func prepareEngine(allowLoad: Bool) async -> Bool {
         if DogmaEngine.shared.isReady { return true }
         guard allowLoad else { return false }
@@ -38,6 +39,21 @@ enum ReadyRoomFittingChecker {
         guard let path = await SDEDataManager.shared.pbDirPath else { return false }
         if !DogmaEngine.shared.isReady { DogmaEngine.shared.prepare(pbDirPath: path) }
         return DogmaEngine.shared.isReady
+    }
+
+    /// Checks several fits for one pilot off the main actor, keyed by fitting ID; fits the
+    /// engine can't check are left out.
+    static func checkAll(_ fittings: [ESIFitting], skills: [Int: Int], implants: [Int],
+                         types: [Int: ESIType]) async -> [Int: ReadyRoomFittingCheck] {
+        guard !fittings.isEmpty else { return [:] }
+        return await Task.detached(priority: .userInitiated) {
+            var out: [Int: ReadyRoomFittingCheck] = [:]
+            for fitting in fittings {
+                out[fitting.fittingId] = check(fitting: fitting, skills: skills, implants: implants,
+                                               shipType: types[fitting.shipTypeId], moduleTypes: types)
+            }
+            return out
+        }.value
     }
 
     /// `skills` are active levels; `shipType` and `moduleTypes` carry the dogma attributes
@@ -50,16 +66,12 @@ enum ReadyRoomFittingChecker {
         moduleTypes: [Int: ESIType]
     ) -> ReadyRoomFittingCheck? {
         guard DogmaEngine.shared.isReady else { return nil }
-        let slots = Self.slots(for: fitting)
-        guard !slots.isEmpty else { return nil }
+        // Online-only is enough: activation, charges and drones don't change fitting cost.
+        let fit = DogmaFit(fitting: fitting, types: moduleTypes, implants: implants, onlineOnly: true)
+        guard !fit.slots.isEmpty else { return nil }
 
-        func stats(_ skills: [Int: Int]) -> SimStats {
-            // Online-only (passive) is enough: activation doesn't change fitting cost.
-            DogmaEngine.shared.calculate(shipTypeId: fitting.shipTypeId, slots: slots, skills: skills,
-                                         implantTypeIds: implants,
-                                         passiveModuleTypeIds: Set(slots.compactMap(\.moduleTypeId)))
-        }
-        let calibration = Self.calibration(slots: slots, shipType: shipType, moduleTypes: moduleTypes)
+        func stats(_ skills: [Int: Int]) -> SimStats { DogmaEngine.shared.calculate(fit, skills: skills) }
+        let calibration = Self.calibration(slots: fit.slots, shipType: shipType, moduleTypes: moduleTypes)
         let now = stats(skills)
         guard now.cpuTotal > 0 || now.powerTotal > 0 else { return nil }   // engine didn't know the hull
 
@@ -115,21 +127,6 @@ enum ReadyRoomFittingChecker {
 
     private static func relevantSkills(for s: SimStats) -> [Int] {
         (s.cpuUsed > s.cpuTotal ? cpuSkills : []) + (s.powerUsed > s.powerTotal ? powerSkills : [])
-    }
-
-    /// The fit's modules as simulator slots. Flags are "HiSlot0", "SubSystemSlot0", …; a flag
-    /// without a parsable index gets the next free one in its group.
-    private static func slots(for fitting: ESIFitting) -> [SimSlot] {
-        var next: [SimSlotCategory: Int] = [:]
-        var result: [SimSlot] = []
-        for item in fitting.items {
-            guard let category = SimSlotCategory.allCases.first(where: { item.flag.hasPrefix($0.flagPrefix) }) else { continue }
-            let suffix = item.flag.dropFirst(category.flagPrefix.count).replacingOccurrences(of: "Slot", with: "")
-            let index = Int(suffix) ?? next[category, default: 0]
-            next[category] = max(next[category, default: 0], index + 1)
-            result.append(SimSlot(category: category, index: index, moduleTypeId: item.typeId))
-        }
-        return result
     }
 
     /// Calibration from dogma attributes, as the Simulator does: 1132 on the hull, 1153 per rig.

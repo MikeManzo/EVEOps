@@ -128,18 +128,26 @@ final class ReadyRoomService {
         return hasher.finalize()
     }
 
-    /// Checks any fit for any pilot through the board's cache — the Hangar Matrix measures
-    /// every pilot against every pilot's fits. Nil when the dogma engine isn't loaded.
-    func fittingCheck(_ fitting: ESIFitting, skills: [Int: Int], implants: [Int],
-                      types: [Int: ESIType]) -> ReadyRoomFittingCheck? {
-        let key = Self.fitCheckKey(fitting, pilotHash: Self.pilotHash(skills: skills, implants: implants))
-        if let cached = fitCheckCache[key] { return cached }
-        guard let check = ReadyRoomFittingChecker.check(fitting: fitting, skills: skills, implants: implants,
-                                                        shipType: types[fitting.shipTypeId], moduleTypes: types) else {
-            return nil
+    /// Checks any fits for any pilot through the board's cache, running the uncached ones
+    /// off the main actor — the Hangar Matrix measures every pilot against every pilot's
+    /// fits. Keyed by fitting ID; empty when the dogma engine isn't loaded.
+    func fittingChecks(_ fittings: [ESIFitting], skills: [Int: Int], implants: [Int],
+                       types: [Int: ESIType]) async -> [Int: ReadyRoomFittingCheck] {
+        let pilotHash = Self.pilotHash(skills: skills, implants: implants)
+        var out: [Int: ReadyRoomFittingCheck] = [:]
+        var pending: [(fitting: ESIFitting, key: Int)] = []
+        for fitting in fittings {
+            let key = Self.fitCheckKey(fitting, pilotHash: pilotHash)
+            if let cached = fitCheckCache[key] { out[fitting.fittingId] = cached } else { pending.append((fitting, key)) }
         }
-        fitCheckCache[key] = check
-        return check
+        let computed = await ReadyRoomFittingChecker.checkAll(pending.map(\.fitting), skills: skills,
+                                                              implants: implants, types: types)
+        for item in pending {
+            guard let check = computed[item.fitting.fittingId] else { continue }
+            out[item.fitting.fittingId] = check
+            fitCheckCache[item.key] = check
+        }
+        return out
     }
 
     // MARK:  Refresh
@@ -522,18 +530,21 @@ private struct Loader {
         let pilotHash = ReadyRoomService.pilotHash(skills: skills, implants: implants)
 
         var checks: [Int: ReadyRoomFittingCheck] = [:]
+        var pending: [(fitting: ESIFitting, key: Int)] = []
         for fitting in fittings {
             let cacheKey = ReadyRoomService.fitCheckKey(fitting, pilotHash: pilotHash)
             if let cached = cache[cacheKey] {
                 checks[fitting.fittingId] = cached
-                continue
+            } else {
+                pending.append((fitting, cacheKey))
             }
-            if let check = ReadyRoomFittingChecker.check(fitting: fitting, skills: skills, implants: implants,
-                                                         shipType: types[fitting.shipTypeId], moduleTypes: types) {
-                checks[fitting.fittingId] = check
-                cache[cacheKey] = check
-            }
-            await Task.yield()   // the engine runs on the main actor; keep the UI responsive
+        }
+        let computed = await ReadyRoomFittingChecker.checkAll(pending.map(\.fitting), skills: skills,
+                                                              implants: implants, types: types)
+        for item in pending {
+            guard let check = computed[item.fitting.fittingId] else { continue }
+            checks[item.fitting.fittingId] = check
+            cache[item.key] = check
         }
         snapshot.input.fittingChecks = checks
 

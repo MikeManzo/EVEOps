@@ -81,14 +81,12 @@ final class HangarMatrixService {
         var fittingSkills = Set<Int>()
         for snapshot in snapshots {
             guard var input = inputs[snapshot.characterID] else { continue }
-            let skills = input.skills.mapValues(\.active)
-            for fit in fits where input.fittingChecks[fit.fitting.fittingId] == nil {
-                if let check = readyRoom.fittingCheck(fit.fitting, skills: skills, implants: snapshot.pilot.implantIDs,
-                                                      types: types) {
-                    input.fittingChecks[fit.fitting.fittingId] = check
-                    fittingSkills.formUnion(check.skillsToFit.keys)
-                }
-                await Task.yield()   // the dogma engine runs on the main actor
+            let unchecked = fits.map(\.fitting).filter { input.fittingChecks[$0.fittingId] == nil }
+            let checks = await readyRoom.fittingChecks(unchecked, skills: input.skills.mapValues(\.active),
+                                                       implants: snapshot.pilot.implantIDs, types: types)
+            for (fittingID, check) in checks {
+                input.fittingChecks[fittingID] = check
+                fittingSkills.formUnion(check.skillsToFit.keys)
             }
             inputs[snapshot.characterID] = input
         }

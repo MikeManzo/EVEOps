@@ -16,21 +16,21 @@ import OSLog
 
 // MARK:  Input models (must match Rust EsfFit serde layout exactly)
 
-private struct EsfFit: Encodable {
+nonisolated private struct EsfFit: Encodable {
     let ship_type_id: Int
     let modules: [EsfModule]
     let drones: [EsfDrone]
     let implants: [Int]
 }
 
-private struct EsfModule: Encodable {
+nonisolated private struct EsfModule: Encodable {
     let type_id: Int
     let slot: EsfSlot
     let state: String       // "Passive" | "Online" | "Active" | "Overload"
     let charge: EsfCharge?
 }
 
-private struct EsfSlot: Encodable {
+nonisolated private struct EsfSlot: Encodable {
     let index: Int
     // "type" is a reserved keyword — CodingKeys maps slotType → "type"
     let slotType: String
@@ -40,18 +40,18 @@ private struct EsfSlot: Encodable {
     }
 }
 
-private struct EsfCharge: Encodable {
+nonisolated private struct EsfCharge: Encodable {
     let type_id: Int
 }
 
-private struct EsfDrone: Encodable {
+nonisolated private struct EsfDrone: Encodable {
     let type_id: Int
     let state: String
 }
 
 // MARK:  Output model (must match Rust FfiSimStats serde layout exactly)
 
-private struct FfiSimStats: Decodable {
+nonisolated private struct FfiSimStats: Decodable {
     let shield_hp: Double
     let armor_hp: Double
     let hull_hp: Double
@@ -102,39 +102,52 @@ private struct FfiSimStats: Decodable {
     let cap_depletes_in: Double?
 }
 
+// MARK:  Fit
+
+/// Everything the engine needs to calculate one fit.
+nonisolated struct DogmaFit: Sendable {
+    let shipTypeID: Int
+    var slots: [SimSlot]
+    var droneTypeIDs: [Int] = []
+    var implantTypeIDs: [Int] = []
+    /// Modules sent as "Online" rather than "Active": passive modules (no capacitor need),
+    /// or every module for an online-only calculation such as a fitting check.
+    var passiveModuleTypeIDs: Set<Int> = []
+}
+
 // MARK:  Engine
 
 /// Wraps the DogmaEngine C FFI (DogmaEngine.xcframework).
-/// Call `prepare(pbDirPath:)` once after SDE data is downloaded,
-/// then call `calculate(...)` from SimulatorState.recomputeStats().
-@MainActor
-final class DogmaEngine {
+/// Call `prepare(pbDirPath:)` once after SDE data is downloaded, then `calculate(...)` from
+/// any thread: the engine's loaded data is read-only, and each calculation builds its own
+/// working state, so concurrent calls are safe.
+nonisolated final class DogmaEngine: @unchecked Sendable {
     static let shared = DogmaEngine()
 
-    private var handle: OpaquePointer?
-    private(set) var isReady = false
+    /// Owns the native handle; destroyed when the last calculation using it lets go, so
+    /// `prepare` can swap data without pulling it out from under one in flight.
+    private final class Handle: @unchecked Sendable {
+        let pointer: OpaquePointer
+        init(_ pointer: OpaquePointer) { self.pointer = pointer }
+        deinit { dogma_engine_destroy(pointer) }
+    }
+
+    private let handle = OSAllocatedUnfairLock<Handle?>(initialState: nil)
 
     private init() {}
+
+    var isReady: Bool { handle.withLock { $0 != nil } }
 
     // MARK: Lifecycle
 
     func prepare(pbDirPath: String) {
-        if let existing = handle {
-            dogma_engine_destroy(existing)
-            handle = nil
-            isReady = false
-        }
-        handle = dogma_engine_create(pbDirPath)
-        isReady = handle != nil
-        if isReady {
-            Logger.dogmaEngine.info("[DogmaEngine] Loaded SDE data from \(pbDirPath)")
+        let loaded = dogma_engine_create(pbDirPath).map(Handle.init)
+        handle.withLock { $0 = loaded }
+        if loaded != nil {
+            Self.log { $0.info("[DogmaEngine] Loaded SDE data from \(pbDirPath)") }
         } else {
-            Logger.dogmaEngine.info("[DogmaEngine] Failed to load SDE data — check .pb2 files at \(pbDirPath)")
+            Self.log { $0.info("[DogmaEngine] Failed to load SDE data — check .pb2 files at \(pbDirPath)") }
         }
-    }
-
-    deinit {
-        if let h = handle { dogma_engine_destroy(h) }
     }
 
     // MARK: Calculate
@@ -147,8 +160,14 @@ final class DogmaEngine {
         passiveModuleTypeIds: Set<Int> = [],
         droneTypeIds: [Int] = []
     ) -> SimStats {
-        guard let handle, isReady else {
-            Logger.dogmaEngine.warning("[DogmaEngine] calculate() called before engine is ready (shipTypeId=\(shipTypeId))")
+        calculate(DogmaFit(shipTypeID: shipTypeId, slots: slots, droneTypeIDs: droneTypeIds,
+                           implantTypeIDs: implantTypeIds, passiveModuleTypeIDs: passiveModuleTypeIds),
+                  skills: skills)
+    }
+
+    func calculate(_ fit: DogmaFit, skills: [Int: Int]) -> SimStats {
+        guard let handle = handle.withLock({ $0 }) else {
+            Self.log { $0.warning("[DogmaEngine] calculate() called before engine is ready (shipTypeId=\(fit.shipTypeID))") }
             return SimStats()
         }
 
@@ -158,10 +177,10 @@ final class DogmaEngine {
         // Passive modules in activatable slot types (e.g. Shield Resistance Amplifiers in
         // medium slots, Energized Platings in low slots) have no activation cycle; sending
         // them as "Active" causes the engine to double-apply their bonus. The caller
-        // identifies these via attr 6 (capacitorNeed) == 0 and passes them in passiveModuleTypeIds.
-        let modules: [EsfModule] = slots.compactMap { slot in
+        // identifies these via attr 6 (capacitorNeed) == 0 and passes them in passiveModuleTypeIDs.
+        let modules: [EsfModule] = fit.slots.compactMap { slot in
             guard let typeId = slot.moduleTypeId else { return nil }
-            let isPassive = slot.category.isPassiveOnly || passiveModuleTypeIds.contains(typeId)
+            let isPassive = slot.category.isPassiveOnly || fit.passiveModuleTypeIDs.contains(typeId)
             let onlineState = isPassive ? "Online" : "Active"
             return EsfModule(
                 type_id: typeId,
@@ -171,24 +190,25 @@ final class DogmaEngine {
             )
         }
         // Drones in space, attacking — what drone DPS is measured against.
-        let drones = droneTypeIds.map { EsfDrone(type_id: $0, state: "Active") }
+        let drones = fit.droneTypeIDs.map { EsfDrone(type_id: $0, state: "Active") }
 
         // Skills: BTreeMap<i32,i32> serialises to {"typeId": level} with string keys
         let skillsStringKeyed = Dictionary(uniqueKeysWithValues: skills.map { (String($0.key), $0.value) })
 
-        let fit = EsfFit(ship_type_id: shipTypeId, modules: modules, drones: drones, implants: implantTypeIds)
+        let esfFit = EsfFit(ship_type_id: fit.shipTypeID, modules: modules, drones: drones, implants: fit.implantTypeIDs)
 
-        guard let fitData    = try? JSONEncoder().encode(fit),
+        guard let fitData    = try? JSONEncoder().encode(esfFit),
               let skillsData = try? JSONEncoder().encode(skillsStringKeyed),
               let fitStr     = String(data: fitData,    encoding: .utf8),
               let skillStr   = String(data: skillsData, encoding: .utf8)
         else {
-            Logger.dogmaEngine.error("[DogmaEngine] JSON encoding failed — shipTypeId=\(shipTypeId)")
+            Self.log { $0.error("[DogmaEngine] JSON encoding failed — shipTypeId=\(fit.shipTypeID)") }
             return SimStats()
         }
 
-        guard let resultPtr = dogma_engine_calculate(handle, fitStr, skillStr) else {
-            Logger.dogmaEngine.error("[DogmaEngine] calculate() returned null — shipTypeId=\(shipTypeId) modules=\(modules.count) drones=\(drones.count) skills=\(skills.count) implants=\(implantTypeIds.count)")
+        let resultPtr = withExtendedLifetime(handle) { dogma_engine_calculate(handle.pointer, fitStr, skillStr) }
+        guard let resultPtr else {
+            Self.log { $0.error("[DogmaEngine] calculate() returned null — shipTypeId=\(fit.shipTypeID) modules=\(modules.count) drones=\(drones.count) skills=\(skills.count) implants=\(fit.implantTypeIDs.count)") }
             return SimStats()
         }
         defer { dogma_engine_free_string(resultPtr) }
@@ -198,18 +218,22 @@ final class DogmaEngine {
         guard let resultData = resultStr.data(using: .utf8),
               let raw = try? JSONDecoder().decode(FfiSimStats.self, from: resultData)
         else {
-            Logger.dogmaEngine.error("[DogmaEngine] Decode failed — shipTypeId=\(shipTypeId) raw=\(resultStr)")
+            Self.log { $0.error("[DogmaEngine] Decode failed — shipTypeId=\(fit.shipTypeID) raw=\(resultStr)") }
             return SimStats()
         }
 
-        let stats = raw.toSimStats()
-        return stats
+        return raw.toSimStats()
+    }
+
+    /// The app logger lives on the main actor; calculations may not.
+    private static func log(_ write: @escaping @MainActor @Sendable (EVELogger) -> Void) {
+        Task { @MainActor in write(Logger.dogmaEngine) }
     }
 }
 
 // MARK:  FfiSimStats → SimStats mapping
 
-private extension FfiSimStats {
+nonisolated private extension FfiSimStats {
     func toSimStats() -> SimStats {
         var stats = SimStats()
 
@@ -278,7 +302,7 @@ private extension FfiSimStats {
 
 // MARK:  SimSlotCategory → ESF slot type string
 
-private extension SimSlotCategory {
+nonisolated private extension SimSlotCategory {
     // Must match EsfSlotType enum variant names in the Rust crate exactly.
     var esfSlotType: String {
         switch self {

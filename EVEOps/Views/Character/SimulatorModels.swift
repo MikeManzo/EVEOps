@@ -36,7 +36,7 @@ struct SimModuleDrag: Codable, Sendable {
 
 // MARK:  Slot Category
 
-enum SimSlotCategory: String, CaseIterable, Equatable, Codable {
+nonisolated enum SimSlotCategory: String, CaseIterable, Equatable, Codable {
     case high, medium, low, rig, subsystem
 
     var displayName: String {
@@ -87,7 +87,7 @@ enum SimSlotCategory: String, CaseIterable, Equatable, Codable {
 
 // MARK:  Sim Slot
 
-struct SimSlot: Identifiable, Equatable {
+nonisolated struct SimSlot: Identifiable, Equatable {
     let id: UUID
     let category: SimSlotCategory
     let index: Int
@@ -114,7 +114,7 @@ struct SimSlot: Identifiable, Equatable {
 
 // MARK:  Sim Resists
 
-struct SimResists {
+nonisolated struct SimResists {
     var em: Double = 0
     var explosive: Double = 0
     var kinetic: Double = 0
@@ -125,7 +125,7 @@ struct SimResists {
 
 /// Per-damage-type effective HP summed across all three defence layers.
 /// Each value is computed from the layer's actual resonance, not an average.
-struct SimEHPProfile {
+nonisolated struct SimEHPProfile {
     var em: Double = 0
     var explosive: Double = 0
     var kinetic: Double = 0
@@ -138,7 +138,7 @@ struct SimEHPProfile {
 
 // MARK:  Sim Stats
 
-struct SimStats {
+nonisolated struct SimStats {
     var shieldHP: Double = 0
     var armorHP: Double = 0
     var hullHP: Double = 0
