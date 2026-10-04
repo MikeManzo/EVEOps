@@ -49,6 +49,8 @@ struct ReadyRoomView: View {
     @AppStorage("collapsedReadyRoomSections") private var collapsedRaw = ""
 
     @State private var selectedID: Int?
+    /// A fit another screen linked to, to bring into view once the board shows it.
+    @State private var scrollTarget: Int?
     @State private var search = ""
     @State private var tierFilter: ReadyRoomTier?
 
@@ -81,8 +83,12 @@ struct ReadyRoomView: View {
         }
         .task(id: characterID) {
             selectedID = nil
+            // A link from another screen is set before this one appears, so `onChange`
+            // never sees it — take it from the board already loaded, or the fresh one.
+            consumePendingFitting()
             if let characterID { service.markSeen(characterID) }
             await load()
+            consumePendingFitting()
         }
         .autoRefresh(every: pollInterval) { await load() }
         .onChange(of: prefetcher.lastRefresh) { _, _ in Task { await load() } }
@@ -130,35 +136,45 @@ struct ReadyRoomView: View {
                 }
             }
         } else {
-            ScrollView {
-                VStack(alignment: .leading, spacing: EVESpacing.xl) {
-                    if let error {
-                        banner(Text("Couldn’t refresh — showing earlier results. \(error)"))
-                    }
-                    if let note = snapshot?.corporationNote {
-                        banner(Text(note))
-                    }
-                    summaryStrip
-                    filterBar
-                    let sections = visibleSections
-                    if sections.isEmpty {
-                        EVEEmptyState("No Matching Fits", systemImage: "line.3.horizontal.decrease.circle",
-                                      message: Text("Try a different search or clear the filter.")) {
-                            Button("Clear Filters") {
-                                search = ""
-                                tierFilter = nil
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: EVESpacing.xl) {
+                        if let error {
+                            banner(Text("Couldn’t refresh — showing earlier results. \(error)"))
+                        }
+                        if let note = snapshot?.corporationNote {
+                            banner(Text(note))
+                        }
+                        summaryStrip
+                        filterBar
+                        let sections = visibleSections
+                        if sections.isEmpty {
+                            EVEEmptyState("No Matching Fits", systemImage: "line.3.horizontal.decrease.circle",
+                                          message: Text("Try a different search or clear the filter.")) {
+                                Button("Clear Filters") {
+                                    search = ""
+                                    tierFilter = nil
+                                }
+                            }
+                            .frame(minHeight: 260)
+                        } else {
+                            ForEach(sections, id: \.key) { section in
+                                boardSection(section)
                             }
                         }
-                        .frame(minHeight: 260)
-                    } else {
-                        ForEach(sections, id: \.key) { section in
-                            boardSection(section)
-                        }
+                    }
+                    .padding()
+                }
+                .eveKeyboardSelection(visibleIDs, selection: selectedID) { selectedID = $0 }
+                .onChange(of: scrollTarget) { _, target in
+                    guard let target else { return }
+                    // Let an expanded section lay out before scrolling into it.
+                    DispatchQueue.main.async {
+                        withAnimation(EVEMotion.snappy) { proxy.scrollTo(target, anchor: .center) }
+                        scrollTarget = nil
                     }
                 }
-                .padding()
             }
-            .eveKeyboardSelection(visibleIDs, selection: selectedID) { selectedID = $0 }
         }
     }
 
@@ -442,6 +458,7 @@ struct ReadyRoomView: View {
         let key = pinned.contains(report.fittingID) ? "pinned" : "\(report.tier.rawValue)"
         if isCollapsed(key) { toggleCollapsed(key) }
         selectedID = report.id
+        scrollTarget = report.id
     }
 }
 
