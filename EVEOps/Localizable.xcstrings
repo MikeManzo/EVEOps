@@ -3385,9 +3385,6 @@
     "Downtime in %lldm" : {
 
     },
-    "DPS calculation requires ammo selection" : {
-
-    },
     "Drag to orbit · scroll to zoom · ⌥-drag to pan · click a constellation to dive in" : {
 
     },
@@ -4631,6 +4628,9 @@
 
     },
     "Live prices via Janice · %@" : {
+
+    },
+    "Load a saved fit with ammo in cargo or drones in the bay, or one of your ships, to see DPS" : {
 
     },
     "Load Fitting" : {
