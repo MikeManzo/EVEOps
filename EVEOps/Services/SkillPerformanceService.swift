@@ -16,7 +16,14 @@ import Foundation
 final class SkillPerformanceService {
     static let shared = SkillPerformanceService()
 
-    private var cache: [Int: (key: Int, deltas: [SkillLevelKey: [FitStatDelta]])] = [:]
+    private struct Entry {
+        let key: Int
+        let fits: [Int: DogmaFit]
+        let queue: [ESISkillQueue]
+        let deltas: [SkillLevelKey: [FitStatDelta]]
+    }
+
+    private var cache: [Int: Entry] = [:]
 
     private init() {}
 
@@ -29,7 +36,10 @@ final class SkillPerformanceService {
             .filter { $0.unqueuedGaps.isEmpty && !$0.needsOmega && $0.tier != .blocked }
             .map(\.fittingID))
         let fittings = input.fittings.filter { flyable.contains($0.fittingId) }
-        guard !fittings.isEmpty else { return [:] }
+        guard !fittings.isEmpty else {
+            cache[snapshot.characterID] = nil
+            return [:]
+        }
 
         let implants = snapshot.pilot.implantIDs
         var hasher = Hasher()
@@ -39,6 +49,7 @@ final class SkillPerformanceService {
         hasher.combine(implants)
         let key = hasher.finalize()
         if let cached = cache[snapshot.characterID], cached.key == key { return cached.deltas }
+        cache[snapshot.characterID] = nil
 
         guard await ReadyRoomFittingChecker.prepareEngine(allowLoad: true) else { return [:] }
         let typeIDs = Set(fittings.flatMap { [$0.shipTypeId] + $0.items.map(\.typeId) })
@@ -53,7 +64,23 @@ final class SkillPerformanceService {
                 DogmaEngine.shared.calculate($0, skills: $1)
             }
         }.value
-        cache[snapshot.characterID] = (key, deltas)
+        cache[snapshot.characterID] = Entry(key: key, fits: fits, queue: input.skillQueue, deltas: deltas)
         return deltas
+    }
+
+    /// Measures from a plan's levels — the fits from the last `deltas(for:)` for this pilot,
+    /// with queued training still counted as done. Nil until that has run. Safe to call off
+    /// the main actor.
+    func remeasure(for characterID: Int) -> (@Sendable ([Int: Int], Set<Int>) -> [SkillLevelKey: [FitStatDelta]])? {
+        guard let entry = cache[characterID], !entry.fits.isEmpty else { return nil }
+        let fits = entry.fits
+        let queue = entry.queue
+        return { levels, changed in
+            var skills = levels
+            for item in queue { skills[item.skillId] = max(skills[item.skillId] ?? 0, item.finishedLevel) }
+            return SkillPerformanceEngine.deltas(fits: fits, skills: skills, candidates: changed) {
+                DogmaEngine.shared.calculate($0, skills: $1)
+            }
+        }
     }
 }

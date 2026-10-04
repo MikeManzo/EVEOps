@@ -175,4 +175,69 @@ private func roiInput(skills: [Int: ReadyRoomSkillLevel], queue: [ESISkillQueue]
         #expect(SkillROIEngine.eveSkillPlan([destroyer], skills: skills)
                 == "Minmatar Frigate II\nMinmatar Frigate III\nMinmatar Destroyer I")
     }
+
+    // MARK: - Plan
+
+    @Test func planCreditsEachFitOnceAndPaysForSharedPrerequisitesOnce() throws {
+        let skills = [frigateSkill: level(2), gunnerySkill: level(1)]
+        let plan = SkillROIEngine.plan(roiInput(skills: skills), budget: 365 * 86400)
+        #expect(plan.fitsCompleted == [1, 2])
+        // Every fit is made flyable by exactly one pick.
+        let credited = plan.picks.flatMap { $0.completes.map(\.fittingID) }
+        #expect(credited.count == Set(credited).count)
+        // Frigate III is trained once across the plan, however many picks needed it.
+        let frigateLevels = plan.picks.flatMap(\.plan).filter { $0.skillID == frigateSkill }.map(\.requiredLevel)
+        #expect(frigateLevels == [3])
+        #expect(abs(plan.seconds - plan.picks.compactMap(\.seconds).reduce(0, +)) < 0.001)
+    }
+
+    @Test func planStaysWithinTheBudget() throws {
+        let input = roiInput(skills: [frigateSkill: level(2), gunnerySkill: level(1)])
+        let all = SkillROIEngine.plan(input, budget: 365 * 86400)
+        let cheapest = try #require(all.picks.compactMap(\.seconds).min())
+        let tight = SkillROIEngine.plan(input, budget: cheapest)
+        #expect(tight.seconds <= cheapest)
+        #expect(!tight.picks.isEmpty)
+        #expect(SkillROIEngine.plan(input, budget: cheapest / 2).picks.isEmpty)
+    }
+
+    @Test func planOnlyPicksGoalsTheFilterIncludes() throws {
+        // The fits need Frigate III / Destroyer I; Mass Production III adds a busy slot.
+        let skills = [frigateSkill: level(2), gunnerySkill: level(2), Skill.massProduction: level(2)]
+        var line = IdleCapacityLine(kind: .manufacturing, status: .busy, used: 3, limit: 3)
+        line.idleSlotTime = 0
+        let input = roiInput(skills: skills, capacity: IdleCapacityReport(lines: [line]))
+        let year = 365.0 * 86400
+
+        // Everything: the slot skill, and the fits (Destroyer I, bringing Frigate III along).
+        let everything = SkillROIEngine.plan(input, budget: year)
+        #expect(everything.picks.contains { $0.skillID == Skill.massProduction })
+        #expect(everything.fitsCompleted == [1, 2])
+
+        let slots = SkillROIEngine.plan(input, budget: year, include: SkillROIFilter.slots.includes)
+        #expect(!slots.picks.isEmpty)
+        #expect(slots.picks.allSatisfy { $0.capacity != nil })
+
+        let fits = SkillROIEngine.plan(input, budget: year, include: SkillROIFilter.fits.includes)
+        #expect(fits.fitsCompleted == [1, 2])
+        #expect(!fits.picks.contains { $0.skillID == Skill.massProduction })
+
+        #expect(SkillROIEngine.plan(input, budget: year, include: SkillROIFilter.improves.includes).picks.isEmpty)
+    }
+
+    @Test func planRemeasuresAfterAPerformancePick() throws {
+        // Both fits flyable; Gunnery III → IV improves fit 1, and once trained, IV → V too.
+        var input = roiInput(skills: [frigateSkill: level(3), gunnerySkill: level(3), destroyerSkill: level(1)])
+        var gain = FitStatDelta(fittingID: 1); gain.dps = 0.04
+        input.performance = [SkillLevelKey(skillID: gunnerySkill, level: 4): [gain]]
+        var asked: [(Int, Set<Int>)] = []
+        let plan = SkillROIEngine.plan(input, budget: 365 * 86400) { levels, changed in
+            asked.append((levels[gunnerySkill] ?? 0, changed))
+            let next = (levels[gunnerySkill] ?? 0) + 1
+            return next <= 5 ? [SkillLevelKey(skillID: gunnerySkill, level: next): [gain]] : [:]
+        }
+        #expect(plan.picks.map { "\($0.skillID)-\($0.level)" } == ["\(gunnerySkill)-4", "\(gunnerySkill)-5"])
+        #expect(asked.map(\.0) == [4, 5])
+        #expect(asked.allSatisfy { $0.1 == [gunnerySkill] })
+    }
 }

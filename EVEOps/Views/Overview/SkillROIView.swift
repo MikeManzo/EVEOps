@@ -10,10 +10,20 @@
 
 import SwiftUI
 
-enum SkillROIFilter: String, CaseIterable {
+nonisolated enum SkillROIFilter: String, CaseIterable, Sendable {
     case all, fits, improves, slots
 
-    var title: LocalizedStringKey {
+    /// Whether a goal belongs in this view — used for the ranked list and the plan alike.
+    func includes(_ goal: SkillROIGoal) -> Bool {
+        switch self {
+        case .all:      true
+        case .fits:     !goal.completes.isEmpty || !goal.advances.isEmpty
+        case .improves: !goal.improves.isEmpty
+        case .slots:    goal.capacity != nil
+        }
+    }
+
+    var title: LocalizedStringResource {
         switch self {
         case .all:      "Everything"
         case .fits:     "Unlocks Fits"
@@ -34,6 +44,22 @@ enum SkillROISort: String, CaseIterable {
     }
 }
 
+/// How much training the plan may spend.
+enum SkillROIPlanBudget: Int, CaseIterable {
+    case week = 7, twoWeeks = 14, month = 30, quarter = 90
+
+    var title: LocalizedStringKey {
+        switch self {
+        case .week:     "1 Week"
+        case .twoWeeks: "2 Weeks"
+        case .month:    "30 Days"
+        case .quarter:  "90 Days"
+        }
+    }
+
+    var seconds: Double { Double(rawValue) * 86400 }
+}
+
 // MARK:  Main View
 
 /// "What should I train next?" — skill levels ranked by what they unlock in this pilot's
@@ -46,10 +72,14 @@ struct SkillROIView: View {
     @Environment(ThemeManager.self) private var themeManager
     @AppStorage("skillROI.filter") private var filterRaw = SkillROIFilter.all.rawValue
     @AppStorage("skillROI.sort") private var sortRaw = SkillROISort.value.rawValue
+    @AppStorage("skillROI.planBudget") private var budgetRaw = SkillROIPlanBudget.twoWeeks.rawValue
 
     @State private var goals: [SkillROIGoal] = []
     @State private var isPreparing = false
     @State private var preparedFor: Int?
+    /// The ranking's input, kept so the plan can be rebuilt when the budget changes.
+    @State private var planInput: SkillROIInput?
+    @State private var plan: SkillROIPlan?
 
     private var readyRoom: ReadyRoomService { .shared }
     private var palette: EVEPalette { themeManager.palette }
@@ -57,6 +87,7 @@ struct SkillROIView: View {
     private var snapshot: ReadyRoomSnapshot? { characterID.flatMap { readyRoom.snapshots[$0] } }
     private var filter: SkillROIFilter { SkillROIFilter(rawValue: filterRaw) ?? .all }
     private var sort: SkillROISort { SkillROISort(rawValue: sortRaw) ?? .value }
+    private var budget: SkillROIPlanBudget { SkillROIPlanBudget(rawValue: budgetRaw) ?? .twoWeeks }
     private var isLoading: Bool { isPreparing || (characterID.map(readyRoom.isLoading) ?? false) }
 
     /// Changes whenever the board's fits or tiers do, so the ranking follows.
@@ -71,10 +102,14 @@ struct SkillROIView: View {
             }
             .task(id: characterID) {
                 goals = []
+                plan = nil
+                planInput = nil
                 preparedFor = nil
                 await load()
             }
             .onChange(of: boardKey) { _, _ in Task { await rank() } }
+            .onChange(of: budgetRaw) { _, _ in Task { await buildPlan() } }
+            .onChange(of: filterRaw) { _, _ in Task { await buildPlan() } }
             .onChange(of: AppRouter.shared.refreshTick) { _, _ in Task { await load(force: true) } }
     }
 
@@ -127,19 +162,33 @@ struct SkillROIView: View {
         guard characterID == self.characterID else { return }
         withAnimation(EVEMotion.snappy) { goals = ranked }
         preparedFor = characterID
+        planInput = input
+        await buildPlan()
+    }
+
+    /// The best set of picks within the budget, re-ranked after each one, drawn from the
+    /// goals the current filter shows.
+    private func buildPlan() async {
+        guard let characterID, let input = planInput else { return }
+        let budget = budget.seconds
+        let filter = filter
+        let remeasure = SkillPerformanceService.shared.remeasure(for: characterID)
+        let built = await Task.detached(priority: .userInitiated) {
+            SkillROIEngine.plan(input, budget: budget, include: filter.includes) { remeasure?($0, $1) ?? [:] }
+        }.value
+        guard characterID == self.characterID else { return }
+        withAnimation(EVEMotion.snappy) { plan = built }
+    }
+
+    /// When training in the plan can start: after everything already queued.
+    private var queueEnd: Date {
+        max(snapshot?.input.skillQueue.compactMap(\.finishDate).max() ?? .now, .now)
     }
 
     // MARK: Content
 
     private var visibleGoals: [SkillROIGoal] {
-        let filtered = goals.filter { goal in
-            switch filter {
-            case .all:   true
-            case .fits:     !goal.completes.isEmpty || !goal.advances.isEmpty
-            case .improves: !goal.improves.isEmpty
-            case .slots:    goal.capacity != nil
-            }
-        }
+        let filtered = goals.filter(filter.includes)
         switch sort {
         case .value:    return filtered
         case .shortest: return filtered.sorted { ($0.seconds ?? .infinity) < ($1.seconds ?? .infinity) }
@@ -163,6 +212,13 @@ struct SkillROIView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: EVESpacing.xl) {
                     totals
+                    if let plan {
+                        SkillROIPlanCard(plan: plan, start: queueEnd, filter: filter,
+                                         budget: Binding(get: { budget }, set: { budgetRaw = $0.rawValue }),
+                                         summary: summary) {
+                            copy(plan.picks)
+                        }
+                    }
                     filterBar
                     LazyVStack(alignment: .leading, spacing: EVESpacing.md) {
                         ForEach(Array(visibleGoals.enumerated()), id: \.element.id) { index, goal in
@@ -244,6 +300,125 @@ struct SkillROIView: View {
             .help("Copies the top five picks as a skill plan — prerequisites first — to paste into EVE's skill queue.")
             EVEMenuPicker("Sort", selection: Binding(get: { sort }, set: { sortRaw = $0.rawValue }),
                           options: SkillROISort.allCases.map { EVEMenuOption($0, $0.title) })
+        }
+    }
+}
+
+// MARK:  Plan
+
+/// The plan builder's answer: the best picks that fit the chosen budget, in training order,
+/// with when each one lands after the current queue.
+private struct SkillROIPlanCard: View {
+    let plan: SkillROIPlan
+    let start: Date
+    let filter: SkillROIFilter
+    @Binding var budget: SkillROIPlanBudget
+    let summary: (SkillROIGoal) -> String
+    let copy: () -> Void
+
+    @Environment(ThemeManager.self) private var themeManager
+    @AppStorage("skillROI.planExpanded") private var isExpanded = true
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: EVESpacing.md) {
+            header
+            if isExpanded {
+                if plan.picks.isEmpty {
+                    (filter == .all
+                     ? Text("Nothing fits in \(Text(budget.title)) — try a longer budget.")
+                     : Text("Nothing in “\(Text(filter.title))” fits in \(Text(budget.title)) — try a longer budget or another filter."))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    VStack(alignment: .leading, spacing: EVESpacing.sm) {
+                        ForEach(Array(rows.enumerated()), id: \.element.goal.id) { index, row in
+                            planRow(index + 1, row.goal, finish: row.finish)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(EVESpacing.lg)
+        .eveCard(cornerRadius: EVERadius.xl)
+    }
+
+    private var header: some View {
+        HStack(alignment: .firstTextBaseline, spacing: EVESpacing.md) {
+            Button {
+                withAnimation(EVEMotion.snappy) { isExpanded.toggle() }
+            } label: {
+                HStack(spacing: EVESpacing.sm) {
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                        .foregroundStyle(.secondary)
+                    Label("Training Plan", systemImage: "list.number")
+                        .font(.eveRowTitle)
+                }
+            }
+            .buttonStyle(.plain)
+            Text(totals)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            Spacer()
+            EVEMenuPicker("Budget", selection: $budget,
+                          options: SkillROIPlanBudget.allCases.map { EVEMenuOption($0, $0.title) })
+                .help("Training time the plan may use, after your current queue")
+            Button(action: copy) {
+                Label("Copy Plan for EVE", systemImage: "doc.on.clipboard")
+            }
+            .disabled(plan.picks.isEmpty)
+            .help("Copies the plan in order — prerequisites first — to paste into EVE's skill queue.")
+        }
+    }
+
+    private var totals: String {
+        guard !plan.picks.isEmpty else { return "" }
+        var parts = [
+            filter == .all ? String(localized: "\(plan.picks.count) picks")
+                           : String(localized: "\(plan.picks.count) picks from “\(String(localized: filter.title))”"),
+            ReadyRoomFormat.duration(plan.seconds),
+            String(localized: "done \(start.addingTimeInterval(plan.seconds).formatted(date: .abbreviated, time: .omitted))"),
+        ]
+        if !plan.fitsCompleted.isEmpty { parts.append(String(localized: "\(plan.fitsCompleted.count) fits flyable")) }
+        if !plan.fitsImproved.isEmpty { parts.append(String(localized: "\(plan.fitsImproved.count) fits better")) }
+        return parts.joined(separator: " · ")
+    }
+
+    private var rows: [(goal: SkillROIGoal, finish: Date)] {
+        var elapsed = 0.0
+        return plan.picks.map { goal in
+            elapsed += goal.seconds ?? 0
+            return (goal, start.addingTimeInterval(elapsed))
+        }
+    }
+
+    private func planRow(_ number: Int, _ goal: SkillROIGoal, finish: Date) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: EVESpacing.md) {
+            Text(verbatim: "\(number)")
+                .font(.eveCaptionBold.monospacedDigit())
+                .foregroundStyle(.tertiary)
+                .frame(width: 20, alignment: .trailing)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(verbatim: "\(goal.name) \(ReadyRoomFormat.roman(goal.level))")
+                    .font(.eveCaptionBold)
+                if goal.plan.count > 1 {
+                    Text("with \(goal.plan.filter { $0.skillID != goal.skillID }.map { "\($0.name) \(ReadyRoomFormat.roman($0.requiredLevel))" }.joined(separator: ", "))")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                }
+            }
+            Text(summary(goal))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            Spacer()
+            Text(finish.formatted(date: .abbreviated, time: .shortened))
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .help("Finishes, training the plan in order after your current queue")
         }
     }
 }

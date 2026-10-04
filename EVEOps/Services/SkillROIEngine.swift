@@ -60,6 +60,17 @@ nonisolated struct SkillROIGoal: Sendable, Identifiable {
     var isQuickWin: Bool { (seconds ?? .infinity) < 86400 && (!completes.isEmpty || !improves.isEmpty || capacity != nil) }
 }
 
+/// The best set of goals that fits in a training budget, in the order to train them.
+nonisolated struct SkillROIPlan: Sendable {
+    var picks: [SkillROIGoal] = []
+    /// Training time for every pick, back to back.
+    var seconds = 0.0
+
+    /// Fits the plan makes flyable / makes better, each counted once.
+    var fitsCompleted: Set<Int> { Set(picks.flatMap { $0.completes.map(\.fittingID) }) }
+    var fitsImproved: Set<Int> { Set(picks.flatMap { $0.improves.map(\.fittingID) }) }
+}
+
 nonisolated struct SkillROIInput: Sendable {
     var reports: [ReadyRoomReport]
     var pinnedFittingIDs: Set<Int> = []
@@ -130,7 +141,8 @@ nonisolated enum SkillROIEngine {
             var completes: [ReadyRoomReport] = []
             var advances: [ReadyRoomReport] = []
             for report in input.reports where report.tier == .train && !report.needsOmega {
-                let remaining = report.unqueuedGaps
+                // Gaps an earlier pick in a plan already closed don't count again.
+                let remaining = report.unqueuedGaps.filter { (skillLevels[$0.skillID] ?? 0) < $0.requiredLevel }
                 guard !remaining.isEmpty else { continue }
                 let covered = remaining.filter { (after[$0.skillID] ?? 0) >= $0.requiredLevel }
                 if covered.count == remaining.count {
@@ -174,6 +186,49 @@ nonisolated enum SkillROIEngine {
             if a.score != b.score { return a.score > b.score }
             return (a.seconds ?? .infinity) < (b.seconds ?? .infinity)
         }
+    }
+
+    // MARK: Plan
+
+    /// Greedy plan: take the best goal that still fits the budget, count it as trained,
+    /// rank again, repeat. Re-ranking keeps shared prerequisites from being paid for twice
+    /// and stops crediting a fit to later picks once an earlier one made it flyable.
+    /// - Parameters:
+    ///   - include: which goals may be picked (the screen's filter). A pick still scores for
+    ///     everything it does, not just the kind of value that let it in.
+    ///   - remeasure: given levels after the picks so far and the skills a pick just
+    ///     changed, what the next level of each of those does for flyable fits.
+    static func plan(_ input: SkillROIInput, budget: TimeInterval, maxPicks: Int = 40,
+                     include: (SkillROIGoal) -> Bool = { _ in true },
+                     remeasure: ([Int: Int], Set<Int>) -> [SkillLevelKey: [FitStatDelta]] = { _, _ in [:] }) -> SkillROIPlan {
+        var state = input
+        var plan = SkillROIPlan()
+        while plan.picks.count < maxPicks {
+            let next = goals(state).first { goal in
+                guard include(goal), let seconds = goal.seconds else { return false }
+                return plan.seconds + seconds <= budget
+            }
+            guard let pick = next, let seconds = pick.seconds else { break }
+            plan.picks.append(pick)
+            plan.seconds += seconds
+
+            var changed = Set<Int>()
+            for gap in pick.plan {
+                let had = state.skills[gap.skillID]
+                let rank = state.skillInfo[gap.skillID]?.rank ?? 1
+                state.skills[gap.skillID] = ReadyRoomSkillLevel(
+                    active: gap.requiredLevel,
+                    trained: max(had?.trained ?? 0, gap.requiredLevel),
+                    sp: max(had?.sp ?? 0, SkillTraining.sp(forLevel: gap.requiredLevel, rank: rank))
+                )
+                changed.insert(gap.skillID)
+            }
+            // Measurements for levels just trained are spent; the next level of each changed
+            // skill is measured from the new baseline.
+            state.performance = state.performance.filter { !changed.contains($0.key.skillID) }
+            state.performance.merge(remeasure(state.skills.mapValues(\.active), changed)) { _, new in new }
+        }
+        return plan
     }
 
     // MARK: Candidates
