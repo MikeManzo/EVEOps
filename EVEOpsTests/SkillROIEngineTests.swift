@@ -225,6 +225,48 @@ private func roiInput(skills: [Int: ReadyRoomSkillLevel], queue: [ESISkillQueue]
         #expect(SkillROIEngine.plan(input, budget: year, include: SkillROIFilter.improves.includes).picks.isEmpty)
     }
 
+    @Test func planNamesTheBestGoalThatRanPastTheBudget() throws {
+        let input = roiInput(skills: [frigateSkill: level(2), gunnerySkill: level(1)])
+        let all = SkillROIEngine.plan(input, budget: 365 * 86400)
+        #expect(all.nextOverBudget == nil)
+
+        let cheapest = try #require(all.picks.compactMap(\.seconds).min())
+        let tight = SkillROIEngine.plan(input, budget: cheapest)
+        let next = try #require(tight.nextOverBudget)
+        #expect(tight.seconds + (next.seconds ?? 0) > cheapest)
+        #expect(!tight.picks.contains { $0.id == next.id })
+    }
+
+    @Test func rationaleSplitsThePlansValueAndLinksSetUpPicks() throws {
+        let plan = SkillROIEngine.plan(roiInput(skills: [frigateSkill: level(2), gunnerySkill: level(1)]),
+                                       budget: 365 * 86400)
+        let rationale = SkillROIRationale(plan)
+        #expect(abs(rationale.shares.reduce(0) { $0 + $1.share } - 1) < 0.0001)
+        #expect(rationale.shares.map(\.share) == rationale.shares.map(\.share).sorted(by: >))
+        #expect(Set(rationale.flyable.map(\.fittingID)) == plan.fitsCompleted)
+        #expect(rationale.closer.allSatisfy { !plan.fitsCompleted.contains($0.fittingID) })
+        for (index, later) in rationale.setsUp {
+            #expect(later > index)
+            let advanced = Set(plan.picks[index].advances.map(\.fittingID))
+            #expect(plan.picks[later].completes.contains { advanced.contains($0.fittingID) })
+        }
+        // Every pick that brings a fit closer which a later pick finishes is linked to it.
+        for (index, pick) in plan.picks.enumerated() {
+            let advanced = Set(pick.advances.map(\.fittingID))
+            let finishedLater = plan.picks.dropFirst(index + 1).contains { $0.completes.contains { advanced.contains($0.fittingID) } }
+            #expect((rationale.setsUp[index] != nil) == finishedLater)
+        }
+    }
+
+    @Test func mainSourceIsTheLargestShareOfAPick() {
+        var breakdown = SkillROIScore()
+        breakdown.completes = 10
+        breakdown.performance = 12
+        let goal = SkillROIGoal(skillID: 1, level: 1, name: "Test", plan: [], seconds: 60, completes: [], advances: [],
+                                improves: [], capacity: nil, breakdown: breakdown)
+        #expect(SkillROIRationale.mainSource(goal) == .performance)
+    }
+
     @Test func planRemeasuresAfterAPerformancePick() throws {
         // Both fits flyable; Gunnery III → IV improves fit 1, and once trained, IV → V too.
         var input = roiInput(skills: [frigateSkill: level(3), gunnerySkill: level(3), destroyerSkill: level(1)])

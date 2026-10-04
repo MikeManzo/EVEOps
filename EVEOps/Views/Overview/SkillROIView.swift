@@ -215,7 +215,8 @@ struct SkillROIView: View {
                     if let plan {
                         SkillROIPlanCard(plan: plan, start: queueEnd, filter: filter,
                                          budget: Binding(get: { budget }, set: { budgetRaw = $0.rawValue }),
-                                         summary: summary) {
+                                         reports: reportsByID,
+                                         pinned: characterID.map(readyRoom.pinnedFittingIDs) ?? []) {
                             copy(plan.picks)
                         }
                     }
@@ -307,17 +308,22 @@ struct SkillROIView: View {
 // MARK:  Plan
 
 /// The plan builder's answer: the best picks that fit the chosen budget, in training order,
-/// with when each one lands after the current queue.
+/// with when each one lands after the current queue — and why each one is there.
 private struct SkillROIPlanCard: View {
     let plan: SkillROIPlan
     let start: Date
     let filter: SkillROIFilter
     @Binding var budget: SkillROIPlanBudget
-    let summary: (SkillROIGoal) -> String
+    let reports: [Int: ReadyRoomReport]
+    let pinned: Set<Int>
     let copy: () -> Void
 
     @Environment(ThemeManager.self) private var themeManager
     @AppStorage("skillROI.planExpanded") private var isExpanded = true
+    @State private var expandedPick: String?
+
+    private var palette: EVEPalette { themeManager.palette }
+    private var rationale: SkillROIRationale { SkillROIRationale(plan) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: EVESpacing.md) {
@@ -329,10 +335,14 @@ private struct SkillROIPlanCard: View {
                      : Text("Nothing in “\(Text(filter.title))” fits in \(Text(budget.title)) — try a longer budget or another filter."))
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                    if let next = plan.nextOverBudget { overBudgetLine(next) }
                 } else {
-                    VStack(alignment: .leading, spacing: EVESpacing.sm) {
+                    let rationale = rationale
+                    whyBlock(rationale)
+                    Divider()
+                    VStack(alignment: .leading, spacing: EVESpacing.xs) {
                         ForEach(Array(rows.enumerated()), id: \.element.goal.id) { index, row in
-                            planRow(index + 1, row.goal, finish: row.finish)
+                            planRow(index, row.goal, finish: row.finish, rationale: rationale)
                         }
                     }
                 }
@@ -394,32 +404,294 @@ private struct SkillROIPlanCard: View {
         }
     }
 
-    private func planRow(_ number: Int, _ goal: SkillROIGoal, finish: Date) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: EVESpacing.md) {
-            Text(verbatim: "\(number)")
-                .font(.eveCaptionBold.monospacedDigit())
-                .foregroundStyle(.tertiary)
-                .frame(width: 20, alignment: .trailing)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(verbatim: "\(goal.name) \(ReadyRoomFormat.roman(goal.level))")
-                    .font(.eveCaptionBold)
-                if goal.plan.count > 1 {
-                    Text("with \(goal.plan.filter { $0.skillID != goal.skillID }.map { "\($0.name) \(ReadyRoomFormat.roman($0.requiredLevel))" }.joined(separator: ", "))")
-                        .font(.caption2)
+    // MARK: Why
+
+    /// One line per kind of value the plan delivers, biggest share first, then what just
+    /// missed the budget.
+    private func whyBlock(_ rationale: SkillROIRationale) -> some View {
+        VStack(alignment: .leading, spacing: EVESpacing.xs) {
+            Text("Why this plan")
+                .font(.eveCaptionBold)
+                .foregroundStyle(.secondary)
+            ForEach(rationale.shares, id: \.source) { item in
+                HStack(alignment: .firstTextBaseline, spacing: EVESpacing.sm) {
+                    Image(systemName: item.source.systemImage)
+                        .foregroundStyle(item.source.color(palette))
+                        .frame(width: 16)
+                    Text(whyText(item.source, rationale))
+                        .lineLimit(2)
+                    Spacer(minLength: EVESpacing.sm)
+                    Text("\(item.share.formatted(.percent.precision(.fractionLength(0)))) of the value")
+                        .font(.caption.monospacedDigit())
                         .foregroundStyle(.tertiary)
+                }
+                .font(.caption)
+            }
+            if let next = plan.nextOverBudget { overBudgetLine(next) }
+        }
+    }
+
+    private func whyText(_ source: SkillROIRationale.Source, _ rationale: SkillROIRationale) -> String {
+        switch source {
+        case .completes:
+            String(localized: "Makes \(rationale.flyable.count) fits flyable — \(fitNames(rationale.flyable))")
+        case .advances:
+            rationale.closer.isEmpty
+                ? String(localized: "Gets fits closer that later picks finish")
+                : String(localized: "Brings \(rationale.closer.count) fits closer — \(fitNames(rationale.closer))")
+        case .performance:
+            if let best = rationale.bestGain, let report = reports[best.fittingID] {
+                String(localized: "Improves \(rationale.improvedFitIDs.count) fits you already fly — best: \(best.headlineText) on \(report.name)")
+            } else {
+                String(localized: "Improves \(rationale.improvedFitIDs.count) fits you already fly")
+            }
+        case .capacity:
+            String(localized: "Adds \(rationale.capacity.map(slotText).formatted(.list(type: .and)))")
+        }
+    }
+
+    private func overBudgetLine(_ goal: SkillROIGoal) -> some View {
+        let seconds = goal.seconds ?? 0
+        let left = max(budget.seconds - plan.seconds, 0)
+        let roomier = SkillROIPlanBudget.allCases.first { $0.seconds > budget.seconds && $0.seconds >= plan.seconds + seconds }
+        return HStack(alignment: .firstTextBaseline, spacing: EVESpacing.sm) {
+            Image(systemName: "hourglass")
+                .foregroundStyle(.secondary)
+                .frame(width: 16)
+            Text("Didn’t fit: \(goal.name) \(ReadyRoomFormat.roman(goal.level)) — \(ReadyRoomFormat.duration(seconds)), with \(ReadyRoomFormat.duration(left)) left in the budget")
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+            Spacer(minLength: EVESpacing.sm)
+            if let roomier {
+                Button {
+                    withAnimation(EVEMotion.snappy) { budget = roomier }
+                } label: {
+                    Text("Try \(Text(roomier.title))")
+                }
+                .buttonStyle(.plain)
+                .modifier(ReadyRoomChipStyle(tint: palette.accent))
+                .help("Rebuild the plan with a longer budget")
+            }
+        }
+        .font(.caption)
+        .help(Text(SkillROIPlanCard.payoff(goal, reports: reports)))
+    }
+
+    // MARK: Rows
+
+    private func planRow(_ index: Int, _ goal: SkillROIGoal, finish: Date, rationale: SkillROIRationale) -> some View {
+        let isOpen = expandedPick == goal.id
+        let source = SkillROIRationale.mainSource(goal)
+        return VStack(alignment: .leading, spacing: EVESpacing.xs) {
+            Button {
+                withAnimation(EVEMotion.snappy) { expandedPick = isOpen ? nil : goal.id }
+            } label: {
+                HStack(alignment: .firstTextBaseline, spacing: EVESpacing.md) {
+                    Text(verbatim: "\(index + 1)")
+                        .font(.eveCaptionBold.monospacedDigit())
+                        .foregroundStyle(.tertiary)
+                        .frame(width: 20, alignment: .trailing)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(verbatim: "\(goal.name) \(ReadyRoomFormat.roman(goal.level))")
+                            .font(.eveCaptionBold)
+                        if goal.plan.count > 1 {
+                            Text("with \(goal.plan.filter { $0.skillID != goal.skillID }.map { "\($0.name) \(ReadyRoomFormat.roman($0.requiredLevel))" }.joined(separator: ", "))")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                                .lineLimit(1)
+                        }
+                    }
+                    .frame(minWidth: 160, alignment: .leading)
+                    if let source {
+                        EVEChip(Text(source.tag), tint: source.color(palette))
+                    }
+                    Text(rowReason(index, goal, source: source, rationale: rationale))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                         .lineLimit(1)
+                    Spacer()
+                    Text(finish.formatted(date: .abbreviated, time: .shortened))
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                        .help("Finishes, training the plan in order after your current queue")
+                    Image(systemName: "chevron.right")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                        .rotationEffect(.degrees(isOpen ? 90 : 0))
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .padding(.vertical, EVESpacing.xxs)
+            .accessibilityValue(isOpen ? Text("Expanded") : Text("Collapsed"))
+
+            if isOpen {
+                rowDetail(index, goal)
+                    .padding(.leading, 20 + EVESpacing.md)
+                    .padding(.bottom, EVESpacing.sm)
+                    .transition(.opacity)
+            }
+        }
+    }
+
+    /// The pick's payoff in a phrase, led by its main source of value.
+    private func rowReason(_ index: Int, _ goal: SkillROIGoal, source: SkillROIRationale.Source?,
+                           rationale: SkillROIRationale) -> String {
+        if source == .advances, let later = rationale.setsUp[index] {
+            return String(localized: "Sets up #\(later + 1) — brings \(fitNames(goal.advances)) closer")
+        }
+        return SkillROIPlanCard.payoff(goal, reports: reports, leading: source)
+    }
+
+    /// What a goal pays for, in a phrase — `leading` first when given.
+    static func payoff(_ goal: SkillROIGoal, reports: [Int: ReadyRoomReport],
+                       leading: SkillROIRationale.Source? = nil) -> String {
+        func names(_ fits: [ReadyRoomReport]) -> String {
+            let shown = fits.prefix(2).map(\.name)
+            return fits.count > 2 ? String(localized: "\(shown.joined(separator: ", ")) +\(fits.count - 2)") : shown.joined(separator: ", ")
+        }
+        func phrase(_ source: SkillROIRationale.Source) -> String? {
+            switch source {
+            case .completes:
+                return goal.completes.isEmpty ? nil : String(localized: "flies \(names(goal.completes))")
+            case .advances:
+                return goal.advances.isEmpty ? nil : String(localized: "closer: \(names(goal.advances))")
+            case .performance:
+                guard let best = goal.improves.first else { return nil }
+                let name = reports[best.fittingID]?.name ?? String(localized: "a fit")
+                let more = goal.improves.count > 1 ? String(localized: " +\(goal.improves.count - 1) fits") : ""
+                return "\(best.headlineText) \(String(localized: "on \(name)"))\(more)"
+            case .capacity:
+                return goal.capacity.map {
+                    String(localized: "+\($0.added) \(String(localized: $0.kind.titleResource)) · \(Int(($0.busyShare * 100).rounded()))% busy")
                 }
             }
-            Text(summary(goal))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-            Spacer()
-            Text(finish.formatted(date: .abbreviated, time: .shortened))
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(.secondary)
-                .help("Finishes, training the plan in order after your current queue")
         }
+        let order = [leading].compactMap { $0 } + SkillROIRationale.Source.allCases.filter { $0 != leading }
+        return order.compactMap(phrase).prefix(2).joined(separator: " · ")
+    }
+
+    private func rowDetail(_ index: Int, _ goal: SkillROIGoal) -> some View {
+        let parts = SkillROIRationale.Source.allCases
+            .map { ($0, $0.points(goal.breakdown)) }
+            .filter { $0.1 > 0 }
+        let value = max(goal.breakdown.value, 0.0001)
+        return VStack(alignment: .leading, spacing: EVESpacing.xs) {
+            HStack(spacing: EVESpacing.md) {
+                SkillROIValueBar(parts: parts.map { ($0.0.color(palette), $0.1) }, total: value, fraction: 1)
+                    .frame(maxWidth: 160)
+                Text(parts.map { "\($0.0.label) \(($0.1 / value).formatted(.percent.precision(.fractionLength(0))))" }
+                    .joined(separator: " · "))
+                    .foregroundStyle(.secondary)
+            }
+            if !goal.completes.isEmpty {
+                detailLine(.completes, Text("Makes flyable: \(goal.completes.map(fitLabel).joined(separator: ", "))"))
+            }
+            if !goal.advances.isEmpty {
+                detailLine(.advances, Text("Brings closer: \(goal.advances.map(fitLabel).joined(separator: ", "))"))
+            }
+            ForEach(goal.improves.prefix(5), id: \.fittingID) { delta in
+                detailLine(.performance, Text("\(reports[delta.fittingID].map(fitLabel) ?? String(localized: "A fit")): \(delta.detailsText)"))
+            }
+            if let capacity = goal.capacity {
+                detailLine(.capacity, Text("\(slotText(capacity)) on \(capacity.limit)"))
+            }
+            Text(index == 0
+                 ? "Picked first: the most value per training day of everything that fits the budget."
+                 : "Picked #\(index + 1): the most value per training day once #1–#\(index) count as trained.")
+                .foregroundStyle(.tertiary)
+        }
+        .font(.caption)
+    }
+
+    private func detailLine(_ source: SkillROIRationale.Source, _ text: Text) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: EVESpacing.sm) {
+            Image(systemName: source.systemImage)
+                .foregroundStyle(source.color(palette))
+                .frame(width: 14)
+            text
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+        }
+    }
+
+    // MARK: Text
+
+    private func fitLabel(_ report: ReadyRoomReport) -> String {
+        pinned.contains(report.fittingID) ? String(localized: "\(report.name) (pinned)") : report.name
+    }
+
+    private func fitNames(_ fits: [ReadyRoomReport]) -> String {
+        let shown = fits.prefix(3).map(fitLabel)
+        return fits.count > 3 ? String(localized: "\(shown.joined(separator: ", ")) +\(fits.count - 3) more") : shown.joined(separator: ", ")
+    }
+
+    private func slotText(_ capacity: SkillROICapacity) -> String {
+        String(localized: "+\(capacity.added) \(String(localized: capacity.kind.titleResource)) slots (\(Int((capacity.busyShare * 100).rounded()))% busy now)")
+    }
+}
+
+extension SkillROIRationale.Source {
+    /// Short tag for a plan row.
+    var tag: LocalizedStringKey {
+        switch self {
+        case .completes:   "Flyable"
+        case .advances:    "Closer"
+        case .performance: "Better"
+        case .capacity:    "Slots"
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .completes:   String(localized: "Makes flyable")
+        case .advances:    String(localized: "Brings closer")
+        case .performance: String(localized: "Improves")
+        case .capacity:    String(localized: "Slots")
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .completes:   "checkmark.seal.fill"
+        case .advances:    "graduationcap.fill"
+        case .performance: "chart.line.uptrend.xyaxis"
+        case .capacity:    "square.stack.3d.up.fill"
+        }
+    }
+
+    func color(_ palette: EVEPalette) -> Color {
+        switch self {
+        case .completes:   ReadyRoomTier.ready.color(palette)
+        case .advances:    ReadyRoomTier.train.color(palette)
+        case .performance: palette.accent
+        case .capacity:    IdleCapacityStatus.soon.color
+        }
+    }
+}
+
+/// A thin capsule split by where a score's value comes from; `fraction` of the width filled.
+private struct SkillROIValueBar: View {
+    let parts: [(color: Color, value: Double)]
+    let total: Double
+    let fraction: Double
+
+    var body: some View {
+        GeometryReader { proxy in
+            let width = proxy.size.width * min(max(fraction, 0), 1)
+            ZStack(alignment: .leading) {
+                Capsule().fill(.quaternary)
+                HStack(spacing: 1) {
+                    ForEach(Array(parts.enumerated()), id: \.offset) { _, part in
+                        Rectangle().fill(part.color).frame(width: max(width * part.value / total - 1, 1))
+                    }
+                }
+                .frame(width: width, alignment: .leading)
+                .clipShape(Capsule())
+            }
+        }
+        .frame(height: 4)
+        .accessibilityHidden(true)
     }
 }
 
@@ -476,23 +748,10 @@ private struct SkillROICard: View {
     private var valueBar: some View {
         let parts = valueParts
         let value = max(goal.breakdown.value, 0.0001)
-        return GeometryReader { proxy in
-            let width = proxy.size.width * min(goal.score / max(best, 0.0001), 1)
-            ZStack(alignment: .leading) {
-                Capsule().fill(.quaternary)
-                HStack(spacing: 1) {
-                    ForEach(parts, id: \.label) { part in
-                        Rectangle().fill(part.color).frame(width: max(width * part.value / value - 1, 1))
-                    }
-                }
-                .frame(width: width, alignment: .leading)
-                .clipShape(Capsule())
-            }
-        }
-        .frame(height: 4)
-        .frame(maxWidth: 240)
-        .help(Text(parts.map { "\($0.label) \(Int(($0.value / value * 100).rounded()))%" }.joined(separator: " · ")))
-        .accessibilityHidden(true)
+        return SkillROIValueBar(parts: parts.map { ($0.color, $0.value) }, total: value,
+                                fraction: goal.score / max(best, 0.0001))
+            .frame(maxWidth: 240)
+            .help(Text(parts.map { "\($0.label) \(Int(($0.value / value * 100).rounded()))%" }.joined(separator: " · ")))
     }
 
     private var valueParts: [(label: String, value: Double, color: Color)] {

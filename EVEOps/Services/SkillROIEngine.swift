@@ -65,6 +65,9 @@ nonisolated struct SkillROIPlan: Sendable {
     var picks: [SkillROIGoal] = []
     /// Training time for every pick, back to back.
     var seconds = 0.0
+    /// The best goal the filter allows that was left out only because it runs past the
+    /// budget — "why isn't X in here?".
+    var nextOverBudget: SkillROIGoal?
 
     /// Fits the plan makes flyable / makes better, each counted once.
     var fitsCompleted: Set<Int> { Set(picks.flatMap { $0.completes.map(\.fittingID) }) }
@@ -84,6 +87,87 @@ nonisolated struct SkillROIInput: Sendable {
     /// What the next level of each skill does for flyable fits (see `SkillPerformanceEngine`).
     var performance: [SkillLevelKey: [FitStatDelta]] = [:]
     var now: Date = .now
+}
+
+// MARK:  Rationale
+
+/// Why a plan holds what it holds, from the picks' own scores — each pick valued as it was
+/// when picked, with the picks before it counted as trained.
+nonisolated struct SkillROIRationale: Sendable {
+    enum Source: CaseIterable, Sendable {
+        case completes, advances, performance, capacity
+
+        func points(_ score: SkillROIScore) -> Double {
+            switch self {
+            case .completes:   score.completes
+            case .advances:    score.advances
+            case .performance: score.performance
+            case .capacity:    score.capacity
+            }
+        }
+    }
+
+    /// Each source's share of the plan's value, largest first; sources worth nothing are left out.
+    let shares: [(source: Source, share: Double)]
+    /// Fits the plan makes flyable, in pick order.
+    let flyable: [ReadyRoomReport]
+    /// Fits brought closer that the plan doesn't finish.
+    let closer: [ReadyRoomReport]
+    /// Flyable fits the plan makes better, and the single largest gain among them.
+    let improvedFitIDs: Set<Int>
+    let bestGain: FitStatDelta?
+    /// Slots added per activity, with how busy the current ones are.
+    let capacity: [SkillROICapacity]
+    /// Pick index → the later pick it sets up (it brings a fit closer that the later one
+    /// makes flyable).
+    let setsUp: [Int: Int]
+
+    init(_ plan: SkillROIPlan) {
+        let picks = plan.picks
+        let total = picks.reduce(0.0) { $0 + $1.breakdown.value }
+        shares = Source.allCases
+            .map { source in (source, total > 0 ? picks.reduce(0.0) { $0 + source.points($1.breakdown) } / total : 0) }
+            .filter { $0.1 > 0 }
+            .sorted { $0.1 > $1.1 }
+
+        var seen = Set<Int>()
+        flyable = picks.flatMap(\.completes).filter { seen.insert($0.fittingID).inserted }
+        let flyableIDs = seen
+        closer = picks.flatMap(\.advances).filter { !flyableIDs.contains($0.fittingID) && seen.insert($0.fittingID).inserted }
+
+        improvedFitIDs = Set(picks.flatMap { $0.improves.map(\.fittingID) })
+        bestGain = picks.flatMap(\.improves)
+            .filter { $0.headline != nil }
+            .max { ($0.headline?.gain ?? 0) < ($1.headline?.gain ?? 0) }
+
+        var byKind: [IdleCapacityKind: SkillROICapacity] = [:]
+        for capacity in picks.compactMap(\.capacity) {
+            if let had = byKind[capacity.kind] {
+                byKind[capacity.kind] = SkillROICapacity(kind: capacity.kind, added: had.added + capacity.added,
+                                                         limit: had.limit, busyShare: had.busyShare)
+            } else {
+                byKind[capacity.kind] = capacity
+            }
+        }
+        self.capacity = byKind.values.sorted { $0.busyShare > $1.busyShare }
+
+        var setsUp: [Int: Int] = [:]
+        for (index, pick) in picks.enumerated() {
+            let advanced = Set(pick.advances.map(\.fittingID))
+            guard !advanced.isEmpty else { continue }
+            if let later = picks.indices.dropFirst(index + 1).first(where: { j in
+                picks[j].completes.contains { advanced.contains($0.fittingID) }
+            }) {
+                setsUp[index] = later
+            }
+        }
+        self.setsUp = setsUp
+    }
+
+    /// Where most of a pick's value comes from.
+    static func mainSource(_ goal: SkillROIGoal) -> Source? {
+        Source.allCases.map { ($0, $0.points(goal.breakdown)) }.filter { $0.1 > 0 }.max { $0.1 < $1.1 }?.0
+    }
 }
 
 // MARK:  Engine
@@ -227,6 +311,10 @@ nonisolated enum SkillROIEngine {
             // skill is measured from the new baseline.
             state.performance = state.performance.filter { !changed.contains($0.key.skillID) }
             state.performance.merge(remeasure(state.skills.mapValues(\.active), changed)) { _, new in new }
+        }
+        plan.nextOverBudget = goals(state).first { goal in
+            guard include(goal), let seconds = goal.seconds else { return false }
+            return plan.seconds + seconds > budget
         }
         return plan
     }

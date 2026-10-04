@@ -10,6 +10,9 @@
     " +%lld" : {
 
     },
+    " +%lld fits" : {
+
+    },
     " +%lld more" : {
 
     },
@@ -232,6 +235,9 @@
         }
       }
     },
+    "%@ (pinned)" : {
+
+    },
     "%@ / %@" : {
       "localizations" : {
         "en" : {
@@ -341,6 +347,26 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ + %2$@"
+          }
+        }
+      }
+    },
+    "%@ +%lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ +%2$lld"
+          }
+        }
+      }
+    },
+    "%@ +%lld more" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ +%2$lld more"
           }
         }
       }
@@ -476,6 +502,19 @@
     },
     "%@ of queue" : {
 
+    },
+    "%@ of the value" : {
+
+    },
+    "%@ on %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ on %2$lld"
+          }
+        }
+      }
     },
     "%@ online" : {
 
@@ -1691,12 +1730,32 @@
         }
       }
     },
+    "+%lld %@ · %lld%% busy" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "+%1$lld %2$@ · %3$lld%% busy"
+          }
+        }
+      }
+    },
     "+%lld %@ slots" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "+%1$lld %2$@ slots"
+          }
+        }
+      }
+    },
+    "+%lld %@ slots (%lld%% busy now)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "+%1$lld %2$@ slots (%3$lld%% busy now)"
           }
         }
       }
@@ -1873,6 +1932,12 @@
     "A faint faction-tinted glow behind the main window, with a starfield in Dark appearance and a star-chart grid in Light." : {
 
     },
+    "a fit" : {
+
+    },
+    "A fit" : {
+
+    },
     "A new version of EVEOps is ready to install." : {
 
     },
@@ -2027,6 +2092,9 @@
       }
     },
     "Added to Plan" : {
+
+    },
+    "Adds %@" : {
 
     },
     "Adds Slots" : {
@@ -2423,6 +2491,9 @@
     "Best Value" : {
 
     },
+    "Better" : {
+
+    },
     "Biggest Pile" : {
 
     },
@@ -2462,7 +2533,20 @@
     "Breakdown" : {
 
     },
+    "Brings %lld fits closer — %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Brings %1$lld fits closer — %2$@"
+          }
+        }
+      }
+    },
     "Brings closer" : {
+
+    },
+    "Brings closer: %@" : {
 
     },
     "Browse skills on the right and tap + to add them to your plan." : {
@@ -2786,6 +2870,12 @@
 
     },
     "Closed" : {
+
+    },
+    "Closer" : {
+
+    },
+    "closer: %@" : {
 
     },
     "CLOSEST TO PROFITABLE" : {
@@ -3377,6 +3467,16 @@
     },
     "Diagnostic Logs" : {
 
+    },
+    "Didn’t fit: %@ %@ — %@, with %@ left in the budget" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Didn’t fit: %1$@ %2$@ — %3$@, with %4$@ left in the budget"
+          }
+        }
+      }
     },
     "Disconnected" : {
 
@@ -4013,6 +4113,9 @@
     "Fleet Status" : {
 
     },
+    "flies %@" : {
+
+    },
     "Floor" : {
 
     },
@@ -4023,6 +4126,9 @@
 
     },
     "Flow" : {
+
+    },
+    "Flyable" : {
 
     },
     "flyable after a single pick" : {
@@ -4104,6 +4210,9 @@
 
     },
     "GetEveModels provides 3D ship model data for EVE Online. Used in accordance with the GetEveModels public API terms of service." : {
+
+    },
+    "Gets fits closer that later picks finish" : {
 
     },
     "Go" : {
@@ -4273,6 +4382,19 @@
     },
     "Improves" : {
 
+    },
+    "Improves %lld fits you already fly" : {
+
+    },
+    "Improves %lld fits you already fly — best: %@ on %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Improves %1$lld fits you already fly — best: %2$@ on %3$@"
+          }
+        }
+      }
     },
     "Improves Fits" : {
 
@@ -4945,7 +5067,20 @@
     "Make sure the official Discord desktop app — or a client with Rich Presence built in, like Vesktop, Equibop, or Legcord — is running on this Mac." : {
 
     },
+    "Makes %lld fits flyable — %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Makes %1$lld fits flyable — %2$@"
+          }
+        }
+      }
+    },
     "Makes flyable" : {
+
+    },
+    "Makes flyable: %@" : {
 
     },
     "Manage all your characters and corporations.\nTrack assets, skills, industry, contracts, and more." : {
@@ -5663,6 +5798,9 @@
     "Omega required" : {
 
     },
+    "on %@" : {
+
+    },
     "on %lld · %lld%% busy" : {
       "localizations" : {
         "en" : {
@@ -5961,6 +6099,19 @@
 
     },
     "Pick up from" : {
+
+    },
+    "Picked #%lld: the most value per training day once #1–#%lld count as trained." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Picked #%1$lld: the most value per training day once #1–#%2$lld count as trained."
+          }
+        }
+      }
+    },
+    "Picked first: the most value per training day of everything that fits the budget." : {
 
     },
     "Pilot" : {
@@ -6280,6 +6431,9 @@
 
     },
     "Reason" : {
+
+    },
+    "Rebuild the plan with a longer budget" : {
 
     },
     "Recently Active" : {
@@ -6849,6 +7003,16 @@
     },
     "Set the in-game autopilot destination to %@" : {
 
+    },
+    "Sets up #%lld — brings %@ closer" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Sets up #%1$lld — brings %2$@ closer"
+          }
+        }
+      }
     },
     "Setting waypoints needs updated permissions — re-add this pilot." : {
 
@@ -7618,6 +7782,9 @@
     "Travel Required" : {
 
     },
+    "Try %@" : {
+
+    },
     "Try a different search or clear the filter." : {
 
     },
@@ -7948,6 +8115,9 @@
 
     },
     "Where to Buy" : {
+
+    },
+    "Why this plan" : {
 
     },
     "WIL" : {
