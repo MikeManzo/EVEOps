@@ -556,48 +556,20 @@ private struct SkillROICard: View {
                             Image(systemName: "pin.fill").font(.eveNano)
                         }
                         Text(verbatim: report.name).lineLimit(1)
-                        Text(Self.headline(delta))
+                        Text(delta.headlineText)
                             .font(.caption.monospacedDigit())
                             .foregroundStyle(.secondary)
                     }
                 }
                 .buttonStyle(.plain)
                 .modifier(ReadyRoomChipStyle(tint: tint))
-                .help(Text(Self.details(delta)))
+                .help(Text(delta.detailsText))
             }
             if goal.improves.count > shown.count {
                 Text("+\(goal.improves.count - shown.count)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-        }
-    }
-
-    /// "+3.2% DPS" — the stat that improves most, or "Cap stable".
-    static func headline(_ delta: FitStatDelta) -> String {
-        if let best = delta.headline {
-            return "+\(best.gain.formatted(.percent.precision(.fractionLength(1)))) \(statName(best.stat))"
-        }
-        return delta.becomesCapStable ? String(localized: "Cap stable") : ""
-    }
-
-    /// Every stat that improves, for the tooltip.
-    static func details(_ delta: FitStatDelta) -> String {
-        var parts = FitStatDelta.Stat.allCases.filter { delta.gain($0) > 0 }.map {
-            "\(statName($0)) +\(delta.gain($0).formatted(.percent.precision(.fractionLength(1))))"
-        }
-        if delta.becomesCapStable { parts.append(String(localized: "becomes cap stable")) }
-        return parts.joined(separator: " · ")
-    }
-
-    static func statName(_ stat: FitStatDelta.Stat) -> String {
-        switch stat {
-        case .dps:       String(localized: "DPS")
-        case .ehp:       String(localized: "EHP")
-        case .tank:      String(localized: "repair")
-        case .speed:     String(localized: "speed")
-        case .align:     String(localized: "align")
-        case .lockRange: String(localized: "lock range")
         }
     }
 
@@ -634,6 +606,40 @@ private struct SkillROICard: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+        }
+    }
+}
+
+// MARK:  Stat delta text
+
+extension FitStatDelta {
+    /// "+3.2% DPS" — the stat that improves most, or "Cap stable".
+    var headlineText: String {
+        if let best = headline {
+            return "+\(best.gain.formatted(.percent.precision(.fractionLength(1)))) \(best.stat.name)"
+        }
+        return becomesCapStable ? String(localized: "Cap stable") : ""
+    }
+
+    /// Every stat that improves, for a tooltip.
+    var detailsText: String {
+        var parts = Stat.allCases.filter { gain($0) > 0 }.map {
+            "\($0.name) +\(gain($0).formatted(.percent.precision(.fractionLength(1))))"
+        }
+        if becomesCapStable { parts.append(String(localized: "becomes cap stable")) }
+        return parts.joined(separator: " · ")
+    }
+}
+
+extension FitStatDelta.Stat {
+    var name: String {
+        switch self {
+        case .dps:       String(localized: "DPS")
+        case .ehp:       String(localized: "EHP")
+        case .tank:      String(localized: "repair")
+        case .speed:     String(localized: "speed")
+        case .align:     String(localized: "align")
+        case .lockRange: String(localized: "lock range")
         }
     }
 }

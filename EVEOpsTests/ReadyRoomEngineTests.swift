@@ -355,6 +355,142 @@ private func report(_ input: ReadyRoomInput) throws -> ReadyRoomReport {
         #expect(route.map(\.jumps) == [1, 3, 1])
     }
 
+    // MARK: - Displaced modules
+
+    @Test func missingModuleNamesWhatTheStagedHullHasInThatSlot() throws {
+        let damageControlI = 2_045
+        let r = try report(input(assets: [
+            asset(1, type: rifter, at: jita, assembled: true),
+            asset(2, type: autocannon, at: 1, flag: "HiSlot0", assembled: true),
+            asset(4, type: autocannon, at: 1, flag: "HiSlot1", assembled: true),
+            asset(3, type: damageControlI, at: 1, flag: "LoSlot0", assembled: true),
+        ]))
+        let line = try #require(r.parts.first { $0.typeID == damageControl })
+        #expect(line.missing == 1)
+        #expect(line.displaced == [.init(flag: "LoSlot0", typeID: damageControlI, name: "Type #2045")])
+        #expect(r.parts.first { $0.typeID == autocannon }?.displaced.isEmpty == true)
+    }
+
+    @Test func missingModuleInAnEmptySlotDisplacesNothing() throws {
+        let r = try report(input(assets: [
+            asset(1, type: rifter, at: jita, assembled: true),
+            asset(2, type: autocannon, at: 1, flag: "HiSlot0", assembled: true),
+            asset(4, type: autocannon, at: 1, flag: "HiSlot1", assembled: true),
+        ]))
+        let line = try #require(r.parts.first { $0.typeID == damageControl })
+        #expect(line.displaced == [.init(flag: "LoSlot0", typeID: nil, name: nil)])
+    }
+
+    @Test func surplusModuleInAnotherSlotOfTheGroupIsDisplaced() throws {
+        let gun = 484
+        let r = try report(input(assets: [
+            asset(1, type: rifter, at: jita, assembled: true),
+            asset(2, type: autocannon, at: 1, flag: "HiSlot1", assembled: true),   // kept, wrong slot
+            asset(4, type: gun, at: 1, flag: "HiSlot2", assembled: true),           // surplus
+            asset(5, type: ammo, at: 1, flag: "HiSlot2", quantity: 100),            // loaded charge
+            asset(3, type: damageControl, at: jita),
+        ]))
+        let line = try #require(r.parts.first { $0.typeID == autocannon })
+        #expect(line.missing == 1)
+        #expect(line.displaced.map(\.typeID) == [gun])
+    }
+
+    @Test func noAssembledHullMeansNothingDisplaced() throws {
+        let r = try report(input(assets: [asset(3, type: damageControl, at: jita)]))
+        #expect(r.parts.allSatisfy { $0.displaced.isEmpty })
+    }
+
+    @Test func todayFittingPutsTheDisplacedModuleBack() throws {
+        let damageControlI = 2_045
+        let r = try report(input(assets: [
+            asset(1, type: rifter, at: jita, assembled: true),
+            asset(2, type: autocannon, at: 1, flag: "HiSlot0", assembled: true),
+            asset(3, type: damageControlI, at: 1, flag: "LoSlot0", assembled: true),
+        ]))
+        let dc = try #require(r.parts.first { $0.typeID == damageControl })
+        let today = ReadyRoomUpgrades.todayFitting(rifterFit, line: dc)
+        #expect(today.items.first { $0.flag == "LoSlot0" }?.typeId == damageControlI)
+        #expect(today.items.filter { $0.flag.hasPrefix("HiSlot") }.count == 2)
+
+        // The missing autocannon's slot is empty today, so it leaves the fit.
+        let guns = try #require(r.parts.first { $0.typeID == autocannon })
+        let withoutGun = ReadyRoomUpgrades.todayFitting(rifterFit, line: guns)
+        #expect(withoutGun.items.filter { $0.typeId == autocannon }.map(\.flag) == ["HiSlot0"])
+    }
+
+    // MARK: - Tech II stand-ins
+
+    @Test func ownedTechTwoCoversAMissingTechOne() throws {
+        let damageControlT2 = 2_048
+        var i = input(assets: [
+            asset(1, type: rifter, at: jita, assembled: true),
+            asset(2, type: autocannon, at: 1, flag: "HiSlot0", assembled: true),
+            asset(4, type: autocannon, at: 1, flag: "HiSlot1", assembled: true),
+            asset(3, type: damageControlT2, at: 1, flag: "LoSlot0", assembled: true),
+        ])
+        i.substitutes = [damageControl: [damageControlT2]]
+        i.typeNames[damageControlT2] = "Damage Control Better"
+        let r = try report(i)
+        #expect(r.tier == .ready)
+        let line = try #require(r.parts.first { $0.typeID == damageControl })
+        #expect(line.missing == 0)
+        #expect(line.atStaging == 1)
+        #expect(line.substitutes == [.init(typeID: damageControlT2, name: "Damage Control Better", quantity: 1)])
+        #expect(line.displaced.isEmpty)
+    }
+
+    @Test func techTwoInADroneBayElsewhereMeansTravel() throws {
+        let fit = ESIFitting(description: "", fittingId: 1,
+                             items: [ESIFittingItem(flag: "DroneBay", quantity: 5, typeId: 2_183)],
+                             name: "Drones", shipTypeId: rifter)
+        var i = input(assets: [
+            asset(1, type: rifter, at: jita, assembled: true),
+            asset(5, type: rifter, at: amarr, assembled: true),
+            asset(6, type: 2_185, at: 5, flag: "DroneBay", quantity: 5),
+        ])
+        i.fittings = [fit]
+        i.substitutes = [2_183: [2_185]]
+        let r = try report(i)
+        let line = try #require(r.parts.first { $0.typeID == 2_183 })
+        #expect(line.missing == 0)
+        #expect(line.substitutes.first?.quantity == 5)
+        #expect(r.tier == .travel)
+    }
+
+    @Test func exactPartsAreClaimedBeforeStandIns() throws {
+        // The fit names one Damage Control II (as T2) and one T1 the T2 could cover; the
+        // single T2 owned goes to its exact line, so the T1 still needs buying.
+        let damageControlT2 = 2_048
+        let fit = ESIFitting(description: "", fittingId: 1, items: [
+            ESIFittingItem(flag: "LoSlot0", quantity: 1, typeId: damageControl),
+            ESIFittingItem(flag: "MedSlot0", quantity: 1, typeId: damageControlT2),
+        ], name: "Odd", shipTypeId: rifter)
+        var i = input(assets: [
+            asset(1, type: rifter, at: jita, assembled: true),
+            asset(3, type: damageControlT2, at: jita),
+        ])
+        i.fittings = [fit]
+        i.substitutes = [damageControl: [damageControlT2]]
+        let r = try report(i)
+        #expect(r.parts.first { $0.typeID == damageControlT2 }?.missing == 0)
+        #expect(r.parts.first { $0.typeID == damageControl }?.missing == 1)
+    }
+
+    @Test func standInsBeatIncomingOrders() throws {
+        let damageControlT2 = 2_048
+        var i = input(assets: [
+            asset(1, type: rifter, at: jita, assembled: true),
+            asset(2, type: autocannon, at: jita, quantity: 2),
+            asset(3, type: damageControlT2, at: jita),
+        ])
+        i.substitutes = [damageControl: [damageControlT2]]
+        i.incoming = [ReadyRoomIncoming(kind: .buyOrder, typeID: damageControl, quantity: 1, placeID: jita, eta: nil)]
+        let r = try report(i)
+        let line = try #require(r.parts.first { $0.typeID == damageControl })
+        #expect(line.incoming.isEmpty)
+        #expect(r.tier == .ready)
+    }
+
     // MARK: - Jumps & SP
 
     @Test func jumpDistancesAreBreadthFirst() {

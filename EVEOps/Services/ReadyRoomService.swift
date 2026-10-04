@@ -355,22 +355,26 @@ private struct Loader {
         let incoming = await incoming(pilot: pilot, fitTypeIDs: fitTypeIDs, types: types,
                                       roots: .init(byID: Dictionary(assets.map { ($0.itemId, $0) }, uniquingKeysWith: { a, _ in a })))
 
-        // Only places holding (or receiving) something a fit uses need names — big asset
-        // lists span hundreds of stations.
-        var placeIDs = Set(holdings.filter { fitTypeIDs.contains($0.typeID) }.map(\.placeID))
-        placeIDs.formUnion(incoming.compactMap(\.placeID))
-        placeIDs.insert(currentPlaceID)
-        let places = await resolvePlaces(placeIDs)
-
         var skills: [Int: ReadyRoomSkillLevel] = [:]
         for skill in pilot.skills.skills {
             skills[skill.skillId] = ReadyRoomSkillLevel(active: skill.activeSkillLevel, trained: skill.trainedSkillLevel,
                                                         sp: skill.skillpointsInSkill)
         }
+        let substitutes = await ReadyRoomSubstitutes.techTwo(for: fittings, types: types,
+                                                             owned: Set(holdings.map(\.typeID)), skills: skills)
+        let substituteIDs = Set(substitutes.values.flatMap(\.self))
+        let substituteTypes = await UniverseCache.shared.types(ids: Array(substituteIDs))
+
+        // Only places holding (or receiving) something a fit uses need names — big asset
+        // lists span hundreds of stations.
+        var placeIDs = Set(holdings.filter { fitTypeIDs.contains($0.typeID) || substituteIDs.contains($0.typeID) }.map(\.placeID))
+        placeIDs.formUnion(incoming.compactMap(\.placeID))
+        placeIDs.insert(currentPlaceID)
+        let places = await resolvePlaces(placeIDs)
 
         var input = ReadyRoomInput(
             fittings: fittings,
-            typeNames: types.mapValues(\.name),
+            typeNames: types.merging(substituteTypes) { a, _ in a }.mapValues(\.name),
             shipClassNames: shipClassNames,
             requirements: requirements,
             skillInfo: skillInfo,
@@ -385,6 +389,7 @@ private struct Loader {
         )
         input.incoming = incoming
         input.jumpClonePlaceIDs = Set(pilot.clones?.jumpClones.map(\.locationId) ?? [])
+        input.substitutes = substitutes
 
         let shipType = pilot.ship.flatMap { types[$0.shipTypeId] }
         let context = ReadyRoomPilotContext(
@@ -555,6 +560,60 @@ private struct Loader {
         let allSkills = fittingSkills.union(extra.values.flatMap(\.keys))
         let info = await SkillPrerequisites.shared.trainingInfo(for: Array(allSkills))
         snapshot.input.skillInfo.merge(info) { _, new in new }
+    }
+}
+
+// MARK:  Substitutes
+
+/// Tech II stand-ins for Tech I parts: "Hammerhead II" covers "Hammerhead I" when it's in the
+/// same group, the pilot owns one, and their skills can use it now.
+enum ReadyRoomSubstitutes {
+    /// Name → type ID lookups, kept for the session (`nil` = no such type).
+    @MainActor private static var resolved: [String: Int?] = [:]
+
+    /// Fit type → owned, usable Tech II types.
+    @MainActor
+    static func techTwo(for fittings: [ESIFitting], types: [Int: ESIType], owned: Set<Int>,
+                        skills: [Int: ReadyRoomSkillLevel]) async -> [Int: [Int]] {
+        var wanted: [String: Set<Int>] = [:]                // Tech II name → Tech I fit types
+        for item in fittings.flatMap(\.items) where substitutable(item.flag) {
+            guard let name = types[item.typeId]?.name, name.hasSuffix(" I") else { continue }
+            wanted[name + "I", default: []].insert(item.typeId)
+        }
+        let unknown = wanted.keys.filter { resolved[$0] == nil }
+        if !unknown.isEmpty {
+            struct IDs: Decodable { let inventoryTypes: [ESIIDName]? }
+            guard let response: IDs = try? await ESIClient.shared.post("/universe/ids/", body: unknown) else { return [:] }
+            let found = Dictionary((response.inventoryTypes ?? []).map { ($0.name.lowercased(), $0.id) },
+                                   uniquingKeysWith: { a, _ in a })
+            for name in unknown { resolved[name] = .some(found[name.lowercased()]) }
+        }
+
+        let candidates = wanted.compactMap { name, fitTypes -> (id: Int, fitTypes: Set<Int>)? in
+            guard let id = resolved[name] ?? nil, owned.contains(id) else { return nil }
+            return (id, fitTypes)
+        }
+        guard !candidates.isEmpty else { return [:] }
+        let ids = candidates.map(\.id)
+        let candidateTypes = await UniverseCache.shared.types(ids: ids)
+        let requirements = await SkillPrerequisites.shared.requirements(for: ids)
+
+        var out: [Int: [Int]] = [:]
+        for (id, fitTypes) in candidates {
+            // Tech II always needs skills: none listed means the lookup failed, so don't count it.
+            let needs = requirements[id] ?? [:]
+            let usable = !needs.isEmpty && needs.allSatisfy { (skills[$0.key]?.active ?? 0) >= $0.value }
+            guard usable, let group = candidateTypes[id]?.groupId else { continue }
+            for fitType in fitTypes where types[fitType]?.groupId == group {
+                out[fitType, default: []].append(id)
+            }
+        }
+        return out
+    }
+
+    /// Slot modules, drones and fighters — not cargo, where Tech II ammo isn't simply better.
+    nonisolated static func substitutable(_ flag: String) -> Bool {
+        ReadyRoomEngine.isFittedFlag(flag) || flag == "DroneBay" || flag == "FighterBay"
     }
 }
 

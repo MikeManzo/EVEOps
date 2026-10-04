@@ -24,6 +24,8 @@ struct ReadyRoomDetailPane: View {
     @State private var isSendingRoute = false
     @State private var route: [(systemID: Int, jumps: Int?)] = []
     @State private var hubQuotes: [StationQuote]?
+    /// Part line ID → what buying it does against what's fitted today; nil while measuring.
+    @State private var upgrades: [String: ReadyRoomUpgrade]?
 
     private var palette: EVEPalette { themeManager.palette }
     private var places: [Int: ReadyRoomPlace] { snapshot.places }
@@ -67,10 +69,15 @@ struct ReadyRoomDetailPane: View {
         .task(id: BuyKey(fittingID: report.fittingID, missing: report.missingCount)) {
             await quoteHubs()
         }
+        .task(id: UpgradeKey(fittingID: report.fittingID, displaced: report.requiredParts.map(\.displaced))) {
+            upgrades = nil
+            upgrades = await ReadyRoomUpgrades.measure(report: report, snapshot: snapshot)
+        }
     }
 
     private struct RouteKey: Hashable { let fittingID: Int; let stops: [Int]; let origin: Int }
     private struct BuyKey: Hashable { let fittingID: Int; let missing: Int }
+    private struct UpgradeKey: Hashable { let fittingID: Int; let displaced: [[ReadyRoomPartLine.Displaced]] }
 
     // MARK:  Hero
 
@@ -399,6 +406,18 @@ struct ReadyRoomDetailPane: View {
     }
 
     private func partRow(_ line: ReadyRoomPartLine) -> some View {
+        VStack(alignment: .leading, spacing: EVESpacing.xxs) {
+            partSummary(line)
+            if !line.displaced.isEmpty {
+                upgradeLine(line)
+                    .padding(.leading, 24 + EVESpacing.md)
+            }
+        }
+        .padding(.vertical, EVESpacing.xxs)
+        .accessibilityElement(children: .combine)
+    }
+
+    private func partSummary(_ line: ReadyRoomPartLine) -> some View {
         HStack(spacing: EVESpacing.md) {
             CachedAsyncImage(url: EVEImageURL.typeIcon(line.typeID, size: 64)) { image in
                 image.resizable()
@@ -424,12 +443,104 @@ struct ReadyRoomDetailPane: View {
                         .font(.caption2.monospacedDigit())
                         .foregroundStyle(.secondary)
                 }
+                ForEach(line.substitutes, id: \.typeID) { substitute in
+                    Label {
+                        Text("Using \(substitute.quantity)× \(substitute.name)")
+                    } icon: {
+                        Image(systemName: "arrow.up.circle.fill")
+                    }
+                    .font(.caption2)
+                    .foregroundStyle(.green)
+                    .lineLimit(1)
+                    .help("You own \(substitute.name), the Tech II version, and can use it — it covers \(substitute.quantity) of these.")
+                }
             }
             Spacer(minLength: EVESpacing.sm)
             partStatus(line)
         }
-        .padding(.vertical, EVESpacing.xxs)
-        .accessibilityElement(children: .combine)
+    }
+
+    // MARK:  Upgrade
+
+    /// What the purchase replaces on the staged hull, and what it gains the fit.
+    private func upgradeLine(_ line: ReadyRoomPartLine) -> some View {
+        let upgrade = upgrades?[line.id]
+        return HStack(alignment: .firstTextBaseline, spacing: EVESpacing.xs) {
+            Image(systemName: "arrow.turn.down.right")
+                .foregroundStyle(.tertiary)
+            Text(replacesText(line.displaced))
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+            if let upgrade {
+                if upgrade.delta.isEmpty {
+                    Text("· no change to DPS, tank or speed")
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                } else {
+                    Text(verbatim: "· \(upgrade.delta.headlineText)")
+                        .font(.eveCaptionBold)
+                        .foregroundStyle(.green)
+                        .lineLimit(1)
+                }
+            } else if upgrades == nil {
+                ProgressView().controlSize(.mini)
+            }
+        }
+        .font(.caption)
+        .help(upgradeHelp(line, upgrade: upgrade))
+    }
+
+    /// "Replaces Damage Control I", "Replaces 2× Small Shield Booster I", "Fills an empty slot".
+    private func replacesText(_ displaced: [ReadyRoomPartLine.Displaced]) -> String {
+        var counts: [String: Int] = [:]
+        var order: [String] = []
+        var empty = 0
+        for entry in displaced {
+            guard let name = entry.name else { empty += 1; continue }
+            if counts[name] == nil { order.append(name) }
+            counts[name, default: 0] += 1
+        }
+        var parts = order.map { counts[$0]! > 1 ? "\(counts[$0]!)× \($0)" : $0 }
+        if empty > 0 {
+            parts.append(empty > 1 ? String(localized: "\(empty) empty slots") : String(localized: "an empty slot"))
+        }
+        if order.isEmpty {
+            return empty > 1 ? String(localized: "Fills \(empty) empty slots") : String(localized: "Fills an empty slot")
+        }
+        return String(localized: "Replaces \(parts.formatted(.list(type: .and)))")
+    }
+
+    private func upgradeHelp(_ line: ReadyRoomPartLine, upgrade: ReadyRoomUpgrade?) -> String {
+        let hull = report.staging.map { String(localized: "Your \(report.shipTypeName) in \($0.name) today:") }
+            ?? String(localized: "Your \(report.shipTypeName) today:")
+        var lines = [hull] + line.displaced.map { entry in
+            "\(entry.flag): \(entry.name ?? String(localized: "empty"))"
+        }
+        if let upgrade {
+            lines.append("")
+            if upgrade.delta.isEmpty {
+                lines.append(String(localized: "Buying \(line.name) doesn’t change DPS, EHP, repair, speed, align or lock range — it adds what the fit was built around."))
+            } else {
+                lines.append(String(localized: "With \(line.name):"))
+                for stat in FitStatDelta.Stat.allCases where upgrade.delta.gain(stat) > 0 {
+                    let gain = upgrade.delta.gain(stat).formatted(.percent.precision(.fractionLength(1)))
+                    lines.append("\(stat.name) \(statValue(stat, upgrade.today)) → \(statValue(stat, upgrade.withPurchase)) (+\(gain))")
+                }
+                if upgrade.delta.becomesCapStable { lines.append(String(localized: "Becomes cap stable")) }
+            }
+        }
+        return lines.joined(separator: "\n")
+    }
+
+    private func statValue(_ stat: FitStatDelta.Stat, _ performance: FitPerformance) -> String {
+        switch stat {
+        case .dps:       performance.dps.formatted(.number.precision(.fractionLength(0)))
+        case .ehp:       performance.ehp.formatted(.number.notation(.compactName).precision(.significantDigits(3)))
+        case .tank:      String(localized: "\(performance.tank.formatted(.number.precision(.fractionLength(1)))) HP/s")
+        case .speed:     String(localized: "\(performance.speed.formatted(.number.precision(.fractionLength(0)))) m/s")
+        case .align:     String(localized: "\(performance.alignTime.formatted(.number.precision(.fractionLength(1)))) s")
+        case .lockRange: String(localized: "\((performance.lockRange / 1000).formatted(.number.precision(.fractionLength(1)))) km")
+        }
     }
 
     @ViewBuilder

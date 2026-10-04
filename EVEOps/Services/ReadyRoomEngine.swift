@@ -57,6 +57,8 @@ nonisolated struct ReadyRoomHolding: Sendable, Hashable {
     let isAssembled: Bool
     /// Held in a corporation hangar rather than the pilot's own.
     var isCorporation = false
+    /// The slot it's fitted in ("LoSlot0"), when `fittedToItemID` is set.
+    var slotFlag: String? = nil
 }
 
 /// A part already on its way to the pilot.
@@ -137,6 +139,21 @@ nonisolated struct ReadyRoomPartLine: Sendable, Hashable, Identifiable {
         let eta: Date?
     }
 
+    /// An owned better version of the part (Tech II for Tech I) standing in for it.
+    struct Substitute: Sendable, Hashable {
+        let typeID: Int
+        let name: String
+        let quantity: Int
+    }
+
+    /// What the staged hull has today in a slot a missing unit would take.
+    struct Displaced: Sendable, Hashable {
+        let flag: String
+        /// The module fitted there now; nil when the slot is empty.
+        let typeID: Int?
+        let name: String?
+    }
+
     let typeID: Int
     let name: String
     /// Slot group label ("High Slots", "Drone Bay", "Hull", …).
@@ -151,6 +168,11 @@ nonisolated struct ReadyRoomPartLine: Sendable, Hashable, Identifiable {
     let fromCorporation: Int
     /// Cargo items (ammo, scripts, paste) — listed, but never block readiness.
     let isOptional: Bool
+    /// Owned stand-ins counted toward `atStaging` and `elsewhere`.
+    var substitutes: [Substitute] = []
+    /// One entry per missing unit, when the fit has an assembled hull at staging: the
+    /// module (or empty slot) the purchase replaces.
+    var displaced: [Displaced] = []
 
     var id: String { "\(category)-\(typeID)" }
     var elsewhereQuantity: Int { elsewhere.reduce(0) { $0 + $1.quantity } }
@@ -245,6 +267,9 @@ nonisolated struct ReadyRoomInput: Sendable {
     var fittingChecks: [Int: ReadyRoomFittingCheck] = [:]
     /// Stations and structures holding one of the pilot's jump clones.
     var jumpClonePlaceIDs: Set<Int> = []
+    /// Fit type → better versions (Tech II for Tech I) the pilot owns and can use, best
+    /// first. Owned ones stand in when the exact part is missing.
+    var substitutes: [Int: [Int]] = [:]
     var now: Date = .now
 }
 
@@ -290,86 +315,112 @@ nonisolated enum ReadyRoomEngine {
         var claimedCorporation: [Int: [Int: Int]] = [:]
         var claimedIncoming: [Int: Int] = [:]               // type → qty of incoming already claimed
 
-        var parts: [ReadyRoomPartLine] = []
-        for line in demand {
-            var remaining = line.quantity
+        /// The pilot's own stock first, then corporation stock, net of what this fit
+        /// already claimed (a type can appear in more than one slot group).
+        func take(_ typeID: Int, at placeID: Int, upTo want: Int) -> (personal: Int, corporation: Int) {
+            let personalLeft = pools.quantity(of: typeID, at: placeID, corporation: false)
+                - (claimedPersonal[placeID]?[typeID] ?? 0)
+            let corpLeft = pools.quantity(of: typeID, at: placeID, corporation: true)
+                - (claimedCorporation[placeID]?[typeID] ?? 0)
+            let personal = max(min(personalLeft, want), 0)
+            let corporation = max(min(corpLeft, want - personal), 0)
+            claimedPersonal[placeID, default: [:]][typeID, default: 0] += personal
+            claimedCorporation[placeID, default: [:]][typeID, default: 0] += corporation
+            return (personal, corporation)
+        }
+
+        struct Match {
+            var remaining: Int
             var atStaging = 0
             var fromCorporation = 0
-
-            /// The pilot's own stock first, then corporation stock, net of what this fit
-            /// already claimed (a type can appear in more than one slot group).
-            func take(at placeID: Int, upTo want: Int) -> (personal: Int, corporation: Int) {
-                let personalLeft = pools.quantity(of: line.typeID, at: placeID, corporation: false)
-                    - (claimedPersonal[placeID]?[line.typeID] ?? 0)
-                let corpLeft = pools.quantity(of: line.typeID, at: placeID, corporation: true)
-                    - (claimedCorporation[placeID]?[line.typeID] ?? 0)
-                let personal = max(min(personalLeft, want), 0)
-                let corporation = max(min(corpLeft, want - personal), 0)
-                claimedPersonal[placeID, default: [:]][line.typeID, default: 0] += personal
-                claimedCorporation[placeID, default: [:]][line.typeID, default: 0] += corporation
-                return (personal, corporation)
-            }
-
-            if let staging {
-                if line.category == hullCategory, staging.hullItemID != nil {
-                    atStaging = 1
-                } else {
-                    if line.category != hullCategory {
-                        let fitted = max((staging.fittedCounts[line.typeID] ?? 0) - claimedFitted[line.typeID, default: 0], 0)
-                        let fromFitted = min(fitted, remaining)
-                        claimedFitted[line.typeID, default: 0] += fromFitted
-                        atStaging += fromFitted
-                    }
-                    let got = take(at: staging.placeID, upTo: remaining - atStaging)
-                    atStaging += got.personal + got.corporation
-                    fromCorporation += got.corporation
-                }
-            }
-            remaining -= atStaging
-
             var elsewhere: [ReadyRoomPartLine.Elsewhere] = []
-            if remaining > 0 {
-                let others = pools.places(holding: line.typeID)
+            var substitutes: [Int: Int] = [:]               // substitute type → qty used
+            var arriving: [ReadyRoomPartLine.Incoming] = []
+        }
+
+        /// Takes `typeID` for a line: off the staged hull's slots, the staging hangar, then
+        /// the nearest other places.
+        func claim(_ typeID: Int, category: String, into match: inout Match) -> Int {
+            let before = match.remaining
+            if let staging, category != hullCategory {
+                let fitted = max((staging.fittedCounts[typeID] ?? 0) - claimedFitted[typeID, default: 0], 0)
+                let fromFitted = min(fitted, match.remaining)
+                claimedFitted[typeID, default: 0] += fromFitted
+                let got = take(typeID, at: staging.placeID, upTo: match.remaining - fromFitted)
+                let here = fromFitted + got.personal + got.corporation
+                match.atStaging += here
+                match.fromCorporation += got.corporation
+                match.remaining -= here
+            }
+            if match.remaining > 0 {
+                let others = pools.places(holding: typeID)
                     .filter { $0 != staging?.placeID }
                     .sorted { jumpsTo($0, input: input) < jumpsTo($1, input: input) }
-                for placeID in others where remaining > 0 {
-                    let got = take(at: placeID, upTo: remaining)
-                    if got.personal > 0 { elsewhere.append(.init(placeID: placeID, quantity: got.personal)) }
+                for placeID in others where match.remaining > 0 {
+                    let got = take(typeID, at: placeID, upTo: match.remaining)
+                    if got.personal > 0 { match.elsewhere.append(.init(placeID: placeID, quantity: got.personal)) }
                     if got.corporation > 0 {
-                        elsewhere.append(.init(placeID: placeID, quantity: got.corporation, isCorporation: true))
+                        match.elsewhere.append(.init(placeID: placeID, quantity: got.corporation, isCorporation: true))
                     }
-                    remaining -= got.personal + got.corporation
-                    fromCorporation += got.corporation
+                    match.remaining -= got.personal + got.corporation
+                    match.fromCorporation += got.corporation
                 }
             }
+            return before - match.remaining
+        }
 
-            var arriving: [ReadyRoomPartLine.Incoming] = []
-            if remaining > 0 && !line.optional {
-                var skip = claimedIncoming[line.typeID, default: 0]
-                for entry in incoming[line.typeID] ?? [] where remaining > 0 {
-                    let available = max(entry.quantity - skip, 0)
-                    skip = max(skip - entry.quantity, 0)
-                    let use = min(available, remaining)
-                    guard use > 0 else { continue }
-                    arriving.append(.init(kind: entry.kind, quantity: use, placeID: entry.placeID, eta: entry.eta))
-                    claimedIncoming[line.typeID, default: 0] += use
-                    remaining -= use
-                }
+        // The exact parts for every line first, so a stand-in never takes stock another
+        // line names; then owned stand-ins (Tech II for Tech I); then what's on its way.
+        var matches: [Match] = []
+        for line in demand {
+            var match = Match(remaining: line.quantity)
+            if line.category == hullCategory, staging?.hullItemID != nil {
+                match.atStaging = 1
+                match.remaining = 0
+            } else {
+                _ = claim(line.typeID, category: line.category, into: &match)
             }
+            matches.append(match)
+        }
+        for (index, line) in demand.enumerated() where matches[index].remaining > 0 && !line.optional {
+            for substitute in input.substitutes[line.typeID] ?? [] where matches[index].remaining > 0 {
+                let used = claim(substitute, category: line.category, into: &matches[index])
+                if used > 0 { matches[index].substitutes[substitute, default: 0] += used }
+            }
+        }
+        for (index, line) in demand.enumerated() where matches[index].remaining > 0 && !line.optional {
+            var skip = claimedIncoming[line.typeID, default: 0]
+            for entry in incoming[line.typeID] ?? [] where matches[index].remaining > 0 {
+                let available = max(entry.quantity - skip, 0)
+                skip = max(skip - entry.quantity, 0)
+                let use = min(available, matches[index].remaining)
+                guard use > 0 else { continue }
+                matches[index].arriving.append(.init(kind: entry.kind, quantity: use, placeID: entry.placeID, eta: entry.eta))
+                claimedIncoming[line.typeID, default: 0] += use
+                matches[index].remaining -= use
+            }
+        }
 
-            parts.append(ReadyRoomPartLine(
+        var parts = zip(demand, matches).map { line, match in
+            ReadyRoomPartLine(
                 typeID: line.typeID,
                 name: input.typeNames[line.typeID] ?? "Type #\(line.typeID)",
                 category: line.category,
                 required: line.quantity,
-                atStaging: atStaging,
-                elsewhere: elsewhere,
-                incoming: arriving,
-                missing: remaining,
+                atStaging: match.atStaging,
+                elsewhere: match.elsewhere,
+                incoming: match.arriving,
+                missing: match.remaining,
                 unitPrice: input.prices[line.typeID],
-                fromCorporation: fromCorporation,
-                isOptional: line.optional
-            ))
+                fromCorporation: match.fromCorporation,
+                isOptional: line.optional,
+                substitutes: match.substitutes.sorted { $0.key < $1.key }.map {
+                    .init(typeID: $0.key, name: input.typeNames[$0.key] ?? "Type #\($0.key)", quantity: $0.value)
+                }
+            )
+        }
+        if let hull = staging?.hullItemID {
+            assignDisplaced(to: &parts, fitting: fitting, hullSlots: pools.fittedSlots(on: hull), typeNames: input.typeNames)
         }
 
         // Skills for the hull and every required module (cargo doesn't gate flying), then
@@ -433,6 +484,82 @@ nonisolated enum ReadyRoomEngine {
             stagedHullItemID: staging?.hullItemID,
             hasJumpCloneAtStaging: staging.map { input.jumpClonePlaceIDs.contains($0.placeID) } ?? false
         )
+    }
+
+    // MARK:  Displaced modules
+
+    /// For each missing unit of a slot module, what the staged hull holds today in the slot
+    /// it would take. Per slot group, the hull's modules the fit doesn't use are surplus; a
+    /// missing unit replaces surplus in the slot the fit names, else other surplus in the
+    /// group, else fills an empty slot.
+    static func assignDisplaced(to parts: inout [ReadyRoomPartLine], fitting: ESIFitting,
+                                hullSlots: [String: Int], typeNames: [Int: String]) {
+        let fitByCategory = Dictionary(grouping: fitting.items.filter { isFittedFlag($0.flag) }) { slotCategory($0.flag) }
+        for (category, fitItems) in fitByCategory {
+            let missingLines = parts.indices.filter { parts[$0].category == category && parts[$0].missing > 0 }
+            guard !missingLines.isEmpty else { continue }
+
+            let fitSlots = Dictionary(fitItems.map { ($0.flag, $0.typeId) }, uniquingKeysWith: { first, _ in first })
+            let hullFlags = hullSlots.keys.filter { slotCategory($0) == category }.sorted(by: flagOrder)
+            // Keep the hull's modules the fit uses: same slot first, then anywhere in the group.
+            var need: [Int: Int] = [:]
+            for item in fitItems { need[item.typeId, default: 0] += item.quantity }
+            for line in parts where line.category == category {
+                for substitute in line.substitutes { need[substitute.typeID, default: 0] += substitute.quantity }
+            }
+            var kept = Set<String>()
+            for flag in hullFlags where fitSlots[flag] == hullSlots[flag] {
+                let type = hullSlots[flag]!
+                if need[type, default: 0] > 0 { need[type]! -= 1; kept.insert(flag) }
+            }
+            for flag in hullFlags where !kept.contains(flag) {
+                let type = hullSlots[flag]!
+                if need[type, default: 0] > 0 { need[type]! -= 1; kept.insert(flag) }
+            }
+            var surplus = hullFlags.filter { !kept.contains($0) }
+            var taken = Set<String>()
+
+            func displaced(_ flag: String) -> ReadyRoomPartLine.Displaced {
+                let type = hullSlots[flag]
+                return .init(flag: flag, typeID: type, name: type.map { typeNames[$0] ?? "Type #\($0)" })
+            }
+
+            // The fit's own slots for each line's type that the hull doesn't fill with it.
+            var ownFlags: [Int: [String]] = [:]
+            var out: [Int: [ReadyRoomPartLine.Displaced]] = [:]
+            for index in missingLines {
+                ownFlags[index] = fitSlots.filter { $0.value == parts[index].typeID && hullSlots[$0.key] != parts[index].typeID }
+                    .map(\.key).sorted(by: flagOrder)
+            }
+            func wants(_ index: Int) -> Bool { out[index, default: []].count < parts[index].missing }
+            func take(_ flag: String, for index: Int) {
+                surplus.removeAll { $0 == flag }
+                taken.insert(flag)
+                out[index, default: []].append(displaced(flag))
+            }
+            // Every line's surplus in its own slots first, then surplus anywhere in the
+            // group (a stand-in), then its slots left empty.
+            for index in missingLines {
+                for flag in ownFlags[index]! where wants(index) && surplus.contains(flag) { take(flag, for: index) }
+            }
+            for index in missingLines {
+                while wants(index), let flag = surplus.first { take(flag, for: index) }
+            }
+            for index in missingLines {
+                for flag in ownFlags[index]! where wants(index) && hullSlots[flag] == nil && !taken.contains(flag) {
+                    take(flag, for: index)
+                }
+                while wants(index) {
+                    out[index, default: []].append(.init(flag: ownFlags[index]!.first ?? category, typeID: nil, name: nil))
+                }
+                parts[index].displaced = out[index] ?? []
+            }
+        }
+    }
+
+    /// "HiSlot2" before "HiSlot10".
+    private static func flagOrder(_ a: String, _ b: String) -> Bool {
+        a.localizedStandardCompare(b) == .orderedAscending
     }
 
     // MARK:  Staging
@@ -596,7 +723,8 @@ nonisolated enum ReadyRoomEngine {
                 placeID: roots.root(of: asset.locationId),
                 fittedToItemID: parentIsItem && isFittedFlag(asset.locationFlag) ? asset.locationId : nil,
                 isAssembled: asset.isSingleton,
-                isCorporation: isCorporation
+                isCorporation: isCorporation,
+                slotFlag: parentIsItem && isFittedFlag(asset.locationFlag) ? asset.locationFlag : nil
             )
         }
     }
@@ -627,6 +755,9 @@ nonisolated enum ReadyRoomEngine {
         let hullsByPlace: [Int: [Int: [Int]]]
         /// hull item → fitted module counts by type.
         let fittedByHull: [Int: [Int: Int]]
+        /// hull item → slot flag → module type. A loaded charge shares its module's flag;
+        /// the module is the assembled one.
+        let slotsByHull: [Int: [String: Int]]
 
         init(holdings: [ReadyRoomHolding]) {
             var personal: [Int: [Int: Int]] = [:]
@@ -634,9 +765,13 @@ nonisolated enum ReadyRoomEngine {
             var places: [Int: Set<Int>] = [:]
             var hulls: [Int: [Int: [Int]]] = [:]
             var fitted: [Int: [Int: Int]] = [:]
+            var slots: [Int: [String: Int]] = [:]
             for holding in holdings {
                 if let hull = holding.fittedToItemID {
                     fitted[hull, default: [:]][holding.typeID, default: 0] += holding.quantity
+                    if let flag = holding.slotFlag, holding.isAssembled || slots[hull]?[flag] == nil {
+                        slots[hull, default: [:]][flag] = holding.typeID
+                    }
                     continue
                 }
                 if holding.isCorporation {
@@ -654,6 +789,7 @@ nonisolated enum ReadyRoomEngine {
             self.placesByType = places
             self.hullsByPlace = hulls
             self.fittedByHull = fitted
+            self.slotsByHull = slots
         }
 
         func places(holding typeID: Int) -> [Int] { Array(placesByType[typeID] ?? []) }
@@ -661,6 +797,8 @@ nonisolated enum ReadyRoomEngine {
         func hulls(of typeID: Int, at placeID: Int) -> [Int] { hullsByPlace[placeID]?[typeID] ?? [] }
 
         func fittedCounts(on hullID: Int) -> [Int: Int] { fittedByHull[hullID] ?? [:] }
+
+        func fittedSlots(on hullID: Int) -> [String: Int] { slotsByHull[hullID] ?? [:] }
 
         /// Stock of `typeID` at a place that isn't fitted to a ship (hangars, containers,
         /// cargo holds and drone bays all count). `corporation` nil = both.

@@ -43,6 +43,9 @@
     "· kills as of %@" : {
 
     },
+    "· no change to DPS, tank or speed" : {
+
+    },
     "· routed around %lld hot system%@" : {
       "localizations" : {
         "en" : {
@@ -407,6 +410,9 @@
     "%@ hit points" : {
 
     },
+    "%@ HP/s" : {
+
+    },
     "%@ in %@" : {
       "localizations" : {
         "en" : {
@@ -430,10 +436,16 @@
     "%@ ISK" : {
 
     },
+    "%@ km" : {
+
+    },
     "%@ layer" : {
 
     },
     "%@ LP" : {
+
+    },
+    "%@ m/s" : {
 
     },
     "%@ m³" : {
@@ -485,6 +497,9 @@
 
     },
     "%@ premium" : {
+
+    },
+    "%@ s" : {
 
     },
     "%@ Sell" : {
@@ -731,6 +746,9 @@
 
     },
     "%lld effective" : {
+
+    },
+    "%lld empty slots" : {
 
     },
     "%lld end < 24h" : {
@@ -2162,6 +2180,9 @@
     "Ambient space background" : {
 
     },
+    "an empty slot" : {
+
+    },
     "Analyzing implants…" : {
 
     },
@@ -2381,6 +2402,9 @@
     "becomes cap stable" : {
 
     },
+    "Becomes cap stable" : {
+
+    },
     "Before tracking" : {
 
     },
@@ -2504,6 +2528,9 @@
 
     },
     "Buy Value" : {
+
+    },
+    "Buying %@ doesn’t change DPS, EHP, repair, speed, align or lock range — it adds what the fit was built around." : {
 
     },
     "By Category" : {
@@ -3505,6 +3532,9 @@
     "EM Cost" : {
 
     },
+    "empty" : {
+
+    },
     "Empty" : {
 
     },
@@ -3828,6 +3858,12 @@
 
     },
     "Fighter Bay" : {
+
+    },
+    "Fills %lld empty slots" : {
+
+    },
+    "Fills an empty slot" : {
 
     },
     "Filter" : {
@@ -6372,6 +6408,9 @@
     "Repair" : {
 
     },
+    "Replaces %@" : {
+
+    },
     "Reprocessing" : {
 
     },
@@ -7735,6 +7774,16 @@
     "Uses whichever character is currently selected in EVEOps." : {
 
     },
+    "Using %lld× %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Using %1$lld× %2$@"
+          }
+        }
+      }
+    },
     "Utility" : {
 
     },
@@ -7910,6 +7959,9 @@
     "with %@" : {
 
     },
+    "With %@:" : {
+
+    },
     "Within" : {
 
     },
@@ -7961,7 +8013,30 @@
     "You need %@ more LP to afford it." : {
 
     },
+    "You own %@, the Tech II version, and can use it — it covers %lld of these." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "You own %1$@, the Tech II version, and can use it — it covers %2$lld of these."
+          }
+        }
+      }
+    },
     "You're here" : {
+
+    },
+    "Your %@ in %@ today:" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Your %1$@ in %2$@ today:"
+          }
+        }
+      }
+    },
+    "Your %@ today:" : {
 
     },
     "Your Assets Here" : {
