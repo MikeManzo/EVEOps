@@ -3,22 +3,24 @@
     <channel>
         <title>EVEOps</title>
         <item>
-            <title>0.9.9</title>
-            <pubDate>Sat, 03 Oct 2026 17:03:26 -0400</pubDate>
-            <link>https://github.com/MikeManzo/EVEOps/releases/tag/v0.9.9</link>
+            <title>0.9.14</title>
+            <pubDate>Sun, 04 Oct 2026 16:38:17 -0400</pubDate>
+            <link>https://github.com/MikeManzo/EVEOps/releases/tag/v0.9.14</link>
             <sparkle:informationalUpdate>
                 <sparkle:belowVersion>159</sparkle:belowVersion>
             </sparkle:informationalUpdate>
-            <sparkle:version>166</sparkle:version>
-            <sparkle:shortVersionString>0.9.9</sparkle:shortVersionString>
+            <sparkle:version>167</sparkle:version>
+            <sparkle:shortVersionString>0.9.14</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
             <description><![CDATA[<ul>
-<li>**Login Planner (new):** Works out the fewest logins that keep every pilot&#x27;s training, industry, PI and market orders running. Set how long things may sit idle and the hours you can play. Each login lists who to log in and what&#x27;s due, how many logins you save compared with answering every timer, and what skipping one would cost.</li>
-<li>**Dead Stock (new):** Finds what you own but never use — anything not in a ship, not a blueprint, not an industry material, and not needed by any pilot&#x27;s saved fittings. Each item is priced at Jita (sell now and if listed), rated for how quickly it would sell, and shown with where it sits. &quot;Copy for Appraisal&quot; copies the list for Janice, Evepraisal or EVE&#x27;s multi-sell. EVEOps now records how long items sit untouched, so that column fills in over the coming weeks.</li>
-<li>**Hangar Matrix (new):** Every saved fit from every pilot, checked against every pilot. Each cell shows how close that pilot is to undocking and what&#x27;s in the way: jumps, ISK or training. Pilot cards show location, ship, SP, jump clones and how many fits each pilot is ready for; click one to sort the matrix for that pilot. Each fit shows its value, contents and who saved it, and clicking a cell shows parts, training and CPU/powergrid details.</li>
-<li>**Skill ROI (new):** Ranks skills by what they unlock for you per day of training — saved fits that become flyable, fits that get closer, and more industry, market, PI or clone slots where yours are busy. &quot;Copy for EVE&quot; copies your picks as a skill plan you can paste into the in-game skill queue.</li>
+<li>Skill ROI: Training Plan (new):** Pick how much training time you have (1 week, 2 weeks, 30 days or 90 days) and Skill ROI builds the best plan that fits, in the order to train it. Each pick counts as trained before the next is chosen, so shared prerequisites are only trained once and a fit only counts toward the first skill that unlocks it. Each step shows when it finishes after your current queue. The plan follows the filter you choose (Everything, Unlocks Fits, Improves Fits or Adds Slots). &quot;Copy Plan for EVE&quot; copies it as a skill plan you can paste into the in-game skill queue.</li>
+<li>Skill ROI: Improves Fits (new):** Skill ROI now also ranks skills that make the fits you can already fly better. It runs each fit through the fitting engine with your skills and implants, then again with each skill one level higher, and shows what changes: &quot;+3.2% DPS&quot; on that ship, plus EHP, repair rate, speed, align time, lock range, or a fit becoming cap stable. Use the new &quot;Improves Fits&quot; filter to see only these. Each card&#x27;s value bar is now split by source (makes flyable, brings closer, improves, slots); hover it to see the breakdown.</li>
+<li>Simulator: DPS:** The Offense section shows total, weapon and drone DPS, volley damage, and DPS including reloads. Saved fits load ammo from their cargo and drones from their drone bay. Your own ships use the ammo already loaded and the drones on board.</li>
+<li>Fixed:Loading one of your own ships into the Simulator could put the loaded ammo in a slot instead of the module.</li>
+<li>Fixed:Clicking a fit in Skill ROI, Hangar Matrix or Fittings now opens it in the Ready Room and scrolls to it. Before, it often just opened the Ready Room.</li>
+<li>Faster:CPU and powergrid checks in the Ready Room and Hangar Matrix now run in the background, so the app stays responsive while they finish.</li>
 </ul>]]></description>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.9/EVEOps.dmg" length="35368843" type="application/octet-stream" sparkle:edSignature="XMBk7EsON3QFbK79GCH0gcbMfbYOTHyrwaKnhle59H8Fpw8SSgjVHa5ersxcGB/rVvyBWYVrmsbi/ogsGVBXBA=="/>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.14/EVEOps.dmg" length="35444684" type="application/octet-stream" sparkle:edSignature="fxNrBxvFwtyL5JqLV5xqOf1yk/g1XTS60lwlYHiUJb4w9d5ygGrgg6d6h4KZzt3/hFQnlbpYHfI05BA0EEv/Cw=="/>
         </item>
     </channel>
 </rss>
