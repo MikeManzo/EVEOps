@@ -224,6 +224,30 @@ struct DogmaEngineOffenseTests {
         #expect(serial > 0 && serial < base.dps)   // no damage amps here
     }
 
+    @Test func skillPerformanceFindsTheRealSupportSkills() throws {
+        DogmaEngine.shared.prepare(pbDirPath: sdeDir)
+        let fit = DogmaFit(shipTypeID: vexor,
+                           slots: (0..<4).map { SimSlot(category: .high, index: $0, moduleTypeId: blaster, chargeTypeId: voidM) }
+                               + (0..<2).map { SimSlot(category: .low, index: $0, moduleTypeId: droneAmp) },
+                           droneTypeIDs: Array(repeating: hammerhead, count: 5), passiveModuleTypeIDs: [droneAmp])
+        var pilot = skills
+        pilot[3_315] = 4; pilot[3_442] = 4                          // Surgical Strike, Drone Interfacing
+        // Every skill ID in the common combat/support range, most of which do nothing here.
+        let candidates = Set(3_300...3_460).union([3_315, 3_442, 3_443])
+        let start = Date()
+        let deltas = SkillPerformanceEngine.deltas(fits: [1: fit], skills: pilot, candidates: candidates) {
+            DogmaEngine.shared.calculate($0, skills: $1)
+        }
+        let elapsed = Date().timeIntervalSince(start)
+        print("[SkillPerformance] \(candidates.count) candidates on one fit in \(String(format: "%.0f", elapsed * 1000)) ms; \(deltas.count) levels change it")
+
+        let surgical = try #require(deltas[SkillLevelKey(skillID: 3_315, level: 5)]?.first)
+        let interfacing = try #require(deltas[SkillLevelKey(skillID: 3_442, level: 5)]?.first)
+        #expect(surgical.dps > 0 && surgical.dps < interfacing.dps)
+        #expect(deltas[SkillLevelKey(skillID: 3_443, level: 1)] == nil)   // Trade
+        #expect(elapsed < 5)
+    }
+
     @Test func supportSkillsMoveTheirOwnDamage() {
         let all = stats(skills: skills)
         var surgical = skills; surgical[3_315] = 4

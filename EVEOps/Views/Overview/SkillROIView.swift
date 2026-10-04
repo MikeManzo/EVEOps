@@ -11,13 +11,14 @@
 import SwiftUI
 
 enum SkillROIFilter: String, CaseIterable {
-    case all, fits, slots
+    case all, fits, improves, slots
 
     var title: LocalizedStringKey {
         switch self {
-        case .all:   "Everything"
-        case .fits:  "Unlocks Fits"
-        case .slots: "Adds Slots"
+        case .all:      "Everything"
+        case .fits:     "Unlocks Fits"
+        case .improves: "Improves Fits"
+        case .slots:    "Adds Slots"
         }
     }
 }
@@ -37,7 +38,8 @@ enum SkillROISort: String, CaseIterable {
 
 /// "What should I train next?" — skill levels ranked by what they unlock in this pilot's
 /// own hangar and slots per day of training: saved fits that become flyable, fits that get
-/// closer, and more industry, market, PI or clone slots where the current ones are busy.
+/// closer, flyable fits that get better, and more industry, market, PI or clone slots where
+/// the current ones are busy.
 struct SkillROIView: View {
     @Environment(AccountManager.self) private var accountManager
     @Environment(DashboardPrefetcher.self) private var prefetcher
@@ -111,8 +113,10 @@ struct SkillROIView: View {
             skillQueue: snapshot.input.skillQueue,
             attributes: snapshot.input.attributes,
             skillInfo: snapshot.input.skillInfo,
-            capacity: capacity
+            capacity: capacity,
+            performance: await SkillPerformanceService.shared.deltas(for: snapshot)
         )
+        guard characterID == self.characterID else { return }
         let candidates = Set(SkillROIEngine.candidateLevels(input).map(\.skillID))
         let prerequisites = await SkillPrerequisites.shared.requirements(for: Array(candidates))
         let involved = candidates.union(prerequisites.values.flatMap(\.keys)).subtracting(input.skillInfo.keys)
@@ -131,8 +135,9 @@ struct SkillROIView: View {
         let filtered = goals.filter { goal in
             switch filter {
             case .all:   true
-            case .fits:  !goal.completes.isEmpty || !goal.advances.isEmpty
-            case .slots: goal.capacity != nil
+            case .fits:     !goal.completes.isEmpty || !goal.advances.isEmpty
+            case .improves: !goal.improves.isEmpty
+            case .slots:    goal.capacity != nil
             }
         }
         switch sort {
@@ -162,19 +167,24 @@ struct SkillROIView: View {
                     LazyVStack(alignment: .leading, spacing: EVESpacing.md) {
                         ForEach(Array(visibleGoals.enumerated()), id: \.element.id) { index, goal in
                             SkillROICard(goal: goal, rank: index + 1, best: goals.first?.score ?? 1,
-                                         pinned: characterID.map(readyRoom.pinnedFittingIDs) ?? []) {
+                                         pinned: characterID.map(readyRoom.pinnedFittingIDs) ?? [],
+                                         reports: reportsByID) {
                                 copy([goal])
                             }
                             .eveScrollReveal()
                         }
                     }
-                    Text("Value counts fits made flyable (pinned fits double), fits brought closer, and extra slots weighted by how busy your current ones are — divided by training days.")
+                    Text("Value counts fits made flyable (pinned fits double), fits brought closer, how much flyable fits improve (DPS, tank, speed, lock range, capacitor — measured with your skills and implants), and extra slots weighted by how busy your current ones are — divided by training days.")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                 }
                 .padding()
             }
         }
+    }
+
+    private var reportsByID: [Int: ReadyRoomReport] {
+        Dictionary(snapshot?.reports.map { ($0.fittingID, $0) } ?? [], uniquingKeysWith: { a, _ in a })
     }
 
     private func copy(_ picked: [SkillROIGoal]) {
@@ -212,6 +222,7 @@ struct SkillROIView: View {
         let time = goal.seconds.map { ReadyRoomFormat.duration($0) } ?? "?"
         if !goal.completes.isEmpty { return String(localized: "\(goal.completes.count) fits flyable · \(time)") }
         if let capacity = goal.capacity { return String(localized: "+\(capacity.added) \(String(localized: capacity.kind.titleResource)) · \(time)") }
+        if !goal.improves.isEmpty { return String(localized: "\(goal.improves.count) fits better · \(time)") }
         return String(localized: "\(goal.advances.count) fits closer · \(time)")
     }
 
@@ -244,6 +255,7 @@ private struct SkillROICard: View {
     let rank: Int
     let best: Double
     let pinned: Set<Int>
+    let reports: [Int: ReadyRoomReport]
     let copy: () -> Void
 
     @Environment(ThemeManager.self) private var themeManager
@@ -285,17 +297,38 @@ private struct SkillROICard: View {
         .eveCard(cornerRadius: EVERadius.xl)
     }
 
+    /// Length is the score against the best pick; segments show where the value comes from.
     private var valueBar: some View {
-        GeometryReader { proxy in
+        let parts = valueParts
+        let value = max(goal.breakdown.value, 0.0001)
+        return GeometryReader { proxy in
+            let width = proxy.size.width * min(goal.score / max(best, 0.0001), 1)
             ZStack(alignment: .leading) {
                 Capsule().fill(.quaternary)
-                Capsule().fill(themeManager.palette.accent)
-                    .frame(width: proxy.size.width * min(goal.score / max(best, 0.0001), 1))
+                HStack(spacing: 1) {
+                    ForEach(parts, id: \.label) { part in
+                        Rectangle().fill(part.color).frame(width: max(width * part.value / value - 1, 1))
+                    }
+                }
+                .frame(width: width, alignment: .leading)
+                .clipShape(Capsule())
             }
         }
         .frame(height: 4)
         .frame(maxWidth: 240)
+        .help(Text(parts.map { "\($0.label) \(Int(($0.value / value * 100).rounded()))%" }.joined(separator: " · ")))
         .accessibilityHidden(true)
+    }
+
+    private var valueParts: [(label: String, value: Double, color: Color)] {
+        let palette = themeManager.palette
+        let b = goal.breakdown
+        return [
+            (String(localized: "Makes flyable"), b.completes, ReadyRoomTier.ready.color(palette)),
+            (String(localized: "Brings closer"), b.advances, ReadyRoomTier.train.color(palette)),
+            (String(localized: "Improves"), b.performance, palette.accent),
+            (String(localized: "Slots"), b.capacity, IdleCapacityStatus.soon.color),
+        ].filter { $0.1 > 0 }
     }
 
     @ViewBuilder
@@ -306,6 +339,9 @@ private struct SkillROICard: View {
             }
             if !goal.advances.isEmpty {
                 fitLine(Text("Brings closer"), fits: goal.advances, tint: ReadyRoomTier.train.color(themeManager.palette))
+            }
+            if !goal.improves.isEmpty {
+                improvesLine
             }
             if let capacity = goal.capacity {
                 HStack(spacing: EVESpacing.sm) {
@@ -318,6 +354,75 @@ private struct SkillROICard: View {
                         .foregroundStyle(capacity.busyShare >= 0.8 ? IdleCapacityStatus.soon.color : .secondary)
                 }
             }
+        }
+    }
+
+    private var improvesLine: some View {
+        let tint = themeManager.palette.accent
+        let shown = goal.improves.prefix(4).compactMap { delta in reports[delta.fittingID].map { (delta, $0) } }
+        return HStack(spacing: EVESpacing.sm) {
+            Text("Improves")
+                .font(.eveCaptionBold)
+                .foregroundStyle(tint)
+            ForEach(shown, id: \.0.fittingID) { delta, report in
+                Button {
+                    AppRouter.shared.pendingReadyRoomFittingID = report.fittingID
+                    AppRouter.shared.pendingSection = .readyRoom
+                } label: {
+                    HStack(spacing: EVESpacing.xs) {
+                        CachedAsyncImage(url: EVEImageURL.typeIcon(report.shipTypeID, size: 64)) { image in
+                            image.resizable()
+                        } placeholder: {
+                            RoundedRectangle(cornerRadius: 3).fill(.quaternary)
+                        }
+                        .frame(width: 14, height: 14)
+                        .clipShape(RoundedRectangle(cornerRadius: 3))
+                        if pinned.contains(report.fittingID) {
+                            Image(systemName: "pin.fill").font(.eveNano)
+                        }
+                        Text(verbatim: report.name).lineLimit(1)
+                        Text(Self.headline(delta))
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .buttonStyle(.plain)
+                .modifier(ReadyRoomChipStyle(tint: tint))
+                .help(Text(Self.details(delta)))
+            }
+            if goal.improves.count > shown.count {
+                Text("+\(goal.improves.count - shown.count)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    /// "+3.2% DPS" — the stat that improves most, or "Cap stable".
+    static func headline(_ delta: FitStatDelta) -> String {
+        if let best = delta.headline {
+            return "+\(best.gain.formatted(.percent.precision(.fractionLength(1)))) \(statName(best.stat))"
+        }
+        return delta.becomesCapStable ? String(localized: "Cap stable") : ""
+    }
+
+    /// Every stat that improves, for the tooltip.
+    static func details(_ delta: FitStatDelta) -> String {
+        var parts = FitStatDelta.Stat.allCases.filter { delta.gain($0) > 0 }.map {
+            "\(statName($0)) +\(delta.gain($0).formatted(.percent.precision(.fractionLength(1))))"
+        }
+        if delta.becomesCapStable { parts.append(String(localized: "becomes cap stable")) }
+        return parts.joined(separator: " · ")
+    }
+
+    static func statName(_ stat: FitStatDelta.Stat) -> String {
+        switch stat {
+        case .dps:       String(localized: "DPS")
+        case .ehp:       String(localized: "EHP")
+        case .tank:      String(localized: "repair")
+        case .speed:     String(localized: "speed")
+        case .align:     String(localized: "align")
+        case .lockRange: String(localized: "lock range")
         }
     }
 

@@ -23,6 +23,19 @@ nonisolated struct SkillROICapacity: Sendable, Hashable {
     let busyShare: Double
 }
 
+/// Where a goal's value comes from, before dividing by training days.
+nonisolated struct SkillROIScore: Sendable, Hashable {
+    var completes = 0.0
+    var advances = 0.0
+    var performance = 0.0
+    var capacity = 0.0
+    /// Training days the value is spread over (with the minimum applied).
+    var days = 1.0
+
+    var value: Double { completes + advances + performance + capacity }
+    var total: Double { value / days }
+}
+
 /// One skill level worth training, and what it pays for.
 nonisolated struct SkillROIGoal: Sendable, Identifiable {
     let skillID: Int
@@ -36,11 +49,15 @@ nonisolated struct SkillROIGoal: Sendable, Identifiable {
     let completes: [ReadyRoomReport]
     /// Fits this gets closer without finishing.
     let advances: [ReadyRoomReport]
+    /// Fits the pilot can already fly that this makes better, best first.
+    let improves: [FitStatDelta]
     let capacity: SkillROICapacity?
-    let score: Double
+    let breakdown: SkillROIScore
+
+    var score: Double { breakdown.total }
 
     var id: String { "\(skillID)-\(level)" }
-    var isQuickWin: Bool { (seconds ?? .infinity) < 86400 && (!completes.isEmpty || capacity != nil) }
+    var isQuickWin: Bool { (seconds ?? .infinity) < 86400 && (!completes.isEmpty || !improves.isEmpty || capacity != nil) }
 }
 
 nonisolated struct SkillROIInput: Sendable {
@@ -53,14 +70,16 @@ nonisolated struct SkillROIInput: Sendable {
     /// Skill → its own prerequisites (closure).
     var prerequisites: [Int: [Int: Int]] = [:]
     var capacity: IdleCapacityReport?
+    /// What the next level of each skill does for flyable fits (see `SkillPerformanceEngine`).
+    var performance: [SkillLevelKey: [FitStatDelta]] = [:]
     var now: Date = .now
 }
 
 // MARK:  Engine
 
 /// Ranks skill levels by what they unlock for this pilot — saved fits that become flyable,
-/// fits that get closer, industry/market/PI/clone slots for things already in use — per
-/// day of training. Not the meta: their hangar, their slots.
+/// fits that get closer, flyable fits that get better, industry/market/PI/clone slots for
+/// things already in use — per day of training. Not the meta: their hangar, their slots.
 nonisolated enum SkillROIEngine {
     private typealias Skill = IdleCapacityEngine.Skill
 
@@ -69,6 +88,16 @@ nonisolated enum SkillROIEngine {
         static let advancesFit = 2.0
         static let pinned = 2.0
         static let capacity = 12.0
+        /// Points per 1% gain on one fit, by stat — a 5% DPS gain on a pinned fit is worth
+        /// about as much as making a fit flyable.
+        static let dps = 1.0
+        static let ehp = 0.8
+        static let tank = 0.8
+        static let speed = 0.4
+        static let align = 0.4
+        static let lockRange = 0.2
+        /// A fit that runs out of capacitor and stops doing so.
+        static let capStable = 4.0
         /// Training shorter than this counts as this long, so a 5-minute skill doesn't
         /// swamp everything else.
         static let minimumDays = 0.25
@@ -112,20 +141,21 @@ nonisolated enum SkillROIEngine {
             }
 
             let capacity = capacityGain(skillID: skillID, before: skillLevels, after: after, report: input.capacity)
-            guard !completes.isEmpty || !advances.isEmpty || capacity != nil else { continue }
+            func pinned(_ fittingID: Int) -> Double { input.pinnedFittingIDs.contains(fittingID) ? Weight.pinned : 1 }
+            let improves = (input.performance[SkillLevelKey(skillID: skillID, level: level)] ?? [])
+                .map { (delta: $0, points: performancePoints($0) * pinned($0.fittingID)) }
+                .sorted { $0.points > $1.points }
+            guard !completes.isEmpty || !advances.isEmpty || !improves.isEmpty || capacity != nil else { continue }
 
-            var value = 0.0
-            for report in completes {
-                value += Weight.completesFit * (input.pinnedFittingIDs.contains(report.fittingID) ? Weight.pinned : 1)
-            }
-            for report in advances {
-                value += Weight.advancesFit * (input.pinnedFittingIDs.contains(report.fittingID) ? Weight.pinned : 1)
-            }
+            var breakdown = SkillROIScore()
+            breakdown.completes = completes.reduce(0) { $0 + Weight.completesFit * pinned($1.fittingID) }
+            breakdown.advances = advances.reduce(0) { $0 + Weight.advancesFit * pinned($1.fittingID) }
+            breakdown.performance = improves.reduce(0) { $0 + $1.points }
             if let capacity {
                 let share = min(Double(capacity.added) / Double(max(capacity.limit, 1)), 1)
-                value += Weight.capacity * capacity.busyShare * capacity.busyShare * share
+                breakdown.capacity = Weight.capacity * capacity.busyShare * capacity.busyShare * share
             }
-            let days = seconds.map { max($0 / 86400, Weight.minimumDays) } ?? Weight.unknownDays
+            breakdown.days = seconds.map { max($0 / 86400, Weight.minimumDays) } ?? Weight.unknownDays
 
             out.append(SkillROIGoal(
                 skillID: skillID,
@@ -135,8 +165,9 @@ nonisolated enum SkillROIEngine {
                 seconds: seconds,
                 completes: completes.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending },
                 advances: advances.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending },
+                improves: improves.map(\.delta),
                 capacity: capacity,
-                score: value / days
+                breakdown: breakdown
             ))
         }
         return out.sorted { a, b in
@@ -162,7 +193,22 @@ nonisolated enum SkillROIEngine {
         for skillID in slotSkills(input.capacity, skills: input.skills.mapValues(\.active)) {
             add(skillID, (input.skills[skillID]?.active ?? 0) + 1)
         }
+        for key in input.performance.keys.sorted(by: { ($0.skillID, $0.level) < ($1.skillID, $1.level) }) {
+            add(key.skillID, key.level)
+        }
         return out
+    }
+
+    // MARK: Performance
+
+    /// Points for one fit's gains, before the pinned multiplier.
+    static func performancePoints(_ delta: FitStatDelta) -> Double {
+        let weights: [FitStatDelta.Stat: Double] = [
+            .dps: Weight.dps, .ehp: Weight.ehp, .tank: Weight.tank,
+            .speed: Weight.speed, .align: Weight.align, .lockRange: Weight.lockRange,
+        ]
+        let percent = FitStatDelta.Stat.allCases.reduce(0) { $0 + (weights[$1] ?? 0) * delta.gain($1) * 100 }
+        return percent + (delta.becomesCapStable ? Weight.capStable : 0)
     }
 
     /// For each capacity line the pilot has, the slot skill to raise next.

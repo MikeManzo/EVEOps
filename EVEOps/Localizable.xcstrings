@@ -802,6 +802,16 @@
         }
       }
     },
+    "%lld fits better · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld fits better · %2$@"
+          }
+        }
+      }
+    },
     "%lld fits closer · %@" : {
       "localizations" : {
         "en" : {
@@ -2006,6 +2016,9 @@
     "AI Training Advisor" : {
 
     },
+    "align" : {
+
+    },
     "All" : {
 
     },
@@ -2334,6 +2347,9 @@
     "Based on publicly-observable signals.\nNot an exact online indicator." : {
 
     },
+    "becomes cap stable" : {
+
+    },
     "Before tracking" : {
 
     },
@@ -2478,6 +2494,9 @@
 
     },
     "Cancel" : {
+
+    },
+    "Cap stable" : {
 
     },
     "Cap. per Cycle" : {
@@ -3385,6 +3404,9 @@
     "Downtime in %lldm" : {
 
     },
+    "DPS" : {
+
+    },
     "Drag to orbit · scroll to zoom · ⌥-drag to pan · click a constellation to dive in" : {
 
     },
@@ -4167,6 +4189,12 @@
     "Import from Clipboard" : {
 
     },
+    "Improves" : {
+
+    },
+    "Improves Fits" : {
+
+    },
     "in %@" : {
 
     },
@@ -4719,6 +4747,9 @@
 
     },
     "Location Overview" : {
+
+    },
+    "lock range" : {
 
     },
     "Log a %@ run" : {
@@ -6276,6 +6307,9 @@
     "Removed %@ — ⌘Z to undo" : {
 
     },
+    "repair" : {
+
+    },
     "Repair" : {
 
     },
@@ -6942,6 +6976,9 @@
     "Slot-Days Idle · 7d" : {
 
     },
+    "Slots" : {
+
+    },
     "Slow" : {
 
     },
@@ -7009,6 +7046,9 @@
 
     },
     "Special Thanks" : {
+
+    },
+    "speed" : {
 
     },
     "Spent" : {
@@ -7646,7 +7686,7 @@
     "Value" : {
 
     },
-    "Value counts fits made flyable (pinned fits double), fits brought closer, and extra slots weighted by how busy your current ones are — divided by training days." : {
+    "Value counts fits made flyable (pinned fits double), fits brought closer, how much flyable fits improve (DPS, tank, speed, lock range, capacitor — measured with your skills and implants), and extra slots weighted by how busy your current ones are — divided by training days." : {
 
     },
     "Valuing assets…" : {
