@@ -371,15 +371,40 @@ struct SimOffenseBlock: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            SimSectionHeader(title: "Offense", summary: "—", isExpanded: $isExpanded)
+            SimSectionHeader(title: "Offense",
+                             summary: stats.dps > 0 ? fmtDPS(stats.dps) : "—",
+                             summaryTip: "Total DPS — weapons with their loaded charges, plus drones in space",
+                             isExpanded: $isExpanded)
             if isExpanded {
-                Text("DPS calculation requires ammo selection")
-                    .font(.caption2).foregroundStyle(.tertiary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                if stats.dps > 0 {
+                    VStack(spacing: 3) {
+                        simTwoColRow(
+                            left:    stats.weaponDPS > 0 ? "\(fmtDPS(stats.weaponDPS)) weapons" : "—",
+                            leftTip: "Weapon DPS with the loaded charges, ignoring reloads",
+                            right:    stats.droneDPS > 0 ? "\(fmtDPS(stats.droneDPS)) drones" : "—",
+                            rightTip: "Drone DPS for the drones that fit in bandwidth"
+                        )
+                        simTwoColRow(
+                            left:    stats.alpha > 0 ? "\(stats.alpha.formatted(.number.precision(.fractionLength(0)))) volley" : "—",
+                            leftTip: "Alpha — damage from one volley of every weapon",
+                            right:    stats.dpsWithReload > 0 ? "\(fmtDPS(stats.dpsWithReload)) w/ reload" : "—",
+                            rightTip: "Total DPS averaged over reload time"
+                        )
+                    }
                     .padding(.horizontal, 10).padding(.vertical, EVESpacing.sm)
+                } else {
+                    Text("Load a saved fit with ammo in cargo or drones in the bay, or one of your ships, to see DPS")
+                        .font(.caption2).foregroundStyle(.tertiary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 10).padding(.vertical, EVESpacing.sm)
+                }
             }
         }
     }
+}
+
+private func fmtDPS(_ dps: Double) -> String {
+    "\(dps.formatted(.number.precision(.fractionLength(dps < 100 ? 1 : 0)))) DPS"
 }
 
 // MARK:  Defense
@@ -679,7 +704,9 @@ struct SimDronesBlock: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            SimSectionHeader(title: "Drones", summary: "—", isExpanded: $isExpanded)
+            SimSectionHeader(title: "Drones", summary: stats.droneDPS > 0 ? fmtDPS(stats.droneDPS) : "—",
+                             summaryTip: "Drone DPS for the drones that fit in bandwidth",
+                             isExpanded: $isExpanded)
             if isExpanded {
                 VStack(alignment: .leading, spacing: 3) {
                     if stats.droneBandwidth > 0 {

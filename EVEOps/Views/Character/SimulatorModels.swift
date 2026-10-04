@@ -91,14 +91,18 @@ struct SimSlot: Identifiable, Equatable {
     let id: UUID
     let category: SimSlotCategory
     let index: Int
-    var moduleTypeId: Int?
+    /// Swapping the module unloads its charge — the new one may not take it.
+    var moduleTypeId: Int? { didSet { if oldValue != moduleTypeId { chargeTypeId = nil } } }
+    /// Ammo, crystal, script or missile loaded in the module; nil when empty.
+    var chargeTypeId: Int?
     var isOnline: Bool = true
 
-    init(category: SimSlotCategory, index: Int, moduleTypeId: Int? = nil, isOnline: Bool = true) {
+    init(category: SimSlotCategory, index: Int, moduleTypeId: Int? = nil, chargeTypeId: Int? = nil, isOnline: Bool = true) {
         self.id = UUID()
         self.category = category
         self.index = index
         self.moduleTypeId = moduleTypeId
+        self.chargeTypeId = chargeTypeId
         self.isOnline = isOnline
     }
 
@@ -167,6 +171,21 @@ struct SimStats {
     // Drones
     var droneBandwidth: Double = 0
     var droneBayCapacity: Double = 0
+    // Offense — zero without charges in the weapons or drones in space.
+    var dps: Double = 0
+    var dpsWithReload: Double = 0
+    var alpha: Double = 0
+    var droneDPS: Double = 0
+    // Repair rates (HP/s) from the dogma data's derived attributes
+    var passiveShieldRate: Double = 0
+    var shieldBoostRate: Double = 0
+    var armorRepairRate: Double = 0
+    var hullRepairRate: Double = 0
+    /// Seconds until the capacitor runs dry; nil when cap stable or unknown.
+    var capDepletesIn: Double?
+
+    /// Weapon DPS without drones — the engine's `dps` already includes them.
+    var weaponDPS: Double { max(dps - droneDPS, 0) }
 
     var passiveCapRechargePerSec: Double {
         // EVE cap regen: rate(C) = 10·C_max/τ·(√(C/C_max) − C/C_max)

@@ -31,6 +31,8 @@ final class SimulatorState {
     var draggingCategory: SimSlotCategory? = nil
     var pendingDropPayload: SimModuleDrag? = nil
     var implantTypeIds: [Int] = []
+    /// Drones in space for the offense numbers — set when a saved fit or ship is loaded.
+    var droneTypeIds: [Int] = []
     private(set) var implantTypes: [Int: ESIType] = [:]
     var includeImplants: Bool = true
     var characterSkills: [Int: Int] = [:]   // skillTypeId → trainedSkillLevel
@@ -71,6 +73,7 @@ final class SimulatorState {
         shipTypeId = typeId
         slots = []
         moduleTypes = [:]
+        droneTypeIds = []
         stats = SimStats()
         activeSlotId = nil
 
@@ -147,6 +150,7 @@ final class SimulatorState {
     func clearAll() async {
         for i in slots.indices { slots[i].moduleTypeId = nil; slots[i].isOnline = true }
         moduleTypes = [:]
+        droneTypeIds = []
         // Subsystems were just cleared too — collapse Strategic Cruiser high/med/low
         // slots back down rather than leaving stale empty ones behind.
         await recomputeSlotLayout()
@@ -184,6 +188,7 @@ final class SimulatorState {
                 }
             }
         }
+        droneTypeIds = DogmaLoadout.apply(items: fitting.items, to: &slots, ship: shipType, types: moduleTypes)
         recomputeStats()
         isLoadingShip = false
     }
@@ -205,15 +210,21 @@ final class SimulatorState {
         }
         await recomputeSlotLayout()
 
-        for asset in modules {
-            for cat in SimSlotCategory.allCases where asset.locationFlag.hasPrefix(cat.flagPrefix) {
-                let suffix = asset.locationFlag.dropFirst(cat.flagPrefix.count)
+        // A loaded charge is its own asset under the module's slot flag, so split each
+        // slot's assets into the module and the charge it holds.
+        let fitted = DogmaLoadout.splitSlotAssets(modules.filter { $0.locationFlag != "DroneBay" }, types: moduleTypes)
+        for (flag, content) in fitted {
+            for cat in SimSlotCategory.allCases where flag.hasPrefix(cat.flagPrefix) {
+                let suffix = flag.dropFirst(cat.flagPrefix.count)
                 if let idx = Int(suffix),
                    let si = slots.firstIndex(where: { $0.category == cat && $0.index == idx }) {
-                    slots[si].moduleTypeId = asset.typeId
+                    slots[si].moduleTypeId = content.module
+                    slots[si].chargeTypeId = content.charge
                 }
             }
         }
+        let bay = modules.filter { $0.locationFlag == "DroneBay" }.map { (typeId: $0.typeId, quantity: $0.quantity) }
+        droneTypeIds = DogmaLoadout.activeDrones(bay: bay, ship: shipType, types: moduleTypes)
         recomputeStats()
         isLoadingShip = false
     }
@@ -332,7 +343,8 @@ final class SimulatorState {
             slots: onlineSlots,
             skills: characterSkills,
             implantTypeIds: activeImplants,
-            passiveModuleTypeIds: passiveModuleTypeIds
+            passiveModuleTypeIds: passiveModuleTypeIds,
+            droneTypeIds: droneTypeIds
         )
 
         Logger.dogmaEngine.info("[Sim] raw resists shEM=\(self.stats.shieldResists.em) shThm=\(self.stats.shieldResists.thermal) shKin=\(self.stats.shieldResists.kinetic) shExp=\(self.stats.shieldResists.explosive)")

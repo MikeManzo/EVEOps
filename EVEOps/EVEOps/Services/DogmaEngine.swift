@@ -89,6 +89,17 @@ private struct FfiSimStats: Decodable {
     let drone_bandwidth: Double
     let drone_bay_capacity: Double
     let cap_drain_per_sec: Double
+    // Derived attributes — optional so an engine built before they were exposed still decodes.
+    let dps: Double?
+    let dps_with_reload: Double?
+    let alpha: Double?
+    let drone_dps: Double?
+    let ehp: Double?
+    let passive_shield_rate: Double?
+    let shield_boost_rate: Double?
+    let armor_repair_rate: Double?
+    let hull_repair_rate: Double?
+    let cap_depletes_in: Double?
 }
 
 // MARK:  Engine
@@ -133,7 +144,8 @@ final class DogmaEngine {
         slots: [SimSlot],
         skills: [Int: Int],
         implantTypeIds: [Int] = [],
-        passiveModuleTypeIds: Set<Int> = []
+        passiveModuleTypeIds: Set<Int> = [],
+        droneTypeIds: [Int] = []
     ) -> SimStats {
         guard let handle, isReady else {
             Logger.dogmaEngine.warning("[DogmaEngine] calculate() called before engine is ready (shipTypeId=\(shipTypeId))")
@@ -155,14 +167,16 @@ final class DogmaEngine {
                 type_id: typeId,
                 slot: EsfSlot(index: slot.index, slotType: slot.category.esfSlotType),
                 state: slot.isOnline ? onlineState : "Passive",
-                charge: nil
+                charge: slot.chargeTypeId.map { EsfCharge(type_id: $0) }
             )
         }
+        // Drones in space, attacking — what drone DPS is measured against.
+        let drones = droneTypeIds.map { EsfDrone(type_id: $0, state: "Active") }
 
         // Skills: BTreeMap<i32,i32> serialises to {"typeId": level} with string keys
         let skillsStringKeyed = Dictionary(uniqueKeysWithValues: skills.map { (String($0.key), $0.value) })
 
-        let fit = EsfFit(ship_type_id: shipTypeId, modules: modules, drones: [], implants: implantTypeIds)
+        let fit = EsfFit(ship_type_id: shipTypeId, modules: modules, drones: drones, implants: implantTypeIds)
 
         guard let fitData    = try? JSONEncoder().encode(fit),
               let skillsData = try? JSONEncoder().encode(skillsStringKeyed),
@@ -174,7 +188,7 @@ final class DogmaEngine {
         }
 
         guard let resultPtr = dogma_engine_calculate(handle, fitStr, skillStr) else {
-            Logger.dogmaEngine.error("[DogmaEngine] calculate() returned null — shipTypeId=\(shipTypeId) modules=\(modules.count) skills=\(skills.count) implants=\(implantTypeIds.count)")
+            Logger.dogmaEngine.error("[DogmaEngine] calculate() returned null — shipTypeId=\(shipTypeId) modules=\(modules.count) drones=\(drones.count) skills=\(skills.count) implants=\(implantTypeIds.count)")
             return SimStats()
         }
         defer { dogma_engine_free_string(resultPtr) }
@@ -244,6 +258,19 @@ private extension FfiSimStats {
         stats.droneBayCapacity     = drone_bay_capacity
         stats.capDrainPerSec       = cap_drain_per_sec
 
+        stats.dps                  = dps ?? 0
+        stats.dpsWithReload        = dps_with_reload ?? 0
+        stats.alpha                = alpha ?? 0
+        stats.droneDPS             = drone_dps ?? 0
+        stats.passiveShieldRate    = passive_shield_rate ?? 0
+        stats.shieldBoostRate      = shield_boost_rate ?? 0
+        stats.armorRepairRate      = armor_repair_rate ?? 0
+        stats.hullRepairRate       = hull_repair_rate ?? 0
+        // The engine reports a negative time when the capacitor is stable.
+        stats.capDepletesIn        = cap_depletes_in.flatMap { $0 > 0 ? $0 : nil }
+
+        // EHP stays Swift-side (per damage type, from resonances) — the engine's `ehp`
+        // uses its own uniform damage profile, so it isn't mapped.
         stats.computeEHP()
         return stats
     }

@@ -527,7 +527,7 @@ struct SimLoadFittingSheet: View {
                     let mods = (byLoc[a.itemId] ?? []).filter { f in
                         f.locationFlag.hasPrefix("HiSlot") || f.locationFlag.hasPrefix("MedSlot") ||
                         f.locationFlag.hasPrefix("LoSlot") || f.locationFlag.hasPrefix("RigSlot") ||
-                        f.locationFlag.hasPrefix("SubSystem")
+                        f.locationFlag.hasPrefix("SubSystem") || f.locationFlag == "DroneBay"
                     }
                     if !mods.isEmpty { loadedModules[a.itemId] = mods }
                 }
@@ -557,7 +557,7 @@ struct SimLoadFittingSheet: View {
                     let activeMods = (byLoc[shipInfo.shipItemId] ?? []).filter { f in
                         f.locationFlag.hasPrefix("HiSlot") || f.locationFlag.hasPrefix("MedSlot") ||
                         f.locationFlag.hasPrefix("LoSlot") || f.locationFlag.hasPrefix("RigSlot") ||
-                        f.locationFlag.hasPrefix("SubSystem")
+                        f.locationFlag.hasPrefix("SubSystem") || f.locationFlag == "DroneBay"
                     }
                     if !activeMods.isEmpty { loadedModules[shipInfo.shipItemId] = activeMods }
                     loadedShips.append(ShipEntry(
