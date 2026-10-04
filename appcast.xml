@@ -3,24 +3,18 @@
     <channel>
         <title>EVEOps</title>
         <item>
-            <title>0.9.14</title>
-            <pubDate>Sun, 04 Oct 2026 16:38:17 -0400</pubDate>
-            <link>https://github.com/MikeManzo/EVEOps/releases/tag/v0.9.14</link>
+            <title>0.9.14.1</title>
+            <pubDate>Sun, 04 Oct 2026 17:36:50 -0400</pubDate>
+            <link>https://github.com/MikeManzo/EVEOps/releases/tag/v0.9.14.1</link>
             <sparkle:informationalUpdate>
                 <sparkle:belowVersion>159</sparkle:belowVersion>
             </sparkle:informationalUpdate>
-            <sparkle:version>167</sparkle:version>
-            <sparkle:shortVersionString>0.9.14</sparkle:shortVersionString>
+            <sparkle:version>168</sparkle:version>
+            <sparkle:shortVersionString>0.9.14.1</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<ul>
-<li>Skill ROI: Training Plan (new):** Pick how much training time you have (1 week, 2 weeks, 30 days or 90 days) and Skill ROI builds the best plan that fits, in the order to train it. Each pick counts as trained before the next is chosen, so shared prerequisites are only trained once and a fit only counts toward the first skill that unlocks it. Each step shows when it finishes after your current queue. The plan follows the filter you choose (Everything, Unlocks Fits, Improves Fits or Adds Slots). &quot;Copy Plan for EVE&quot; copies it as a skill plan you can paste into the in-game skill queue.</li>
-<li>Skill ROI: Improves Fits (new):** Skill ROI now also ranks skills that make the fits you can already fly better. It runs each fit through the fitting engine with your skills and implants, then again with each skill one level higher, and shows what changes: &quot;+3.2% DPS&quot; on that ship, plus EHP, repair rate, speed, align time, lock range, or a fit becoming cap stable. Use the new &quot;Improves Fits&quot; filter to see only these. Each card&#x27;s value bar is now split by source (makes flyable, brings closer, improves, slots); hover it to see the breakdown.</li>
-<li>Simulator: DPS:** The Offense section shows total, weapon and drone DPS, volley damage, and DPS including reloads. Saved fits load ammo from their cargo and drones from their drone bay. Your own ships use the ammo already loaded and the drones on board.</li>
-<li>Fixed:Loading one of your own ships into the Simulator could put the loaded ammo in a slot instead of the module.</li>
-<li>Fixed:Clicking a fit in Skill ROI, Hangar Matrix or Fittings now opens it in the Ready Room and scrolls to it. Before, it often just opened the Ready Room.</li>
-<li>Faster:CPU and powergrid checks in the Ready Room and Hangar Matrix now run in the background, so the app stays responsive while they finish.</li>
-</ul>]]></description>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.14/EVEOps.dmg" length="35444684" type="application/octet-stream" sparkle:edSignature="fxNrBxvFwtyL5JqLV5xqOf1yk/g1XTS60lwlYHiUJb4w9d5ygGrgg6d6h4KZzt3/hFQnlbpYHfI05BA0EEv/Cw=="/>
+            <description><![CDATA[<p>Ready Room counts the Tech II gear you already own: a Hammerhead II in your drone bay, or a T2 module on your ship, now covers a fit that calls for the Tech I version, as long as your skills can use it. Fits no longer ask you to buy parts you&#x27;ve already upgraded past.</p>
+<p>Buy lines show what you&#x27;re upgrading from: each part to buy shows what&#x27;s in that slot on your ship today, or that the slot is empty. It also shows how much the purchase improves the fit, such as +8% EHP or +12% DPS. Hover for the before → after numbers.</p>]]></description>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.14.1/EVEOps.dmg" length="35574159" type="application/octet-stream" sparkle:edSignature="oZH/ts6PbUbp5NTL+OdkJgVf9Hum9heJgsr1Cr4qQK/zW0+pr92UV2/lUH4Aw/MN9xStKDEXmOrELNkRqmAPDg=="/>
         </item>
     </channel>
 </rss>
