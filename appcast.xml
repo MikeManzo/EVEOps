@@ -3,18 +3,19 @@
     <channel>
         <title>EVEOps</title>
         <item>
-            <title>0.9.14.1</title>
-            <pubDate>Sun, 04 Oct 2026 17:36:50 -0400</pubDate>
-            <link>https://github.com/MikeManzo/EVEOps/releases/tag/v0.9.14.1</link>
+            <title>0.9.14.3</title>
+            <pubDate>Sun, 04 Oct 2026 20:34:02 -0400</pubDate>
+            <link>https://github.com/MikeManzo/EVEOps/releases/tag/v0.9.14.3</link>
             <sparkle:informationalUpdate>
                 <sparkle:belowVersion>159</sparkle:belowVersion>
             </sparkle:informationalUpdate>
-            <sparkle:version>168</sparkle:version>
-            <sparkle:shortVersionString>0.9.14.1</sparkle:shortVersionString>
+            <sparkle:version>170</sparkle:version>
+            <sparkle:shortVersionString>0.9.14.3</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<p>Ready Room counts the Tech II gear you already own: a Hammerhead II in your drone bay, or a T2 module on your ship, now covers a fit that calls for the Tech I version, as long as your skills can use it. Fits no longer ask you to buy parts you&#x27;ve already upgraded past.</p>
-<p>Buy lines show what you&#x27;re upgrading from: each part to buy shows what&#x27;s in that slot on your ship today, or that the slot is empty. It also shows how much the purchase improves the fit, such as +8% EHP or +12% DPS. Hover for the before → after numbers.</p>]]></description>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.14.1/EVEOps.dmg" length="35574159" type="application/octet-stream" sparkle:edSignature="oZH/ts6PbUbp5NTL+OdkJgVf9Hum9heJgsr1Cr4qQK/zW0+pr92UV2/lUH4Aw/MN9xStKDEXmOrELNkRqmAPDg=="/>
+            <description><![CDATA[<p>Skill ROI: Why this plan (new) --&gt; The Training Plan now explains itself. A summary under the header shows what the plan pays for: fits made flyable (pinned fits marked), fits you already fly made better with the biggest gain called out, and industry, market, PI or clone slots added with how busy yours are now. Each line shows its share of the plan&#x27;s value.</p>
+<p>Skill ROI: What didn&#x27;t fit --&gt; The plan names the best skill that was left out only because it runs past your budget, with its training time and how much budget was left. &quot;Try 30 Days&quot; (or whichever budget it needs) rebuilds the plan with more room.</p>
+<p>Skill ROI: A reason for every pick --&gt; Each step in the plan is tagged Flyable, Better, Slots or Closer, with its payoff in a phrase, such as &quot;+4.1% EHP on Ishtar Ratter&quot;. Steps that prepare a later one say so (&quot;Sets up #3&quot;). Click a step to see where its value comes from, every fit it affects with the stat gains, and why it was picked in that order.</p>]]></description>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.14.3/EVEOps.dmg" length="35645912" type="application/octet-stream" sparkle:edSignature="5hKcU3jUiLQm/FNUgMp7xQu1Bty2puEWeuzSxzctgC5ZRV8xR7IiirLMEL70PQvNrj42FToTlRFeAhJiIPbnBA=="/>
         </item>
     </channel>
 </rss>
