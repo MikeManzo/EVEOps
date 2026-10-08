@@ -3,19 +3,22 @@
     <channel>
         <title>EVEOps</title>
         <item>
-            <title>0.9.14.3</title>
-            <pubDate>Sun, 04 Oct 2026 20:34:02 -0400</pubDate>
-            <link>https://github.com/MikeManzo/EVEOps/releases/tag/v0.9.14.3</link>
+            <title>0.9.15</title>
+            <pubDate>Thu, 08 Oct 2026 16:10:28 -0400</pubDate>
+            <link>https://github.com/MikeManzo/EVEOps/releases/tag/v0.9.15</link>
             <sparkle:informationalUpdate>
                 <sparkle:belowVersion>159</sparkle:belowVersion>
             </sparkle:informationalUpdate>
-            <sparkle:version>170</sparkle:version>
-            <sparkle:shortVersionString>0.9.14.3</sparkle:shortVersionString>
+            <sparkle:version>171</sparkle:version>
+            <sparkle:shortVersionString>0.9.15</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<p>Skill ROI: Why this plan (new) --&gt; The Training Plan now explains itself. A summary under the header shows what the plan pays for: fits made flyable (pinned fits marked), fits you already fly made better with the biggest gain called out, and industry, market, PI or clone slots added with how busy yours are now. Each line shows its share of the plan&#x27;s value.</p>
-<p>Skill ROI: What didn&#x27;t fit --&gt; The plan names the best skill that was left out only because it runs past your budget, with its training time and how much budget was left. &quot;Try 30 Days&quot; (or whichever budget it needs) rebuilds the plan with more room.</p>
-<p>Skill ROI: A reason for every pick --&gt; Each step in the plan is tagged Flyable, Better, Slots or Closer, with its payoff in a phrase, such as &quot;+4.1% EHP on Ishtar Ratter&quot;. Steps that prepare a later one say so (&quot;Sets up #3&quot;). Click a step to see where its value comes from, every fit it affects with the stat gains, and why it was picked in that order.</p>]]></description>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.14.3/EVEOps.dmg" length="35645912" type="application/octet-stream" sparkle:edSignature="5hKcU3jUiLQm/FNUgMp7xQu1Bty2puEWeuzSxzctgC5ZRV8xR7IiirLMEL70PQvNrj42FToTlRFeAhJiIPbnBA=="/>
+            <description><![CDATA[<p>Ready Room: Hangar Forge (new) --&gt; A new tab in the Ready Room builds the strongest fit for any ship you own from the modules, ammo and drones you already have. Pick a class and a hull, then a goal: Balanced, Damage, Tank or Kite. Each module shows what it adds to the fit, such as &quot;+18% DPS&quot; or &quot;+29% EHP&quot;, and slots that nothing improves are left open.</p>
+<p>Hangar Forge: Where the parts come from --&gt; Use parts in the hull&#x27;s station only, or from any station. You can also strip modules from your other ships and use corp hangars. A Collect First list shows what to bring and where it is.</p>
+<p>Hangar Forge: Utility slots --&gt; Keep slots for a point or scram, web, prop mod, cloak, neut or nos, EWAR or cap booster. The forge fits the one you own that costs your goal the least, then builds the rest of the fit around it.</p>
+<p>Hangar Forge: Buy to finish --&gt; Set a budget from 5M to 1B ISK and the forge can buy modules and rigs at Jita prices to fill empty or weak slots. Modules to buy are tagged with their price, and a Buy list shows the total with a Copy Multibuy button for EVE.</p>
+<p>Hangar Forge: Against your saved fits --&gt; The forged fit is shown beside your saved fits for the same ship on DPS, EHP, repair and speed, all calculated with your current skills and implants. Click a saved fit to open it in Saved Fits.</p>
+<p>Hangar Forge: Take it with you --&gt; Open the result in the Simulator with every weapon loaded with its chosen ammo, or copy it as EFT. Your last forged fit comes back after you relaunch, recalculated with today&#x27;s skills and assets.</p>]]></description>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.15/EVEOps.dmg" length="36138329" type="application/octet-stream" sparkle:edSignature="7OC9Q438r1rA9oX5I9oTx7JmiEfZtCq9qPH+s/t0FKsIv+AKTx8hzodNHZn0dUyFCwBp5MQHBUPPcAkVxuAYBg=="/>
         </item>
     </channel>
 </rss>
