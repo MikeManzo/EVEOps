@@ -22,6 +22,9 @@ struct HangarForgeView: View {
     @AppStorage("hangarForge.capStable") private var requireCapStable = false
     @AppStorage("hangarForge.anywhere") private var anywhere = false
     @AppStorage("hangarForge.stripShips") private var includeFittedElsewhere = false
+    @AppStorage("hangarForge.utilities") private var utilitiesRaw = ""
+    @AppStorage("hangarForge.buyBudget") private var buyBudget: Double = 0
+    @State private var showUtilities = false
     @State private var className: String?
     @State private var hullItemID: Int?
 
@@ -33,11 +36,19 @@ struct HangarForgeView: View {
     private var run: HangarForgeRun? { service.runs[characterID] }
     private var goal: HangarForgeGoal { HangarForgeGoal(rawValue: goalRaw) ?? .balanced }
 
+    private var utilities: Set<HangarForgeUtility> {
+        Set(utilitiesRaw.split(separator: ",").compactMap { HangarForgeUtility(rawValue: String($0)) })
+    }
+
     private var options: HangarForgeOptions {
         HangarForgeOptions(goal: goal, requireCapStable: requireCapStable, anywhere: anywhere,
                            includeFittedElsewhere: includeFittedElsewhere,
-                           includeCorporation: readyRoom.includeCorporation)
+                           includeCorporation: readyRoom.includeCorporation,
+                           utilities: utilities, buyBudget: buyBudget > 0 ? buyBudget : nil)
     }
+
+    /// Budgets offered for buying modules; 0 builds from owned parts only.
+    private static let budgets: [Double] = [0, 5_000_000, 20_000_000, 50_000_000, 100_000_000, 250_000_000, 1_000_000_000]
 
     var body: some View {
         VStack(alignment: .leading, spacing: EVESpacing.xl) {
@@ -135,6 +146,13 @@ struct HangarForgeView: View {
                            help: "Also use parts in corporation hangars (needs the Director role)") {
                     readyRoom.includeCorporation.toggle()
                 }
+                utilityChip
+                EVEMenuPicker("Buy", selection: $buyBudget, options: Self.budgets.map { budget in
+                    EVEMenuOption(budget, verbatim: budget == 0 ? String(localized: "Owned parts only")
+                                                                : String(localized: "Buy up to \(EVEFormatters.formatISKShort(budget))"),
+                                  systemImage: budget == 0 ? "shippingbox" : "cart")
+                })
+                .help("Let the forge buy modules and rigs at Jita prices to fill empty or weak slots")
                 Spacer()
                 if isRunning {
                     Button("Stop") { service.cancel(characterID) }
@@ -153,6 +171,39 @@ struct HangarForgeView: View {
         }
         .padding(EVESpacing.lg)
         .eveCard(cornerRadius: EVERadius.xl)
+    }
+
+    private var utilityChip: some View {
+        let count = utilities.count
+        return Button {
+            showUtilities.toggle()
+        } label: {
+            Label(count == 0 ? String(localized: "Utility") : String(localized: "Utility (\(count))"),
+                  systemImage: "wrench.and.screwdriver")
+        }
+        .buttonStyle(.plain)
+        .modifier(ReadyRoomChipStyle(tint: count > 0 ? palette.accent : .secondary))
+        .help("Keep slots for tackle, ewar, a prop mod or other jobs damage and tank don't measure")
+        .popover(isPresented: $showUtilities, arrowEdge: .bottom) {
+            VStack(alignment: .leading, spacing: EVESpacing.sm) {
+                Text("Keep a slot for")
+                    .font(.eveCaptionBold)
+                    .foregroundStyle(.secondary)
+                ForEach(HangarForgeUtility.allCases) { role in
+                    Toggle(isOn: Binding(get: { utilities.contains(role) }, set: { _ in toggleUtility(role) })) {
+                        Label(role.title, systemImage: role.systemImage)
+                    }
+                    .toggleStyle(.checkbox)
+                }
+            }
+            .padding(EVESpacing.lg)
+        }
+    }
+
+    private func toggleUtility(_ role: HangarForgeUtility) {
+        var set = utilities
+        if set.contains(role) { set.remove(role) } else { set.insert(role) }
+        utilitiesRaw = set.map(\.rawValue).sorted().joined(separator: ",")
     }
 
     private func hullLabel(_ option: HangarForgeHullOption) -> String {
@@ -216,6 +267,7 @@ struct HangarForgeView: View {
         if let result = run.result {
             HangarForgeResultView(result: result, catalog: catalog, places: run.places, holdings: snapshot.input.holdings,
                                   types: run.types.merging(catalog.types) { run, _ in run },
+                                  comparisons: run.comparisons,
                                   isRestored: run.isRestored,
                                   isStale: run.options != options || selectedHull(catalog)?.id != run.hullItemID)
         } else if let error = run.error {
@@ -225,7 +277,7 @@ struct HangarForgeView: View {
         } else {
             VStack(alignment: .leading, spacing: EVESpacing.sm) {
                 HStack {
-                    Text("Trying fits…")
+                    Text(run.phase ?? String(localized: "Trying fits…"))
                     Spacer()
                     Text(verbatim: "\(run.done.formatted()) / \(run.budget.formatted())")
                         .monospacedDigit()
@@ -249,6 +301,8 @@ private struct HangarForgeResultView: View {
     let holdings: [ReadyRoomHolding]
     /// Names for every type the result mentions.
     let types: [Int: ESIType]
+    /// The pilot's saved fits for this hull, to compare against.
+    let comparisons: [HangarForgeComparison]
     /// Brought back from an earlier launch.
     let isRestored: Bool
     /// The controls no longer match what this result was built with.
@@ -256,6 +310,7 @@ private struct HangarForgeResultView: View {
 
     @Environment(ThemeManager.self) private var themeManager
     @State private var copied = false
+    @State private var copiedMultibuy = false
 
     private var palette: EVEPalette { themeManager.palette }
     private var hullOption: HangarForgeHullOption? { catalog.hulls.first { $0.id == result.hull.itemID } }
@@ -278,6 +333,13 @@ private struct HangarForgeResultView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+            if !result.missingUtilities.isEmpty {
+                Label("No slot kept for \(result.missingUtilities.map(\.title).formatted(.list(type: .and))) — nothing you own (or can buy) for it fits this hull within CPU and powergrid.",
+                      systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             statTiles
             HStack(alignment: .top, spacing: EVESpacing.xl) {
                 VStack(alignment: .leading, spacing: EVESpacing.lg) {
@@ -287,12 +349,14 @@ private struct HangarForgeResultView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 VStack(alignment: .leading, spacing: EVESpacing.lg) {
                     fittingSection
+                    buySection
                     haulSection
                 }
                 // As wide as its longest line, so pickup locations show in full.
                 .frame(minWidth: 260, alignment: .leading)
                 .fixedSize(horizontal: true, vertical: false)
             }
+            comparisonSection
             footer
         }
         .padding(EVESpacing.lg)
@@ -340,7 +404,10 @@ private struct HangarForgeResultView: View {
             .buttonStyle(.borderedProminent)
             .tint(palette.accent)
         }
-        .onChange(of: result.evaluations) { _, _ in copied = false }
+        .onChange(of: result.evaluations) { _, _ in
+            copied = false
+            copiedMultibuy = false
+        }
     }
 
     /// The fit as a saved-fitting entry — modules in their slots, ammo in cargo, drones in
@@ -415,9 +482,24 @@ private struct HangarForgeResultView: View {
     }
 
     private func pickRow(_ pick: HangarForgePick) -> some View {
-        row(typeID: pick.typeID, title: name(pick.typeID),
-            detail: pick.chargeTypeID.map { String(localized: "Loaded with \(name($0))") },
-            without: pick.without)
+        var badges: [Badge] = []
+        if let role = pick.utility {
+            badges.append(Badge(text: role.title, tint: palette.accent,
+                                help: String(localized: "Kept for \(role.title) — the search doesn't take it out")))
+        }
+        if pick.isPurchase, let price = result.prices[pick.typeID] {
+            badges.append(Badge(text: String(localized: "Buy · \(EVEFormatters.formatISKShort(price))"), tint: .orange,
+                                help: String(localized: "You don't own this one — about \(EVEFormatters.formatISKShort(price)) ISK in Jita")))
+        }
+        return row(typeID: pick.typeID, title: name(pick.typeID),
+                   detail: pick.chargeTypeID.map { String(localized: "Loaded with \(name($0))") },
+                   without: pick.without, badges: badges)
+    }
+
+    private struct Badge: Hashable {
+        let text: String
+        let tint: Color
+        let help: String
     }
 
     private func openRow(_ count: Int) -> some View {
@@ -430,12 +512,13 @@ private struct HangarForgeResultView: View {
                 .foregroundStyle(.secondary)
             Spacer()
         }
-        .help("Nothing you own improves the fit in this slot — free for tackle, ewar or a utility module")
+        .help("Nothing you own improves the fit in this slot. Use Utility to keep it for tackle, ewar or a prop mod, or Buy to fill it from the market")
         .padding(.vertical, EVESpacing.xxs)
     }
 
     /// A module or drone line: icon, name, an optional detail, and what it adds to the fit.
-    private func row(typeID: Int, title: String, detail: String?, without: FitPerformance?) -> some View {
+    private func row(typeID: Int, title: String, detail: String?, without: FitPerformance?,
+                     badges: [Badge] = []) -> some View {
         let delta = without.map { SkillPerformanceEngine.delta(fittingID: 0, from: $0, to: result.performance) }
         return HStack(spacing: EVESpacing.md) {
             CachedAsyncImage(url: EVEImageURL.typeIcon(typeID, size: 64)) { image in
@@ -446,7 +529,12 @@ private struct HangarForgeResultView: View {
             .frame(width: 24, height: 24)
             .clipShape(RoundedRectangle(cornerRadius: EVERadius.xs))
             VStack(alignment: .leading, spacing: 1) {
-                Text(title).font(.callout).lineLimit(1).eveTruncationHelp(title)
+                HStack(spacing: EVESpacing.xs) {
+                    Text(title).font(.callout).lineLimit(1).eveTruncationHelp(title)
+                    ForEach(badges, id: \.self) { badge in
+                        EVEChip(Text(badge.text), tint: badge.tint).help(badge.help)
+                    }
+                }
                 if let detail {
                     Text(detail).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                 }
@@ -519,6 +607,157 @@ private struct HangarForgeResultView: View {
             EVEProgressBar(value: ratio, tint: ratio > 0.9 ? .orange : .green, height: 4)
         }
         .accessibilityElement(children: .combine)
+    }
+
+    // MARK: Buy
+
+    @ViewBuilder
+    private var buySection: some View {
+        if !result.purchases.isEmpty {
+            EVEInspectorSection("Buy") {
+                VStack(alignment: .leading, spacing: EVESpacing.xs) {
+                    ForEach(result.purchases.keys.sorted { name($0) < name($1) }, id: \.self) { typeID in
+                        let quantity = result.purchases[typeID] ?? 0
+                        HStack {
+                            Text(verbatim: "\(quantity)× \(name(typeID))")
+                                .font(.callout)
+                                .lineLimit(1)
+                            Spacer(minLength: EVESpacing.md)
+                            Text(EVEFormatters.formatISKShort(Double(quantity) * (result.prices[typeID] ?? 0)))
+                                .font(.caption.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    Divider()
+                    HStack {
+                        Text("Total").font(.callout.bold())
+                        Spacer()
+                        Text(EVEFormatters.formatISKShort(result.purchaseCost))
+                            .font(.callout.bold().monospacedDigit())
+                    }
+                    Button {
+                        let lines = result.purchases.keys.sorted { name($0) < name($1) }
+                            .map { "\(name($0)) \(result.purchases[$0] ?? 0)" }
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(lines.joined(separator: "\n"), forType: .string)
+                        copiedMultibuy = true
+                    } label: {
+                        Label(copiedMultibuy ? "Copied" : "Copy Multibuy", systemImage: copiedMultibuy ? "checkmark" : "cart")
+                    }
+                    .help("Copy the list in EVE's Multibuy format")
+                    Text("Jita lowest sell prices.")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+        }
+    }
+
+    // MARK: Compare
+
+    /// The forged fit beside each saved fit for this hull type, with the forged fit's
+    /// change on every stat.
+    @ViewBuilder
+    private var comparisonSection: some View {
+        if !comparisons.isEmpty {
+            EVEInspectorSection("Against Your Saved Fits") {
+                Grid(alignment: .trailing, horizontalSpacing: EVESpacing.lg, verticalSpacing: EVESpacing.sm) {
+                    GridRow {
+                        Text("").gridColumnAlignment(.leading)
+                        ForEach(Self.compared, id: \.self) { stat in
+                            Text(stat.name.capitalized).font(.eveMicroBold).foregroundStyle(.tertiary)
+                        }
+                    }
+                    GridRow {
+                        VStack(alignment: .leading, spacing: 0) {
+                            Text("Forged fit").font(.callout.bold())
+                            if let className = hullOption?.className {
+                                Text(className).font(.caption2).foregroundStyle(.secondary)
+                            }
+                        }
+                        ForEach(Self.compared, id: \.self) { stat in
+                            Text(statValue(stat, result.performance)).font(.callout.monospacedDigit())
+                        }
+                    }
+                    ForEach(comparisons) { comparison in
+                        Divider().gridCellUnsizedAxes(.horizontal)
+                        comparisonRow(comparison)
+                    }
+                }
+                Text("Saved fits are calculated with your current skills and implants. The percentage is how the forged fit compares — green where it's better.")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private static let compared: [FitStatDelta.Stat] = [.dps, .ehp, .tank, .speed]
+
+    private func comparisonRow(_ comparison: HangarForgeComparison) -> some View {
+        GridRow {
+            Button {
+                AppRouter.shared.pendingReadyRoomFittingID = comparison.fittingID
+            } label: {
+                HStack(spacing: EVESpacing.xs) {
+                    Text(comparison.name).font(.callout).lineLimit(1)
+                    if let tier = comparison.tier {
+                        Image(systemName: tier.systemImage)
+                            .foregroundStyle(tier.color(palette))
+                            .help(Text(tier.title))
+                    }
+                    if !comparison.fitsNow {
+                        EVEChip(Text("Over CPU/PG"), tint: .red)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+            .help("Show this fit in Saved Fits")
+            ForEach(Self.compared, id: \.self) { stat in
+                VStack(alignment: .trailing, spacing: 0) {
+                    Text(statValue(stat, comparison.performance)).font(.callout.monospacedDigit())
+                    change(stat, saved: comparison.performance)
+                }
+            }
+        }
+    }
+
+    /// "+12%" in green when the forged fit is better on `stat`, "−8%" in red when worse.
+    @ViewBuilder
+    private func change(_ stat: FitStatDelta.Stat, saved: FitPerformance) -> some View {
+        let before = value(stat, saved), after = value(stat, result.performance)
+        if before > 0, abs(after / before - 1) >= 0.005 {
+            let ratio = after / before - 1
+            Text(verbatim: "\(ratio > 0 ? "+" : "")\(ratio.formatted(.percent.precision(.fractionLength(0))))")
+                .font(.caption2.bold().monospacedDigit())
+                .foregroundStyle(ratio > 0 ? .green : .red)
+        } else {
+            Text(verbatim: before > 0 || after == 0 ? "=" : "new")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+        }
+    }
+
+    private func value(_ stat: FitStatDelta.Stat, _ performance: FitPerformance) -> Double {
+        switch stat {
+        case .dps:       performance.dps
+        case .ehp:       performance.ehp
+        case .tank:      performance.tank
+        case .speed:     performance.speed
+        case .align:     performance.alignTime
+        case .lockRange: performance.lockRange
+        }
+    }
+
+    private func statValue(_ stat: FitStatDelta.Stat, _ performance: FitPerformance) -> String {
+        switch stat {
+        case .dps:       performance.dps.formatted(.number.precision(.fractionLength(0)))
+        case .ehp:       performance.ehp.formatted(.number.notation(.compactName).precision(.significantDigits(3)))
+        case .tank:      String(localized: "\(performance.tank.formatted(.number.precision(.fractionLength(1)))) HP/s")
+        case .speed:     String(localized: "\(performance.speed.formatted(.number.precision(.fractionLength(0)))) m/s")
+        case .align:     String(localized: "\(performance.alignTime.formatted(.number.precision(.fractionLength(1)))) s")
+        case .lockRange: String(localized: "\((performance.lockRange / 1000).formatted(.number.precision(.fractionLength(1)))) km")
+        }
     }
 
     // MARK: Haul

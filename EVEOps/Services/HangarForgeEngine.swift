@@ -43,6 +43,60 @@ nonisolated enum HangarForgeGoal: String, CaseIterable, Codable, Sendable, Ident
     var requiresCapStable: Bool { self == .kite }
 }
 
+/// A job a slot can be kept for beyond damage, tank and speed — tackle, ewar and the like,
+/// which the score alone would never pick.
+nonisolated enum HangarForgeUtility: String, CaseIterable, Codable, Sendable, Identifiable {
+    case tackle, web, propulsion, cloak, neutralizer, ewar, capBooster
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .tackle:      String(localized: "Point or Scram")
+        case .web:         String(localized: "Web")
+        case .propulsion:  String(localized: "Prop Mod")
+        case .cloak:       String(localized: "Cloak")
+        case .neutralizer: String(localized: "Neut or Nos")
+        case .ewar:        String(localized: "EWAR")
+        case .capBooster:  String(localized: "Cap Booster")
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .tackle:      "scope"
+        case .web:         "circle.hexagongrid"
+        case .propulsion:  "flame"
+        case .cloak:       "eye.slash"
+        case .neutralizer: "bolt.slash"
+        case .ewar:        "antenna.radiowaves.left.and.right"
+        case .capBooster:  "bolt.batteryblock"
+        }
+    }
+
+    /// Item groups that do the job (verified against the SDE).
+    var groupIDs: Set<Int> {
+        switch self {
+        case .tackle:      [52]                  // Warp Scrambler (scramblers and disruptors)
+        case .web:         [65, 1672]            // Stasis Web, Stasis Grappler
+        case .propulsion:  [46]                  // Propulsion Module
+        case .cloak:       [330]                 // Cloaking Device
+        case .neutralizer: [71, 68]              // Energy Neutralizer, Energy Nosferatu
+        case .ewar:        [201, 208, 291, 379]  // ECM, Sensor Dampener, Weapon Disruptor, Target Painter
+        case .capBooster:  [76]                  // Capacitor Booster
+        }
+    }
+
+    /// Calculated running, because running changes the ship's own stats. The rest are
+    /// calculated online only: a web or a cloak running says nothing about the fight the
+    /// score measures, and a cloak running would wreck its speed.
+    var runsActive: Bool { self == .propulsion || self == .capBooster }
+
+    static func role(ofGroup groupID: Int) -> HangarForgeUtility? {
+        allCases.first { $0.groupIDs.contains(groupID) }
+    }
+}
+
 nonisolated struct HangarForgeOptions: Codable, Sendable, Hashable {
     var goal: HangarForgeGoal = .balanced
     var requireCapStable = false
@@ -51,10 +105,30 @@ nonisolated struct HangarForgeOptions: Codable, Sendable, Hashable {
     /// Strip modules fitted to the pilot's other ships.
     var includeFittedElsewhere = false
     var includeCorporation = false
+    /// Slots to keep for these jobs, filled before the search.
+    var utilities: Set<HangarForgeUtility> = []
+    /// ISK the forge may spend on market modules; nil builds from owned parts only.
+    var buyBudget: Double?
     /// Dogma calculations to spend on the search, all seeds together.
     var evaluationBudget = 20_000
 
     var capStableRequired: Bool { requireCapStable || goal.requiresCapStable }
+}
+
+nonisolated extension HangarForgeOptions {
+    /// Missing keys take their defaults, so options stored by an older version still load.
+    init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.init()
+        goal = try c.decodeIfPresent(HangarForgeGoal.self, forKey: .goal) ?? goal
+        requireCapStable = try c.decodeIfPresent(Bool.self, forKey: .requireCapStable) ?? requireCapStable
+        anywhere = try c.decodeIfPresent(Bool.self, forKey: .anywhere) ?? anywhere
+        includeFittedElsewhere = try c.decodeIfPresent(Bool.self, forKey: .includeFittedElsewhere) ?? includeFittedElsewhere
+        includeCorporation = try c.decodeIfPresent(Bool.self, forKey: .includeCorporation) ?? includeCorporation
+        utilities = try c.decodeIfPresent(Set<HangarForgeUtility>.self, forKey: .utilities) ?? utilities
+        buyBudget = try c.decodeIfPresent(Double.self, forKey: .buyBudget)
+        evaluationBudget = try c.decodeIfPresent(Int.self, forKey: .evaluationBudget) ?? evaluationBudget
+    }
 }
 
 /// A ship the pilot owns, as a starting point for a build.
@@ -94,6 +168,9 @@ nonisolated struct HangarForgeInput: Sendable {
     /// Active skill levels (what an Alpha clone can actually use).
     var skills: [Int: Int]
     var implants: [Int]
+    /// Module type → unit price, for modules the forge may buy. Used only with a budget;
+    /// each needs its type and requirements here like owned parts do.
+    var market: [Int: Double] = [:]
 }
 
 /// One filled slot in a forged fit.
@@ -104,6 +181,10 @@ nonisolated struct HangarForgePick: Sendable, Hashable, Identifiable {
     let chargeTypeID: Int?
     /// The fit with one of this module taken out — what it's worth.
     let without: FitPerformance?
+    /// The job this slot was kept for, when it's a utility pick.
+    var utility: HangarForgeUtility?
+    /// Not owned: bought for the fit.
+    var isPurchase = false
 
     var id: String { flag }
 }
@@ -130,6 +211,13 @@ nonisolated struct HangarForgeResult: Sendable {
     let hitBudget: Bool
     /// The fit in a form that can be stored and later `restore`d.
     let saved: HangarForgeSavedFit
+    /// Type → units to buy.
+    let purchases: [Int: Int]
+    /// Unit price of each type to buy.
+    let prices: [Int: Double]
+    var purchaseCost: Double { purchases.reduce(0) { $0 + Double($1.value) * (prices[$1.key] ?? 0) } }
+    /// Jobs asked for that nothing owned (or affordable) could fill.
+    let missingUtilities: [HangarForgeUtility]
 }
 
 /// A forged fit's modules, charges and drones, without its stats — what's kept between
@@ -140,6 +228,8 @@ nonisolated struct HangarForgeSavedFit: Codable, Sendable, Hashable {
     /// Module type → charge type.
     var charges: [Int: Int]
     var drones: [Int]
+    /// Utility raw value → module type kept for it.
+    var utilities: [String: Int]? = nil
 }
 
 nonisolated enum HangarForgeFailure: Error, Equatable, LocalizedError {
@@ -287,18 +377,24 @@ nonisolated enum HangarForgeEngine {
                             evaluate: evaluate, progress: progress)
         try await shop.probe()
 
-        let seeds = try await shop.weaponSeeds()
+        var seeds: [Reservation] = []
+        for seed in try await shop.weaponSeeds() { seeds.append(try await shop.reserve(seed)) }
+        if let base = seeds.first?.loadout { try await shop.pruneMarket(base: base) }
         let bans = shop.layerBans()
         let runs = seeds.flatMap { seed in bans.map { (seed, $0) } }
 
-        var best: (loadout: ForgeLoadout, score: Double)?
+        var best: (loadout: ForgeLoadout, score: Double, reservation: Reservation)?
         for (index, (seed, banned)) in runs.enumerated() {
             shop.limit = shop.evaluations + (options.evaluationBudget - shop.evaluations) / (runs.count - index)
-            let loadout = try await shop.forge(from: seed, banned: banned)
+            shop.locked = seed.locked
+            let loadout = try await shop.forge(from: seed.loadout, banned: banned)
             let score = try await shop.score(loadout)
-            if let score, score > best?.score ?? -.infinity { best = (loadout, score) }
+            if let score, score > best?.score ?? -.infinity { best = (loadout, score, seed) }
         }
-        return try await shop.result(for: best?.loadout ?? ForgeLoadout(), stock: stock)
+        let reservation = best?.reservation ?? Reservation(loadout: ForgeLoadout())
+        shop.locked = reservation.locked
+        return try await shop.result(for: best?.loadout ?? ForgeLoadout(), stock: stock,
+                                     roles: reservation.roles, missing: reservation.missing)
     }
 
     /// A previously forged fit, recalculated against today's skills and stock without
@@ -317,10 +413,16 @@ nonisolated enum HangarForgeEngine {
         }
         loadout.charges = saved.charges
         loadout.drones = saved.drones.sorted()
+        var roles: [HangarForgeUtility: Int] = [:]
+        for (raw, typeID) in saved.utilities ?? [:] {
+            guard let role = HangarForgeUtility(rawValue: raw) else { continue }
+            roles[role] = typeID
+            shop.locked[typeID, default: 0] += 1
+        }
         let droneCounts = Dictionary(grouping: loadout.drones, by: \.self).mapValues(\.count)
         guard shop.allows(loadout), droneCounts.allSatisfy({ $0.value <= shop.droneStock[$0.key] ?? 0 }),
               try await shop.score(loadout) != nil else { return nil }
-        return try await shop.result(for: loadout, stock: stock)
+        return try await shop.result(for: loadout, stock: stock, roles: roles, missing: [])
     }
 }
 
@@ -354,19 +456,32 @@ private nonisolated struct ForgeLoadout: Hashable, Sendable {
     }
 }
 
+/// A seed with its utility slots filled: the modules kept for each job (locked against
+/// the search taking them out) and the jobs nothing could fill.
+private nonisolated struct Reservation {
+    var loadout: ForgeLoadout
+    var locked: [Int: Int] = [:]
+    var roles: [HangarForgeUtility: Int] = [:]
+    var missing: [HangarForgeUtility] = []
+}
+
 private nonisolated enum Hardpoint: Hashable { case turret, launcher }
 
 /// Which defense layer a module builds up. Each search seed sticks to one, so fits don't
 /// end up half shield, half armor.
 private nonisolated enum Layer { case shield, armor, neutral }
 
-/// An owned module that can go on the hull.
+/// A module that can go on the hull: owned, buyable, or both.
 private nonisolated struct Part {
     let typeID: Int
     let category: SimSlotCategory
     let groupID: Int
     let hardpoint: Hardpoint?
+    /// Units the fit may use: the owned ones, plus as many as slots allow when buyable.
     let available: Int
+    let owned: Int
+    /// Unit price when it can be bought; nil when only owned units count.
+    let price: Double?
     let maxGroupFitted: Int?
     let maxTypeFitted: Int?
     /// Owned charges it accepts that the pilot can use, most plentiful first.
@@ -386,8 +501,8 @@ private nonisolated final class Workshop {
 
     let slotCounts: [SimSlotCategory: Int]
     let hardpoints: [Hardpoint: Int]
-    let parts: [Int: Part]
-    let partsByCategory: [SimSlotCategory: [Part]]
+    var parts: [Int: Part]
+    var partsByCategory: [SimSlotCategory: [Part]]
     let groupLimits: [Int: Int]
     let chargeStock: [Int: Int]
     let droneStock: [Int: Int]
@@ -401,6 +516,8 @@ private nonisolated final class Workshop {
     var cache: [ForgeLoadout: SimStats] = [:]
     var layers: [Int: Layer] = [:]
     var enablers: Set<Int> = []
+    /// Type → units the search may not take out: utility picks.
+    var locked: [Int: Int] = [:]
 
     init(input: HangarForgeInput, hullType: ESIType, stock: [Int: [HangarForgeSource]],
          options: HangarForgeOptions, evaluate: @escaping HangarForgeEngine.Evaluator,
@@ -426,17 +543,21 @@ private nonisolated final class Workshop {
             return needs.allSatisfy { input.skills[$0.key, default: 0] >= $0.value }
         }
         let quantities = stock.mapValues { $0.reduce(0) { $0 + $1.quantity } }
+        let market = (options.buyBudget ?? 0) > 0 ? input.market : [:]
 
         var parts: [Int: Part] = [:]
         var moduleChargeGroups: [Int: (groups: Set<Int>, size: Double?)] = [:]
-        for (typeID, quantity) in quantities {
+        for typeID in Set(quantities.keys).union(market.keys) {
+            let quantity = quantities[typeID] ?? 0
+            // Weapons are never bought: the hull's guns come from what's owned, with owned ammo.
             guard let type = types[typeID], let effects = type.dogmaEffects,
                   let category = SimSlotEffect.category(from: effects), category != .subsystem,
                   (slotCounts[category] ?? 0) > 0, usable(typeID), Self.fits(type, on: hullType) else { continue }
             let effectIDs = Set(effects.map(\.effectId))
             let hardpoint: Hardpoint? = effectIDs.contains(HangarForgeEngine.turretFittedEffect) ? .turret
                 : effectIDs.contains(HangarForgeEngine.launcherFittedEffect) ? .launcher : nil
-            if let hardpoint, (hardpoints[hardpoint] ?? 0) == 0 { continue }
+            if let hardpoint, (hardpoints[hardpoint] ?? 0) == 0 || quantity == 0 { continue }
+            let price = hardpoint == nil ? market[typeID] : nil
             if category == .rig,
                type.attribute(HangarForgeEngine.rigSizeAttribute) != hullType.attribute(HangarForgeEngine.rigSizeAttribute) { continue }
             moduleChargeGroups[typeID] = (
@@ -444,7 +565,8 @@ private nonisolated final class Workshop {
                 type.attribute(DogmaLoadout.chargeSizeAttribute)
             )
             parts[typeID] = Part(
-                typeID: typeID, category: category, groupID: type.groupId, hardpoint: hardpoint, available: quantity,
+                typeID: typeID, category: category, groupID: type.groupId, hardpoint: hardpoint,
+                available: price == nil ? quantity : quantity + (slotCounts[category] ?? 0), owned: quantity, price: price,
                 maxGroupFitted: type.attribute(HangarForgeEngine.maxGroupFittedAttribute).map { Int($0) },
                 maxTypeFitted: type.attribute(HangarForgeEngine.maxTypeFittedAttribute).map { Int($0) },
                 charges: []
@@ -466,7 +588,7 @@ private nonisolated final class Workshop {
             }
             for charge in charges { chargeStock[charge] = quantities[charge] }
             parts[typeID] = Part(typeID: part.typeID, category: part.category, groupID: part.groupID,
-                                 hardpoint: part.hardpoint, available: part.available,
+                                 hardpoint: part.hardpoint, available: part.available, owned: part.owned, price: part.price,
                                  maxGroupFitted: part.maxGroupFitted, maxTypeFitted: part.maxTypeFitted,
                                  charges: charges)
         }
@@ -477,7 +599,10 @@ private nonisolated final class Workshop {
             guard let max = part.maxGroupFitted, max > 0 else { return }
             limits[part.groupID] = min(limits[part.groupID] ?? max, max)
         }
-        passive = Set(parts.keys.filter { (types[$0]?.attribute(HangarForgeEngine.capacitorNeedAttribute) ?? 0) == 0 })
+        passive = Set(parts.keys.filter { typeID in
+            if let role = parts[typeID].flatMap({ HangarForgeUtility.role(ofGroup: $0.groupID) }), !role.runsActive { return true }
+            return (types[typeID]?.attribute(HangarForgeEngine.capacitorNeedAttribute) ?? 0) == 0
+        })
 
         droneBandwidth = hullType.attribute(DogmaLoadout.droneBandwidthAttribute) ?? 0
         droneBay = hullType.attribute(HangarForgeEngine.droneCapacityAttribute) ?? 0
@@ -521,9 +646,18 @@ private nonisolated final class Workshop {
         for (groupID, count) in byGroup {
             if let max = groupLimits[groupID], count > max { return false }
         }
+        if let budget = options.buyBudget, budget > 0, spend(byType) > budget + 0.5 { return false }
         var chargeUse: [Int: Int] = [:]
         for (moduleID, chargeID) in loadout.charges { chargeUse[chargeID, default: 0] += byType[moduleID] ?? 0 }
         return chargeUse.allSatisfy { $0.value <= chargeStock[$0.key] ?? 0 }
+    }
+
+    /// ISK spent on units beyond those owned, for module counts by type.
+    func spend(_ counts: [Int: Int]) -> Double {
+        counts.reduce(0) { total, entry in
+            guard let part = parts[entry.key], let price = part.price else { return total }
+            return total + Double(max(entry.value - part.owned, 0)) * price
+        }
     }
 
     /// `loadout` with one more `typeID`, loading a charge it has enough of; nil when the
@@ -658,6 +792,59 @@ private nonisolated final class Workshop {
         return kept.isEmpty ? [ForgeLoadout()] : Array(kept)
     }
 
+    // MARK: Utilities
+
+    /// Fills a slot for each utility asked for, before the search: the module of that job
+    /// that costs the goal least (or helps it, for a prop mod). A job with nothing that
+    /// fits — no part, no free slot, or over CPU — is reported missing.
+    func reserve(_ seed: ForgeLoadout) async throws -> Reservation {
+        var reservation = Reservation(loadout: seed)
+        for role in HangarForgeUtility.allCases where options.utilities.contains(role) {
+            let moves = parts.values.filter { role.groupIDs.contains($0.groupID) }.map(\.typeID).sorted()
+                .compactMap { typeID in add(typeID, to: reservation.loadout).map { (typeID, $0) } }
+            let scored = try await scores(moves.map(\.1), force: true)
+            guard let pick = zip(moves, scored).compactMap({ move, score in score.map { (move, $0) } })
+                .max(by: { $0.1 < $1.1 })?.0 else {
+                reservation.missing.append(role)
+                continue
+            }
+            reservation.loadout = pick.1
+            reservation.locked[pick.0, default: 0] += 1
+            reservation.roles[role] = pick.0
+        }
+        return reservation
+    }
+
+    // MARK: Market
+
+    /// Drops market modules no one would buy: within each item group, one that costs
+    /// more than another but adds less to `base`. Owned parts are kept; for utility groups
+    /// (which add nothing to the score) the three cheapest stay.
+    func pruneMarket(base: ForgeLoadout) async throws {
+        let buyable = parts.values.filter { $0.owned == 0 && $0.price != nil }
+        guard !buyable.isEmpty else { return }
+        let moves = buyable.map(\.typeID).sorted().compactMap { typeID in add(typeID, to: base).map { (typeID, $0) } }
+        let scored = try await scores(moves.map(\.1), force: true)
+        let gains = Dictionary(uniqueKeysWithValues: zip(moves, scored).compactMap { move, score in score.map { (move.0, $0) } })
+
+        var keep = Set<Int>()
+        for (groupID, group) in Dictionary(grouping: buyable, by: \.groupID) {
+            let byPrice = group.sorted { ($0.price ?? 0, $0.typeID) < ($1.price ?? 0, $1.typeID) }
+            if HangarForgeUtility.role(ofGroup: groupID) != nil {
+                keep.formUnion(byPrice.prefix(3).map(\.typeID))
+                continue
+            }
+            var best = -Double.infinity
+            for part in byPrice {
+                guard let gain = gains[part.typeID], gain > best + 1e-9 else { continue }
+                keep.insert(part.typeID)
+                best = gain
+            }
+        }
+        for part in buyable where !keep.contains(part.typeID) { parts[part.typeID] = nil }
+        partsByCategory = Dictionary(grouping: parts.values.sorted { $0.typeID < $1.typeID }, by: \.category)
+    }
+
     // MARK: Search
 
     /// Seed → drones → greedy fill → ammo → swaps → drones and ammo again.
@@ -698,11 +885,12 @@ private nonisolated final class Workshop {
         partsByCategory.values.joined().filter { !banned.contains($0.typeID) }.compactMap { add($0.typeID, to: loadout) }
     }
 
-    /// Every way to take one module out, or swap it for another of its slot type.
+    /// Every way to take one module out, or swap it for another of its slot type. Utility
+    /// picks stay.
     func replacements(in loadout: ForgeLoadout, banned: Set<Int>) -> [ForgeLoadout] {
         var out: [ForgeLoadout] = []
         for (category, modules) in loadout.modules {
-            for typeID in Set(modules).sorted() {
+            for typeID in Set(modules).sorted() where loadout.count(of: typeID) > locked[typeID] ?? 0 {
                 let removed = loadout.removing(typeID, from: category)
                 out.append(removed)
                 for part in partsByCategory[category] ?? [] where part.typeID != typeID && !banned.contains(part.typeID) {
@@ -769,7 +957,8 @@ private nonisolated final class Workshop {
 
     // MARK: Result
 
-    func result(for loadout: ForgeLoadout, stock: [Int: [HangarForgeSource]]) async throws -> HangarForgeResult {
+    func result(for loadout: ForgeLoadout, stock: [Int: [HangarForgeSource]],
+                roles: [HangarForgeUtility: Int], missing: [HangarForgeUtility]) async throws -> HangarForgeResult {
         // What each module is worth: the fit with one taken out.
         var without: [Int: ForgeLoadout] = [:]
         for (category, modules) in loadout.modules {
@@ -786,11 +975,28 @@ private nonisolated final class Workshop {
 
         let stats = cache[loadout] ?? SimStats()
         let fit = dogmaFit(loadout)
+        // Utility tags go on the first units of each kept type, purchase tags on the units
+        // past those owned.
+        var roleSlots: [Int: [HangarForgeUtility]] = [:]
+        for (role, typeID) in roles.sorted(by: { $0.key.rawValue < $1.key.rawValue }) { roleSlots[typeID, default: []].append(role) }
+        var seen: [Int: Int] = [:]
         let picks = fit.slots.compactMap { slot -> HangarForgePick? in
             guard let typeID = slot.moduleTypeId else { return nil }
-            return HangarForgePick(flag: slot.flag, category: slot.category, typeID: typeID,
-                                   chargeTypeID: slot.chargeTypeId,
-                                   without: without[typeID].flatMap { cache[$0] }.map(FitPerformance.init))
+            let index = seen[typeID, default: 0]
+            seen[typeID] = index + 1
+            var pick = HangarForgePick(flag: slot.flag, category: slot.category, typeID: typeID,
+                                       chargeTypeID: slot.chargeTypeId,
+                                       without: without[typeID].flatMap { cache[$0] }.map(FitPerformance.init))
+            if let roles = roleSlots[typeID], index < roles.count { pick.utility = roles[index] }
+            pick.isPurchase = index >= parts[typeID]?.owned ?? 0
+            return pick
+        }
+        var purchases: [Int: Int] = [:]
+        var prices: [Int: Double] = [:]
+        for (typeID, count) in Dictionary(grouping: loadout.allModules, by: \.self).mapValues(\.count) {
+            guard let part = parts[typeID], let price = part.price, count > part.owned else { continue }
+            purchases[typeID] = count - part.owned
+            prices[typeID] = price
         }
 
         var needs: [Int: Int] = [:]
@@ -810,8 +1016,10 @@ private nonisolated final class Workshop {
             evaluations: evaluations, hitBudget: hitBudget,
             saved: HangarForgeSavedFit(
                 modules: Dictionary(uniqueKeysWithValues: loadout.modules.map { ($0.key.rawValue, $0.value) }),
-                charges: loadout.charges, drones: loadout.drones
-            )
+                charges: loadout.charges, drones: loadout.drones,
+                utilities: Dictionary(uniqueKeysWithValues: roles.map { ($0.key.rawValue, $0.value) })
+            ),
+            purchases: purchases, prices: prices, missingUtilities: missing
         )
     }
 }

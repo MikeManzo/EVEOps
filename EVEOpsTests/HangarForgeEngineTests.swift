@@ -89,6 +89,9 @@ private let damageControl = 2_046
 private let coprocessor = 1_317
 private let heavyGun = 3_090
 private let repairer = 3_530
+private let scram = 448
+private let t1Gyro = 518
+private let pricyGyro = 13_939
 private let lightDrone = 2_486
 private let mediumDrone = 2_185
 
@@ -127,6 +130,9 @@ private let catalog: [Int: ESIType] = [
     coprocessor: type(coprocessor, group: 285, effects: [low], [Fake.cpuAdded: 100]),
     repairer: type(repairer, group: 62, effects: [low],
                    [Fake.armorRepair: 50, Fake.capDrain: 15, HangarForgeEngine.capacitorNeedAttribute: 100]),
+    scram: type(scram, group: 52, effects: [medium], [cpuUse: 5, HangarForgeEngine.capacitorNeedAttribute: 5]),
+    t1Gyro: type(t1Gyro, group: 59, effects: [low], [Fake.damageBonus: 10, cpuUse: 1]),
+    pricyGyro: type(pricyGyro, group: 59, effects: [low], [Fake.damageBonus: 15, cpuUse: 1]),
     lightDrone: type(lightDrone, [DogmaLoadout.droneBandwidthUsedAttribute: 5, Fake.droneDPS: 10], volume: 5),
     mediumDrone: type(mediumDrone, [DogmaLoadout.droneBandwidthUsedAttribute: 10, Fake.droneDPS: 30], volume: 10),
 ]
@@ -142,8 +148,10 @@ private let forgeHull = HangarForgeHull(itemID: hullItem, typeID: thorax, placeI
 
 /// Stock in the hull's station: type → quantity.
 private func forge(_ stock: [Int: Int], hull hullType: ESIType = hull(), options: HangarForgeOptions = .init(),
-                   requirements: [Int: [Int: Int]] = [:], skills: [Int: Int] = [:]) async throws -> HangarForgeResult {
-    let (input, types) = forgeInput(stock, hull: hullType, requirements: requirements, skills: skills)
+                   requirements: [Int: [Int: Int]] = [:], skills: [Int: Int] = [:],
+                   market: [Int: Double] = [:]) async throws -> HangarForgeResult {
+    var (input, types) = forgeInput(stock, hull: hullType, requirements: requirements, skills: skills)
+    input.market = market
     return try await HangarForgeEngine.build(input, options: options, evaluate: fakeDogma(types))
 }
 
@@ -361,4 +369,60 @@ private func performance(dps: Double = 0, ehp: Double = 10_000, tank: Double = 0
     let restored = try await HangarForgeEngine.restore(forged.saved, input: input, options: .init(goal: .damage),
                                                        evaluate: fakeDogma(types))
     #expect(restored == nil)
+}
+
+// MARK: - Utilities
+
+@Test func utilityRolesKeepASlotForTackle() async throws {
+    let stock = [gun: 2, ammo: 1_000, scram: 1, extender: 2]
+    let plain = try await forge(stock)
+    #expect(!plain.picks.contains { $0.typeID == scram })
+
+    let tackled = try await forge(stock, options: HangarForgeOptions(utilities: [.tackle]))
+    let pick = try #require(tackled.picks.first { $0.typeID == scram })
+    #expect(pick.utility == .tackle)
+    #expect(modules(tackled, .medium).filter { $0 == extender }.count == 1)
+    #expect(tackled.missingUtilities.isEmpty)
+    #expect(tackled.saved.utilities == [HangarForgeUtility.tackle.rawValue: scram])
+}
+
+@Test func utilityWithNothingOwnedIsReportedMissing() async throws {
+    let result = try await forge([gun: 2, ammo: 1_000], options: HangarForgeOptions(utilities: [.web, .tackle]))
+    #expect(result.missingUtilities == [.tackle, .web])
+}
+
+// MARK: - Buying
+
+@Test func buysWithinTheBudget() async throws {
+    let market: [Int: Double] = [t1Gyro: 1_000, gyro: 3_000, pricyGyro: 50_000]
+    let stock = [gun: 2, ammo: 1_000]
+
+    let none = try await forge(stock, options: HangarForgeOptions(goal: .damage), market: market)
+    #expect(none.purchases.isEmpty)                         // no budget, nothing bought
+
+    let tight = try await forge(stock, options: HangarForgeOptions(goal: .damage, buyBudget: 4_000), market: market)
+    #expect(tight.purchaseCost <= 4_000)
+    #expect(tight.purchases == [gyro: 1, t1Gyro: 1])
+
+    let rich = try await forge(stock, options: HangarForgeOptions(goal: .damage, buyBudget: 10_000), market: market)
+    #expect(rich.purchases == [gyro: 2])
+    #expect(rich.picks.filter(\.isPurchase).count == 2)
+}
+
+@Test func ownedPartsAreFreeAndOnlyExtrasAreBought() async throws {
+    let result = try await forge([gun: 2, ammo: 1_000, gyro: 1], options: HangarForgeOptions(goal: .damage, buyBudget: 10_000),
+                                 market: [gyro: 3_000])
+    #expect(modules(result, .low) == [gyro, gyro])
+    #expect(result.purchases == [gyro: 1])
+    #expect(result.purchaseCost == 3_000)
+    #expect(result.picks.filter { $0.typeID == gyro }.map(\.isPurchase) == [false, true])
+}
+
+@Test func optionsStoredBeforeUtilitiesStillDecode() throws {
+    let old = #"{"goal":"tank","requireCapStable":true,"anywhere":false,"includeFittedElsewhere":false,"includeCorporation":false,"evaluationBudget":4000}"#
+    let options = try JSONDecoder().decode(HangarForgeOptions.self, from: Data(old.utf8))
+    #expect(options.goal == .tank)
+    #expect(options.requireCapStable)
+    #expect(options.utilities.isEmpty)
+    #expect(options.buyBudget == nil)
 }

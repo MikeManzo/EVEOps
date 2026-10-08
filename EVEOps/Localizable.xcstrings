@@ -2125,6 +2125,9 @@
     "After remap" : {
 
     },
+    "Against Your Saved Fits" : {
+
+    },
     "Agencies & Missions" : {
 
     },
@@ -2623,6 +2626,9 @@
     "Buy" : {
 
     },
+    "Buy · %@" : {
+
+    },
     "Buy %lld" : {
 
     },
@@ -2654,6 +2660,9 @@
     "Buy Parts" : {
 
     },
+    "Buy up to %@" : {
+
+    },
     "Buy Value" : {
 
     },
@@ -2682,6 +2691,9 @@
 
     },
     "Cancel" : {
+
+    },
+    "Cap Booster" : {
 
     },
     "Cap stable" : {
@@ -2883,6 +2895,9 @@
 
     },
     "Clipboard Import / Export" : {
+
+    },
+    "Cloak" : {
 
     },
     "Clone" : {
@@ -3161,6 +3176,9 @@
     "Copy Multi-Buy" : {
 
     },
+    "Copy Multibuy" : {
+
+    },
     "Copy Name" : {
 
     },
@@ -3180,6 +3198,9 @@
 
     },
     "Copy the fit in EFT format, to paste into EVE or another fitting tool" : {
+
+    },
+    "Copy the list in EVE's Multibuy format" : {
 
     },
     "Copy the plan to the clipboard in EVE's format" : {
@@ -3895,6 +3916,9 @@
     "EVEShip.fit's Dogma Engine" : {
 
     },
+    "EWAR" : {
+
+    },
     "Exact character name…" : {
 
     },
@@ -4239,6 +4263,9 @@
 
     },
     "Forge a Fit" : {
+
+    },
+    "Forged fit" : {
 
     },
     "Frame Galaxy" : {
@@ -4758,6 +4785,9 @@
     "Jita daily volume" : {
 
     },
+    "Jita lowest sell prices." : {
+
+    },
     "Jita value of the hull, modules, drones and cargo" : {
 
     },
@@ -4833,10 +4863,19 @@
     "K / J = player kills / jumps in the last hour" : {
 
     },
+    "Keep a slot for" : {
+
+    },
     "Keep logs for" : {
 
     },
+    "Keep slots for tackle, ewar, a prop mod or other jobs damage and tank don't measure" : {
+
+    },
     "Keep this fit at the top of the board and on the Dashboard" : {
+
+    },
+    "Kept for %@ — the search doesn't take it out" : {
 
     },
     "Kept for fittings" : {
@@ -4924,6 +4963,9 @@
 
     },
     "Legal Notices" : {
+
+    },
+    "Let the forge buy modules and rigs at Jita prices to fill empty or weak slots" : {
 
     },
     "Level" : {
@@ -5432,6 +5474,9 @@
     "Neural attribute" : {
 
     },
+    "Neut or Nos" : {
+
+    },
     "Neutral" : {
 
     },
@@ -5709,6 +5754,9 @@
     "No Skills Planned" : {
 
     },
+    "No slot kept for %@ — nothing you own (or can buy) for it fits this hull within CPU and powergrid." : {
+
+    },
     "No stat data available for this ship type." : {
 
     },
@@ -5860,7 +5908,7 @@
     "Nothing traded in Jita over the last 30 days." : {
 
     },
-    "Nothing you own improves the fit in this slot — free for tackle, ewar or a utility module" : {
+    "Nothing you own improves the fit in this slot. Use Utility to keep it for tackle, ewar or a prop mod, or Buy to fill it from the market" : {
 
     },
     "Notification" : {
@@ -6165,6 +6213,9 @@
     "over CPU or PG" : {
 
     },
+    "Over CPU/PG" : {
+
+    },
     "over the next %@" : {
 
     },
@@ -6177,6 +6228,9 @@
           }
         }
       }
+    },
+    "Owned parts only" : {
+
     },
     "Owner" : {
 
@@ -6365,6 +6419,9 @@
     "Plot Route" : {
 
     },
+    "Point or Scram" : {
+
+    },
     "Portion: %lld" : {
 
     },
@@ -6410,6 +6467,9 @@
     "Prices reflect the best sell/buy orders at the hub's primary station." : {
 
     },
+    "Pricing market modules…" : {
+
+    },
     "Pricing…" : {
 
     },
@@ -6423,6 +6483,9 @@
 
     },
     "Projected ISK" : {
+
+    },
+    "Prop Mod" : {
 
     },
     "PvP" : {
@@ -6864,6 +6927,9 @@
     "Saved fits · live ships" : {
 
     },
+    "Saved fits are calculated with your current skills and implants. The percentage is how the forged fit compares — green where it's better." : {
+
+    },
     "Saved Fittings" : {
 
     },
@@ -7278,6 +7344,9 @@
 
     },
     "Show skill training progress on Dock icon" : {
+
+    },
+    "Show this fit in Saved Fits" : {
 
     },
     "Show Utility section in sidebar" : {
@@ -8169,6 +8238,9 @@
     "Utility" : {
 
     },
+    "Utility (%lld)" : {
+
+    },
     "v%@  ·  Build %@" : {
       "localizations" : {
         "en" : {
@@ -8296,6 +8368,9 @@
     "Wealth Distribution" : {
 
     },
+    "Web" : {
+
+    },
     "Webhook URL" : {
 
     },
@@ -8401,6 +8476,9 @@
     "You don't own any part of this fit yet. Where to Buy compares the trade hubs below." : {
 
     },
+    "You don't own this one — about %@ ISK in Jita" : {
+
+    },
     "You need %@ more LP to afford it." : {
 
     },
@@ -8431,6 +8509,9 @@
 
     },
     "Your Assets Here" : {
+
+    },
+    "Your last forged fit, recalculated with today’s skills and assets." : {
 
     },
     "Your queue is **%@ %@ / %@** skills. For fastest training, remap to:" : {

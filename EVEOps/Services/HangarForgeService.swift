@@ -46,6 +46,19 @@ struct HangarForgeCatalog {
     }
 }
 
+/// A saved fitting for the same hull, run with the pilot's skills, to set beside a forged fit.
+struct HangarForgeComparison: Identifiable {
+    let fittingID: Int
+    let name: String
+    /// Its Ready Room tier, when the board has it.
+    let tier: ReadyRoomTier?
+    let performance: FitPerformance
+    /// Within CPU, powergrid and calibration with today's skills.
+    let fitsNow: Bool
+
+    var id: Int { fittingID }
+}
+
 /// One forge build for a pilot: in progress, finished, or failed.
 struct HangarForgeRun {
     let hullItemID: Int
@@ -60,6 +73,9 @@ struct HangarForgeRun {
     var types: [Int: ESIType] = [:]
     /// Restored from an earlier launch rather than forged just now.
     var isRestored = false
+    /// What the run is doing before the search starts ("Pricing market modules…").
+    var phase: String?
+    var comparisons: [HangarForgeComparison] = []
 
     var isRunning: Bool { result == nil && error == nil }
     var fraction: Double { min(Double(done) / Double(max(budget, 1)), 1) }
@@ -90,6 +106,18 @@ final class HangarForgeService {
     /// Capsules have no slots to fill.
     private static let capsuleGroup = 29
     private static let shipCategory = 6
+
+    /// Item groups the forge may buy from: modules that change damage, tank, speed or
+    /// fitting room, and rigs (verified against the SDE). Weapons aren't bought.
+    private static let marketGroups: Set<Int> = [
+        59, 205, 302, 367, 645, 1988, 4067,          // damage modules
+        211, 213, 1395, 1396, 644, 646,              // tracking, guidance, drone control
+        38, 77, 295, 40, 1156, 57,                   // shield
+        329, 326, 98, 62, 1199, 1150, 60,            // armor, damage control
+        766, 769, 285, 43,                           // powergrid, CPU, capacitor
+        764, 763, 762, 46,                           // speed and agility
+        773, 774, 775, 776, 777, 778, 779, 781, 782, // rigs
+    ]
 
     private init() {}
 
@@ -206,7 +234,9 @@ final class HangarForgeService {
             finish { $0.error = HangarForgeFailure.engineUnavailable.localizedDescription }
             return
         }
+        if (options.buyBudget ?? 0) > 0 { finish { $0.phase = String(localized: "Pricing market modules…") } }
         let (input, types) = await prepare(hull, options: options, snapshot: snapshot)
+        finish { $0.phase = nil }
         let skills = input.skills
         let progress: HangarForgeEngine.Progress = { done, budget in
             Task { @MainActor [weak self] in
@@ -226,10 +256,12 @@ final class HangarForgeService {
         do {
             let result = try await withTaskCancellationHandler { try await work.value } onCancel: { work.cancel() }
             let places = await places(for: result, characterID: characterID, snapshot: snapshot, token: token)
+            let comparisons = await comparisons(for: hull, snapshot: snapshot)
             finish {
                 $0.result = result
                 $0.places = places
                 $0.types = types
+                $0.comparisons = comparisons
                 $0.done = result.evaluations
             }
             if !Task.isCancelled { store(result, characterID: characterID) }
@@ -246,19 +278,62 @@ final class HangarForgeService {
                          snapshot: ReadyRoomSnapshot) async -> (HangarForgeInput, [Int: ESIType]) {
         let holdings = snapshot.input.holdings
         let stock = HangarForgeEngine.stock(for: hull, holdings: holdings, options: options)
+        let prices = await marketPrices(options)
         let catalogTypes = catalogs[snapshot.characterID]?.types ?? [:]
-        let wanted = Set(stock.keys).union([hull.typeID]).subtracting(catalogTypes.keys)
+        let wanted = Set(stock.keys).union(prices.keys).union([hull.typeID]).subtracting(catalogTypes.keys)
         let types = catalogTypes.merging(await UniverseCache.shared.types(ids: Array(wanted))) { old, _ in old }
-        let relevant = Self.relevantTypes(Set(stock.keys), types: types).union([hull.typeID])
+        let buyable = Set(prices.keys.filter { id in
+            types[id].map { $0.published && $0.dogmaEffects.flatMap(SimSlotEffect.category(from:)) != nil } ?? false
+        })
+        let relevant = Self.relevantTypes(Set(stock.keys), types: types).union(buyable).union([hull.typeID])
         let requirements = await SkillPrerequisites.shared.requirements(for: Array(relevant))
-        let input = HangarForgeInput(
+        var input = HangarForgeInput(
             hull: hull, holdings: holdings,
             types: types.filter { relevant.contains($0.key) },
             requirements: requirements,
             skills: snapshot.input.skills.mapValues(\.active),
             implants: snapshot.pilot.implantIDs
         )
+        input.market = prices.filter { buyable.contains($0.key) }
         return (input, types)
+    }
+
+    /// Jita prices for every module the forge may buy that's on sale within the budget —
+    /// so only those need their details loaded. Empty without a budget.
+    private func marketPrices(_ options: HangarForgeOptions) async -> [Int: Double] {
+        guard let budget = options.buyBudget, budget > 0 else { return [:] }
+        let groupIDs = Self.marketGroups.union(options.utilities.flatMap(\.groupIDs))
+        let groups = await UniverseCache.shared.groups(ids: groupIDs)
+        let typeIDs = Array(Set(groups.values.flatMap(\.types))).sorted()
+        var out: [Int: Double] = [:]
+        for start in stride(from: 0, to: typeIDs.count, by: 250) {
+            let chunk = Array(typeIDs[start..<min(start + 250, typeIDs.count)])
+            guard let prices = try? await FuzzworkClient.shared.prices(typeIds: chunk) else { continue }
+            for (typeID, price) in prices where price.sellMin > 0 && price.sellMin <= budget { out[typeID] = price.sellMin }
+        }
+        return out
+    }
+
+    /// The pilot's saved fittings for this hull type, calculated with today's skills.
+    private func comparisons(for hull: HangarForgeHull, snapshot: ReadyRoomSnapshot) async -> [HangarForgeComparison] {
+        let fittings = snapshot.input.fittings.filter { $0.shipTypeId == hull.typeID }
+        guard !fittings.isEmpty else { return [] }
+        let types = await UniverseCache.shared.types(ids: Array(Set(fittings.flatMap { [$0.shipTypeId] + $0.items.map(\.typeId) })))
+        let skills = snapshot.input.skills.mapValues(\.active)
+        let implants = snapshot.pilot.implantIDs
+        let tiers = Dictionary(snapshot.reports.map { ($0.fittingID, $0.tier) }, uniquingKeysWith: { a, _ in a })
+        let calculated = await Task.detached(priority: .userInitiated) {
+            fittings.map { fitting -> (Int, String, FitPerformance, Bool) in
+                let fit = DogmaFit(fitting: fitting, types: types, implants: implants, onlineOnly: false)
+                let stats = DogmaEngine.shared.calculate(fit, skills: skills)
+                let fits = stats.cpuUsed <= stats.cpuTotal + 0.05 && stats.powerUsed <= stats.powerTotal + 0.05
+                    && stats.calibrationUsed <= stats.calibrationTotal + 0.05
+                return (fitting.fittingId, fitting.name, FitPerformance(stats), fits)
+            }
+        }.value
+        return calculated.map { id, name, performance, fits in
+            HangarForgeComparison(fittingID: id, name: name, tier: tiers[id], performance: performance, fitsNow: fits)
+        }.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
     }
 
     private func places(for result: HangarForgeResult, characterID: Int, snapshot: ReadyRoomSnapshot,
@@ -302,10 +377,11 @@ final class HangarForgeService {
         }.value
         guard let result = result ?? nil, runs[characterID] == nil else { return }
         let places = await places(for: result, characterID: characterID, snapshot: snapshot, token: token)
+        let comparisons = await comparisons(for: hull, snapshot: snapshot)
         guard runs[characterID] == nil else { return }
         runs[characterID] = HangarForgeRun(hullItemID: hull.itemID, options: options, done: result.evaluations,
                                            budget: result.evaluations, result: result, places: places,
-                                           types: types, isRestored: true)
+                                           types: types, isRestored: true, comparisons: comparisons)
     }
 
     /// Owned types that could go on a ship: modules, drones, and charges some owned module
