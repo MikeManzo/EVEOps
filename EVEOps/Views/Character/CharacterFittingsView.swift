@@ -190,7 +190,7 @@ struct CharacterFittingsView: View {
             FreshnessIndicator(isLoading: isLoading) { await load() }
         }
         .task(id: accountManager.selectedCharacterID) {
-            if AppRouter.shared.pendingEFTURL != nil { activeTab = .simulate }
+            if AppRouter.shared.pendingEFTURL != nil || AppRouter.shared.pendingSimulatorFitting != nil { activeTab = .simulate }
             if AppRouter.shared.pendingSavedFittingID != nil { activeTab = .savedFittings }
             shipSections = []
             fittingSections = []
@@ -213,6 +213,9 @@ struct CharacterFittingsView: View {
         }
         .onChange(of: AppRouter.shared.pendingEFTURL) { _, url in
             if url != nil { activeTab = .simulate }
+        }
+        .onChange(of: AppRouter.shared.pendingSimulatorFitting) { _, fitting in
+            if fitting != nil { activeTab = .simulate }
         }
         .onChange(of: AppRouter.shared.pendingSavedFittingID) { _, id in
             guard id != nil else { return }

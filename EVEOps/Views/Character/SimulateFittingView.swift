@@ -77,7 +77,9 @@ struct SimulateFittingView: View {
             if let url = AppRouter.shared.pendingEFTURL {
                 Task { await importEFTFile(url) }
             }
+            loadPendingFitting()
         }
+        .onChange(of: AppRouter.shared.pendingSimulatorFitting) { _, _ in loadPendingFitting() }
         .onChange(of: AppRouter.shared.pendingEFTURL) { _, url in
             guard let url else { return }
             Task { await importEFTFile(url) }
@@ -90,6 +92,13 @@ struct SimulateFittingView: View {
                 .environment(accountManager)
             }
         }
+    }
+
+    /// Loads a fit another screen handed over (the Ready Room's Hangar Forge).
+    private func loadPendingFitting() {
+        guard let fitting = AppRouter.shared.pendingSimulatorFitting else { return }
+        AppRouter.shared.pendingSimulatorFitting = nil
+        Task { await simState.loadFromSavedFitting(fitting) }
     }
 
     private func importEFTFile(_ url: URL) async {

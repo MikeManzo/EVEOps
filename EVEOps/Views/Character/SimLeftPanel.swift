@@ -17,25 +17,6 @@ import SwiftUI
 
 private enum LeftPanelMode { case ships, modules }
 
-// Dogma effect IDs that identify which slot a module occupies
-private enum SlotEffect {
-    static let high: Int       = 12
-    static let low: Int        = 11
-    static let medium: Int     = 13
-    static let rig: Int        = 2663
-    static let subsystem: Int  = 3772
-
-    static func category(from effects: [ESIDogmaEffect]) -> SimSlotCategory? {
-        let ids = Set(effects.map(\.effectId))
-        if ids.contains(high)      { return .high }
-        if ids.contains(medium)    { return .medium }
-        if ids.contains(low)       { return .low }
-        if ids.contains(rig)       { return .rig }
-        if ids.contains(subsystem) { return .subsystem }
-        return nil
-    }
-}
-
 struct SimLeftPanel: View {
     @Environment(SimulatorState.self) private var simState
     @Environment(AccountManager.self) private var accountManager
@@ -440,7 +421,7 @@ struct SimLeftPanel: View {
                 let types = await UniverseCache.shared.types(ids: publishedTypeIds)
                 for t in types.values where t.published {
                     guard let effects = t.dogmaEffects,
-                          let cat = SlotEffect.category(from: effects) else { continue }
+                          let cat = SimSlotEffect.category(from: effects) else { continue }
                     bySlot[cat, default: []].append(t)
                 }
             }

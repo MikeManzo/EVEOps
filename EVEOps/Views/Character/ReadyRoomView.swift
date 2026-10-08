@@ -36,6 +36,26 @@ enum ReadyRoomSort: String, CaseIterable {
     }
 }
 
+// MARK:  Tab
+
+enum ReadyRoomTab: String, CaseIterable {
+    case fits, forge
+
+    var title: LocalizedStringKey {
+        switch self {
+        case .fits:  "Saved Fits"
+        case .forge: "Hangar Forge"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .fits:  "bookmark.fill"
+        case .forge: "hammer.fill"
+        }
+    }
+}
+
 // MARK:  Main View
 
 /// "What can I fly right now?" — every saved fitting checked against the pilot's skills,
@@ -47,6 +67,7 @@ struct ReadyRoomView: View {
     @AppStorage("backgroundPollInterval") private var pollInterval: Double = 300
     @AppStorage("readyRoom.sort") private var sortRaw = ReadyRoomSort.readiness.rawValue
     @AppStorage("collapsedReadyRoomSections") private var collapsedRaw = ""
+    @AppStorage("readyRoom.tab") private var tabRaw = ReadyRoomTab.fits.rawValue
 
     @State private var selectedID: Int?
     /// A fit another screen linked to, to bring into view once the board shows it.
@@ -63,6 +84,7 @@ struct ReadyRoomView: View {
     private var reports: [ReadyRoomReport] { snapshot?.reports ?? [] }
     private var pinned: Set<Int> { characterID.map(service.pinnedFittingIDs) ?? [] }
     private var sort: ReadyRoomSort { ReadyRoomSort(rawValue: sortRaw) ?? .readiness }
+    private var tab: ReadyRoomTab { ReadyRoomTab(rawValue: tabRaw) ?? .fits }
 
     var body: some View {
         LoadingStateView(
@@ -71,10 +93,23 @@ struct ReadyRoomView: View {
             hasContent: snapshot != nil,
             onRetry: { Task { await load(force: true) } }
         ) {
-            content
+            switch tab {
+            case .fits:
+                content
+            case .forge:
+                if let snapshot {
+                    ScrollView {
+                        HangarForgeView(snapshot: snapshot)
+                            .padding()
+                    }
+                }
+            }
         }
-        .eveScreenHeader("Ready Room", subtitle: subtitle, section: .readyRoom) {
-            FreshnessIndicator(isLoading: isLoading) { await load(force: true) }
+        .eveScreenHeader("Ready Room", subtitle: tab == .fits ? subtitle : nil, section: .readyRoom) {
+            HStack(spacing: EVESpacing.md) {
+                tabSwitcher
+                FreshnessIndicator(isLoading: isLoading) { await load(force: true) }
+            }
         }
         .eveInspector(item: $selectedID, minWidth: 340, idealWidth: 380, maxWidth: 440) { id in
             if let snapshot, let report = snapshot.reports.first(where: { $0.id == id }) {
@@ -100,6 +135,36 @@ struct ReadyRoomView: View {
         }
         .onChange(of: snapshot?.reports.map(\.id)) { _, _ in consumePendingFitting() }
         .onChange(of: AppRouter.shared.pendingReadyRoomFittingID) { _, _ in consumePendingFitting() }
+        .onChange(of: tabRaw) { _, _ in selectedID = nil }
+    }
+
+    /// Saved Fits / Hangar Forge, as icons with their names in tooltips. Buttons rather
+    /// than a segmented picker: AppKit's segmented control drops a Label's icon.
+    private var tabSwitcher: some View {
+        HStack(spacing: EVESpacing.xxs) {
+            ForEach(ReadyRoomTab.allCases, id: \.self) { option in
+                let isSelected = tab == option
+                Button {
+                    tabRaw = option.rawValue
+                } label: {
+                    Label(option.title, systemImage: option.systemImage)
+                        .labelStyle(.iconOnly)
+                        .font(.subheadline)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, EVESpacing.xs)
+                        .background(isSelected ? palette.accent : Color.clear,
+                                    in: RoundedRectangle(cornerRadius: EVERadius.sm))
+                        .foregroundStyle(isSelected ? .white : .primary)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help(option.title)
+                .accessibilityAddTraits(isSelected ? .isSelected : [])
+            }
+        }
+        .padding(3)
+        .background(.quaternary, in: RoundedRectangle(cornerRadius: EVERadius.md))
+        .fixedSize()
     }
 
     private func load(force: Bool = false) async {
@@ -453,6 +518,7 @@ struct ReadyRoomView: View {
         guard let pending = AppRouter.shared.pendingReadyRoomFittingID,
               let report = reports.first(where: { $0.fittingID == pending }) else { return }
         AppRouter.shared.pendingReadyRoomFittingID = nil
+        tabRaw = ReadyRoomTab.fits.rawValue
         search = ""
         tierFilter = nil
         let key = pinned.contains(report.fittingID) ? "pinned" : "\(report.tier.rawValue)"

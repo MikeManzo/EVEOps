@@ -85,6 +85,27 @@ nonisolated enum SimSlotCategory: String, CaseIterable, Equatable, Codable {
 
 }
 
+// MARK:  Slot Effects
+
+// Dogma effect IDs that identify which slot a module occupies
+nonisolated enum SimSlotEffect {
+    static let high: Int       = 12
+    static let low: Int        = 11
+    static let medium: Int     = 13
+    static let rig: Int        = 2663
+    static let subsystem: Int  = 3772
+
+    static func category(from effects: [ESIDogmaEffect]) -> SimSlotCategory? {
+        let ids = Set(effects.map(\.effectId))
+        if ids.contains(high)      { return .high }
+        if ids.contains(medium)    { return .medium }
+        if ids.contains(low)       { return .low }
+        if ids.contains(rig)       { return .rig }
+        if ids.contains(subsystem) { return .subsystem }
+        return nil
+    }
+}
+
 // MARK:  Sim Slot
 
 nonisolated struct SimSlot: Identifiable, Equatable {

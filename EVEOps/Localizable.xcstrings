@@ -7,6 +7,9 @@
     " · idle %@" : {
 
     },
+    " · packaged" : {
+
+    },
     " +%lld" : {
 
     },
@@ -131,6 +134,16 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ – %2$@"
+          }
+        }
+      }
+    },
+    "%@ — %@ (Hangar Forge)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ — %2$@ (Hangar Forge)"
           }
         }
       }
@@ -432,6 +445,9 @@
           }
         }
       }
+    },
+    "%@ from drones" : {
+
     },
     "%@ hit points" : {
 
@@ -1475,6 +1491,9 @@
     "%lld skills queued — resume training in EVE." : {
 
     },
+    "%lld slots left open" : {
+
+    },
     "%lld solar system%@" : {
       "localizations" : {
         "en" : {
@@ -1836,6 +1855,9 @@
     "1 pilot" : {
 
     },
+    "1 slot left open" : {
+
+    },
     "1 Week" : {
 
     },
@@ -2136,6 +2158,9 @@
     "align" : {
 
     },
+    "align %@ s" : {
+
+    },
     "All" : {
 
     },
@@ -2245,6 +2270,12 @@
     "Also ping Discord at the warning and at zero" : {
 
     },
+    "Also use modules fitted to your other ships" : {
+
+    },
+    "Also use parts in corporation hangars (needs the Director role)" : {
+
+    },
     "Ambient space background" : {
 
     },
@@ -2284,10 +2315,16 @@
     "Anoik.is is a third-party wormhole system database for EVE Online. Used in accordance with the Anoik.is public API terms of service." : {
 
     },
+    "another location" : {
+
+    },
     "Any" : {
 
     },
     "Any age" : {
+
+    },
+    "Any Station" : {
 
     },
     "Any value" : {
@@ -2413,6 +2450,9 @@
     "Average" : {
 
     },
+    "average of damage types" : {
+
+    },
     "Average price" : {
 
     },
@@ -2450,6 +2490,9 @@
 
     },
     "Balance after: %@" : {
+
+    },
+    "Balanced" : {
 
     },
     "Balances" : {
@@ -2644,7 +2687,13 @@
     "Cap stable" : {
 
     },
+    "Cap Stable" : {
+
+    },
     "Cap. per Cycle" : {
+
+    },
+    "Capacitor" : {
 
     },
     "Capacitor capacity — total energy the capacitor can hold" : {
@@ -2759,6 +2808,9 @@
 
     },
     "Chunk Arrives" : {
+
+    },
+    "Class" : {
 
     },
     "CLASS" : {
@@ -2900,6 +2952,9 @@
 
     },
     "Collateral" : {
+
+    },
+    "Collect First" : {
 
     },
     "Collection Route" : {
@@ -3091,6 +3146,9 @@
     "Copy All for Appraisal" : {
 
     },
+    "Copy EFT" : {
+
+    },
     "Copy Entry" : {
 
     },
@@ -3121,6 +3179,9 @@
     "Copy Station Name" : {
 
     },
+    "Copy the fit in EFT format, to paste into EVE or another fitting tool" : {
+
+    },
     "Copy the plan to the clipboard in EVE's format" : {
 
     },
@@ -3140,6 +3201,9 @@
 
     },
     "Corp Contracts" : {
+
+    },
+    "corp hangar · %@" : {
 
     },
     "Corp Hangars" : {
@@ -3217,6 +3281,9 @@
     "Couldn’t delete mail: %@" : {
 
     },
+    "Couldn’t Forge a Fit" : {
+
+    },
     "Couldn't load" : {
 
     },
@@ -3230,6 +3297,9 @@
 
     },
     "Couldn't load the star-map data." : {
+
+    },
+    "Couldn’t Load Your Ships" : {
 
     },
     "Couldn’t read any pilot’s assets." : {
@@ -3335,7 +3405,13 @@
     "Daily Briefing" : {
 
     },
+    "Damage" : {
+
+    },
     "Damage · %@" : {
+
+    },
+    "Damage and tank weighted equally" : {
 
     },
     "Dark" : {
@@ -3535,6 +3611,9 @@
     "Docking" : {
 
     },
+    "Doesn’t raise DPS, tank or speed by itself — the fit needs it, for CPU or powergrid or to work alongside another module" : {
+
+    },
     "Done" : {
 
     },
@@ -3584,6 +3663,9 @@
 
     },
     "Drone Bay" : {
+
+    },
+    "Drones" : {
 
     },
     "Dropped" : {
@@ -3945,6 +4027,9 @@
     "Falloff" : {
 
     },
+    "Fastest, cap stable, with damage next" : {
+
+    },
     "Fetching appraisal…" : {
 
     },
@@ -4011,6 +4096,9 @@
     "Finding stations…" : {
 
     },
+    "Finding your ships…" : {
+
+    },
     "Finding…" : {
 
     },
@@ -4070,6 +4158,16 @@
     },
     "Fitted" : {
 
+    },
+    "fitted to your %@ · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "fitted to your %1$@ · %2$@"
+          }
+        }
+      }
     },
     "Fitting" : {
 
@@ -4135,6 +4233,12 @@
 
     },
     "Flyable by someone" : {
+
+    },
+    "Forge" : {
+
+    },
+    "Forge a Fit" : {
 
     },
     "Frame Galaxy" : {
@@ -4218,6 +4322,9 @@
     "Go" : {
 
     },
+    "Goal" : {
+
+    },
     "Good" : {
 
     },
@@ -4237,6 +4344,9 @@
 
     },
     "Hangar" : {
+
+    },
+    "Hangar Forge" : {
 
     },
     "Hangar Is Empty" : {
@@ -4315,6 +4425,9 @@
 
     },
     "Hub" : {
+
+    },
+    "Hull" : {
 
     },
     "Hull Repair" : {
@@ -4756,6 +4869,12 @@
     "Kills" : {
 
     },
+    "Kite" : {
+
+    },
+    "Kiting fits are always cap stable" : {
+
+    },
     "L%lld" : {
 
     },
@@ -4869,6 +4988,9 @@
 
     },
     "Load Fitting or Ship" : {
+
+    },
+    "Loaded with %@" : {
 
     },
     "Loading" : {
@@ -5043,6 +5165,9 @@
     "LP Used" : {
 
     },
+    "m/s" : {
+
+    },
     "m³" : {
 
     },
@@ -5179,6 +5304,9 @@
     "Model Downloading" : {
 
     },
+    "Modules" : {
+
+    },
     "Modules below 20% are excluded." : {
 
     },
@@ -5189,6 +5317,12 @@
 
     },
     "More than a day’s Jita volume — dumping it all would push the price down." : {
+
+    },
+    "Most damage, with some tank where slots allow" : {
+
+    },
+    "Most effective HP and repair, with some damage" : {
 
     },
     "Most Pilots Ready" : {
@@ -5560,6 +5694,9 @@
     "No Ship Selected" : {
 
     },
+    "No Ships" : {
+
+    },
     "No Ships Found" : {
 
     },
@@ -5723,6 +5860,9 @@
     "Nothing traded in Jita over the last 30 days." : {
 
     },
+    "Nothing you own improves the fit in this slot — free for tackle, ewar or a utility module" : {
+
+    },
     "Notification" : {
 
     },
@@ -5832,6 +5972,9 @@
     "Online Status" : {
 
     },
+    "Only fits that can run every module indefinitely" : {
+
+    },
     "Only hulls appearing in ≥10% of kills are shown.\nTop 10 displayed." : {
 
     },
@@ -5891,6 +6034,9 @@
 
     },
     "Open in Ready Room" : {
+
+    },
+    "Open in Simulator" : {
 
     },
     "Open in zKillboard" : {
@@ -5963,6 +6109,9 @@
 
     },
     "Optional description" : {
+
+    },
+    "Options changed since this fit was forged — press Forge to rebuild." : {
 
     },
     "or search by name to find an item" : {
@@ -6093,6 +6242,9 @@
 
     },
     "PI extractors expired" : {
+
+    },
+    "Pick a hull and a goal. The forge tries the modules, ammo and drones you own and builds the strongest fit it can." : {
 
     },
     "Pick the empire whose colors EVEOps should wear. You can change it any time in Settings." : {
@@ -6562,6 +6714,9 @@
     "Repair" : {
 
     },
+    "Repair HP/s" : {
+
+    },
     "Replaces %@" : {
 
     },
@@ -6701,6 +6856,9 @@
 
     },
     "Saved fit becomes ready to fly (Ready Room)" : {
+
+    },
+    "Saved Fits" : {
 
     },
     "Saved fits · live ships" : {
@@ -7161,6 +7319,9 @@
     "Skill" : {
 
     },
+    "Skill %lld" : {
+
+    },
     "Skill Group Progress" : {
 
     },
@@ -7322,6 +7483,9 @@
     "Squad %lld" : {
 
     },
+    "Stable" : {
+
+    },
     "Staged" : {
 
     },
@@ -7450,6 +7614,15 @@
     "Storage & Command (%lld)" : {
 
     },
+    "Strategic Cruisers aren’t supported yet — their slots come from subsystems." : {
+
+    },
+    "Strategic Cruisers aren't supported yet." : {
+
+    },
+    "Strip Other Ships" : {
+
+    },
     "Structure" : {
 
     },
@@ -7469,6 +7642,9 @@
 
     },
     "Subsystems" : {
+
+    },
+    "support" : {
 
     },
     "Surgery" : {
@@ -7516,6 +7692,9 @@
     "Systems w/ Stations" : {
 
     },
+    "Tank" : {
+
+    },
     "Targeting %@ · slot %lld" : {
       "localizations" : {
         "en" : {
@@ -7542,6 +7721,9 @@
 
     },
     "The Categories above decide which events fire — Discord receives the same ones as your native notifications." : {
+
+    },
+    "The fitting engine isn't loaded." : {
 
     },
     "The fitting engine's data couldn't be loaded, so fits aren't checked against CPU and powergrid." : {
@@ -7603,6 +7785,9 @@
 
     },
     "This deletes the saved fitting in EVE as well. It can’t be undone." : {
+
+    },
+    "This hull's details couldn't be loaded." : {
 
     },
     "This list" : {
@@ -7716,6 +7901,9 @@
     "Train" : {
 
     },
+    "Train %@ to fly this hull." : {
+
+    },
     "Train First" : {
 
     },
@@ -7782,6 +7970,12 @@
     "Travel Required" : {
 
     },
+    "Tried %@ fits and stopped at the search limit — another module mix might do slightly better." : {
+
+    },
+    "Tried %@ fits with your current skills and implants. Assets can be up to an hour behind the game." : {
+
+    },
     "Try %@" : {
 
     },
@@ -7794,6 +7988,9 @@
     "Try loosening your filters." : {
 
     },
+    "Trying fits…" : {
+
+    },
     "Turn on “Show current character in Discord status.”" : {
 
     },
@@ -7804,6 +8001,9 @@
 
     },
     "Type #%lld" : {
+
+    },
+    "Type %lld" : {
 
     },
     "type ID" : {
@@ -7839,6 +8039,12 @@
     "Universe" : {
 
     },
+    "Unknown location" : {
+
+    },
+    "Unknown ship" : {
+
+    },
     "Unlimited" : {
 
     },
@@ -7870,6 +8076,9 @@
 
     },
     "Unresolved (%lld)" : {
+
+    },
+    "Unstable" : {
 
     },
     "Until" : {
@@ -7950,6 +8159,12 @@
           }
         }
       }
+    },
+    "Using only parts in the hull's station" : {
+
+    },
+    "Using parts from every station — the result lists what to haul" : {
+
     },
     "Utility" : {
 
@@ -8174,7 +8389,13 @@
     "You can already fly this ship!" : {
 
     },
+    "You can't fly this hull yet." : {
+
+    },
     "You don't have enough LP yet for a profitable redemption." : {
+
+    },
+    "You don't own a ship the forge can fit." : {
 
     },
     "You don't own any part of this fit yet. Where to Buy compares the trade hubs below." : {

@@ -48,6 +48,10 @@ final class AppRouter {
     /// Ready Room's "Show in Fittings". Cleared when consumed.
     var pendingSavedFittingID: Int?
 
+    /// A fit for the Simulator to load, switching the Fittings screen to its Simulate tab —
+    /// set by the Ready Room's Hangar Forge. Cleared when consumed.
+    var pendingSimulatorFitting: SavedFittingEntry?
+
     /// Bumped by the "Refresh Current View" command (⌘K) and the ⌘R shortcut.
     /// Views that show live data observe this and re-fetch.
     var refreshTick = 0
