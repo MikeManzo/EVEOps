@@ -96,9 +96,16 @@ struct SimulateFittingView: View {
 
     /// Loads a fit another screen handed over (the Ready Room's Hangar Forge).
     private func loadPendingFitting() {
-        guard let fitting = AppRouter.shared.pendingSimulatorFitting else { return }
+        guard let handoff = AppRouter.shared.pendingSimulatorFitting else { return }
         AppRouter.shared.pendingSimulatorFitting = nil
-        Task { await simState.loadFromSavedFitting(fitting) }
+        Task {
+            await simState.loadFromSavedFitting(handoff.fitting)
+            guard !handoff.charges.isEmpty else { return }
+            for index in simState.slots.indices {
+                if let charge = handoff.charges[simState.slots[index].flag] { simState.slots[index].chargeTypeId = charge }
+            }
+            simState.recomputeStats()
+        }
     }
 
     private func importEFTFile(_ url: URL) async {

@@ -16,10 +16,14 @@ import Foundation
 struct HangarForgeHullOption: Identifiable, Hashable {
     let hull: HangarForgeHull
     let typeName: String
+    /// The name the pilot gave the ship in game, when it has one.
+    let customName: String?
     let className: String
     let placeName: String
 
     var id: Int { hull.itemID }
+    /// "Ratting Ishtar (Ishtar)", or just "Ishtar".
+    var displayName: String { customName.map { "\($0) (\(typeName))" } ?? typeName }
 }
 
 /// The pilot's hulls, and every type and place the forge needs to name, built from a
@@ -29,6 +33,7 @@ struct HangarForgeCatalog {
     /// doesn't rebuild it.
     let holdingsHash: Int
     let hulls: [HangarForgeHullOption]
+    /// Hull types only — part types arrive with each run.
     let types: [Int: ESIType]
     let places: [Int: ReadyRoomPlace]
     let skillNames: [Int: String]
@@ -51,9 +56,20 @@ struct HangarForgeRun {
     var error: String?
     /// Names for the places the result takes parts from.
     var places: [Int: ReadyRoomPlace] = [:]
+    /// Every type the run looked at, for names.
+    var types: [Int: ESIType] = [:]
+    /// Restored from an earlier launch rather than forged just now.
+    var isRestored = false
 
     var isRunning: Bool { result == nil && error == nil }
     var fraction: Double { min(Double(done) / Double(max(budget, 1)), 1) }
+}
+
+/// The last fit forged for a pilot, kept between launches.
+private struct HangarForgeStoredRun: Codable {
+    let hullItemID: Int
+    let options: HangarForgeOptions
+    let fit: HangarForgeSavedFit
 }
 
 // MARK:  Service
@@ -73,6 +89,7 @@ final class HangarForgeService {
 
     /// Capsules have no slots to fill.
     private static let capsuleGroup = 29
+    private static let shipCategory = 6
 
     private init() {}
 
@@ -80,8 +97,8 @@ final class HangarForgeService {
 
     // MARK:  Catalog
 
-    /// Finds the pilot's hulls in the snapshot's holdings and names them. Types come from
-    /// the shared cache, which the Fittings screen has usually filled already.
+    /// Finds the pilot's hulls in the snapshot's holdings and names them, then brings back
+    /// the last fit forged for this pilot if it can still be built.
     func loadCatalog(_ snapshot: ReadyRoomSnapshot, token: String) async {
         let characterID = snapshot.characterID
         let holdings = snapshot.input.holdings
@@ -90,20 +107,27 @@ final class HangarForgeService {
               catalogLoading.insert(characterID).inserted else { return }
         defer { catalogLoading.remove(characterID) }
 
-        let types = await UniverseCache.shared.types(ids: Array(Set(holdings.map(\.typeID))))
-        let groups = await UniverseCache.shared.groups(ids: Set(types.values.map(\.groupId)))
-        var shipGroupIDs = CharacterFittingsView.eveShipGroupIds.union(groups.values.filter { $0.categoryId == 6 }.map(\.groupId))
+        // Ship groups list their types, so only the hulls themselves need fetching — not
+        // every type in a large asset list.
+        var shipGroupIDs = CharacterFittingsView.eveShipGroupIds
+            .union(await UniverseCache.shared.category(id: Self.shipCategory)?.groups ?? [])
         shipGroupIDs.remove(Self.capsuleGroup)
+        let groups = await UniverseCache.shared.groups(ids: shipGroupIDs)
+        let shipTypeIDs = Set(groups.values.flatMap(\.types))
+        let candidates = holdings.filter { $0.fittedToItemID == nil }
+        let typeIDs = shipTypeIDs.isEmpty
+            ? Set(candidates.map(\.typeID))                                 // groups unavailable: check everything
+            : Set(candidates.map(\.typeID)).intersection(shipTypeIDs)
+        let types = await UniverseCache.shared.types(ids: Array(typeIDs))
 
-        let hullTypeIDs = Set(holdings.compactMap { holding in
-            types[holding.typeID].flatMap { shipGroupIDs.contains($0.groupId) ? holding.typeID : nil }
-        })
-        let requirements = await SkillPrerequisites.shared.requirements(for: Array(hullTypeIDs))
+        let requirements = await SkillPrerequisites.shared.requirements(for: Array(typeIDs))
         let skills = snapshot.input.skills.mapValues(\.active)
         let hulls = HangarForgeEngine.hulls(holdings: holdings, types: types, shipGroupIDs: shipGroupIDs,
                                             requirements: requirements, skills: skills)
         let missingSkillIDs = Set(hulls.flatMap(\.missingSkills.keys))
         let skillNames = await SkillPrerequisites.shared.trainingInfo(for: Array(missingSkillIDs)).mapValues(\.name)
+        let customNames = await Self.shipNames(hulls.filter { $0.isAssembled && !$0.isCorporation }.map(\.itemID),
+                                               characterID: characterID, token: token)
 
         var places = snapshot.places
         let unnamed = Set(hulls.map(\.placeID)).subtracting(places.keys)
@@ -119,19 +143,37 @@ final class HangarForgeService {
             options.append(HangarForgeHullOption(
                 hull: hull,
                 typeName: types[hull.typeID]?.name ?? String(localized: "Unknown ship"),
+                customName: customNames[hull.itemID],
                 className: className,
                 placeName: places[hull.placeID]?.name ?? String(localized: "Unknown location")
             ))
         }
         options.sort { a, b in
             let byType = a.typeName.localizedStandardCompare(b.typeName)
-            return byType != .orderedSame ? byType == .orderedAscending
-                : a.placeName.localizedStandardCompare(b.placeName) == .orderedAscending
+            if byType != .orderedSame { return byType == .orderedAscending }
+            let byPlace = a.placeName.localizedStandardCompare(b.placeName)
+            if byPlace != .orderedSame { return byPlace == .orderedAscending }
+            return (a.customName ?? "").localizedStandardCompare(b.customName ?? "") == .orderedAscending
         }
 
         catalogs[characterID] = HangarForgeCatalog(holdingsHash: hash, hulls: options, types: types,
                                                    places: places, skillNames: skillNames)
         catalogErrors[characterID] = nil
+
+        if runs[characterID] == nil { await restore(snapshot, token: token) }
+    }
+
+    /// Names the pilot gave their assembled ships; ships still called by their type are left out.
+    private static func shipNames(_ itemIDs: [Int], characterID: Int, token: String) async -> [Int: String] {
+        var out: [Int: String] = [:]
+        for start in stride(from: 0, to: itemIDs.count, by: 1_000) {
+            let chunk = Array(itemIDs[start..<min(start + 1_000, itemIDs.count)])
+            guard let names: [ESIAssetName] = try? await ESIClient.shared.post(
+                "/characters/\(characterID)/assets/names/", body: chunk, token: token
+            ) else { continue }
+            for entry in names where entry.name != "None" && !entry.name.isEmpty { out[entry.itemId] = entry.name }
+        }
+        return out
     }
 
     // MARK:  Forge
@@ -164,22 +206,7 @@ final class HangarForgeService {
             finish { $0.error = HangarForgeFailure.engineUnavailable.localizedDescription }
             return
         }
-
-        let holdings = snapshot.input.holdings
-        let stock = HangarForgeEngine.stock(for: hull, holdings: holdings, options: options)
-        let catalogTypes = catalogs[characterID]?.types ?? [:]
-        let wanted = Set(stock.keys).union([hull.typeID]).subtracting(catalogTypes.keys)
-        let types = catalogTypes.merging(await UniverseCache.shared.types(ids: Array(wanted))) { old, _ in old }
-        let relevant = Self.relevantTypes(Set(stock.keys), types: types).union([hull.typeID])
-        let requirements = await SkillPrerequisites.shared.requirements(for: Array(relevant))
-
-        let input = HangarForgeInput(
-            hull: hull, holdings: holdings,
-            types: types.filter { relevant.contains($0.key) },
-            requirements: requirements,
-            skills: snapshot.input.skills.mapValues(\.active),
-            implants: snapshot.pilot.implantIDs
-        )
+        let (input, types) = await prepare(hull, options: options, snapshot: snapshot)
         let skills = input.skills
         let progress: HangarForgeEngine.Progress = { done, budget in
             Task { @MainActor [weak self] in
@@ -198,21 +225,87 @@ final class HangarForgeService {
         }
         do {
             let result = try await withTaskCancellationHandler { try await work.value } onCancel: { work.cancel() }
-            var places = catalogs[characterID]?.places ?? snapshot.places
-            let unnamed = Set(result.sources.values.flatMap { $0.map(\.placeID) }).subtracting(places.keys)
-            if !unnamed.isEmpty {
-                places.merge(await ReadyRoomPlaces.resolve(unnamed, token: token)) { old, _ in old }
-            }
+            let places = await places(for: result, characterID: characterID, snapshot: snapshot, token: token)
             finish {
                 $0.result = result
                 $0.places = places
+                $0.types = types
                 $0.done = result.evaluations
             }
+            if !Task.isCancelled { store(result, characterID: characterID) }
         } catch is CancellationError {
             return
         } catch {
             finish { $0.error = error.localizedDescription }
         }
+    }
+
+    /// The engine's input for `hull`: the stock in scope, the types it involves, and the
+    /// skill requirements of everything that could go on the ship.
+    private func prepare(_ hull: HangarForgeHull, options: HangarForgeOptions,
+                         snapshot: ReadyRoomSnapshot) async -> (HangarForgeInput, [Int: ESIType]) {
+        let holdings = snapshot.input.holdings
+        let stock = HangarForgeEngine.stock(for: hull, holdings: holdings, options: options)
+        let catalogTypes = catalogs[snapshot.characterID]?.types ?? [:]
+        let wanted = Set(stock.keys).union([hull.typeID]).subtracting(catalogTypes.keys)
+        let types = catalogTypes.merging(await UniverseCache.shared.types(ids: Array(wanted))) { old, _ in old }
+        let relevant = Self.relevantTypes(Set(stock.keys), types: types).union([hull.typeID])
+        let requirements = await SkillPrerequisites.shared.requirements(for: Array(relevant))
+        let input = HangarForgeInput(
+            hull: hull, holdings: holdings,
+            types: types.filter { relevant.contains($0.key) },
+            requirements: requirements,
+            skills: snapshot.input.skills.mapValues(\.active),
+            implants: snapshot.pilot.implantIDs
+        )
+        return (input, types)
+    }
+
+    private func places(for result: HangarForgeResult, characterID: Int, snapshot: ReadyRoomSnapshot,
+                        token: String) async -> [Int: ReadyRoomPlace] {
+        var places = catalogs[characterID]?.places ?? snapshot.places
+        let unnamed = Set(result.sources.values.flatMap { $0.map(\.placeID) }).subtracting(places.keys)
+        if !unnamed.isEmpty {
+            places.merge(await ReadyRoomPlaces.resolve(unnamed, token: token)) { old, _ in old }
+        }
+        return places
+    }
+
+    // MARK:  Last Fit
+
+    private func storeKey(_ characterID: Int) -> String { "hangarForge.lastFit.\(characterID)" }
+
+    private func store(_ result: HangarForgeResult, characterID: Int) {
+        let stored = HangarForgeStoredRun(hullItemID: result.hull.itemID, options: result.options, fit: result.saved)
+        if let data = try? JSONEncoder().encode(stored) {
+            UserDefaults.standard.set(data, forKey: storeKey(characterID))
+        }
+    }
+
+    /// Brings back the last fit forged for this pilot, recalculated against today's
+    /// skills and assets. Dropped quietly when the hull is gone or a part is no longer
+    /// owned, usable or in scope.
+    private func restore(_ snapshot: ReadyRoomSnapshot, token: String) async {
+        let characterID = snapshot.characterID
+        guard let data = UserDefaults.standard.data(forKey: storeKey(characterID)),
+              let stored = try? JSONDecoder().decode(HangarForgeStoredRun.self, from: data),
+              let hull = catalogs[characterID]?.hulls.first(where: { $0.id == stored.hullItemID })?.hull,
+              await ReadyRoomFittingChecker.prepareEngine(allowLoad: true) else { return }
+
+        var options = stored.options
+        options.includeCorporation = ReadyRoomService.shared.includeCorporation
+        let (input, types) = await prepare(hull, options: options, snapshot: snapshot)
+        let skills = input.skills
+        let result = try? await Task.detached(priority: .userInitiated) {
+            try await HangarForgeEngine.restore(stored.fit, input: input, options: options,
+                                                evaluate: { DogmaEngine.shared.calculate($0, skills: skills) })
+        }.value
+        guard let result = result ?? nil, runs[characterID] == nil else { return }
+        let places = await places(for: result, characterID: characterID, snapshot: snapshot, token: token)
+        guard runs[characterID] == nil else { return }
+        runs[characterID] = HangarForgeRun(hullItemID: hull.itemID, options: options, done: result.evaluations,
+                                           budget: result.evaluations, result: result, places: places,
+                                           types: types, isRestored: true)
     }
 
     /// Owned types that could go on a ship: modules, drones, and charges some owned module

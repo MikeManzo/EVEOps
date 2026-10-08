@@ -67,6 +67,13 @@ struct HangarForgeView: View {
                   let token = try? await accountManager.validToken(for: account) else { return }
             await service.loadCatalog(snapshot, token: token)
         }
+        .onChange(of: run?.hullItemID, initial: true) { _, hullID in
+            // A fit restored from last time: show its hull in the pickers.
+            guard hullItemID == nil, let hullID,
+                  let option = catalog?.hulls.first(where: { $0.id == hullID }) else { return }
+            className = option.className
+            hullItemID = hullID
+        }
     }
 
     // MARK:  Controls
@@ -150,7 +157,7 @@ struct HangarForgeView: View {
 
     private func hullLabel(_ option: HangarForgeHullOption) -> String {
         let packaged = option.hull.isAssembled ? "" : String(localized: " · packaged")
-        return "\(option.typeName) · \(option.placeName)\(packaged)"
+        return "\(option.displayName) · \(option.placeName)\(packaged)"
     }
 
     private var goalHelp: String {
@@ -208,6 +215,8 @@ struct HangarForgeView: View {
     private func runView(_ run: HangarForgeRun, catalog: HangarForgeCatalog) -> some View {
         if let result = run.result {
             HangarForgeResultView(result: result, catalog: catalog, places: run.places, holdings: snapshot.input.holdings,
+                                  types: run.types.merging(catalog.types) { run, _ in run },
+                                  isRestored: run.isRestored,
                                   isStale: run.options != options || selectedHull(catalog)?.id != run.hullItemID)
         } else if let error = run.error {
             EVEEmptyState(title: Text("Couldn’t Forge a Fit"), systemImage: "exclamationmark.triangle",
@@ -238,6 +247,10 @@ private struct HangarForgeResultView: View {
     let catalog: HangarForgeCatalog
     let places: [Int: ReadyRoomPlace]
     let holdings: [ReadyRoomHolding]
+    /// Names for every type the result mentions.
+    let types: [Int: ESIType]
+    /// Brought back from an earlier launch.
+    let isRestored: Bool
     /// The controls no longer match what this result was built with.
     let isStale: Bool
 
@@ -246,15 +259,20 @@ private struct HangarForgeResultView: View {
 
     private var palette: EVEPalette { themeManager.palette }
     private var hullOption: HangarForgeHullOption? { catalog.hulls.first { $0.id == result.hull.itemID } }
-    private var hullName: String { hullOption?.typeName ?? name(result.hull.typeID) }
+    private var hullName: String { hullOption?.displayName ?? name(result.hull.typeID) }
 
     private func name(_ typeID: Int) -> String {
-        catalog.types[typeID]?.name ?? String(localized: "Type \(typeID)")
+        types[typeID]?.name ?? String(localized: "Type \(typeID)")
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: EVESpacing.lg) {
             header
+            if isRestored && !isStale {
+                Label("Your last forged fit, recalculated with today’s skills and assets.", systemImage: "clock.arrow.circlepath")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             if isStale {
                 Label("Options changed since this fit was forged — press Forge to rebuild.", systemImage: "arrow.clockwise")
                     .font(.caption)
@@ -304,7 +322,7 @@ private struct HangarForgeResultView: View {
             Spacer()
             Button {
                 NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(EFTSerializer.export(fitting: entry, typeNames: catalog.types.mapValues(\.name)),
+                NSPasteboard.general.setString(EFTSerializer.export(fitting: entry, typeNames: types.mapValues(\.name)),
                                                forType: .string)
                 copied = true
             } label: {
@@ -312,7 +330,9 @@ private struct HangarForgeResultView: View {
             }
             .help("Copy the fit in EFT format, to paste into EVE or another fitting tool")
             Button {
-                AppRouter.shared.pendingSimulatorFitting = entry
+                var charges: [String: Int] = [:]
+                for pick in result.picks { charges[pick.flag] = pick.chargeTypeID }
+                AppRouter.shared.pendingSimulatorFitting = SimulatorHandoff(fitting: entry, charges: charges)
                 AppRouter.shared.pendingSection = .fittings
             } label: {
                 Label("Open in Simulator", systemImage: "slider.horizontal.3")
@@ -465,7 +485,7 @@ private struct HangarForgeResultView: View {
                 VStack(alignment: .leading, spacing: EVESpacing.xxs) {
                     ForEach(counts.keys.sorted(), id: \.self) { typeID in
                         row(typeID: typeID, title: "\(counts[typeID]!.count)× \(name(typeID))", detail: nil,
-                            without: typeID == counts.keys.sorted().first ? result.withoutDrones : nil)
+                            without: result.withoutDrones[typeID])
                     }
                 }
             }
@@ -536,7 +556,8 @@ private struct HangarForgeResultView: View {
         let place = places[source.placeID]?.name ?? String(localized: "another location")
         if let shipID = source.fittedToItemID,
            let ship = holdings.first(where: { $0.itemID == shipID }) {
-            return String(localized: "fitted to your \(name(ship.typeID)) · \(place)")
+            let shipName = catalog.hulls.first { $0.id == shipID }?.displayName ?? name(ship.typeID)
+            return String(localized: "fitted to your \(shipName) · \(place)")
         }
         return source.isCorporation ? String(localized: "corp hangar · \(place)") : place
     }

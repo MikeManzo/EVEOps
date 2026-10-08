@@ -143,6 +143,12 @@ private let forgeHull = HangarForgeHull(itemID: hullItem, typeID: thorax, placeI
 /// Stock in the hull's station: type → quantity.
 private func forge(_ stock: [Int: Int], hull hullType: ESIType = hull(), options: HangarForgeOptions = .init(),
                    requirements: [Int: [Int: Int]] = [:], skills: [Int: Int] = [:]) async throws -> HangarForgeResult {
+    let (input, types) = forgeInput(stock, hull: hullType, requirements: requirements, skills: skills)
+    return try await HangarForgeEngine.build(input, options: options, evaluate: fakeDogma(types))
+}
+
+private func forgeInput(_ stock: [Int: Int], hull hullType: ESIType = hull(), requirements: [Int: [Int: Int]] = [:],
+                        skills: [Int: Int] = [:]) -> (HangarForgeInput, [Int: ESIType]) {
     var types = catalog
     types[thorax] = hullType
     var holdings = [holding(hullItem, type: thorax, assembled: true)]
@@ -154,7 +160,7 @@ private func forge(_ stock: [Int: Int], hull hullType: ESIType = hull(), options
         requirements: types.mapValues { _ in [:] }.merging(requirements) { _, new in new },
         skills: skills, implants: []
     )
-    return try await HangarForgeEngine.build(input, options: options, evaluate: fakeDogma(types))
+    return (input, types)
 }
 
 private func modules(_ result: HangarForgeResult, _ category: SimSlotCategory) -> [Int] {
@@ -285,7 +291,8 @@ private func modules(_ result: HangarForgeResult, _ category: SimSlotCategory) -
                                  options: .init(goal: .damage))
     #expect(result.drones == [lightDrone, mediumDrone, mediumDrone].sorted())
     #expect(result.performance.dps == 70)
-    #expect(result.withoutDrones?.dps == 0)
+    #expect(result.withoutDrones[mediumDrone]?.dps == 10)
+    #expect(result.withoutDrones[lightDrone]?.dps == 60)
 }
 
 @Test func refusesHullsItCantBuild() async throws {
@@ -332,4 +339,26 @@ private func performance(dps: Double = 0, ehp: Double = 10_000, tank: Double = 0
     let propulsion = (without: performance(speed: 300), with: performance(speed: 1_500))
     #expect(HangarForgeEngine.headline(without: propulsion.without, with: propulsion.with, goal: .balanced) == nil)
     #expect(HangarForgeEngine.headline(without: propulsion.without, with: propulsion.with, goal: .kite) == .speed)
+}
+
+// MARK: - Restore
+
+@Test func restoreRecalculatesASavedFitWithoutSearching() async throws {
+    let stock = [gun: 2, ammo: 1_000, gyro: 2, lightDrone: 5]
+    let forged = try await forge(stock, hull: hull(bandwidth: 25), options: .init(goal: .damage))
+    let (input, types) = forgeInput(stock, hull: hull(bandwidth: 25))
+    let restored = try #require(try await HangarForgeEngine.restore(forged.saved, input: input, options: .init(goal: .damage),
+                                                                    evaluate: fakeDogma(types)))
+    #expect(restored.picks.map(\.typeID) == forged.picks.map(\.typeID))
+    #expect(restored.drones == forged.drones)
+    #expect(restored.performance == forged.performance)
+}
+
+@Test func restoreDropsAFitWhosePartsAreGone() async throws {
+    let forged = try await forge([gun: 2, ammo: 1_000, gyro: 2], options: .init(goal: .damage))
+    #expect(forged.picks.contains { $0.typeID == gyro })
+    let (input, types) = forgeInput([gun: 2, ammo: 1_000, gyro: 1])      // sold a gyro since
+    let restored = try await HangarForgeEngine.restore(forged.saved, input: input, options: .init(goal: .damage),
+                                                       evaluate: fakeDogma(types))
+    #expect(restored == nil)
 }

@@ -14,6 +14,14 @@ import OSLog
 import UserNotifications
 import CoreServices
 
+/// A fit handed to the Simulator from another screen.
+struct SimulatorHandoff: Hashable {
+    let fitting: SavedFittingEntry
+    /// Slot flag → charge type, loaded after the fit so each module gets its own ammo
+    /// (a saved fitting only lists charges in cargo, and the first one a module takes wins).
+    var charges: [String: Int] = [:]
+}
+
 // Shared routing state — lets AppDelegate hand a file URL to any view in the hierarchy.
 @Observable
 final class AppRouter {
@@ -50,7 +58,7 @@ final class AppRouter {
 
     /// A fit for the Simulator to load, switching the Fittings screen to its Simulate tab —
     /// set by the Ready Room's Hangar Forge. Cleared when consumed.
-    var pendingSimulatorFitting: SavedFittingEntry?
+    var pendingSimulatorFitting: SimulatorHandoff?
 
     /// Bumped by the "Refresh Current View" command (⌘K) and the ⌘R shortcut.
     /// Views that show live data observe this and re-fetch.

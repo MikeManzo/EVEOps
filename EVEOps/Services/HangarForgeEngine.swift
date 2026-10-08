@@ -16,7 +16,7 @@ import Foundation
 /// weighted sum of log-scaled damage, defense and speed: logs make each one a ratio, so
 /// doubling DPS is worth the same on a frigate as on a battleship, and no stat gets traded
 /// all the way down to zero for a little more of another.
-nonisolated enum HangarForgeGoal: String, CaseIterable, Sendable, Identifiable {
+nonisolated enum HangarForgeGoal: String, CaseIterable, Codable, Sendable, Identifiable {
     case balanced, damage, tank, kite
 
     var id: String { rawValue }
@@ -43,7 +43,7 @@ nonisolated enum HangarForgeGoal: String, CaseIterable, Sendable, Identifiable {
     var requiresCapStable: Bool { self == .kite }
 }
 
-nonisolated struct HangarForgeOptions: Sendable, Hashable {
+nonisolated struct HangarForgeOptions: Codable, Sendable, Hashable {
     var goal: HangarForgeGoal = .balanced
     var requireCapStable = false
     /// Use parts from every station, not just the one the hull is in.
@@ -116,8 +116,8 @@ nonisolated struct HangarForgeResult: Sendable {
     let performance: FitPerformance
     let picks: [HangarForgePick]
     let drones: [Int]
-    /// The fit with no drones launched, when it launches some.
-    let withoutDrones: FitPerformance?
+    /// Drone type → the fit without that type's drones in space.
+    let withoutDrones: [Int: FitPerformance]
     /// Slots left empty because nothing owned improves the fit there.
     let openSlots: [SimSlotCategory: Int]
     /// Type → units the fit uses: one per module and drone, and every in-scope unit of a
@@ -128,6 +128,18 @@ nonisolated struct HangarForgeResult: Sendable {
     let evaluations: Int
     /// True when the search stopped on its budget rather than running out of improvements.
     let hitBudget: Bool
+    /// The fit in a form that can be stored and later `restore`d.
+    let saved: HangarForgeSavedFit
+}
+
+/// A forged fit's modules, charges and drones, without its stats — what's kept between
+/// launches. Stats, sources and contributions are recalculated on restore.
+nonisolated struct HangarForgeSavedFit: Codable, Sendable, Hashable {
+    /// Slot category raw value → module types.
+    var modules: [String: [Int]]
+    /// Module type → charge type.
+    var charges: [Int: Int]
+    var drones: [Int]
 }
 
 nonisolated enum HangarForgeFailure: Error, Equatable, LocalizedError {
@@ -287,6 +299,28 @@ nonisolated enum HangarForgeEngine {
             if let score, score > best?.score ?? -.infinity { best = (loadout, score) }
         }
         return try await shop.result(for: best?.loadout ?? ForgeLoadout(), stock: stock)
+    }
+
+    /// A previously forged fit, recalculated against today's skills and stock without
+    /// searching again. Nil when it can no longer be built — a part was sold, moved out
+    /// of scope, or the pilot can't use it any more.
+    static func restore(_ saved: HangarForgeSavedFit, input: HangarForgeInput, options: HangarForgeOptions,
+                        evaluate: @escaping Evaluator) async throws -> HangarForgeResult? {
+        guard let hullType = input.types[input.hull.typeID], input.hull.isSupported, input.hull.isFlyable else { return nil }
+        let stock = stock(for: input.hull, holdings: input.holdings, options: options)
+        let shop = Workshop(input: input, hullType: hullType, stock: stock, options: options,
+                            evaluate: evaluate, progress: nil)
+        var loadout = ForgeLoadout()
+        for (raw, modules) in saved.modules {
+            guard let category = SimSlotCategory(rawValue: raw) else { return nil }
+            loadout.modules[category] = modules.sorted()
+        }
+        loadout.charges = saved.charges
+        loadout.drones = saved.drones.sorted()
+        let droneCounts = Dictionary(grouping: loadout.drones, by: \.self).mapValues(\.count)
+        guard shop.allows(loadout), droneCounts.allSatisfy({ $0.value <= shop.droneStock[$0.key] ?? 0 }),
+              try await shop.score(loadout) != nil else { return nil }
+        return try await shop.result(for: loadout, stock: stock)
     }
 }
 
@@ -741,9 +775,14 @@ private nonisolated final class Workshop {
         for (category, modules) in loadout.modules {
             for typeID in Set(modules) { without[typeID] = loadout.removing(typeID, from: category) }
         }
-        var noDrones = loadout
-        noDrones.drones = []
-        try await scores([loadout, noDrones] + Array(without.values), force: true)
+        // And each drone type: the fit without it in space.
+        var withoutDrone: [Int: ForgeLoadout] = [:]
+        for typeID in Set(loadout.drones) {
+            var less = loadout
+            less.drones.removeAll { $0 == typeID }
+            withoutDrone[typeID] = less
+        }
+        try await scores([loadout] + Array(without.values) + Array(withoutDrone.values), force: true)
 
         let stats = cache[loadout] ?? SimStats()
         let fit = dogmaFit(loadout)
@@ -766,9 +805,13 @@ private nonisolated final class Workshop {
         return HangarForgeResult(
             hull: input.hull, options: options, fit: fit, stats: stats, performance: FitPerformance(stats),
             picks: picks, drones: loadout.drones,
-            withoutDrones: loadout.drones.isEmpty ? nil : cache[noDrones].map(FitPerformance.init),
+            withoutDrones: withoutDrone.compactMapValues { cache[$0].map(FitPerformance.init) },
             openSlots: open, needs: needs, sources: stock.filter { needs[$0.key] != nil },
-            evaluations: evaluations, hitBudget: hitBudget
+            evaluations: evaluations, hitBudget: hitBudget,
+            saved: HangarForgeSavedFit(
+                modules: Dictionary(uniqueKeysWithValues: loadout.modules.map { ($0.key.rawValue, $0.value) }),
+                charges: loadout.charges, drones: loadout.drones
+            )
         )
     }
 }
