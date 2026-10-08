@@ -4,12 +4,12 @@
         <title>EVEOps</title>
         <item>
             <title>0.9.15</title>
-            <pubDate>Thu, 08 Oct 2026 16:10:28 -0400</pubDate>
+            <pubDate>Thu, 08 Oct 2026 16:31:04 -0400</pubDate>
             <link>https://github.com/MikeManzo/EVEOps/releases/tag/v0.9.15</link>
             <sparkle:informationalUpdate>
                 <sparkle:belowVersion>159</sparkle:belowVersion>
             </sparkle:informationalUpdate>
-            <sparkle:version>171</sparkle:version>
+            <sparkle:version>173</sparkle:version>
             <sparkle:shortVersionString>0.9.15</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
             <description><![CDATA[<p>Ready Room: Hangar Forge (new) --&gt; A new tab in the Ready Room builds the strongest fit for any ship you own from the modules, ammo and drones you already have. Pick a class and a hull, then a goal: Balanced, Damage, Tank or Kite. Each module shows what it adds to the fit, such as &quot;+18% DPS&quot; or &quot;+29% EHP&quot;, and slots that nothing improves are left open.</p>
@@ -18,7 +18,7 @@
 <p>Hangar Forge: Buy to finish --&gt; Set a budget from 5M to 1B ISK and the forge can buy modules and rigs at Jita prices to fill empty or weak slots. Modules to buy are tagged with their price, and a Buy list shows the total with a Copy Multibuy button for EVE.</p>
 <p>Hangar Forge: Against your saved fits --&gt; The forged fit is shown beside your saved fits for the same ship on DPS, EHP, repair and speed, all calculated with your current skills and implants. Click a saved fit to open it in Saved Fits.</p>
 <p>Hangar Forge: Take it with you --&gt; Open the result in the Simulator with every weapon loaded with its chosen ammo, or copy it as EFT. Your last forged fit comes back after you relaunch, recalculated with today&#x27;s skills and assets.</p>]]></description>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.15/EVEOps.dmg" length="36138329" type="application/octet-stream" sparkle:edSignature="7OC9Q438r1rA9oX5I9oTx7JmiEfZtCq9qPH+s/t0FKsIv+AKTx8hzodNHZn0dUyFCwBp5MQHBUPPcAkVxuAYBg=="/>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.15/EVEOps.dmg" length="36138331" type="application/octet-stream" sparkle:edSignature="jQwG1aPw1D8HJEzWcuzOgnGNkguMLHXHRkv35aduBb0l/gjqzP0FpyCgbFrvEb5YyPnTV6SXSQoSVe92OKIeBQ=="/>
         </item>
     </channel>
 </rss>
