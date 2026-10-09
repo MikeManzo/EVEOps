@@ -38,6 +38,7 @@ struct HangarMatrixView: View {
 
     @State private var search = ""
     @State private var picked: CellID?
+    @State private var hoveredCell: CellID?
     /// A pilot picked in the strip: their column is highlighted and rows sort by how
     /// close they are.
     @State private var focusPilot: Int?
@@ -282,6 +283,12 @@ struct HangarMatrixView: View {
             }
             .padding(.bottom, EVESpacing.md)
         }
+        // Resizing the window or sidebar can shift the matrix sideways without a scroll,
+        // so a highlight could stay on a tile that's no longer under the pointer. Drop it;
+        // the next pointer move sets it again from the new layout.
+        .onGeometryChange(for: CGSize.self) { $0.size } action: { _ in
+            hoveredCell = nil
+        }
         .eveCard(cornerRadius: EVERadius.xl)
         .frame(maxHeight: .infinity)
     }
@@ -377,10 +384,27 @@ struct HangarMatrixView: View {
                 detailColumns(row)
             }
 
-            ForEach(service.pilotIDs, id: \.self) { pilot in
-                cell(row, pilot: pilot)
-                    .frame(width: cellWidth, height: 40)
-                    .background(focusPilot == pilot ? palette.accent.opacity(EVEOpacity.faint) : .clear)
+            HStack(spacing: 0) {
+                ForEach(service.pilotIDs, id: \.self) { pilot in
+                    cell(row, pilot: pilot)
+                        .frame(width: cellWidth, height: 40)
+                        .background(focusPilot == pilot ? palette.accent.opacity(EVEOpacity.faint) : .clear)
+                }
+            }
+            // One hover tracker per row, column worked out from the pointer's x. Per-tile
+            // `onHover` regions in this lazy, two-axis scroll view weren't moved when a
+            // resize shifted the content, so the wrong tile lit up.
+            .onContinuousHover { phase in
+                let pilots = service.pilotIDs
+                switch phase {
+                case .active(let location):
+                    let column = Int(location.x / cellWidth)
+                    let id = pilots.indices.contains(column) && row.cells[pilots[column]] != nil
+                        ? CellID(row: row.id, pilot: pilots[column]) : nil
+                    if hoveredCell != id, id != nil || hoveredCell?.row == row.id { hoveredCell = id }
+                case .ended:
+                    if hoveredCell?.row == row.id { hoveredCell = nil }
+                }
             }
 
             VStack(alignment: .leading, spacing: 1) {
@@ -463,7 +487,7 @@ struct HangarMatrixView: View {
                 }
             }
             .buttonStyle(.plain)
-            .eveHoverable(cornerRadius: EVERadius.sm)
+            .eveHoverHighlight(hoveredCell == id, cornerRadius: EVERadius.sm)
             .help(Text("\(name(pilot)) · \(Text(report.tier.title))"))
             .popover(isPresented: Binding(get: { picked == id }, set: { if !$0 { picked = nil } }), arrowEdge: .trailing) {
                 HangarMatrixCellDetail(report: report, pilotName: name(pilot), ownerFittingID: row.fit.owners[pilot],
