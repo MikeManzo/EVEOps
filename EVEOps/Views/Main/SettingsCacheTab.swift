@@ -187,7 +187,7 @@ struct CacheTab: View {
                 Button(isRefreshing ? "Refreshing\u{2026}" : "Refresh All Data Now") {
                     Task {
                         isRefreshing = true
-                        await prefetcher.prefetchAll(accountManager: accountManager)
+                        await prefetcher.prefetchAll(accountManager: accountManager, forceRefresh: true)
                         isRefreshing = false
                     }
                 }

@@ -80,7 +80,7 @@ struct GeneralTab: View {
                     Task {
                         isRefreshing = true
                         await accountManager.refreshPublicInfo()
-                        await prefetcher.prefetchAll(accountManager: accountManager)
+                        await prefetcher.prefetchAll(accountManager: accountManager, forceRefresh: true)
                         isRefreshing = false
                     }
                 }

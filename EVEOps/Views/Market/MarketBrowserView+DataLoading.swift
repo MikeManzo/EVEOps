@@ -77,8 +77,7 @@ extension MarketBrowserView {
         let allOrders = sellOrders + buyOrders
         guard !allOrders.isEmpty else { return }
         let systemIds = Set(allOrders.map { $0.order.systemId })
-        let jumps = await resolveJumps(systemIds: systemIds, originId: origin)
-        for (sysId, count) in jumps { jumpCache[sysId] = count }
+        let jumps = await resolveJumps(systemIds: systemIds, originId: origin, regionId: selectedRegionId)
         sellOrders = sellOrders.map {
             var o = $0; o.jumps = jumps[o.order.systemId] ?? o.jumps; return o
         }
@@ -255,11 +254,9 @@ extension MarketBrowserView {
 
         async let locationNamesTask = resolveLocations(ids: uniqueLocationIds, token: token)
         async let systemDataTask = resolveSystems(ids: uniqueSystemIds)
-        async let jumpsTask = resolveJumps(systemIds: uniqueSystemIds, originId: originId)
+        async let jumpsTask = resolveJumps(systemIds: uniqueSystemIds, originId: originId, regionId: regionOverride ?? selectedRegionId)
 
         let (locationNames, systemData, jumps) = await (locationNamesTask, systemDataTask, jumpsTask)
-
-        for (sysId, count) in jumps { jumpCache[sysId] = count }
 
         func resolve(_ order: ESIRegionMarketOrder) -> ResolvedOrder {
             let (sysName, sec) = systemData[order.systemId] ?? ("Unknown", 0.0)
@@ -316,37 +313,58 @@ extension MarketBrowserView {
         return result
     }
 
-    func resolveJumps(systemIds: Set<Int>, originId: Int?) async -> [Int: Int] {
+    /// Jump counts from `originId` to each system, via the shared `JumpCountCache`.
+    /// Destinations with no stargate route are omitted. All `systemIds` must be in
+    /// `regionId` — Market Browser only ever shows one region's orders.
+    func resolveJumps(systemIds: Set<Int>, originId: Int?, regionId: Int) async -> [Int: Int] {
         guard let origin = originId else { return [:] }
-        var result: [Int: Int] = [:]
-        var toFetch: [Int] = []
+        let routeFlag = "shortest"
+        var known = await JumpCountCache.shared.counts(origin: origin, flag: routeFlag)
+        known[origin] = 0
 
-        for sysId in systemIds {
-            if sysId == origin {
-                result[sysId] = 0
-            } else if let cached = jumpCache[sysId] {
-                result[sysId] = cached
-            } else {
-                toFetch.append(sysId)
+        // Skip destinations stargates can't reach, so they never become 404s that
+        // spend ESI's error budget: everything from wormhole space, and Pochven to or
+        // from anywhere outside it.
+        var toFetch: [Int] = []
+        if !WHSpaceInfo.isWormholeSystem(origin) {
+            var originRegionId: Int?
+            if let system = await UniverseCache.shared.solarSystem(id: origin) {
+                originRegionId = await UniverseCache.shared.constellation(id: system.constellationId)?.regionId
+            }
+            let originInPochven = originRegionId == GalaxyMarketSearchView.pochvenRegionId
+            if (regionId == GalaxyMarketSearchView.pochvenRegionId) == originInPochven {
+                toFetch = systemIds.filter { known[$0] == nil }
             }
         }
 
         // Cap route fetches to avoid hammering the API
         let limited = Array(toFetch.prefix(30))
-        let routes = await withTaskGroup(of: (Int, Int?).self) { group in
+        let fetched: [Int: Int] = await withTaskGroup(of: (Int, Int?).self) { group in
             for destId in limited {
                 group.addTask {
-                    let route: [Int]? = try? await ESIClient.shared.fetch("/route/\(origin)/\(destId)/")
-                    return (destId, route.map { max(0, $0.count - 1) })
+                    do {
+                        let route: [Int] = try await ESIClient.shared.fetch(
+                            "/route/\(origin)/\(destId)/",
+                            queryItems: [URLQueryItem(name: "flag", value: routeFlag)]
+                        )
+                        return (destId, max(0, route.count - 1))
+                    } catch ESIError.serverError(let code, _) where code == 404 {
+                        return (destId, JumpCountCache.unreachable)
+                    } catch {
+                        return (destId, nil) // transient — try again next load
+                    }
                 }
             }
-            var out: [(Int, Int?)] = []
-            for await r in group { out.append(r) }
+            var out: [Int: Int] = [:]
+            for await (destId, jumps) in group { if let jumps { out[destId] = jumps } }
             return out
         }
+        await JumpCountCache.shared.record(origin: origin, flag: routeFlag, fetched)
+        known.merge(fetched) { _, new in new }
 
-        for (sysId, jumps) in routes {
-            if let jumps { result[sysId] = jumps }
+        var result: [Int: Int] = [:]
+        for sysId in systemIds {
+            if let jumps = known[sysId], jumps != JumpCountCache.unreachable { result[sysId] = jumps }
         }
         return result
     }

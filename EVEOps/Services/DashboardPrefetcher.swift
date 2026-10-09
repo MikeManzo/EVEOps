@@ -85,23 +85,42 @@ final class DashboardPrefetcher {
         resolvedNames[id]
     }
 
-    func prefetchAll(accountManager: AccountManager) async {
+    /// Pilots prefetched concurrently by `prefetchAll`.
+    private static let maxConcurrentPilots = 2
+
+    /// Killmails fetched concurrently by the combat insight prefetch.
+    private static let maxConcurrentKillmails = 6
+
+    /// `forceRefresh` wipes every response cache first — only for refreshes the user
+    /// asked for. Launch and background polls leave the cache alone: each entry's
+    /// `Expires` already matches ESI's own server-side cache, so clearing it only
+    /// re-downloads identical data and throws away a warm relaunch.
+    func prefetchAll(accountManager: AccountManager, forceRefresh: Bool = false) async {
         guard !isLoading else { return }
         isLoading = true
         Logger.prefetch.info("Prefetcher: Starting prefetch for \(accountManager.accounts.count) account(s)")
-        await ESIClient.shared.clearAllCaches()
+        if forceRefresh {
+            await ESIClient.shared.clearAllCaches()
+        }
 
+        // A few pilots at a time rather than all at once: each pilot is ~17 requests,
+        // and an unbounded fan-out across many pilots queues anything the user starts
+        // meanwhile (a market search, a fitting) behind hundreds of background calls.
         await withTaskGroup(of: (Int, PrefetchedCharacterData?).self) { group in
-            for account in accountManager.accounts {
+            var pending = accountManager.accounts.makeIterator()
+            func addNext() {
+                guard let account = pending.next() else { return }
                 group.addTask {
                     let data = await self.prefetch(account: account, accountManager: accountManager)
                     return (account.characterID, data)
                 }
             }
+            for _ in 0..<Self.maxConcurrentPilots { addNext() }
             for await (charID, data) in group {
                 if let data {
                     characterData[charID] = data
                 }
+                addNext()
             }
         }
 
@@ -118,6 +137,17 @@ final class DashboardPrefetcher {
             let token = try await accountManager.validToken(for: account)
             let charID = account.characterID
 
+            // Skip endpoints this pilot never granted. Each would be a guaranteed 403,
+            // and 403s spend ESI's shared error budget — with enough pilots that budget
+            // runs out and every request in the app pauses until it resets.
+            let canContracts = account.hasScope("esi-contracts.read_character_contracts.v1")
+            let canIndustry = account.hasScope("esi-industry.read_character_jobs.v1")
+            let canColonies = account.hasScope("esi-planets.manage_planets.v1")
+            let canOrders = account.hasScope("esi-markets.read_character_orders.v1")
+            let canLP = account.hasScope("esi-characters.read_loyalty.v1")
+            let canClones = account.hasScope("esi-clones.read_clones.v1")
+            let canImplants = account.hasScope("esi-clones.read_implants.v1")
+
             async let fetchWallet: Double = ESIClient.shared.fetch(
                 "/characters/\(charID)/wallet/", token: token)
             async let fetchSkills: ESISkillsResponse = ESIClient.shared.fetch(
@@ -130,25 +160,25 @@ final class DashboardPrefetcher {
                 "/characters/\(charID)/ship/", token: token)
             async let fetchOnline: ESICharacterOnline = ESIClient.shared.fetch(
                 "/characters/\(charID)/online/", token: token)
-            async let fetchContracts: [ESIContract] = ESIClient.shared.fetch(
+            async let fetchContracts: [ESIContract] = !canContracts ? [] : ESIClient.shared.fetch(
                 "/characters/\(charID)/contracts/", token: token)
-            async let fetchIndustry: [ESIIndustryJob] = ESIClient.shared.fetch(
+            async let fetchIndustry: [ESIIndustryJob] = !canIndustry ? [] : ESIClient.shared.fetch(
                 "/characters/\(charID)/industry/jobs/", token: token)
-            async let fetchColonies: [ESIColony] = ESIClient.shared.fetch(
+            async let fetchColonies: [ESIColony] = !canColonies ? [] : ESIClient.shared.fetch(
                 "/characters/\(charID)/planets/", token: token)
             async let fetchJournal: [ESIWalletJournalEntry] = ESIClient.shared.fetch(
                 "/characters/\(charID)/wallet/journal/", token: token)
             async let fetchTransactions: [ESIWalletTransaction] = ESIClient.shared.fetch(
                 "/characters/\(charID)/wallet/transactions/", token: token)
-            async let fetchOrders: [ESIMarketOrder] = ESIClient.shared.fetch(
+            async let fetchOrders: [ESIMarketOrder] = !canOrders ? [] : ESIClient.shared.fetch(
                 "/characters/\(charID)/orders/", token: token)
-            async let fetchLP: [ESILoyaltyPoints] = ESIClient.shared.fetch(
+            async let fetchLP: [ESILoyaltyPoints] = !canLP ? [] : ESIClient.shared.fetch(
                 "/characters/\(charID)/loyalty/points/", token: token)
-            async let fetchClones: ESIClonesResponse = ESIClient.shared.fetch(
+            async let fetchClones: ESIClonesResponse? = !canClones ? nil : ESIClient.shared.fetch(
                 "/characters/\(charID)/clones/", token: token)
             async let fetchAttributes: ESICharacterAttributes = ESIClient.shared.fetch(
                 "/characters/\(charID)/attributes/", token: token)
-            async let fetchImplants: [Int] = ESIClient.shared.fetch(
+            async let fetchImplants: [Int] = !canImplants ? [] : ESIClient.shared.fetch(
                 "/characters/\(charID)/implants/", token: token)
             async let fetchPublicInfo: ESICharacterPublic = ESIClient.shared.fetch(
                 "/characters/\(charID)/", bypassCache: true)
@@ -427,13 +457,16 @@ final class DashboardPrefetcher {
 
             guard !account.needsReauth, let token = try? await accountManager.validToken(for: account) else { continue }
 
-            if financeEnabled {
+            if financeEnabled, account.hasScope("esi-assets.read_assets.v1") {
                 await prefetchFinanceInsight(characterName: account.characterName, characterID: account.characterID, data: data, token: token)
             }
             if combatEnabled {
-                await prefetchCombatInsight(characterName: account.characterName, characterID: account.characterID, token: token)
+                await prefetchCombatInsight(
+                    characterName: account.characterName, characterID: account.characterID, token: token,
+                    canReadKillmails: account.hasScope("esi-killmails.read_killmails.v1")
+                )
             }
-            if implantsEnabled {
+            if implantsEnabled, account.hasScope("esi-clones.read_implants.v1") {
                 await prefetchImplantsInsight(characterName: account.characterName, characterID: account.characterID, data: data, token: token)
             }
         }
@@ -483,11 +516,11 @@ final class DashboardPrefetcher {
     /// bounded to the 50 most recent killmails — the interactive Killmails tab
     /// still pulls full lifetime history; a briefing summary doesn't need it.
     @available(macOS 26.0, *)
-    private func prefetchCombatInsight(characterName: String, characterID: Int, token: String) async {
+    private func prefetchCombatInsight(characterName: String, characterID: Int, token: String, canReadKillmails: Bool) async {
         var killRefs: [(killmailId: Int, hash: String)] = []
         if let zkbRefs = try? await ZKillboardClient.shared.fetchKillRefs(characterID: characterID), !zkbRefs.isEmpty {
             killRefs = zkbRefs.map { ($0.killmailId, $0.zkb.hash) }
-        } else if let esiRefs: [ESIKillmailRef] = try? await ESIClient.shared.fetchPages(
+        } else if canReadKillmails, let esiRefs: [ESIKillmailRef] = try? await ESIClient.shared.fetchPages(
             "/characters/\(characterID)/killmails/recent/", token: token
         ) {
             killRefs = esiRefs.map { ($0.killmailId, $0.killmailHash) }
@@ -497,7 +530,9 @@ final class DashboardPrefetcher {
 
         var killmails: [(killmail: ESIKillmail, isKill: Bool)] = []
         await withTaskGroup(of: (killmail: ESIKillmail, isKill: Bool)?.self) { group in
-            for ref in bounded {
+            var pending = bounded.makeIterator()
+            func addNext() {
+                guard let ref = pending.next() else { return }
                 group.addTask {
                     guard let km: ESIKillmail = try? await ESIClient.shared.fetch(
                         "/killmails/\(ref.killmailId)/\(ref.hash)/"
@@ -505,7 +540,11 @@ final class DashboardPrefetcher {
                     return (killmail: km, isKill: km.victim.characterId != characterID)
                 }
             }
-            for await entry in group { if let e = entry { killmails.append(e) } }
+            for _ in 0..<Self.maxConcurrentKillmails { addNext() }
+            for await entry in group {
+                if let e = entry { killmails.append(e) }
+                addNext()
+            }
         }
         guard !killmails.isEmpty else { return }
 

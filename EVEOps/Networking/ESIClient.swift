@@ -50,7 +50,43 @@ actor ESIClient {
     private static let datasource = URLQueryItem(name: "datasource", value: "tranquility")
 
     private let session: URLSession
-    private let decoder: JSONDecoder
+
+    // MARK: Decoding
+
+    // ESI dates are ISO 8601 ("2026-10-09T12:34:56Z"). Building a formatter is far
+    // more expensive than using one, and a wallet journal alone carries thousands of
+    // dates, so both are built once and shared. They're never mutated after setup,
+    // which Foundation documents as safe to use from multiple threads.
+    private nonisolated(unsafe) static let isoFormatter = ISO8601DateFormatter()
+    private nonisolated static let fallbackFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd'T'HH:mm:ss'Z'"
+        f.timeZone = TimeZone(identifier: "UTC")
+        return f
+    }()
+
+    /// Decoding runs outside the actor (see `decode`) so one large response — a
+    /// region's market orders, a full wallet journal — never stalls every other
+    /// request waiting on `ESIClient`.
+    private nonisolated static let decoder: JSONDecoder = {
+        let d = JSONDecoder()
+        d.keyDecodingStrategy = .convertFromSnakeCase
+        d.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let dateString = try container.decode(String.self)
+            if let date = ESIClient.isoFormatter.date(from: dateString) ?? ESIClient.fallbackFormatter.date(from: dateString) {
+                return date
+            }
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Cannot decode date: \(dateString)")
+        }
+        return d
+    }()
+
+    private nonisolated static func decode<T: Decodable>(_ type: T.Type, from data: Data) throws -> T {
+        do { return try decoder.decode(T.self, from: data) }
+        catch { throw ESIError.decodingError(error) }
+    }
 
     // MARK: Response cache
 
@@ -188,23 +224,6 @@ actor ESIClient {
             "User-Agent": HTTPClientInfo.userAgent
         ]
         self.session = URLSession(configuration: config)
-
-        self.decoder = JSONDecoder()
-        self.decoder.keyDecodingStrategy = .convertFromSnakeCase
-        self.decoder.dateDecodingStrategy = .custom { decoder in
-            let container = try decoder.singleValueContainer()
-            let dateString = try container.decode(String.self)
-            if let date = ISO8601DateFormatter().date(from: dateString) {
-                return date
-            }
-            let formatter = DateFormatter()
-            formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss'Z'"
-            formatter.timeZone = TimeZone(identifier: "UTC")
-            if let date = formatter.date(from: dateString) {
-                return date
-            }
-            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Cannot decode date: \(dateString)")
-        }
     }
 
     // MARK: URL / request helpers
@@ -283,15 +302,26 @@ actor ESIClient {
 
     // MARK: GET (single resource)
 
-    func fetch<T: Decodable>(_ endpoint: String, token: String? = nil, queryItems: [URLQueryItem]? = nil, bypassCache: Bool = false) async throws -> T {
-        guard let url = makeURL(endpoint, extra: queryItems) else { throw ESIError.invalidURL }
+    /// A response body and where it came from. A cached body was stored by an earlier
+    /// call that may have decoded a different type from the same URL, so a decode
+    /// failure on one means "drop the entry and re-request", not "bad data".
+    private struct RawResponse: Sendable {
+        let data: Data
+        let cacheKey: String
+        let fromCache: Bool
+        let totalPages: Int
+    }
+
+    /// Cache lookup, revalidation, network, and cache store for one GET — everything
+    /// that touches actor state. Decoding is left to the nonisolated caller.
+    /// `cacheMultiPage: false` stores only single-page results (see `fetchPages`).
+    private func loadRaw(_ url: URL, endpoint: String, token: String?, bypassCache: Bool, cacheMultiPage: Bool) async throws -> RawResponse {
         let cacheKey = url.absoluteString
         let cached = responseCache[cacheKey]
 
         // Fast path: unexpired cache entry.
-        if !bypassCache, let cached, cached.expires > Date(),
-           let decoded = try? decoder.decode(T.self, from: cached.data) {
-            return decoded
+        if !bypassCache, let cached, cached.expires > Date() {
+            return RawResponse(data: cached.data, cacheKey: cacheKey, fromCache: true, totalPages: 1)
         }
 
         await awaitErrorBudget()
@@ -317,40 +347,61 @@ actor ESIClient {
 
         // Not modified — serve the cached body, refresh its freshness window.
         if http.statusCode == 304, let cached {
-            if let decoded = try? decoder.decode(T.self, from: cached.data) {
-                responseCache[cacheKey] = CachedResponse(
-                    data: cached.data,
-                    expires: Self.futureExpiry(from: http) ?? cached.expires,
-                    etag: http.value(forHTTPHeaderField: "ETag") ?? cached.etag,
-                    stored: Date()
-                )
-                return decoded
-            }
-            // Cached bytes don't match the requested type (two call sites, one URL):
-            // drop the entry and re-request without revalidation.
-            responseCache[cacheKey] = nil
-            return try await fetch(endpoint, token: token, queryItems: queryItems, bypassCache: true)
+            responseCache[cacheKey] = CachedResponse(
+                data: cached.data,
+                expires: Self.futureExpiry(from: http) ?? cached.expires,
+                etag: http.value(forHTTPHeaderField: "ETag") ?? cached.etag,
+                stored: Date()
+            )
+            return RawResponse(data: cached.data, cacheKey: cacheKey, fromCache: true, totalPages: 1)
         }
 
         try await validate(http, data: data, endpoint: endpoint)
 
         // Store: keep the ETag even without an Expires so the next call can revalidate.
-        let etag = http.value(forHTTPHeaderField: "ETag")
-        if let expiry = Self.futureExpiry(from: http) {
-            responseCache[cacheKey] = CachedResponse(data: data, expires: expiry, etag: etag, stored: Date())
-            notePersistableWrite()
-        } else if let etag {
-            responseCache[cacheKey] = CachedResponse(data: data, expires: Date(), etag: etag, stored: Date())
-            notePersistableWrite()
+        let totalPages = Int(http.value(forHTTPHeaderField: "X-Pages") ?? "1") ?? 1
+        if cacheMultiPage || totalPages == 1 {
+            let etag = http.value(forHTTPHeaderField: "ETag")
+            if let expiry = Self.futureExpiry(from: http) {
+                responseCache[cacheKey] = CachedResponse(data: data, expires: expiry, etag: etag, stored: Date())
+                notePersistableWrite()
+            } else if let etag {
+                responseCache[cacheKey] = CachedResponse(data: data, expires: Date(), etag: etag, stored: Date())
+                notePersistableWrite()
+            }
         }
 
-        do { return try decoder.decode(T.self, from: data) }
-        catch { throw ESIError.decodingError(error) }
+        return RawResponse(data: data, cacheKey: cacheKey, fromCache: false, totalPages: totalPages)
+    }
+
+    private func dropCacheEntry(_ key: String) {
+        responseCache[key] = nil
+    }
+
+    @concurrent
+    nonisolated func fetch<T: Decodable>(_ endpoint: String, token: String? = nil, queryItems: [URLQueryItem]? = nil, bypassCache: Bool = false) async throws -> T {
+        guard let url = makeURL(endpoint, extra: queryItems) else { throw ESIError.invalidURL }
+        let raw = try await loadRaw(url, endpoint: endpoint, token: token, bypassCache: bypassCache, cacheMultiPage: true)
+        do {
+            return try Self.decode(T.self, from: raw.data)
+        } catch {
+            guard raw.fromCache else { throw error }
+            // Cached bytes don't match the requested type (two call sites, one URL):
+            // drop the entry and re-request without revalidation.
+            await dropCacheEntry(raw.cacheKey)
+            return try await fetch(endpoint, token: token, queryItems: queryItems, bypassCache: true)
+        }
     }
 
     // MARK: Mutating verbs
 
-    func post<Body: Encodable, Response: Decodable>(_ endpoint: String, body: Body, token: String? = nil, queryItems: [URLQueryItem]? = nil) async throws -> Response {
+    @concurrent
+    nonisolated func post<Body: Encodable, Response: Decodable>(_ endpoint: String, body: Body, token: String? = nil, queryItems: [URLQueryItem]? = nil) async throws -> Response {
+        let data = try await postRaw(endpoint, body: body, token: token, queryItems: queryItems)
+        return try Self.decode(Response.self, from: data)
+    }
+
+    private func postRaw<Body: Encodable>(_ endpoint: String, body: Body, token: String?, queryItems: [URLQueryItem]?) async throws -> Data {
         guard let url = makeURL(endpoint, extra: queryItems) else { throw ESIError.invalidURL }
 
         let encoder = JSONEncoder()
@@ -370,7 +421,7 @@ actor ESIClient {
         guard let http = response as? HTTPURLResponse else { throw ESIError.noData }
         noteResponse(http)
         try await validate(http, data: data, endpoint: endpoint)
-        do { return try decoder.decode(Response.self, from: data) } catch { throw ESIError.decodingError(error) }
+        return data
     }
 
     /// PUT with JSON body, discards response body (for 204 responses)
@@ -453,87 +504,50 @@ actor ESIClient {
 
     // MARK: GET (paginated)
 
-    func fetchPages<T: Decodable>(_ endpoint: String, token: String? = nil, bypassCache: Bool = false) async throws -> [T] {
+    @concurrent
+    nonisolated func fetchPages<T: Decodable>(_ endpoint: String, token: String? = nil, bypassCache: Bool = false) async throws -> [T] {
         guard let firstURL = makeURL(endpoint, page: 1) else { throw ESIError.invalidURL }
-        let cacheKey = firstURL.absoluteString
-        let cached = responseCache[cacheKey]
+        // Only single-page results are ever cached; a multi-page set has no single
+        // body to store and revalidate against.
+        let first = try await loadRaw(firstURL, endpoint: endpoint, token: token, bypassCache: bypassCache, cacheMultiPage: false)
 
-        // Fast path — only single-page results are ever cached (see below).
-        if !bypassCache, let cached, cached.expires > Date(),
-           let results = try? decoder.decode([T].self, from: cached.data) {
-            return results
-        }
-
-        await awaitErrorBudget()
-
-        var request = makeRequest(firstURL, method: "GET", token: token)
-        if bypassCache {
-            request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
-        } else if let etag = cached?.etag {
-            request.setValue(etag, forHTTPHeaderField: "If-None-Match")
-        }
-
-        let (data, http): (Data, HTTPURLResponse)
-        do { (data, http) = try await send(request, cacheKey: cacheKey, coalesce: token == nil) } catch { throw ESIError.networkError(error) }
-
-        noteResponse(http)
-
-        if http.statusCode == 304, let cached {
-            if let results = try? decoder.decode([T].self, from: cached.data) {
-                responseCache[cacheKey] = CachedResponse(
-                    data: cached.data,
-                    expires: Self.futureExpiry(from: http) ?? cached.expires,
-                    etag: http.value(forHTTPHeaderField: "ETag") ?? cached.etag,
-                    stored: Date()
-                )
-                return results
-            }
-            responseCache[cacheKey] = nil
+        var results: [T]
+        do {
+            results = try Self.decode([T].self, from: first.data)
+        } catch {
+            guard first.fromCache else { throw error }
+            await dropCacheEntry(first.cacheKey)
             return try await fetchPages(endpoint, token: token, bypassCache: true)
         }
 
-        try await validate(http, data: data, endpoint: endpoint)
-
-        var results: [T] = try decoder.decode([T].self, from: data)
-        let totalPages = Int(http.value(forHTTPHeaderField: "X-Pages") ?? "1") ?? 1
-
-        // Only single-page responses are cached; a multi-page set has no single
-        // body to store and revalidate against.
-        if totalPages == 1 {
-            let etag = http.value(forHTTPHeaderField: "ETag")
-            if let expiry = Self.futureExpiry(from: http) {
-                responseCache[cacheKey] = CachedResponse(data: data, expires: expiry, etag: etag, stored: Date())
-                notePersistableWrite()
-            } else if let etag {
-                responseCache[cacheKey] = CachedResponse(data: data, expires: Date(), etag: etag, stored: Date())
-                notePersistableWrite()
-            }
-        }
-
-        if totalPages > 1 {
-            try await withThrowingTaskGroup(of: [T].self) { group in
-                for page in 2...totalPages {
-                    group.addTask {
-                        await self.awaitErrorBudget()
-                        guard let pageURL = self.makeURL(endpoint, page: page) else { throw ESIError.invalidURL }
-                        let req = self.makeRequest(pageURL, method: "GET", token: token)
-                        let (pageData, pageResponse) = try await self.session.data(for: req)
-                        guard let pageHTTP = pageResponse as? HTTPURLResponse else { throw ESIError.noData }
-                        await self.noteResponse(pageHTTP)
-                        guard pageHTTP.statusCode == 200 else {
-                            if pageHTTP.statusCode == 401 { throw ESIError.unauthorized }
-                            throw ESIError.noData
-                        }
-                        return try self.decoder.decode([T].self, from: pageData)
-                    }
-                }
-                for try await pageResults in group {
-                    results.append(contentsOf: pageResults)
+        guard first.totalPages > 1 else { return results }
+        try await withThrowingTaskGroup(of: [T].self) { group in
+            for page in 2...first.totalPages {
+                group.addTask {
+                    let pageData = try await self.loadPage(endpoint, page: page, token: token)
+                    return try Self.decode([T].self, from: pageData)
                 }
             }
+            for try await pageResults in group {
+                results.append(contentsOf: pageResults)
+            }
         }
-
         return results
+    }
+
+    /// Pages 2…N of a paginated GET. Never cached — see `fetchPages`.
+    private func loadPage(_ endpoint: String, page: Int, token: String?) async throws -> Data {
+        await awaitErrorBudget()
+        guard let pageURL = makeURL(endpoint, page: page) else { throw ESIError.invalidURL }
+        let req = makeRequest(pageURL, method: "GET", token: token)
+        let (pageData, pageResponse) = try await session.data(for: req)
+        guard let pageHTTP = pageResponse as? HTTPURLResponse else { throw ESIError.noData }
+        noteResponse(pageHTTP)
+        guard pageHTTP.statusCode == 200 else {
+            if pageHTTP.statusCode == 401 { throw ESIError.unauthorized }
+            throw ESIError.noData
+        }
+        return pageData
     }
 
     // MARK: Cache maintenance

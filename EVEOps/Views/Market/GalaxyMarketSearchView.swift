@@ -157,9 +157,8 @@ struct GalaxyMarketSearchView: View {
     @State var searchError: String?
     @State var galaxyTask: Task<Void, Never>?
 
-    // Jump routing
+    // Jump routing (counts are cached in `JumpCountCache`)
     @State var characterSystemId: Int?
-    @State var jumpCache: [Int: Int] = [:]
 
     // Sorting & selection (results table)
     @State var sortOrder: [KeyPathComparator<GalaxyOrder>] = [KeyPathComparator(\.price)]

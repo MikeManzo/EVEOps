@@ -63,9 +63,8 @@ struct MarketBrowserView: View {
     @State var averagePrice: Double?
     @State var marketPrices: [Int: ESIMarketPrice] = [:]
 
-    // Jump cache
+    // Jump counts (cached in JumpCountCache)
     @State var characterSystemId: Int?
-    @State var jumpCache: [Int: Int] = [:]
     @State var regionManuallyOverridden = false
 
     // UI state

@@ -15,7 +15,6 @@ import FoundationModels
 extension MarketBrowserView {
     func onRegionChanged() {
         regionManuallyOverridden = true
-        jumpCache.removeAll()
         insightResetKey = ""
         let regionId = selectedRegionId
         if let typeId = selectedTypeId {

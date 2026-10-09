@@ -65,4 +65,11 @@ final class StoredAccount {
     var portraitImageURL: URL? {
         URL(string: "https://images.evetech.net/characters/\(characterID)/portrait?size=128")
     }
+
+    /// False only when this pilot's granted scopes are known and `scope` isn't one of
+    /// them. Pilots saved before scopes were recorded have an empty list, which means
+    /// "unknown" — those requests still go out, as before.
+    func hasScope(_ scope: String) -> Bool {
+        scopes.isEmpty || scopes.contains(scope)
+    }
 }

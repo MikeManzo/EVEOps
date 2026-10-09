@@ -84,7 +84,7 @@ struct IdleCapacityView: View {
     private func refresh() async {
         isRefreshing = true
         defer { isRefreshing = false }
-        await prefetcher.prefetchAll(accountManager: accountManager)
+        await prefetcher.prefetchAll(accountManager: accountManager, forceRefresh: true)
         await loadExtras()
     }
 

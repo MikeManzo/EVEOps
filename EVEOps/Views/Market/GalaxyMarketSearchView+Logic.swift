@@ -237,39 +237,52 @@ extension GalaxyMarketSearchView {
         guard let originId = characterSystemId else { return }
 
         isComputingJumps = true
-        let uniqueDestSystems = Array(Set(topPairs.map { $0.order.systemId }))
         let routeFlag = secureRoute ? "secure" : "shortest"
-        var newCache = jumpCache
+        var known = await JumpCountCache.shared.counts(origin: originId, flag: routeFlag)
+        known[originId] = 0
 
-        var toFetch: [Int] = []
-        for destId in uniqueDestSystems {
-            if destId == originId {
-                newCache[destId] = 0
-            } else if newCache[destId] == nil {
-                toFetch.append(destId)
-            }
+        // Skip destinations stargates can't reach, so they never become 404s that
+        // spend ESI's error budget: everything from wormhole space, and Pochven to or
+        // from anywhere outside it.
+        let destRegions = Dictionary(topPairs.map { ($0.order.systemId, $0.regionId) }, uniquingKeysWith: { a, _ in a })
+        let toFetch: [Int]
+        if WHSpaceInfo.isWormholeSystem(originId) {
+            toFetch = []
+        } else {
+            let originInPochven = await regionId(ofSystem: originId) == Self.pochvenRegionId
+            toFetch = destRegions
+                .filter { destId, regionId in
+                    known[destId] == nil && (regionId == Self.pochvenRegionId) == originInPochven
+                }
+                .map(\.key)
         }
 
-        let jumpResults = await withTaskGroup(of: (Int, Int?).self) { group in
+        let fetched: [Int: Int] = await withTaskGroup(of: (Int, Int?).self) { group in
             for destId in toFetch {
                 group.addTask {
-                    let route: [Int]? = try? await ESIClient.shared.fetch(
-                        "/route/\(originId)/\(destId)/",
-                        queryItems: [URLQueryItem(name: "flag", value: routeFlag)]
-                    )
-                    return (destId, route.map { max(0, $0.count - 1) })
+                    do {
+                        let route: [Int] = try await ESIClient.shared.fetch(
+                            "/route/\(originId)/\(destId)/",
+                            queryItems: [URLQueryItem(name: "flag", value: routeFlag)]
+                        )
+                        return (destId, max(0, route.count - 1))
+                    } catch ESIError.serverError(let code, _) where code == 404 {
+                        return (destId, JumpCountCache.unreachable)
+                    } catch {
+                        return (destId, nil) // transient — try again next search
+                    }
                 }
             }
-            var out: [(Int, Int?)] = []
-            for await r in group { out.append(r) }
+            var out: [Int: Int] = [:]
+            for await (destId, jumps) in group { if let jumps { out[destId] = jumps } }
             return out
         }
-        for (sysId, j) in jumpResults { if let j { newCache[sysId] = j } }
-        jumpCache = newCache
+        await JumpCountCache.shared.record(origin: originId, flag: routeFlag, fetched)
+        known.merge(fetched) { _, new in new }
 
         var withJumps: [GalaxyOrder] = initialOrders.map { order in
             var updated = order
-            updated.jumps = newCache[order.order.systemId]
+            updated.jumps = known[order.order.systemId].flatMap { $0 == JumpCountCache.unreachable ? nil : $0 }
             return updated
         }
         if maxJumps > 0 {
@@ -280,6 +293,14 @@ extension GalaxyMarketSearchView {
     }
 
     // MARK:  Location Helpers
+
+    /// Pochven's gates connect only to each other; ESI has no route in or out.
+    static let pochvenRegionId = 10000070
+
+    func regionId(ofSystem systemId: Int) async -> Int? {
+        guard let system = await UniverseCache.shared.solarSystem(id: systemId) else { return nil }
+        return await UniverseCache.shared.constellation(id: system.constellationId)?.regionId
+    }
 
     func loadCharacterLocation() {
         if let account = accountManager.selectedAccount,

@@ -304,11 +304,11 @@ final class AccountManager {
     }
 
     /// Fetches current public ESI data for all accounts and unconditionally updates
-    /// corporation and alliance fields. Clears all response caches first so no layer
-    /// of HTTP or in-memory caching can serve stale data.
+    /// corporation and alliance fields. Every fetch bypasses the response cache, so no
+    /// layer of HTTP or in-memory caching can serve stale data — without clearing the
+    /// whole cache for everything else.
     func refreshPublicInfo() async {
         guard !accounts.isEmpty else { return }
-        await ESIClient.shared.clearAllCaches()
         for account in accounts {
             guard let charInfo: ESICharacterPublic = try? await ESIClient.shared.fetch(
                 "/characters/\(account.characterID)/", bypassCache: true
