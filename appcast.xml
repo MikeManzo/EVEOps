@@ -3,22 +3,17 @@
     <channel>
         <title>EVEOps</title>
         <item>
-            <title>0.9.15.1</title>
-            <pubDate>Fri, 09 Oct 2026 14:52:52 -0400</pubDate>
-            <link>https://github.com/MikeManzo/EVEOps/releases/tag/v0.9.15.1</link>
+            <title>0.9.15.2</title>
+            <pubDate>Fri, 09 Oct 2026 15:39:19 -0400</pubDate>
+            <link>https://github.com/MikeManzo/EVEOps/releases/tag/v0.9.15.2</link>
             <sparkle:informationalUpdate>
                 <sparkle:belowVersion>159</sparkle:belowVersion>
             </sparkle:informationalUpdate>
-            <sparkle:version>174</sparkle:version>
-            <sparkle:shortVersionString>0.9.15.1</sparkle:shortVersionString>
+            <sparkle:version>175</sparkle:version>
+            <sparkle:shortVersionString>0.9.15.2</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<p>Faster: Galaxy Market Search: The first search after you launch EVEOps no longer stalls. It was slowest for players with many pilots, and now returns results as quickly as later searches.</p>
-<p>Faster: Starting up: Data loaded in your last session is reused after a relaunch rather than downloaded again, so screens fill in sooner. Refresh Now in Settings still loads everything fresh.</p>
-<p>Faster: Jump counts: Galaxy Search and the Market Browser now remember jump counts from your current system, across windows and relaunches, so they appear right away when you search again from the same place.</p>
-<p>Fixed: Jump counts after moving: Galaxy Search could show jump counts from the system you were in before, or ignore a change to the High-sec route setting, until you closed the window. Counts now always match where you are and the route you picked.</p>
-<p>Fixed: Searching from a wormhole or Pochven: Searching while docked or flying in a wormhole or in Pochven could freeze the app&#x27;s data loading for up to a minute. Systems you can&#x27;t reach by stargate now just show no jump count.</p>
-<p>Fixed: Pilots with limited permissions: EVEOps no longer asks the EVE servers for data a pilot hasn&#x27;t granted access to. Those refused requests could build up and briefly pause loading across the whole app.</p>]]></description>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.15.1/EVEOps.dmg" length="35643092" type="application/octet-stream" sparkle:edSignature="22HCSXP+ZwZWjaPbvRpWm8xcRieQ2Y2XAV+FU8HHVQtlRomX+yy5iAbNWdESgObciUXeJisCaUng9mNEZH0EBQ=="/>
+            <description><![CDATA[<p>(Fixed) Hangar Matrix highlights: After you resized the window or the sidebar, hovering over a pilot&#x27;s tile could highlight a different tile, most often with many pilots. The highlight now always follows your pointer.</p>]]></description>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.15.2/EVEOps.dmg" length="35646632" type="application/octet-stream" sparkle:edSignature="RSKhPQqyyHEh+AFccOhYTMDlmXoYRgiIpOCrCDFPuebpb6L81uiNk/LgyLXaNlnu1h04i7+RaN4tLqkIq9vWCA=="/>
         </item>
     </channel>
 </rss>
