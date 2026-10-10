@@ -786,22 +786,9 @@ extension View {
 private struct EVEHoverModifier: ViewModifier {
     let cornerRadius: CGFloat
     let lift: Bool
-    @State private var isHovering = false
-
-    func body(content: Content) -> some View {
-        content
-            .eveHoverHighlight(isHovering, cornerRadius: cornerRadius, lift: lift)
-            .onHover { isHovering = $0 }
-    }
-}
-
-/// The look of `eveHoverable`, driven by the caller's own hover state.
-private struct EVEHoverHighlight: ViewModifier {
-    let isHovering: Bool
-    let cornerRadius: CGFloat
-    let lift: Bool
     @Environment(ThemeManager.self) private var themeManager
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isHovering = false
 
     func body(content: Content) -> some View {
         content
@@ -818,6 +805,7 @@ private struct EVEHoverHighlight: ViewModifier {
             .shadow(color: themeManager.palette.accent.opacity(lift && isHovering ? 0.25 : 0), radius: 8)
             .scaleEffect(lift && isHovering && !reduceMotion ? 1.015 : 1)
             .animation(.easeOut(duration: 0.15), value: isHovering)
+            .onHover { isHovering = $0 }
             .pointerStyle(.link)
     }
 }
@@ -828,12 +816,6 @@ extension View {
     /// follows its shape.
     func eveHoverable(cornerRadius: CGFloat = EVERadius.xl, lift: Bool = false) -> some View {
         modifier(EVEHoverModifier(cornerRadius: cornerRadius, lift: lift))
-    }
-
-    /// `eveHoverable`'s highlight without its own hover tracking — for containers that
-    /// work out which child is hovered themselves (see Hangar Matrix's cell grid).
-    func eveHoverHighlight(_ isHovering: Bool, cornerRadius: CGFloat = EVERadius.xl, lift: Bool = false) -> some View {
-        modifier(EVEHoverHighlight(isHovering: isHovering, cornerRadius: cornerRadius, lift: lift))
     }
 }
 
