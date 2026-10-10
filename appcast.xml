@@ -3,17 +3,17 @@
     <channel>
         <title>EVEOps</title>
         <item>
-            <title>0.9.15.2</title>
-            <pubDate>Fri, 09 Oct 2026 15:39:19 -0400</pubDate>
-            <link>https://github.com/MikeManzo/EVEOps/releases/tag/v0.9.15.2</link>
+            <title>0.9.15.3</title>
+            <pubDate>Sat, 10 Oct 2026 16:10:31 -0400</pubDate>
+            <link>https://github.com/MikeManzo/EVEOps/releases/tag/v0.9.15.3</link>
             <sparkle:informationalUpdate>
                 <sparkle:belowVersion>159</sparkle:belowVersion>
             </sparkle:informationalUpdate>
-            <sparkle:version>175</sparkle:version>
-            <sparkle:shortVersionString>0.9.15.2</sparkle:shortVersionString>
+            <sparkle:version>176</sparkle:version>
+            <sparkle:shortVersionString>0.9.15.3</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<p>(Fixed) Hangar Matrix highlights: After you resized the window or the sidebar, hovering over a pilot&#x27;s tile could highlight a different tile, most often with many pilots. The highlight now always follows your pointer.</p>]]></description>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.15.2/EVEOps.dmg" length="35646632" type="application/octet-stream" sparkle:edSignature="RSKhPQqyyHEh+AFccOhYTMDlmXoYRgiIpOCrCDFPuebpb6L81uiNk/LgyLXaNlnu1h04i7+RaN4tLqkIq9vWCA=="/>
+            <description><![CDATA[<p>(Fixed) Hangar Matrix with many pilots: When the matrix was wider than the window, hovering over or clicking a pilot&#x27;s tile could pick a tile several columns away and open its details. It could happen as soon as the matrix opened, after resizing the window or sidebar, or after switching away and back. Highlights and clicks now always land on the tile under your pointer.</p>]]></description>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.15.3/EVEOps.dmg" length="35644715" type="application/octet-stream" sparkle:edSignature="/fBU9VwD8qF4VnThQyVvuB7/jwB08yYx/v9U13ZZPER0cw+gf8poQBHnvDnpejnIZzdby+1aXpLCx3dhNrbABw=="/>
         </item>
     </channel>
 </rss>
