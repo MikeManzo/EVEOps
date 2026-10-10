@@ -42,23 +42,6 @@ struct HangarMatrixView: View {
     /// close they are.
     @State private var focusPilot: Int?
 
-    #if DEBUG
-    /// Debug builds only: extra matrix columns that repeat the real pilots' cells, so the
-    /// matrix can be made as wide as a many-pilot account's without having those pilots.
-    @AppStorage("debug.hangarMatrix.placeholderPilots") private var placeholderPilots = 0
-    /// Debug builds only: turns off the row-width sizing below, to compare against the
-    /// old misplaced hover and clicks.
-    @AppStorage("debug.hangarMatrix.disableWidthFix") private var disableWidthFix = false
-    #endif
-
-    private var widthFixEnabled: Bool {
-        #if DEBUG
-        return !disableWidthFix
-        #else
-        return true
-        #endif
-    }
-
     private var service: HangarMatrixService { .shared }
     private var palette: EVEPalette { themeManager.palette }
     private var sort: HangarMatrixSort { HangarMatrixSort(rawValue: sortRaw) ?? .coverage }
@@ -105,24 +88,7 @@ struct HangarMatrixView: View {
     }
 
     private func name(_ characterID: Int) -> String {
-        if characterID < 0 { return "Placeholder \(-characterID)" }
-        return accountManager.accounts.first { $0.characterID == characterID }?.characterName ?? "#\(characterID)"
-    }
-
-    /// Matrix columns: the real pilots, plus placeholder columns (negative IDs) in debug builds.
-    private var columnIDs: [Int] {
-        #if DEBUG
-        guard placeholderPilots > 0, !service.pilotIDs.isEmpty else { return service.pilotIDs }
-        return service.pilotIDs + (1...placeholderPilots).map { -$0 }
-        #else
-        return service.pilotIDs
-        #endif
-    }
-
-    /// The real pilot a column shows: itself, or the real pilot a placeholder repeats.
-    private func sourcePilot(_ column: Int) -> Int {
-        guard column < 0, !service.pilotIDs.isEmpty else { return column }
-        return service.pilotIDs[(-column - 1) % service.pilotIDs.count]
+        accountManager.accounts.first { $0.characterID == characterID }?.characterName ?? "#\(characterID)"
     }
 
     // MARK: Rows
@@ -276,19 +242,6 @@ struct HangarMatrixView: View {
                 .modifier(ReadyRoomChipStyle(tint: palette.accent))
                 .help("Stop sorting for this pilot")
             }
-            #if DEBUG
-            Stepper(value: $placeholderPilots, in: 0...20) {
-                Text(verbatim: "Debug columns: \(placeholderPilots)")
-            }
-            .font(.caption)
-            .help(Text(verbatim: "Debug builds only: extra columns repeating your real pilots, to test many-pilot widths"))
-            Toggle(isOn: $disableWidthFix) {
-                Text(verbatim: "Old layout")
-            }
-            .toggleStyle(.checkbox)
-            .font(.caption)
-            .help(Text(verbatim: "Debug builds only: turn off the row-width fix to compare"))
-            #endif
             if !service.fitChecksDone && !service.isLoading {
                 Label("CPU/PG not checked", systemImage: "cpu")
                     .font(.caption)
@@ -332,7 +285,7 @@ struct HangarMatrixView: View {
             // take clicks and hover at another — the wrong pilot's tile, several columns
             // off, by an amount that changes with the window width.
             .containerRelativeFrame(.horizontal, alignment: .leading) { length, _ in
-                widthFixEnabled ? max(length, rowWidth) : length
+                max(length, rowWidth)
             }
             .padding(.bottom, EVESpacing.md)
         }
@@ -345,7 +298,7 @@ struct HangarMatrixView: View {
     private var rowWidth: CGFloat {
         EVESpacing.lg + nameWidth
             + (showDetails ? valueWidth + contentsWidth + ownersWidth : 0)
-            + CGFloat(columnIDs.count) * cellWidth
+            + CGFloat(service.pilotIDs.count) * cellWidth
             + EVESpacing.md + coverageWidth
     }
 
@@ -361,7 +314,7 @@ struct HangarMatrixView: View {
                 headerLabel("Contents", width: contentsWidth)
                 headerLabel("Saved By", width: ownersWidth)
             }
-            ForEach(columnIDs, id: \.self) { pilot in
+            ForEach(service.pilotIDs, id: \.self) { pilot in
                 Button {
                     withAnimation(EVEMotion.snappy) { focusPilot = focusPilot == pilot ? nil : pilot }
                 } label: {
@@ -440,7 +393,7 @@ struct HangarMatrixView: View {
                 detailColumns(row)
             }
 
-            ForEach(columnIDs, id: \.self) { pilot in
+            ForEach(service.pilotIDs, id: \.self) { pilot in
                 cell(row, pilot: pilot)
                     .frame(width: cellWidth, height: 40)
                     .background(focusPilot == pilot ? palette.accent.opacity(EVEOpacity.faint) : .clear)
@@ -502,10 +455,9 @@ struct HangarMatrixView: View {
     }
 
     @ViewBuilder
-    private func cell(_ row: HangarMatrixRow, pilot column: Int) -> some View {
-        let pilot = sourcePilot(column)
+    private func cell(_ row: HangarMatrixRow, pilot: Int) -> some View {
         if let report = row.cells[pilot] {
-            let id = CellID(row: row.id, pilot: column)
+            let id = CellID(row: row.id, pilot: pilot)
             let isOwner = row.fit.owners[pilot] != nil
             Button {
                 picked = id
@@ -528,9 +480,9 @@ struct HangarMatrixView: View {
             }
             .buttonStyle(.plain)
             .eveHoverable(cornerRadius: EVERadius.sm)
-            .help(Text("\(name(column)) · \(Text(report.tier.title))"))
+            .help(Text("\(name(pilot)) · \(Text(report.tier.title))"))
             .popover(isPresented: Binding(get: { picked == id }, set: { if !$0 { picked = nil } }), arrowEdge: .trailing) {
-                HangarMatrixCellDetail(report: report, pilotName: name(column), ownerFittingID: row.fit.owners[pilot],
+                HangarMatrixCellDetail(report: report, pilotName: name(pilot), ownerFittingID: row.fit.owners[pilot],
                                        fitValue: row.fitValue) {
                     picked = nil
                     accountManager.selectedCharacterID = pilot
