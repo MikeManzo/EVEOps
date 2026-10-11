@@ -64,6 +64,14 @@ nonisolated struct ZKBSystemKill: Decodable, Sendable {
     let zkb: ZKBMeta
 }
 
+/// The parts of zKillboard's system stats the entry brief uses.
+nonisolated struct ZKBSystemActivity: Sendable, Equatable {
+    /// Kills by UTC weekday (Sunday first) and hour, over zKillboard's history window.
+    let heatmap: [[Int]]
+    /// Kills in the past week (`activepvp.kills.count`), when present.
+    let weekKills: Int?
+}
+
 // Mark:  Client
 
 actor ZKillboardClient {
@@ -76,6 +84,9 @@ actor ZKillboardClient {
     /// camp that formed since.
     private var systemKillCache: [String: (fetchedAt: Date, kills: [ZKBSystemKill])] = [:]
     static let systemKillCacheTTL: TimeInterval = 5 * 60
+    /// Per-system heatmaps; they change slowly, so an hour is plenty.
+    private var activityCache: [Int: (fetchedAt: Date, activity: ZKBSystemActivity?)] = [:]
+    private static let activityCacheTTL: TimeInterval = 3600
     /// Time of the last uncached search, for spacing requests out as zKillboard asks.
     private var lastSystemRequest: Date?
     private static let minRequestSpacing: TimeInterval = 0.5
@@ -204,5 +215,42 @@ actor ZKillboardClient {
             return (kills, fetchedAt)
         }
         throw URLError(.resourceUnavailable)
+    }
+
+    /// A system's weekday × hour kill heatmap and its kill count for the past week, from
+    /// `/api/stats/solarSystemID/{id}/`. Nil when zKillboard has no stats for it or the
+    /// request fails; cached for an hour either way.
+    func fetchSystemActivity(systemID: Int) async -> ZKBSystemActivity? {
+        if let hit = activityCache[systemID], Date().timeIntervalSince(hit.fetchedAt) < Self.activityCacheTTL {
+            return hit.activity
+        }
+        if let last = lastSystemRequest {
+            let wait = Self.minRequestSpacing - Date().timeIntervalSince(last)
+            if wait > 0 { try? await Task.sleep(nanoseconds: UInt64(wait * 1_000_000_000)) }
+        }
+        lastSystemRequest = Date()
+
+        // The bare URL redirects to `.../kills/`; ask for that directly.
+        let url = URL(string: "https://zkillboard.com/api/stats/solarSystemID/\(systemID)/kills/")!
+        guard let (data, response) = try? await session.data(for: URLRequest(url: url)),
+              (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
+        let activity = Self.parseActivity(data)
+        activityCache[systemID] = (Date(), activity)
+        return activity
+    }
+
+    /// `activity` is `{"max": n, "0": [24 ints], …, "6": [...], "days": [...]}`, so it's
+    /// read by hand rather than through `Decodable`.
+    nonisolated static func parseActivity(_ data: Data) -> ZKBSystemActivity? {
+        guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let activity = root["activity"] as? [String: Any] else { return nil }
+        var heatmap: [[Int]] = []
+        for day in 0..<7 {
+            guard let hours = activity[String(day)] as? [Int], hours.count == 24 else { return nil }
+            heatmap.append(hours)
+        }
+        let pvp = root["activepvp"] as? [String: Any]
+        let weekKills = (pvp?["kills"] as? [String: Any])?["count"] as? Int
+        return ZKBSystemActivity(heatmap: heatmap, weekKills: weekKills)
     }
 }

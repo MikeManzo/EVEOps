@@ -21,6 +21,8 @@ struct RouteSystemRow: View {
     /// Neighbours on the route, so the brief can say "the gate you arrive on".
     var previousSystemID: Int? = nil
     var nextSystemID: Int? = nil
+    /// The watching pilot is in this system right now.
+    var isPilotHere = false
 
     @State private var showWaypointMenu = false
     @State private var showBrief = false
@@ -103,6 +105,11 @@ struct RouteSystemRow: View {
                 }
 
                 Spacer()
+
+                if isPilotHere {
+                    EVEChip(Text("YOU"), tint: themeManager.palette.location, size: .small)
+                        .help("Your pilot's current system")
+                }
 
                 if let intel = system.danger.intel {
                     Button {

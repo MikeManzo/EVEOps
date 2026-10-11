@@ -66,6 +66,10 @@ struct SystemIntel: Sendable, Equatable {
     let zkillFetchedAt: Date?
     /// When ESI's hourly map was fetched.
     let esiFetchedAt: Date?
+    /// Baseline, Faction Warfare and wormhole facts, filled in after the kills.
+    var context: SystemContext?
+    /// True while the route is being watched live and this brief comes from the live feed.
+    var isLive = false
 
     var zkillFailed: Bool { zkillFetchedAt == nil }
 
@@ -152,6 +156,13 @@ actor SystemDangerService {
     /// Upper bound on zKillboard lookups per route, to stay polite on long lowsec routes.
     static let briefMaxSystems = 30
 
+    /// zKillboard's recent kills for a set of systems, ready to classify.
+    struct Backfill: Sendable {
+        var kills: [ThreatKill]
+        /// When each system was fetched; a system missing here couldn't be fetched.
+        var fetchedAt: [Int: Date]
+    }
+
     /// Builds a Route Entry Brief for each of `systemIDs` (in route order, so consecutive
     /// systems count as neighbours even before the galaxy topology has loaded). Pulls each
     /// system's last few hours from zKillboard, fills in attackers from ESI for any kill
@@ -160,20 +171,35 @@ actor SystemDangerService {
     func entryIntel(for systemIDs: [Int], esi: Snapshot?) async -> [Int: SystemIntel] {
         let ids = Array(systemIDs.prefix(Self.briefMaxSystems))
         guard !ids.isEmpty else { return [:] }
+        let fill = await backfill(ids)
+        return await buildIntel(systemIDs: ids, kills: fill.kills, fetchedAt: fill.fetchedAt, esi: esi)
+    }
 
-        // zKillboard asks for requests spaced out, so ask one system at a time.
+    /// Fetches the last `briefWindowHours` of kills for each system from zKillboard (one
+    /// at a time, as zKillboard asks; repeat calls within a few minutes come from cache).
+    func backfill(_ systemIDs: [Int]) async -> Backfill {
         var refs: [Int: [ZKBSystemKill]] = [:]
         var fetchedAt: [Int: Date] = [:]
-        for id in ids {
+        for id in systemIDs.prefix(Self.briefMaxSystems) {
             guard let result = try? await ZKillboardClient.shared.fetchSystemKills(
                 systemID: id, pastSeconds: Self.briefWindowHours * 3600
             ) else { continue }
             refs[id] = result.kills
             fetchedAt[id] = result.fetchedAt
         }
+        return Backfill(kills: await threatKills(refs), fetchedAt: fetchedAt)
+    }
 
-        let kills = await threatKills(refs)
-        let adjacency = await adjacency(for: ids)
+    /// Classifies `kills` for `systemIDs` and resolves the names the brief needs.
+    /// - Parameter contextIDs: extra systems whose kills and stargate links count for
+    ///   roaming-gang detection (neighbours of the route, when watching live).
+    func buildIntel(
+        systemIDs ids: [Int], contextIDs: [Int] = [], kills: [ThreatKill],
+        fetchedAt: [Int: Date], esi: Snapshot?, now: Date = Date()
+    ) async -> [Int: SystemIntel] {
+        let window = TimeInterval(Self.briefWindowHours * 3600)
+        let kills = kills.filter { now.timeIntervalSince($0.time) <= window }
+        let adjacency = await adjacency(for: ids, plus: contextIDs)
         let shipTypeIDs = Set(kills.flatMap(\.attackerShipTypeIDs))
         let types = await UniverseCache.shared.types(ids: Array(shipTypeIDs))
         let shipGroups = types.mapValues(\.groupId)
@@ -183,7 +209,7 @@ actor SystemDangerService {
 
         let threats = SystemThreatEngine.classify(
             systemIDs: ids, kills: kills, adjacency: adjacency, shipGroups: shipGroups,
-            esiCombatKills: esiKills, windowHours: Self.briefWindowHours, now: Date()
+            esiCombatKills: esiKills, windowHours: Self.briefWindowHours, now: now
         )
 
         // Resolve every ID the signals mention.
@@ -220,6 +246,37 @@ actor SystemDangerService {
                 threat: threat, names: names, gateDestinations: gateDestinations,
                 zkillFetchedAt: fetchedAt[id], esiFetchedAt: esi?.fetchedAt
             )
+        }
+        return out
+    }
+
+    /// Baseline, Faction Warfare and wormhole facts for each system. Heatmaps come from
+    /// zKillboard one system at a time (cached for an hour); FW and EVE-Scout are one
+    /// request each. Systems with nothing to say are left out.
+    func context(for systemIDs: [Int], now: Date = Date()) async -> [Int: SystemContext] {
+        let ids = Array(systemIDs.prefix(Self.briefMaxSystems))
+        async let fwRaw: [ESIFWSystem]? = try? ESIClient.shared.fetch("/fw/systems/")
+        async let holesRaw: [EVEScoutConnection]? = try? EVEScoutClient.shared.fetchAllHubConnections()
+        let (fw, holes) = await (fwRaw, holesRaw)
+
+        let fwBySystem = Dictionary((fw ?? []).map { ($0.solarSystemId, $0) }, uniquingKeysWith: { a, _ in a })
+        var hubs: [Int: [String]] = [:]
+        for hole in holes ?? [] where !(hubs[hole.destinationSystemId]?.contains(hole.sourceSystemName) ?? false) {
+            hubs[hole.destinationSystemId, default: []].append(hole.sourceSystemName)
+        }
+
+        var out: [Int: SystemContext] = [:]
+        for id in ids {
+            var ctx = SystemContext()
+            if let activity = await ZKillboardClient.shared.fetchSystemActivity(systemID: id) {
+                ctx.baseline = RouteWatchEngine.baseline(activity: activity.heatmap, weekKills: activity.weekKills, now: now)
+            }
+            if let sys = fwBySystem[id] {
+                let percent = sys.victoryPointsThreshold > 0 ? sys.victoryPoints * 100 / sys.victoryPointsThreshold : 0
+                ctx.factionWarfare = FactionWarfareState(contested: sys.contested, percent: percent)
+            }
+            ctx.wormholeHubs = hubs[id]?.sorted() ?? []
+            if !ctx.isEmpty { out[id] = ctx }
         }
         return out
     }
@@ -261,16 +318,16 @@ actor SystemDangerService {
         )
     }
 
-    /// Stargate links touching `ids`: consecutive route systems, plus the galaxy topology
-    /// when it is already loaded (it is never downloaded just for a brief).
-    private func adjacency(for ids: [Int]) async -> [Int: Set<Int>] {
+    /// Stargate links touching `ids` or `extra`: consecutive route systems, plus the galaxy
+    /// topology when it is already loaded (it is never downloaded just for a brief).
+    private func adjacency(for ids: [Int], plus extra: [Int] = []) async -> [Int: Set<Int>] {
         var adj: [Int: Set<Int>] = [:]
         for (a, b) in zip(ids, ids.dropFirst()) {
             adj[a, default: []].insert(b)
             adj[b, default: []].insert(a)
         }
         if let topology = await UniverseTopology.shared.loadedTopology() {
-            let wanted = Set(ids)
+            let wanted = Set(ids).union(extra)
             for (a, b) in topology.jumps where wanted.contains(a) || wanted.contains(b) {
                 adj[a, default: []].insert(b)
                 adj[b, default: []].insert(a)

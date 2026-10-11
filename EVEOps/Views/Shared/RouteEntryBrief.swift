@@ -57,6 +57,34 @@ enum RouteEntryBriefText {
         return lines
     }
 
+    /// What's normal here: the hour's usual activity, Faction Warfare, wormhole hubs.
+    static func contextLines(_ intel: SystemIntel) -> [String] {
+        guard let ctx = intel.context else { return [] }
+        var lines: [String] = []
+        if let baseline = ctx.baseline {
+            var line: String
+            switch baseline.hour {
+            case .rarelyKills: line = "This system rarely sees kills."
+            case .quieter:     line = "Usually quieter than average here at this hour."
+            case .typical:     line = "About average activity for this system at this hour."
+            case .busier:      line = "Usually busier than average here at this hour."
+            }
+            if let week = baseline.weekKills, baseline.hour != .rarelyKills {
+                line += " \(week.formatted()) kill\(week == 1 ? "" : "s") here in the past week."
+            }
+            lines.append(line)
+        }
+        if let fw = ctx.factionWarfare {
+            lines.append(fw.isFrontline
+                ? "Faction Warfare frontline (\(fw.contested) \(fw.percent)%): expect FW pilots on gates and in plexes."
+                : "Faction Warfare space.")
+        }
+        for hub in ctx.wormholeHubs {
+            lines.append("Wormhole to \(hub) here: hostiles can arrive without passing through nearby systems.")
+        }
+        return lines
+    }
+
     static let caveat = "What this can't see: cloaked ships, pilots who haven't killed anyone yet, "
         + "and kills not yet posted to zKillboard. Recent kills describe the past, not who is there now."
 
@@ -130,6 +158,18 @@ struct RouteEntryBriefDetail: View {
                 }
             }
 
+            let context = RouteEntryBriefText.contextLines(intel)
+            if !context.isEmpty {
+                VStack(alignment: .leading, spacing: EVESpacing.xxs) {
+                    ForEach(Array(context.enumerated()), id: \.offset) { _, line in
+                        Label(line, systemImage: "info.circle")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+
             Text(dataAge)
                 .font(.caption2.monospacedDigit())
                 .foregroundStyle(.secondary)
@@ -139,15 +179,29 @@ struct RouteEntryBriefDetail: View {
                 .foregroundStyle(.tertiary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Button {
-                AppRouter.shared.pendingSection = .localIntel
-            } label: {
-                Label("Paste Local before you jump in", systemImage: "binoculars.fill")
-                    .font(.caption.weight(.medium))
+            if intel.threat.status == .danger {
+                // Red systems get a real button: this is the check that matters most.
+                Button {
+                    AppRouter.shared.pendingSection = .localIntel
+                } label: {
+                    Label("Paste Local before you jump in", systemImage: "binoculars.fill")
+                        .font(.caption.weight(.semibold))
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.red)
+                .controlSize(.small)
+                .help("Open Local Intel to check who is in the system right now")
+            } else {
+                Button {
+                    AppRouter.shared.pendingSection = .localIntel
+                } label: {
+                    Label("Paste Local before you jump in", systemImage: "binoculars.fill")
+                        .font(.caption.weight(.medium))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.tint)
+                .help("Open Local Intel to check who is in the system right now")
             }
-            .buttonStyle(.plain)
-            .foregroundStyle(.tint)
-            .help("Open Local Intel to check who is in the system right now")
         }
         .padding(EVESpacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -157,7 +211,9 @@ struct RouteEntryBriefDetail: View {
 
     private var dataAge: String {
         var parts: [String] = []
-        if let z = intel.zkillFetchedAt {
+        if intel.isLive, let z = intel.zkillFetchedAt {
+            parts.append("zKillboard live feed, last heard \(z.formatted(.relative(presentation: .named, unitsStyle: .abbreviated)))")
+        } else if let z = intel.zkillFetchedAt {
             parts.append("zKillboard \(z.formatted(.relative(presentation: .named, unitsStyle: .abbreviated)))")
         }
         if let e = intel.esiFetchedAt {

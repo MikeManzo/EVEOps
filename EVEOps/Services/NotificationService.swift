@@ -444,6 +444,19 @@ actor NotificationService {
         )
     }
 
+    /// Something changed on a route the pilot is watching: a new camp or gang, a system
+    /// turning dangerous, or Danger one jump ahead.
+    func notifyRouteWatch(title: String, body: String, key: String) async {
+        guard UserDefaults.standard.object(forKey: "notificationsEnabled") as? Bool ?? true,
+              UserDefaults.standard.object(forKey: "notifyRouteWatch") as? Bool ?? true else { return }
+        await sendNotification(
+            title: title,
+            body: body,
+            identifier: "routewatch-\(key)",
+            category: .routeWatch
+        )
+    }
+
     private func sendNotification(
         title: String,
         body: String,

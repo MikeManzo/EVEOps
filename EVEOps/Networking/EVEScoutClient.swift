@@ -105,6 +105,24 @@ actor EVEScoutClient {
         session = URLSession(configuration: config)
     }
 
+    private var cachedAll: [EVEScoutConnection]?
+    private var cacheAllExpiry: Date = .distantPast
+
+    /// Connections from every hub EVE-Scout tracks (Thera and Turnur), not just Thera.
+    /// `sourceSystemName` says which hub each one leads to.
+    func fetchAllHubConnections() async throws -> [EVEScoutConnection] {
+        if let cachedAll, Date() < cacheAllExpiry { return cachedAll }
+        let url = URL(string: "https://api.eve-scout.com/v2/public/signatures")!
+        let (data, response) = try await session.data(for: URLRequest(url: url))
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            throw EVEScoutError.httpError((response as? HTTPURLResponse)?.statusCode ?? -1, url.absoluteString)
+        }
+        let connections = parseConnections(data)
+        cachedAll = connections
+        cacheAllExpiry = Date().addingTimeInterval(300)
+        return connections
+    }
+
     func fetchConnections(forceRefresh: Bool = false) async throws -> [EVEScoutConnection] {
         if !forceRefresh, let cached, Date() < cacheExpiry {
             return cached

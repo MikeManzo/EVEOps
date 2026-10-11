@@ -111,7 +111,8 @@ nonisolated enum SystemThreatEngine {
 
     /// Classifies every system in `systemIDs`.
     /// - Parameters:
-    ///   - kills: player and NPC kills across all of `systemIDs` (others are ignored).
+    ///   - kills: player and NPC kills in `systemIDs`, plus any from nearby systems (those
+    ///     only feed roaming-gang detection).
     ///   - adjacency: stargate neighbours; only links between `systemIDs` matter.
     ///   - shipGroups: ship type → group ID, for spotting hunter hulls. Missing types are
     ///     treated as non-hunters.
@@ -128,9 +129,11 @@ nonisolated enum SystemThreatEngine {
         now: Date
     ) -> [Int: SystemThreat] {
         let wanted = Set(systemIDs)
-        let playerKills = kills.filter { $0.isPlayerKill && wanted.contains($0.systemID) && $0.time <= now }
-        let bySystem = Dictionary(grouping: playerKills, by: \.systemID)
-        let gangs = roamingGangs(playerKills, adjacency: adjacency)
+        let allPlayerKills = kills.filter { $0.isPlayerKill && $0.time <= now }
+        let bySystem = Dictionary(grouping: allPlayerKills.filter { wanted.contains($0.systemID) }, by: \.systemID)
+        // Gangs use every kill, including systems next to the route, so a gang moving
+        // toward the route is caught before it arrives.
+        let gangs = roamingGangs(allPlayerKills, adjacency: adjacency)
 
         var out: [Int: SystemThreat] = [:]
         for id in systemIDs {

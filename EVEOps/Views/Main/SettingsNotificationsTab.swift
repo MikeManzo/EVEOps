@@ -28,6 +28,7 @@ struct NotificationsTab: View {
     @AppStorage("notifyStandingsChanged") private var notifyStandingsChanged = true
     @AppStorage("notifyServerStatus") private var notifyServerStatus = true
     @AppStorage("notifyReadyRoom") private var notifyReadyRoom = true
+    @AppStorage("notifyRouteWatch") private var notifyRouteWatch = true
     @AppStorage("notifyCloneJumpReady") private var notifyCloneJumpReady = true
     @AppStorage("notifyListingsExpiring") private var notifyListingsExpiring = true
     @AppStorage("discordNotificationsEnabled") private var discordNotificationsEnabled = false
@@ -74,6 +75,8 @@ struct NotificationsTab: View {
                 Toggle("Servers back online after downtime", isOn: $notifyServerStatus)
                     .disabled(!notificationsEnabled)
                 Toggle("Saved fit becomes ready to fly (Ready Room)", isOn: $notifyReadyRoom)
+                    .disabled(!notificationsEnabled)
+                Toggle("New danger on a route you're watching (Route Planner)", isOn: $notifyRouteWatch)
                     .disabled(!notificationsEnabled)
             }
 

@@ -32,6 +32,7 @@ nonisolated enum NotificationRoute {
         case .presence:       return .contacts
         case .readyRoom:      return .readyRoom
         case .idleCapacity:   return .idleCapacity
+        case .routeWatch:     return .routePlanner
         case .serverStatus, .test, .general: return nil
         }
     }
@@ -53,6 +54,7 @@ nonisolated enum NotificationRoute {
             (.standings,      String(localized: "Open Standings")),
             (.contacts,       String(localized: "Open Contacts")),
             (.readyRoom,      String(localized: "Open Ready Room")),
+            (.routePlanner,   String(localized: "Open Route Planner")),
         ]
         return Set(sections.map { section, title in
             UNNotificationCategory(

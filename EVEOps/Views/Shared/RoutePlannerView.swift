@@ -343,7 +343,7 @@ struct RoutePlannerView: View {
                 Divider()
 
                 LazyVStack(spacing: 0) {
-                    ForEach(Array(route.enumerated()), id: \.offset) { index, system in
+                    ForEach(Array(displayRoute.enumerated()), id: \.offset) { index, system in
                         RouteSystemRow(
                             system: system,
                             jumpNumber: index + 1,
@@ -353,7 +353,8 @@ struct RoutePlannerView: View {
                             onSetDestination: { await setWaypoint(systemId: system.id, clear: true) },
                             onAddWaypoint: { await setWaypoint(systemId: system.id, clear: false) },
                             previousSystemID: index > 0 ? route[index - 1].id : nil,
-                            nextSystemID: index < route.count - 1 ? route[index + 1].id : nil
+                            nextSystemID: index < route.count - 1 ? route[index + 1].id : nil,
+                            isPilotHere: isWatchingThisRoute && watch.pilotSystemID == system.id
                         )
                     }
                 }
@@ -731,11 +732,90 @@ struct RoutePlannerView: View {
         guard !lowsec.isEmpty else { return }
 
         isLoadingBriefs = true
-        defer { isLoadingBriefs = false }
         let intel = await SystemDangerService.shared.entryIntel(for: lowsec, esi: esi)
+        isLoadingBriefs = false
         guard route.map(\.id) == routeIDs else { return }
         for index in route.indices {
             if let brief = intel[route[index].id] { route[index].danger.intel = brief }
+        }
+
+        // Second pass: what's normal here. Slower (a zKillboard request per system), so the
+        // kill picture shows first.
+        let context = await SystemDangerService.shared.context(for: lowsec)
+        guard route.map(\.id) == routeIDs else { return }
+        for index in route.indices {
+            if let ctx = context[route[index].id] { route[index].danger.intel?.context = ctx }
+        }
+    }
+
+    // MARK:  Live Watch
+
+    private var watch: RouteWatchService { RouteWatchService.shared }
+    private var isWatchingThisRoute: Bool { watch.isWatching(route: route.map(\.id)) }
+
+    /// The route with live briefs swapped in while this route is being watched.
+    private var displayRoute: [RouteSystem] {
+        guard isWatchingThisRoute else { return route }
+        return route.map { system in
+            var s = system
+            if let live = watch.intel[s.id] { s.danger.intel = live }
+            return s
+        }
+    }
+
+    private func startWatching() async {
+        let lowsec = route.filter(\.isLowsec).map(\.id)
+        await watch.start(
+            route: route.map(\.id), lowsecIDs: lowsec,
+            esi: await SystemDangerService.shared.cachedSnapshot(),
+            accountManager: accountManager
+        )
+    }
+
+    @ViewBuilder
+    private var liveWatchControls: some View {
+        if isWatchingThisRoute {
+            VStack(alignment: .leading, spacing: EVESpacing.xxs) {
+                HStack(spacing: EVESpacing.sm) {
+                    Circle().fill(.red).frame(width: 7, height: 7).accessibilityHidden(true)
+                    Text("Watching live").fontWeight(.semibold).foregroundStyle(.primary)
+                    if let contact = watch.lastFeedContact {
+                        Text("· feed heard \(contact, style: .relative) ago")
+                    } else {
+                        Text("· connecting to zKillboard…")
+                    }
+                    Text("· \(watch.liveKillsSeen) kill\(watch.liveKillsSeen == 1 ? "" : "s") nearby")
+                    Spacer()
+                    Button("Stop") { watch.stop() }
+                        .controlSize(.small)
+                }
+                if let pilot = watch.pilotName {
+                    if let here = watch.pilotSystemID, let index = route.firstIndex(where: { $0.id == here }) {
+                        Text("\(pilot) is in \(route[index].name), jump \(index + 1) of \(route.count). Only systems ahead are announced.")
+                    } else {
+                        Text("Following \(pilot)'s location. Every watched system is announced until they're on the route.")
+                    }
+                }
+                if let started = watch.startedAt {
+                    Text("Notifies you about new camps, gangs and Danger ahead. Stops \(started.addingTimeInterval(RouteWatchService.maxDuration), style: .relative) from now.")
+                        .foregroundStyle(.tertiary)
+                }
+            }
+        } else {
+            HStack(spacing: EVESpacing.sm) {
+                Button {
+                    Task { await startWatching() }
+                } label: {
+                    Label(watch.isWatching ? "Watch this route instead" : "Watch this route live",
+                          systemImage: "dot.radiowaves.left.and.right")
+                }
+                .controlSize(.small)
+                .disabled(isLoadingBriefs)
+                Text(watch.isWatching
+                     ? "Another route is being watched."
+                     : "Updates these briefs as kills happen and notifies you about new danger ahead.")
+                    .foregroundStyle(.tertiary)
+            }
         }
     }
 
@@ -743,7 +823,7 @@ struct RoutePlannerView: View {
     private var entryBriefSummary: some View {
         let lowsec = route.filter(\.isLowsec)
         if !lowsec.isEmpty {
-            let briefs = lowsec.compactMap(\.danger.intel)
+            let briefs = displayRoute.filter(\.isLowsec).compactMap(\.danger.intel)
             HStack(alignment: .firstTextBaseline, spacing: EVESpacing.sm) {
                 Image(systemName: "shield.lefthalf.filled")
                     .foregroundStyle(.secondary)
@@ -767,6 +847,8 @@ struct RoutePlannerView: View {
                          + "Expand a lowsec system to see why. They can't see cloaked ships or anyone who hasn't killed yet.")
                         .foregroundStyle(.tertiary)
                         .fixedSize(horizontal: false, vertical: true)
+                    liveWatchControls
+                        .padding(.top, EVESpacing.xs)
                 }
             }
             .font(.caption)
