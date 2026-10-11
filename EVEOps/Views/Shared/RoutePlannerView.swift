@@ -45,6 +45,9 @@ struct RoutePlannerView: View {
     @State private var tripStake: TripStake?
     @State private var isLoadingStake = false
     @State private var stakeError: String?
+    @State private var escapeCheck: EscapeCheck?
+    @State private var isLoadingEscape = false
+    @State private var escapeError: String?
     @State private var autopilotMessage: String?
     @State private var isSettingAutopilot = false
     @State private var theraConnections: [EVEScoutConnection] = []
@@ -74,7 +77,12 @@ struct RoutePlannerView: View {
         .onChange(of: accountManager.selectedCharacterID) {
             tripStake = nil
             stakeError = nil
-            if !route.isEmpty { Task { await loadTripStake() } }
+            escapeCheck = nil
+            escapeError = nil
+            if !route.isEmpty {
+                Task { await loadTripStake() }
+                Task { await loadEscapeCheck() }
+            }
         }
     }
 
@@ -341,6 +349,9 @@ struct RoutePlannerView: View {
                 if accountManager.selectedAccount != nil && routeIsRisky {
                     RouteTripStakeCard(stake: tripStake, isLoading: isLoadingStake, error: stakeError) {
                         Task { await loadTripStake() }
+                    }
+                    RouteEscapeCheckCard(check: escapeCheck, isLoading: isLoadingEscape, error: escapeError) {
+                        Task { await loadEscapeCheck() }
                     }
                 }
 
@@ -736,6 +747,9 @@ struct RoutePlannerView: View {
         tripStake = nil
         stakeError = nil
         Task { await loadTripStake() }
+        escapeCheck = nil
+        escapeError = nil
+        Task { await loadEscapeCheck() }
         await loadEntryBriefs(esi: danger)
     }
 
@@ -760,6 +774,24 @@ struct RoutePlannerView: View {
             stakeError = "Requires esi-location.read_ship_type.v1 scope — re-add your character with updated permissions."
         } catch {
             stakeError = "Couldn't work out what's at stake: \(error.localizedDescription)"
+        }
+    }
+
+    // MARK:  Escape Check
+
+    /// How fast the selected pilot's current ship gets into warp. Only for risky routes.
+    private func loadEscapeCheck() async {
+        guard routeIsRisky, let account = accountManager.selectedAccount, !isLoadingEscape else { return }
+        isLoadingEscape = true
+        defer { isLoadingEscape = false }
+        do {
+            let token = try await accountManager.validToken(for: account)
+            escapeCheck = try await EscapeCheckService.check(characterID: account.characterID, token: token)
+            escapeError = nil
+        } catch ESIError.unauthorized, ESIError.forbidden {
+            escapeError = "Requires esi-location.read_ship_type.v1 scope — re-add your character with updated permissions."
+        } catch {
+            escapeError = "Couldn't work out how fast your ship escapes: \(error.localizedDescription)"
         }
     }
 
