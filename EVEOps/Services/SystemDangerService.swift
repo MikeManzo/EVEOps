@@ -19,6 +19,8 @@ struct SystemDanger: Sendable, Equatable {
     var podKills: Int = 0
     var npcKills: Int = 0
     var shipJumps: Int = 0
+    /// The Route Entry Brief, when one was built for this system (lowsec on a plotted route).
+    var intel: SystemIntel?
 
     /// Player-vs-player activity — the figure that actually matters for route safety.
     var combatKills: Int { shipKills + podKills }
@@ -50,6 +52,24 @@ enum DangerLevel: Int, Comparable, CaseIterable, Sendable {
         case .extreme:  return "Extreme"
         }
     }
+}
+
+/// A Route Entry Brief for one system: the classified recent killmails plus the names
+/// and data ages the brief needs to read in plain language.
+struct SystemIntel: Sendable, Equatable {
+    let threat: SystemThreat
+    /// Names for every system and ship type the signals mention.
+    let names: [Int: String]
+    /// Stargate → the system it leads to, for "camp on the Amamake gate".
+    let gateDestinations: [Int: Int]
+    /// When zKillboard was asked; nil when that request failed and only ESI is shown.
+    let zkillFetchedAt: Date?
+    /// When ESI's hourly map was fetched.
+    let esiFetchedAt: Date?
+
+    var zkillFailed: Bool { zkillFetchedAt == nil }
+
+    func name(_ id: Int) -> String { names[id] ?? "#\(id)" }
 }
 
 // MARK: Service
@@ -123,5 +143,139 @@ actor SystemDangerService {
             if let cached { return cached }   // serve stale data rather than nothing
             throw error
         }
+    }
+
+    // MARK: Route Entry Brief
+
+    /// How far back the brief looks on zKillboard.
+    static let briefWindowHours = 3
+    /// Upper bound on zKillboard lookups per route, to stay polite on long lowsec routes.
+    static let briefMaxSystems = 30
+
+    /// Builds a Route Entry Brief for each of `systemIDs` (in route order, so consecutive
+    /// systems count as neighbours even before the galaxy topology has loaded). Pulls each
+    /// system's last few hours from zKillboard, fills in attackers from ESI for any kill
+    /// zKillboard returned without them, and classifies the lot. A system whose zKillboard
+    /// request fails still gets a brief, from ESI's hourly counts only.
+    func entryIntel(for systemIDs: [Int], esi: Snapshot?) async -> [Int: SystemIntel] {
+        let ids = Array(systemIDs.prefix(Self.briefMaxSystems))
+        guard !ids.isEmpty else { return [:] }
+
+        // zKillboard asks for requests spaced out, so ask one system at a time.
+        var refs: [Int: [ZKBSystemKill]] = [:]
+        var fetchedAt: [Int: Date] = [:]
+        for id in ids {
+            guard let result = try? await ZKillboardClient.shared.fetchSystemKills(
+                systemID: id, pastSeconds: Self.briefWindowHours * 3600
+            ) else { continue }
+            refs[id] = result.kills
+            fetchedAt[id] = result.fetchedAt
+        }
+
+        let kills = await threatKills(refs)
+        let adjacency = await adjacency(for: ids)
+        let shipTypeIDs = Set(kills.flatMap(\.attackerShipTypeIDs))
+        let types = await UniverseCache.shared.types(ids: Array(shipTypeIDs))
+        let shipGroups = types.mapValues(\.groupId)
+
+        var esiKills: [Int: Int] = [:]
+        if let esi { for id in ids { esiKills[id] = esi.danger(for: id).combatKills } }
+
+        let threats = SystemThreatEngine.classify(
+            systemIDs: ids, kills: kills, adjacency: adjacency, shipGroups: shipGroups,
+            esiCombatKills: esiKills, windowHours: Self.briefWindowHours, now: Date()
+        )
+
+        // Resolve every ID the signals mention.
+        var gateIDs = Set<Int>(), systemNameIDs = Set(ids), shipIDs = Set<Int>()
+        for threat in threats.values {
+            for signal in threat.signals {
+                switch signal {
+                case let .gateCamp(gate, _, _, ships, _):
+                    gateIDs.insert(gate); shipIDs.formUnion(ships)
+                case let .roamingGang(_, last, previous, ships, _):
+                    systemNameIDs.formUnion([last, previous]); shipIDs.formUnion(ships)
+                case let .soloHunter(_, ship, _):
+                    if let ship { shipIDs.insert(ship) }
+                default: break
+                }
+            }
+        }
+        var gateDestinations: [Int: Int] = [:]
+        for gate in gateIDs {
+            if let sg = await UniverseCache.shared.stargate(id: gate) {
+                gateDestinations[gate] = sg.destination.systemId
+                systemNameIDs.insert(sg.destination.systemId)
+            }
+        }
+        var names: [Int: String] = [:]
+        for id in systemNameIDs {
+            if let sys = await UniverseCache.shared.solarSystem(id: id) { names[id] = sys.name }
+        }
+        for (id, type) in await UniverseCache.shared.types(ids: Array(shipIDs)) { names[id] = type.name }
+
+        var out: [Int: SystemIntel] = [:]
+        for (id, threat) in threats {
+            out[id] = SystemIntel(
+                threat: threat, names: names, gateDestinations: gateDestinations,
+                zkillFetchedAt: fetchedAt[id], esiFetchedAt: esi?.fetchedAt
+            )
+        }
+        return out
+    }
+
+    /// Converts zKillboard entries to `ThreatKill`s, fetching the ESI killmail for any
+    /// entry that came back without attackers.
+    private func threatKills(_ refs: [Int: [ZKBSystemKill]]) async -> [ThreatKill] {
+        await withTaskGroup(of: ThreatKill?.self) { group in
+            for (systemID, entries) in refs {
+                for entry in entries {
+                    group.addTask {
+                        if let attackers = entry.attackers, let time = entry.killmailTime {
+                            return Self.threatKill(entry, systemID: systemID, time: time, attackers: attackers)
+                        }
+                        guard let mail: ESIKillmail = try? await ESIClient.shared.fetch(
+                            "/killmails/\(entry.killmailId)/\(entry.zkb.hash)/"
+                        ) else { return nil }
+                        return Self.threatKill(entry, systemID: systemID, time: mail.killmailTime, attackers: mail.attackers)
+                    }
+                }
+            }
+            var out: [ThreatKill] = []
+            for await kill in group { if let kill { out.append(kill) } }
+            return out
+        }
+    }
+
+    private nonisolated static func threatKill(
+        _ entry: ZKBSystemKill, systemID: Int, time: Date, attackers: [ESIKillmailAttacker]
+    ) -> ThreatKill {
+        ThreatKill(
+            id: entry.killmailId,
+            systemID: entry.solarSystemId ?? systemID,
+            time: time,
+            locationID: entry.zkb.locationID,
+            attackerIDs: Set(attackers.compactMap(\.characterId)),
+            attackerShipTypeIDs: attackers.compactMap(\.shipTypeId),
+            isNPC: entry.zkb.isNPC
+        )
+    }
+
+    /// Stargate links touching `ids`: consecutive route systems, plus the galaxy topology
+    /// when it is already loaded (it is never downloaded just for a brief).
+    private func adjacency(for ids: [Int]) async -> [Int: Set<Int>] {
+        var adj: [Int: Set<Int>] = [:]
+        for (a, b) in zip(ids, ids.dropFirst()) {
+            adj[a, default: []].insert(b)
+            adj[b, default: []].insert(a)
+        }
+        if let topology = await UniverseTopology.shared.loadedTopology() {
+            let wanted = Set(ids)
+            for (a, b) in topology.jumps where wanted.contains(a) || wanted.contains(b) {
+                adj[a, default: []].insert(b)
+                adj[b, default: []].insert(a)
+            }
+        }
+        return adj
     }
 }

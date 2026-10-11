@@ -40,6 +40,8 @@ struct RoutePlannerView: View {
     @State private var dangerThreshold = 5
     @State private var dangerSnapshotAt: Date?
     @State private var autoAvoidedCount = 0
+    /// True while the Route Entry Brief is being built for the plotted route's lowsec systems.
+    @State private var isLoadingBriefs = false
     @State private var autopilotMessage: String?
     @State private var isSettingAutopilot = false
     @State private var theraConnections: [EVEScoutConnection] = []
@@ -326,6 +328,8 @@ struct RoutePlannerView: View {
                 RouteSecurityStrip(route: route)
                     .padding(.bottom, 10)
 
+                entryBriefSummary
+
                 if let autopilotMessage {
                     HStack(spacing: EVESpacing.sm) {
                         Image(systemName: autopilotMessage.hasPrefix("Route set") ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
@@ -347,7 +351,9 @@ struct RoutePlannerView: View {
                             isFirst: index == 0,
                             showWaypointButton: accountManager.selectedAccount != nil,
                             onSetDestination: { await setWaypoint(systemId: system.id, clear: true) },
-                            onAddWaypoint: { await setWaypoint(systemId: system.id, clear: false) }
+                            onAddWaypoint: { await setWaypoint(systemId: system.id, clear: false) },
+                            previousSystemID: index > 0 ? route[index - 1].id : nil,
+                            nextSystemID: index < route.count - 1 ? route[index + 1].id : nil
                         )
                     }
                 }
@@ -712,6 +718,74 @@ struct RoutePlannerView: View {
             errorMessage = "No route found between these systems with the selected route type."
         }
         isCalculating = false
+        await loadEntryBriefs(esi: danger)
+    }
+
+    // MARK:  Route Entry Brief
+
+    /// Builds the entry brief for every lowsec system on the plotted route and attaches it
+    /// to the rows. Dropped if the route changes while it loads.
+    private func loadEntryBriefs(esi: SystemDangerService.Snapshot?) async {
+        let routeIDs = route.map(\.id)
+        let lowsec = route.filter(\.isLowsec).map(\.id)
+        guard !lowsec.isEmpty else { return }
+
+        isLoadingBriefs = true
+        defer { isLoadingBriefs = false }
+        let intel = await SystemDangerService.shared.entryIntel(for: lowsec, esi: esi)
+        guard route.map(\.id) == routeIDs else { return }
+        for index in route.indices {
+            if let brief = intel[route[index].id] { route[index].danger.intel = brief }
+        }
+    }
+
+    @ViewBuilder
+    private var entryBriefSummary: some View {
+        let lowsec = route.filter(\.isLowsec)
+        if !lowsec.isEmpty {
+            let briefs = lowsec.compactMap(\.danger.intel)
+            HStack(alignment: .firstTextBaseline, spacing: EVESpacing.sm) {
+                Image(systemName: "shield.lefthalf.filled")
+                    .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: EVESpacing.xxs) {
+                    if isLoadingBriefs {
+                        HStack(spacing: EVESpacing.sm) {
+                            ProgressView().controlSize(.mini)
+                            Text("Checking recent kills in \(lowsec.count) lowsec system\(lowsec.count == 1 ? "" : "s")…")
+                        }
+                    } else if briefs.isEmpty {
+                        Text("Entry brief unavailable.")
+                    } else {
+                        Text(entryBriefHeadline(briefs))
+                    }
+                    if lowsec.count > SystemDangerService.briefMaxSystems {
+                        Text("Only the first \(SystemDangerService.briefMaxSystems) lowsec systems are checked.")
+                            .foregroundStyle(.tertiary)
+                    }
+                    Text("Entry briefs use the last \(SystemDangerService.briefWindowHours) hours of zKillboard. "
+                         + "Expand a lowsec system to see why. They can't see cloaked ships or anyone who hasn't killed yet.")
+                        .foregroundStyle(.tertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .padding(.bottom, 10)
+        }
+    }
+
+    private func entryBriefHeadline(_ briefs: [SystemIntel]) -> String {
+        let danger = briefs.filter { $0.threat.status == .danger }.count
+        let caution = briefs.filter { $0.threat.status == .caution }.count
+        if danger == 0 && caution == 0 {
+            return "No player kills in the lowsec systems on this route recently."
+        }
+        var parts: [String] = []
+        if danger > 0 { parts.append("\(danger) danger") }
+        if caution > 0 { parts.append("\(caution) caution") }
+        return "Lowsec on this route: " + parts.joined(separator: ", ")
+            + ", \(briefs.count - danger - caution) clear."
     }
 }
 

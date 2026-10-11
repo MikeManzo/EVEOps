@@ -18,11 +18,34 @@ struct RouteSystemRow: View {
     var showWaypointButton: Bool = false
     var onSetDestination: (() async -> Void)? = nil
     var onAddWaypoint: (() async -> Void)? = nil
+    /// Neighbours on the route, so the brief can say "the gate you arrive on".
+    var previousSystemID: Int? = nil
+    var nextSystemID: Int? = nil
 
     @State private var showWaypointMenu = false
+    @State private var showBrief = false
     @Environment(ThemeManager.self) private var themeManager
 
     var body: some View {
+        VStack(spacing: 0) {
+            mainRow
+            if showBrief, let intel = system.danger.intel {
+                RouteEntryBriefDetail(intel: intel, previousSystemID: previousSystemID, nextSystemID: nextSystemID)
+                    .padding(.leading, 66)
+                    .padding(.trailing, 10)
+                    .padding(.bottom, EVESpacing.sm)
+            }
+        }
+        .onAppear {
+            // Open the worrying ones by default so nobody has to go looking.
+            if let status = system.danger.intel?.threat.status, status == .danger { showBrief = true }
+        }
+        .onChange(of: system.danger.intel?.threat.status) { _, status in
+            if status == .danger { showBrief = true }
+        }
+    }
+
+    private var mainRow: some View {
         HStack(spacing: 0) {
             // Vertical connector track
             VStack(spacing: 0) {
@@ -80,6 +103,21 @@ struct RouteSystemRow: View {
                 }
 
                 Spacer()
+
+                if let intel = system.danger.intel {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.15)) { showBrief.toggle() }
+                    } label: {
+                        HStack(spacing: EVESpacing.xs) {
+                            EntryStatusChip(intel: intel)
+                            Image(systemName: showBrief ? "chevron.down" : "chevron.right")
+                                .font(.caption2).foregroundStyle(.secondary)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .help(showBrief ? "Hide entry brief" : "Show entry brief")
+                    .accessibilityHint(showBrief ? "Hides the entry brief" : "Shows the entry brief")
+                }
 
                 if isFirst {
                     Text("ORIGIN").font(.caption2.bold()).foregroundStyle(themeManager.palette.accent)

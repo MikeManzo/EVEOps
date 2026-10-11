@@ -106,6 +106,14 @@ actor UniverseTopology {
 
     // MARK: Public API
 
+    /// The topology if it's in memory or on disk, without touching the network. For
+    /// callers that can do without it rather than wait on a first-run download.
+    func loadedTopology() -> GalaxyTopology? {
+        if let inMemory { return inMemory }
+        // Not stored in `inMemory`, so `load()` still runs its version check later.
+        return loadCachedPayload().map(topology(from:))
+    }
+
     /// Returns the cached topology, downloading and parsing it on first use.
     /// Safe to call concurrently — callers share a single in-flight load.
     func load() async -> GalaxyTopology? {

@@ -52,6 +52,18 @@ nonisolated struct ZKBCharacterStats: Decodable, Sendable, Hashable {
     let soloRatio: Double?
 }
 
+/// One entry from zKillboard's killmail search (`/api/kills/...`). zKillboard now
+/// inlines the ESI killmail body, but older or trimmed responses may carry only
+/// `killmail_id` + `zkb`, so the ESI fields are optional and callers fall back to
+/// `/killmails/{id}/{hash}/` when `attackers` is missing.
+nonisolated struct ZKBSystemKill: Decodable, Sendable {
+    let killmailId: Int
+    let killmailTime: Date?
+    let solarSystemId: Int?
+    let attackers: [ESIKillmailAttacker]?
+    let zkb: ZKBMeta
+}
+
 // Mark:  Client
 
 actor ZKillboardClient {
@@ -59,10 +71,27 @@ actor ZKillboardClient {
 
     private let session: URLSession
 
+    /// Per-system kill searches, keyed by "systemID/pastSeconds". zKillboard asks clients
+    /// to cache searches; a few minutes keeps re-plotting a route cheap without hiding a
+    /// camp that formed since.
+    private var systemKillCache: [String: (fetchedAt: Date, kills: [ZKBSystemKill])] = [:]
+    static let systemKillCacheTTL: TimeInterval = 5 * 60
+    /// Time of the last uncached search, for spacing requests out as zKillboard asks.
+    private var lastSystemRequest: Date?
+    private static let minRequestSpacing: TimeInterval = 0.5
+
+    private static let killDecoder: JSONDecoder = {
+        let d = JSONDecoder()
+        d.keyDecodingStrategy = .convertFromSnakeCase
+        d.dateDecodingStrategy = .iso8601
+        return d
+    }()
+
     private init() {
         let config = URLSessionConfiguration.default
         config.httpAdditionalHeaders = [
             "Accept": "application/json",
+            "Accept-Encoding": "gzip",
             "User-Agent": HTTPClientInfo.userAgent
         ]
         session = URLSession(configuration: config)
@@ -136,5 +165,44 @@ actor ZKillboardClient {
         let (data, response) = try await session.data(for: URLRequest(url: url))
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else { return nil }
         return try? JSONDecoder().decode(ZKBCharacterStats.self, from: data)
+    }
+
+    /// Kills in one solar system over the last `pastSeconds` (a multiple of 3600, at most
+    /// 604 800), newest first, with when they were fetched. Served from a short local cache;
+    /// requests are spaced out and a 429 is retried once after a pause. Throws on any other
+    /// failure so callers can tell "no kills" from "couldn't ask".
+    func fetchSystemKills(systemID: Int, pastSeconds: Int = 10_800) async throws -> (kills: [ZKBSystemKill], fetchedAt: Date) {
+        let seconds = min(604_800, max(3600, pastSeconds / 3600 * 3600))
+        let key = "\(systemID)/\(seconds)"
+        if let hit = systemKillCache[key], Date().timeIntervalSince(hit.fetchedAt) < Self.systemKillCacheTTL {
+            return (hit.kills, hit.fetchedAt)
+        }
+
+        if let last = lastSystemRequest {
+            let wait = Self.minRequestSpacing - Date().timeIntervalSince(last)
+            if wait > 0 { try await Task.sleep(nanoseconds: UInt64(wait * 1_000_000_000)) }
+        }
+
+        let url = URL(string: "https://zkillboard.com/api/kills/solarSystemID/\(systemID)/pastSeconds/\(seconds)/")!
+        var request = URLRequest(url: url)
+        // The local cache above decides freshness; zKillboard's hour-long client cache
+        // would hide a camp that formed minutes ago.
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+
+        for attempt in 0..<2 {
+            lastSystemRequest = Date()
+            let (data, response) = try await session.data(for: request)
+            guard let http = response as? HTTPURLResponse else { throw URLError(.badServerResponse) }
+            if http.statusCode == 429, attempt == 0 {
+                try await Task.sleep(nanoseconds: 5_000_000_000)
+                continue
+            }
+            guard http.statusCode == 200 else { throw URLError(.badServerResponse) }
+            let kills = try Self.killDecoder.decode([ZKBSystemKill].self, from: data)
+            let fetchedAt = Date()
+            systemKillCache[key] = (fetchedAt, kills)
+            return (kills, fetchedAt)
+        }
+        throw URLError(.resourceUnavailable)
     }
 }

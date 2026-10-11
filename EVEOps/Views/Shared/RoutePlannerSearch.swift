@@ -23,6 +23,8 @@ struct RouteSystem {
 
     var securityColor: Color { eveSecurityColor(securityStatus) }
     var dangerLevel: DangerLevel { DangerLevel(combatKills: danger.combatKills) }
+    /// Lowsec as the client shows it (0.1–0.4), the space the entry brief covers.
+    var isLowsec: Bool { securityStatus > 0.0 && securityStatus < 0.45 }
 }
 
 // MARK:  System Search Field
