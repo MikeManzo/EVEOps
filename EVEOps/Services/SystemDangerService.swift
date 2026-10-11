@@ -190,6 +190,15 @@ actor SystemDangerService {
         return Backfill(kills: await threatKills(refs), fetchedAt: fetchedAt)
     }
 
+    /// One system's kills over the last `pastSeconds` (rounded to whole hours by
+    /// zKillboard), or nil when zKillboard can't be reached.
+    func kills(systemID: Int, pastSeconds: Int) async -> [ThreatKill]? {
+        guard let result = try? await ZKillboardClient.shared.fetchSystemKills(
+            systemID: systemID, pastSeconds: pastSeconds
+        ) else { return nil }
+        return await threatKills([systemID: result.kills])
+    }
+
     /// Classifies `kills` for `systemIDs` and resolves the names the brief needs.
     /// - Parameter contextIDs: extra systems whose kills and stargate links count for
     ///   roaming-gang detection (neighbours of the route, when watching live).
@@ -211,6 +220,10 @@ actor SystemDangerService {
             systemIDs: ids, kills: kills, adjacency: adjacency, shipGroups: shipGroups,
             esiCombatKills: esiKills, windowHours: Self.briefWindowHours, now: now
         )
+        // Log verdicts for accuracy tracking. Systems zKillboard couldn't answer for were
+        // judged on ESI's hourly counts alone, which would muddy the numbers.
+        let verdicts = threats.values.filter { fetchedAt[$0.systemID] != nil }
+        Task { await BriefCalibrationLog.shared.record(verdicts, now: now) }
 
         // Resolve every ID the signals mention.
         var gateIDs = Set<Int>(), systemNameIDs = Set(ids), shipIDs = Set<Int>()

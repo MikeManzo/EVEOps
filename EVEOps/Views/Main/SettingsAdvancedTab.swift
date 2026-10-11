@@ -87,6 +87,8 @@ struct AdvancedTab: View {
                 .onAppear { refreshFileSize() }
                 .onChange(of: logStore.entries.count) { refreshFileSize() }
             }
+
+            BriefAccuracySection()
         }
         .formStyle(.grouped)
     }
