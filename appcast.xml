@@ -3,21 +3,19 @@
     <channel>
         <title>EVEOps</title>
         <item>
-            <title>0.9.16</title>
-            <pubDate>Sun, 11 Oct 2026 13:41:37 -0400</pubDate>
-            <link>https://github.com/MikeManzo/EVEOps/releases/tag/v0.9.16</link>
+            <title>0.9.20</title>
+            <pubDate>Sun, 11 Oct 2026 14:27:55 -0400</pubDate>
+            <link>https://github.com/MikeManzo/EVEOps/releases/tag/v0.9.20</link>
             <sparkle:informationalUpdate>
                 <sparkle:belowVersion>159</sparkle:belowVersion>
             </sparkle:informationalUpdate>
-            <sparkle:version>177</sparkle:version>
-            <sparkle:shortVersionString>0.9.16</sparkle:shortVersionString>
+            <sparkle:version>178</sparkle:version>
+            <sparkle:shortVersionString>0.9.20</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<p>Route Planner: Entry briefs for lowsec (new) --&gt; Every lowsec system on a plotted route gets a Clear, Caution or Danger tag based on the last 3 hours of kills on zKillboard. Click the tag to see why in plain language: a likely gate camp (naming the gate, and whether it&#x27;s the one you arrive on or leave by), a gang moving through nearby systems, a cloaky hunter, or no player kills at all. Danger systems open their brief on their own.</p>
-<p>Route Planner: What&#x27;s normal here --&gt; Each brief also says whether the system is usually quieter or busier than average at this hour, how many kills it saw in the past week, whether it&#x27;s a contested Faction Warfare system, and whether it has a wormhole to Thera or Turnur.</p>
-<p>Route Planner: Honest about its limits --&gt; Every brief shows how old its data is and what it can&#x27;t see: cloaked ships, pilots who haven&#x27;t killed anyone yet, and kills not yet posted. A Paste Local button takes you straight to Local Intel, and it&#x27;s shown in red for Danger systems.</p>
-<p>Route Planner: Watch a route live (new) --&gt; Click Watch this route live and the briefs update as kills happen, including kills in systems next to your route, so a gang heading your way shows up before it arrives. A watch keeps running when you leave Route Planner and ends when you stop it, watch another route, or after 3 hours.</p>
-<p>Route Planner: Alerts ahead of you --&gt; While you watch a route, you get a notification when a gate camp or gang appears ahead, when a system turns Danger, or when your next jump is Danger. If your pilot can share their location, their system is marked YOU and only systems ahead of them are announced. Turn these alerts off in Settings &gt; Notifications.</p>]]></description>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.16/EVEOps.dmg" length="35958535" type="application/octet-stream" sparkle:edSignature="yNL/jQdjUcNfzF6c8bdAHGed/ck8h8HydfJKw3AQM8NlS1fpMIyGHtBCPzl/VyRFEtFmw2Uhz9JOjX/HYNgkDw=="/>
+            <description><![CDATA[<p>Route Planner: What&#x27;s at stake? --&gt; Before a lowsec trip, see what a loss would cost you: your ship, fit and cargo, the implants in your pod, and what Platinum insurance would pay back. If your implants are valuable, it tells you whether you have an implant-free jump clone to leave them behind with.</p>
+<p>Route Planner: Can you escape a gate camp? --&gt; See how fast your current ship aligns and warps with your skills, implants and fit, and a plain verdict: warps cloaked, hard to catch, catchable by fast lockers, or catchable. When it can be caught, you get a tip to fix it, like the MWD + cloak trick or a scout for haulers.</p>
+<p>Settings: How accurate are the briefs? --&gt; Settings &gt; Advanced shows how often the Route Planner&#x27;s lowsec briefs were right, checked against kills in the 30 minutes after each one. Everything stays on your Mac.</p>]]></description>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.20/EVEOps.dmg" length="36103184" type="application/octet-stream" sparkle:edSignature="Xns4jNv6FWiO+97oc/6Zqv/FATWk3Dw8imMB5mDrCj5FFRWTaBMVKA1zPE04rHA+N75HYJE3J8A9t/EN/aYTBA=="/>
         </item>
     </channel>
 </rss>
