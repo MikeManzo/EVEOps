@@ -42,6 +42,9 @@ struct RoutePlannerView: View {
     @State private var autoAvoidedCount = 0
     /// True while the Route Entry Brief is being built for the plotted route's lowsec systems.
     @State private var isLoadingBriefs = false
+    @State private var tripStake: TripStake?
+    @State private var isLoadingStake = false
+    @State private var stakeError: String?
     @State private var autopilotMessage: String?
     @State private var isSettingAutopilot = false
     @State private var theraConnections: [EVEScoutConnection] = []
@@ -68,6 +71,11 @@ struct RoutePlannerView: View {
         .eveScreenHeader("Route Planner", section: .routePlanner)
         .task { await loadTheraConnections() }
         .task(id: AppRouter.shared.pendingRoute) { await applyPendingRoute() }
+        .onChange(of: accountManager.selectedCharacterID) {
+            tripStake = nil
+            stakeError = nil
+            if !route.isEmpty { Task { await loadTripStake() } }
+        }
     }
 
     /// Consumes a route request handed over from another view (Quiet Systems list,
@@ -329,6 +337,12 @@ struct RoutePlannerView: View {
                     .padding(.bottom, 10)
 
                 entryBriefSummary
+
+                if accountManager.selectedAccount != nil && routeIsRisky {
+                    RouteTripStakeCard(stake: tripStake, isLoading: isLoadingStake, error: stakeError) {
+                        Task { await loadTripStake() }
+                    }
+                }
 
                 if let autopilotMessage {
                     HStack(spacing: EVESpacing.sm) {
@@ -719,7 +733,34 @@ struct RoutePlannerView: View {
             errorMessage = "No route found between these systems with the selected route type."
         }
         isCalculating = false
+        tripStake = nil
+        stakeError = nil
+        Task { await loadTripStake() }
         await loadEntryBriefs(esi: danger)
+    }
+
+    // MARK:  What's at Stake
+
+    /// Lowsec, nullsec, or a system the entry brief calls Danger.
+    private var routeIsRisky: Bool {
+        displayRoute.contains { $0.securityStatus < 0.45 || $0.danger.intel?.threat.status == .danger }
+    }
+
+    /// Values what the selected pilot would risk on this route. Only for risky routes.
+    private func loadTripStake() async {
+        guard routeIsRisky, let account = accountManager.selectedAccount, !isLoadingStake else { return }
+        isLoadingStake = true
+        defer { isLoadingStake = false }
+        do {
+            let token = try await accountManager.validToken(for: account)
+            tripStake = try await TripStakeService.estimate(characterID: account.characterID, token: token,
+                                                            routeIsRisky: true)
+            stakeError = nil
+        } catch ESIError.unauthorized, ESIError.forbidden {
+            stakeError = "Requires esi-location.read_ship_type.v1 scope — re-add your character with updated permissions."
+        } catch {
+            stakeError = "Couldn't work out what's at stake: \(error.localizedDescription)"
+        }
     }
 
     // MARK:  Route Entry Brief
