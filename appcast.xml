@@ -3,17 +3,21 @@
     <channel>
         <title>EVEOps</title>
         <item>
-            <title>0.9.15.3</title>
-            <pubDate>Sat, 10 Oct 2026 16:10:31 -0400</pubDate>
-            <link>https://github.com/MikeManzo/EVEOps/releases/tag/v0.9.15.3</link>
+            <title>0.9.16</title>
+            <pubDate>Sun, 11 Oct 2026 13:41:37 -0400</pubDate>
+            <link>https://github.com/MikeManzo/EVEOps/releases/tag/v0.9.16</link>
             <sparkle:informationalUpdate>
                 <sparkle:belowVersion>159</sparkle:belowVersion>
             </sparkle:informationalUpdate>
-            <sparkle:version>176</sparkle:version>
-            <sparkle:shortVersionString>0.9.15.3</sparkle:shortVersionString>
+            <sparkle:version>177</sparkle:version>
+            <sparkle:shortVersionString>0.9.16</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<p>(Fixed) Hangar Matrix with many pilots: When the matrix was wider than the window, hovering over or clicking a pilot&#x27;s tile could pick a tile several columns away and open its details. It could happen as soon as the matrix opened, after resizing the window or sidebar, or after switching away and back. Highlights and clicks now always land on the tile under your pointer.</p>]]></description>
-            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.15.3/EVEOps.dmg" length="35644715" type="application/octet-stream" sparkle:edSignature="/fBU9VwD8qF4VnThQyVvuB7/jwB08yYx/v9U13ZZPER0cw+gf8poQBHnvDnpejnIZzdby+1aXpLCx3dhNrbABw=="/>
+            <description><![CDATA[<p>Route Planner: Entry briefs for lowsec (new) --&gt; Every lowsec system on a plotted route gets a Clear, Caution or Danger tag based on the last 3 hours of kills on zKillboard. Click the tag to see why in plain language: a likely gate camp (naming the gate, and whether it&#x27;s the one you arrive on or leave by), a gang moving through nearby systems, a cloaky hunter, or no player kills at all. Danger systems open their brief on their own.</p>
+<p>Route Planner: What&#x27;s normal here --&gt; Each brief also says whether the system is usually quieter or busier than average at this hour, how many kills it saw in the past week, whether it&#x27;s a contested Faction Warfare system, and whether it has a wormhole to Thera or Turnur.</p>
+<p>Route Planner: Honest about its limits --&gt; Every brief shows how old its data is and what it can&#x27;t see: cloaked ships, pilots who haven&#x27;t killed anyone yet, and kills not yet posted. A Paste Local button takes you straight to Local Intel, and it&#x27;s shown in red for Danger systems.</p>
+<p>Route Planner: Watch a route live (new) --&gt; Click Watch this route live and the briefs update as kills happen, including kills in systems next to your route, so a gang heading your way shows up before it arrives. A watch keeps running when you leave Route Planner and ends when you stop it, watch another route, or after 3 hours.</p>
+<p>Route Planner: Alerts ahead of you --&gt; While you watch a route, you get a notification when a gate camp or gang appears ahead, when a system turns Danger, or when your next jump is Danger. If your pilot can share their location, their system is marked YOU and only systems ahead of them are announced. Turn these alerts off in Settings &gt; Notifications.</p>]]></description>
+            <enclosure url="https://github.com/MikeManzo/EVEOps/releases/download/v0.9.16/EVEOps.dmg" length="35958535" type="application/octet-stream" sparkle:edSignature="yNL/jQdjUcNfzF6c8bdAHGed/ck8h8HydfJKw3AQM8NlS1fpMIyGHtBCPzl/VyRFEtFmw2Uhz9JOjX/HYNgkDw=="/>
         </item>
     </channel>
 </rss>
