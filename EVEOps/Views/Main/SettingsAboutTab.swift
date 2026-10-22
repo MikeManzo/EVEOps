@@ -119,7 +119,7 @@ struct AboutTab: View {
                             }
                         }
                         linkButton("server.rack", "KEC Discord") {
-                            if let url = URL(string: "https://discord.gg/HjRK7yAH8") {
+                            if let url = URL(string: "https://discord.gg/sT72mwNDux") {
                                 NSWorkspace.shared.open(url)
                             }
                         }

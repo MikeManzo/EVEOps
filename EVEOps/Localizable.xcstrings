@@ -40,10 +40,26 @@
     "· %lld bonus" : {
 
     },
+    "· %lld kill%@ nearby" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "· %1$lld kill%2$@ nearby"
+          }
+        }
+      }
+    },
     "· %lld unpriced" : {
 
     },
     "· %lldj" : {
+
+    },
+    "· connecting to zKillboard…" : {
+
+    },
+    "· feed heard %@ ago" : {
 
     },
     "· kills as of %@" : {
@@ -475,6 +491,19 @@
         }
       }
     },
+    "%@ is in %@, jump %lld of %lld. Only systems ahead are announced." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ is in %2$@, jump %3$lld of %4$lld. Only systems ahead are announced."
+          }
+        }
+      }
+    },
+    "%@ is now Danger" : {
+
+    },
     "%@ ISK" : {
 
     },
@@ -722,6 +751,16 @@
     },
     "%lld bonus remaps available" : {
 
+    },
+    "%lld briefs waiting to be checked. Each can be checked about %lld minutes after it was made." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld briefs waiting to be checked. Each can be checked about %2$lld minutes after it was made."
+          }
+        }
+      }
     },
     "%lld buy" : {
 
@@ -1195,6 +1234,26 @@
         }
       }
     },
+    "%lld of %lld briefs" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld of %2$lld briefs"
+          }
+        }
+      }
+    },
+    "%lld of %lld briefs · too few to judge" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld of %2$lld briefs · too few to judge"
+          }
+        }
+      }
+    },
     "%lld of %lld items" : {
       "localizations" : {
         "en" : {
@@ -1594,6 +1653,9 @@
 
     },
     "%lld upcoming" : {
+
+    },
+    "%lld waiting to be checked" : {
 
     },
     "%lld/%lld" : {
@@ -2116,6 +2178,9 @@
     "Added to Plan" : {
 
     },
+    "Adding up your ship, cargo and implants…" : {
+
+    },
     "Adds %@" : {
 
     },
@@ -2221,6 +2286,9 @@
     "All running" : {
 
     },
+    "All saved verdicts and results on this Mac are deleted." : {
+
+    },
     "All Time" : {
 
     },
@@ -2319,6 +2387,9 @@
 
     },
     "another location" : {
+
+    },
+    "Another route is being watched." : {
 
     },
     "Any" : {
@@ -2690,6 +2761,9 @@
     "Can fly" : {
 
     },
+    "Can you get away?" : {
+
+    },
     "Cancel" : {
 
     },
@@ -2789,6 +2863,9 @@
     "Check interval" : {
 
     },
+    "Check Now" : {
+
+    },
     "Check whether you can fly this fit right now — skills, parts and where they are" : {
 
     },
@@ -2803,6 +2880,16 @@
     },
     "Checking market volume…" : {
 
+    },
+    "Checking recent kills in %lld lowsec system%@…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Checking recent kills in %1$lld lowsec system%2$@…"
+          }
+        }
+      }
     },
     "Checking the trade hubs…" : {
 
@@ -3701,6 +3788,9 @@
     "e.g. “Ferox”, “Ishtar”, “Muninn”" : {
 
     },
+    "Each lowsec entry brief is saved on this Mac, then checked against zKillboard for player kills in that system in the %lld minutes that followed. Clear verdicts should rarely be followed by a kill, and Danger verdicts often." : {
+
+    },
     "Earn LP by running missions for NPC corporations." : {
 
     },
@@ -3769,6 +3859,15 @@
 
     },
     "Enter the passphrase this backup was encrypted with." : {
+
+    },
+    "Entry Brief Accuracy" : {
+
+    },
+    "Entry brief unavailable." : {
+
+    },
+    "Entry brief: %@" : {
 
     },
     "Error" : {
@@ -4259,6 +4358,9 @@
     "Flyable by someone" : {
 
     },
+    "Following %@'s location. Every watched system is announced until they're on the route." : {
+
+    },
     "Forge" : {
 
     },
@@ -4320,6 +4422,12 @@
 
     },
     "Galaxy Search" : {
+
+    },
+    "Gang near your route: %@" : {
+
+    },
+    "Gate camp on your route: %@" : {
 
     },
     "Gates" : {
@@ -4392,6 +4500,12 @@
 
     },
     "Here" : {
+
+    },
+    "Hide entry brief" : {
+
+    },
+    "Hides the entry brief" : {
 
     },
     "High" : {
@@ -5486,6 +5600,9 @@
     "Never remapped" : {
 
     },
+    "New danger on a route you're watching (Route Planner)" : {
+
+    },
     "New Eden" : {
 
     },
@@ -5502,6 +5619,9 @@
 
     },
     "Next Job" : {
+
+    },
+    "Next jump is dangerous: %@" : {
 
     },
     "Next Login" : {
@@ -5569,6 +5689,9 @@
 
     },
     "No attribute implant in this slot" : {
+
+    },
+    "No briefs yet. Plan a route through lowsec to start collecting." : {
 
     },
     "No Buy Orders" : {
@@ -5920,6 +6043,9 @@
     "Notifications Disabled" : {
 
     },
+    "Notifies you about new camps, gangs and Danger ahead. Stops %@ from now." : {
+
+    },
     "Now" : {
 
     },
@@ -6032,6 +6158,9 @@
     "Only stations with this service" : {
 
     },
+    "Only the first %lld lowsec systems are checked." : {
+
+    },
     "Open %@" : {
 
     },
@@ -6046,6 +6175,9 @@
       }
     },
     "Open %@ in the Ready Room" : {
+
+    },
+    "Open Clones" : {
 
     },
     "Open Contacts" : {
@@ -6096,6 +6228,9 @@
     "Open Killmail in zKillboard" : {
 
     },
+    "Open Local Intel to check who is in the system right now" : {
+
+    },
     "Open Market Browser" : {
 
     },
@@ -6106,6 +6241,9 @@
 
     },
     "Open Remap Advisor" : {
+
+    },
+    "Open Route Planner" : {
 
     },
     "Open Settings…" : {
@@ -6269,6 +6407,12 @@
 
     },
     "Paste items on the left and tap Appraise" : {
+
+    },
+    "Paste Local before you jump in" : {
+
+    },
+    "Paste Local before you jump in." : {
 
     },
     "Paste the URL into the Webhook URL field here and turn on “Send alerts to Discord.”" : {
@@ -6675,10 +6819,22 @@
     "Refresh" : {
 
     },
+    "Refresh after switching ships or changing your cargo" : {
+
+    },
+    "Refresh after switching ships or refitting" : {
+
+    },
     "Refresh All Data Now" : {
 
     },
     "Refresh connections" : {
+
+    },
+    "Refresh escape check" : {
+
+    },
+    "Refresh estimate" : {
 
     },
     "Refresh Implant Data" : {
@@ -6810,7 +6966,13 @@
     "Reset" : {
 
     },
+    "Reset entry brief accuracy?" : {
+
+    },
     "Reset View" : {
+
+    },
+    "Reset…" : {
 
     },
     "Resets at local midnight" : {
@@ -7325,6 +7487,9 @@
     "Show each fit's value, contents, required skills and who saved it" : {
 
     },
+    "Show entry brief" : {
+
+    },
     "Show in Fittings" : {
 
     },
@@ -7355,6 +7520,9 @@
     "Showing top %lld" : {
 
     },
+    "Shows the entry brief" : {
+
+    },
     "Shows your current ship and system as your Discord activity status — visible to anyone who can see your Discord profile." : {
 
     },
@@ -7374,6 +7542,9 @@
 
     },
     "Signal: %@" : {
+
+    },
+    "Since %@" : {
 
     },
     "Singularity (Test)" : {
@@ -8201,6 +8372,9 @@
     "updated %@" : {
 
     },
+    "Updates these briefs as kills happen and notifies you about new danger ahead." : {
+
+    },
     "Use local textures" : {
 
     },
@@ -8356,7 +8530,16 @@
     "Warzone control unavailable" : {
 
     },
+    "Watch this route instead" : {
+
+    },
+    "Watch this route live" : {
+
+    },
     "Watched" : {
+
+    },
+    "Watching live" : {
 
     },
     "Waypoint" : {
@@ -8378,6 +8561,9 @@
 
     },
     "What it trains" : {
+
+    },
+    "What's at stake" : {
 
     },
     "What’s New in EVEOps" : {
@@ -8428,6 +8614,9 @@
     "Won’t Fit" : {
 
     },
+    "Working out how fast your ship gets into warp…" : {
+
+    },
     "Wormhole" : {
 
     },
@@ -8450,6 +8639,9 @@
 
     },
     "You" : {
+
+    },
+    "YOU" : {
 
     },
     "You are here" : {
@@ -8512,6 +8704,12 @@
 
     },
     "Your last forged fit, recalculated with today’s skills and assets." : {
+
+    },
+    "Your next clone jump is available %@." : {
+
+    },
+    "Your pilot's current system" : {
 
     },
     "Your queue is **%@ %@ / %@** skills. For fastest training, remap to:" : {
